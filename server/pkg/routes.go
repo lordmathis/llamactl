@@ -18,13 +18,22 @@ func SetupRouter(handler *Handler) *chi.Mux {
 
 	// Define routes
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/server/help", handler.HelpHandler())
-		r.Get("/server/version", handler.VersionHandler())
-		r.Get("/server/devices", handler.ListDevicesHandler())
+		r.Route("/server", func(r chi.Router) {
+			r.Get("/help", handler.HelpHandler())
+			r.Get("/version", handler.VersionHandler())
+			r.Get("/devices", handler.ListDevicesHandler())
+		})
 
-		// Launch and stop handlers
-		// r.Post("/server/launch/{model}", launchHandler)
-		// r.Post("/server/stop/{model}", stopHandler)
+		// Instance management endpoints
+		// r.Get("/instances", handler.ListInstances())                    // List all instances
+		// r.Post("/instances", handler.CreateInstance())                  // Create and start new instance
+		// r.Get("/instances/{id}", handler.GetInstance())                 // Get instance details
+		// r.Put("/instances/{id}", handler.UpdateInstance())              // Update instance configuration
+		// r.Delete("/instances/{id}", handler.DeleteInstance())           // Stop and remove instance
+		// r.Post("/instances/{id}/start", handler.StartInstance())        // Start stopped instance
+		// r.Post("/instances/{id}/stop", handler.StopInstance())          // Stop running instance
+		// r.Post("/instances/{id}/restart", handler.RestartInstance())    // Restart instance
+		// r.Get("/instances/{id}/logs", handler.GetInstanceLogs())        // Get instance logs
 	})
 
 	return r
