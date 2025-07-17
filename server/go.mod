@@ -1,4 +1,4 @@
-module github.com/lordmathis/llamactl
+module llamactl
 
 go 1.24.5
 
