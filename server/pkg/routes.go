@@ -8,19 +8,19 @@ import (
 	_ "llamactl/docs"
 )
 
-func SetupRouter() *chi.Mux {
+func SetupRouter(handler *Handler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
 	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"), // The URL pointing to API definition
+		httpSwagger.URL("/swagger/doc.json"),
 	))
 
 	// Define routes
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/server/help", HelpHandler)
-		r.Get("/server/version", VersionHandler)
-		r.Get("/server/devices", ListDevicesHandler)
+		r.Get("/server/help", handler.HelpHandler())
+		r.Get("/server/version", handler.VersionHandler())
+		r.Get("/server/devices", handler.ListDevicesHandler())
 
 		// Launch and stop handlers
 		// r.Post("/server/launch/{model}", launchHandler)

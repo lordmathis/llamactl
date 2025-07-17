@@ -1,9 +1,21 @@
 package llamactl
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"os/exec"
 )
+
+type Handler struct {
+	InstanceManager InstanceManager
+}
+
+func NewHandler(im InstanceManager) *Handler {
+	return &Handler{
+		InstanceManager: im,
+	}
+}
 
 // HelpHandler godoc
 // @Summary Get help for llama server
@@ -13,15 +25,17 @@ import (
 // @Success 200 {string} string "Help text"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /server/help [get]
-func HelpHandler(w http.ResponseWriter, r *http.Request) {
-	helpCmd := exec.Command("llama-server", "--help")
-	output, err := helpCmd.CombinedOutput()
-	if err != nil {
-		http.Error(w, "Failed to get help: "+err.Error(), http.StatusInternalServerError)
-		return
+func (h *Handler) HelpHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		helpCmd := exec.Command("llama-server", "--help")
+		output, err := helpCmd.CombinedOutput()
+		if err != nil {
+			http.Error(w, "Failed to get help: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write(output)
 	}
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write(output)
 }
 
 // VersionHandler godoc
@@ -32,15 +46,17 @@ func HelpHandler(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string "Version information"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /server/version [get]
-func VersionHandler(w http.ResponseWriter, r *http.Request) {
-	versionCmd := exec.Command("llama-server", "--version")
-	output, err := versionCmd.CombinedOutput()
-	if err != nil {
-		http.Error(w, "Failed to get version: "+err.Error(), http.StatusInternalServerError)
-		return
+func (h *Handler) VersionHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		versionCmd := exec.Command("llama-server", "--version")
+		output, err := versionCmd.CombinedOutput()
+		if err != nil {
+			http.Error(w, "Failed to get version: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write(output)
 	}
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write(output)
 }
 
 // ListDevicesHandler godoc
@@ -51,15 +67,29 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string "List of devices"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /server/devices [get]
-func ListDevicesHandler(w http.ResponseWriter, r *http.Request) {
-	listCmd := exec.Command("llama-server", "--list-devices")
-	output, err := listCmd.CombinedOutput()
-	if err != nil {
-		http.Error(w, "Failed to list devices: "+err.Error(), http.StatusInternalServerError)
-		return
+func (h *Handler) ListDevicesHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		listCmd := exec.Command("llama-server", "--list-devices")
+		output, err := listCmd.CombinedOutput()
+		if err != nil {
+			http.Error(w, "Failed to list devices: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write(output)
 	}
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write(output)
+}
+
+func (h *Handler) StartHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var requestBody InstanceOptions
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			fmt.Println("Error decoding request body:", err)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+	}
 }
 
 // func launchHandler(w http.ResponseWriter, r *http.Request) {
