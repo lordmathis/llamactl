@@ -1,0 +1,85 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a control server for managing Llama Server instances.",
+        "title": "Llama Server Control",
+        "contact": {},
+        "license": {
+            "name": "MIT License",
+            "url": "https://opensource.org/license/mit/"
+        },
+        "version": "1.0"
+    },
+    "basePath": "/api/v1",
+    "paths": {
+        "/server/devices": {
+            "get": {
+                "description": "Returns a list of available devices for the llama server",
+                "tags": [
+                    "server"
+                ],
+                "summary": "List available devices for llama server",
+                "responses": {
+                    "200": {
+                        "description": "List of devices",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/server/help": {
+            "get": {
+                "description": "Returns the help text for the llama server command",
+                "tags": [
+                    "server"
+                ],
+                "summary": "Get help for llama server",
+                "responses": {
+                    "200": {
+                        "description": "Help text",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/server/version": {
+            "get": {
+                "description": "Returns the version of the llama server command",
+                "tags": [
+                    "server"
+                ],
+                "summary": "Get version of llama server",
+                "responses": {
+                    "200": {
+                        "description": "Version information",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
