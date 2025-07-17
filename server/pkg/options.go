@@ -1,6 +1,18 @@
 package llamactl
 
+import (
+	"encoding/json"
+	"reflect"
+	"strconv"
+	"strings"
+)
+
 type InstanceOptions struct {
+	Name string
+	*LlamaServerOptions
+}
+
+type LlamaServerOptions struct {
 	// Common params
 	VerbosePrompt           bool     `json:"verbose_prompt,omitempty"`
 	Threads                 int      `json:"threads,omitempty"`
@@ -63,8 +75,13 @@ type InstanceOptions struct {
 	HFRepoV                 string   `json:"hf_repo_v,omitempty"`
 	HFFileV                 string   `json:"hf_file_v,omitempty"`
 	HFToken                 string   `json:"hf_token,omitempty"`
+	LogDisable              bool     `json:"log_disable,omitempty"`
+	LogFile                 string   `json:"log_file,omitempty"`
+	LogColors               bool     `json:"log_colors,omitempty"`
 	Verbose                 bool     `json:"verbose,omitempty"`
 	Verbosity               int      `json:"verbosity,omitempty"`
+	LogPrefix               bool     `json:"log_prefix,omitempty"`
+	LogTimestamps           bool     `json:"log_timestamps,omitempty"`
 
 	// Sampling params
 	Samplers           string   `json:"samplers,omitempty"`
@@ -163,4 +180,190 @@ type InstanceOptions struct {
 	FIMQwen7BDefault      bool `json:"fim_qwen_7b_default,omitempty"`
 	FIMQwen7BSpec         bool `json:"fim_qwen_7b_spec,omitempty"`
 	FIMQwen14BSpec        bool `json:"fim_qwen_14b_spec,omitempty"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling to support multiple field names
+func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
+	// First unmarshal into a map to handle multiple field names
+	var raw map[string]interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	// Create a temporary struct for standard unmarshaling
+	type tempOptions LlamaServerOptions
+	temp := tempOptions{}
+
+	// Standard unmarshal first
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	// Copy to our struct
+	*o = LlamaServerOptions(temp)
+
+	// Handle alternative field names
+	fieldMappings := map[string]string{
+		// Threads alternatives
+		"t":             "threads",
+		"tb":            "threads_batch",
+		"threads-batch": "threads_batch",
+
+		// Context size alternatives
+		"c":        "ctx_size",
+		"ctx-size": "ctx_size",
+
+		// Predict alternatives
+		"n":         "predict",
+		"n-predict": "predict",
+		"n_predict": "predict",
+
+		// Batch size alternatives
+		"b":          "batch_size",
+		"batch-size": "batch_size",
+
+		// GPU layers alternatives
+		"ngl":          "gpu_layers",
+		"gpu-layers":   "gpu_layers",
+		"n-gpu-layers": "gpu_layers",
+		"n_gpu_layers": "gpu_layers",
+
+		// Model alternatives
+		"m": "model",
+
+		// Seed alternatives
+		"s": "seed",
+
+		// Flash attention alternatives
+		"fa":         "flash_attn",
+		"flash-attn": "flash_attn",
+
+		// Verbose alternatives
+		"v":           "verbose",
+		"log-verbose": "verbose",
+
+		// Verbosity alternatives
+		"lv":            "verbosity",
+		"log-verbosity": "verbosity",
+
+		// Temperature alternatives
+		"temp": "temperature",
+
+		// Top-k alternatives
+		"top-k": "top_k",
+
+		// Top-p alternatives
+		"top-p": "top_p",
+
+		// Min-p alternatives
+		"min-p": "min_p",
+
+		// Additional mappings can be added here
+	}
+
+	// Process alternative field names
+	for altName, canonicalName := range fieldMappings {
+		if value, exists := raw[altName]; exists {
+			// Use reflection to set the field value
+			v := reflect.ValueOf(o).Elem()
+			field := v.FieldByNameFunc(func(fieldName string) bool {
+				field, _ := v.Type().FieldByName(fieldName)
+				jsonTag := field.Tag.Get("json")
+				return jsonTag == canonicalName+",omitempty" || jsonTag == canonicalName
+			})
+
+			if field.IsValid() && field.CanSet() {
+				switch field.Kind() {
+				case reflect.Int:
+					if intVal, ok := value.(float64); ok {
+						field.SetInt(int64(intVal))
+					} else if strVal, ok := value.(string); ok {
+						if intVal, err := strconv.Atoi(strVal); err == nil {
+							field.SetInt(int64(intVal))
+						}
+					}
+				case reflect.Float64:
+					if floatVal, ok := value.(float64); ok {
+						field.SetFloat(floatVal)
+					} else if strVal, ok := value.(string); ok {
+						if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
+							field.SetFloat(floatVal)
+						}
+					}
+				case reflect.String:
+					if strVal, ok := value.(string); ok {
+						field.SetString(strVal)
+					}
+				case reflect.Bool:
+					if boolVal, ok := value.(bool); ok {
+						field.SetBool(boolVal)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// BuildCommandArgs converts InstanceOptions to command line arguments
+func (o *LlamaServerOptions) BuildCommandArgs() []string {
+	var args []string
+
+	v := reflect.ValueOf(o).Elem()
+	t := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+
+		// Skip unexported fields
+		if !field.CanInterface() {
+			continue
+		}
+
+		// Get the JSON tag to determine the flag name
+		jsonTag := fieldType.Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+
+		// Remove ",omitempty" from the tag
+		flagName := jsonTag
+		if commaIndex := strings.Index(jsonTag, ","); commaIndex != -1 {
+			flagName = jsonTag[:commaIndex]
+		}
+
+		// Convert snake_case to kebab-case for CLI flags
+		flagName = strings.ReplaceAll(flagName, "_", "-")
+
+		// Add the appropriate arguments based on field type and value
+		switch field.Kind() {
+		case reflect.Bool:
+			if field.Bool() {
+				args = append(args, "--"+flagName)
+			}
+		case reflect.Int:
+			if field.Int() != 0 {
+				args = append(args, "--"+flagName, strconv.FormatInt(field.Int(), 10))
+			}
+		case reflect.Float64:
+			if field.Float() != 0 {
+				args = append(args, "--"+flagName, strconv.FormatFloat(field.Float(), 'f', -1, 64))
+			}
+		case reflect.String:
+			if field.String() != "" {
+				args = append(args, "--"+flagName, field.String())
+			}
+		case reflect.Slice:
+			if field.Type().Elem().Kind() == reflect.String {
+				// Handle []string fields
+				for j := 0; j < field.Len(); j++ {
+					args = append(args, "--"+flagName, field.Index(j).String())
+				}
+			}
+		}
+	}
+
+	return args
 }
