@@ -15,7 +15,7 @@ import (
 
 type Instance struct {
 	ID      uuid.UUID
-	Options *InstanceOptions
+	options *InstanceOptions
 
 	// Status
 	Running bool
@@ -37,13 +37,29 @@ type Instance struct {
 func NewInstance(id uuid.UUID, options *InstanceOptions) *Instance {
 	return &Instance{
 		ID:      id,
-		Options: options,
+		options: options,
 
 		Running: false,
 
 		StdOutChan: make(chan string, 100),
 		StdErrChan: make(chan string, 100),
 	}
+}
+
+func (i *Instance) GetOptions() *InstanceOptions {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.options
+}
+
+func (i *Instance) SetOptions(options *InstanceOptions) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if options == nil {
+		log.Println("Warning: Attempted to set nil options on instance", i.ID)
+		return
+	}
+	i.options = options
 }
 
 func (i *Instance) Start() error {
@@ -54,7 +70,7 @@ func (i *Instance) Start() error {
 		return fmt.Errorf("instance %s is already running", i.ID)
 	}
 
-	args := i.Options.BuildCommandArgs()
+	args := i.options.BuildCommandArgs()
 
 	i.ctx, i.cancel = context.WithCancel(context.Background())
 	i.cmd = exec.CommandContext(i.ctx, "llama-server", args...)
@@ -156,14 +172,14 @@ func (i *Instance) monitorProcess() {
 	}
 
 	// Handle restart if process crashed and auto-restart is enabled
-	if err != nil && i.Options.AutoRestart && i.restarts < i.Options.MaxRestarts {
+	if err != nil && i.options.AutoRestart && i.restarts < i.options.MaxRestarts {
 		i.restarts++
 		log.Printf("Auto-restarting instance %s (attempt %d/%d) in %v",
-			i.ID, i.restarts, i.Options.MaxRestarts, i.Options.RestartDelay)
+			i.ID, i.restarts, i.options.MaxRestarts, i.options.RestartDelay)
 
 		// Unlock mutex during sleep to avoid blocking other operations
 		i.mu.Unlock()
-		time.Sleep(i.Options.RestartDelay)
+		time.Sleep(i.options.RestartDelay)
 		i.mu.Lock()
 
 		// Attempt restart
@@ -173,7 +189,7 @@ func (i *Instance) monitorProcess() {
 			log.Printf("Successfully restarted instance %s", i.ID)
 			i.restarts = 0 // Reset restart count on successful restart
 		}
-	} else if i.restarts >= i.Options.MaxRestarts {
-		log.Printf("Instance %s exceeded max restart attempts (%d)", i.ID, i.Options.MaxRestarts)
+	} else if i.restarts >= i.options.MaxRestarts {
+		log.Printf("Instance %s exceeded max restart attempts (%d)", i.ID, i.options.MaxRestarts)
 	}
 }

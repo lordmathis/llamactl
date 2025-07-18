@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -92,41 +95,129 @@ func (h *Handler) StartHandler() http.HandlerFunc {
 	}
 }
 
-// func launchHandler(w http.ResponseWriter, r *http.Request) {
-// 	model := chi.URLParam(r, "model")
-// 	if model == "" {
-// 		http.Error(w, "Model parameter is required", http.StatusBadRequest)
-// 		return
-// 	}
+func (h *Handler) GetInstance() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		uuid, err := uuid.Parse(id)
+		if err != nil {
+			http.Error(w, "Invalid UUID format", http.StatusBadRequest)
+			return
+		}
 
-// 	cmd := execLLama(model)
-// 	if err := cmd.Start(); err != nil {
-// 		http.Error(w, "Failed to start llama server: "+err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
+		instance, err := h.InstanceManager.GetInstance(uuid)
+		if err != nil {
+			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-// 	instances[model] = cmd
-// 	w.Write([]byte("Llama server started for model: " + model))
-// }
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(instance); err != nil {
+			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
 
-// func stopHandler(w http.ResponseWriter, r *http.Request) {
-// 	model := chi.URLParam(r, "model")
-// 	if model == "" {
-// 		http.Error(w, "Model parameter is required", http.StatusBadRequest)
-// 		return
-// 	}
+func (h *Handler) UpdateInstance() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		uuid, err := uuid.Parse(id)
+		if err != nil {
+			http.Error(w, "Invalid UUID format", http.StatusBadRequest)
+			return
+		}
 
-// 	cmd, exists := instances[model]
-// 	if !exists {
-// 		http.Error(w, "No running instance for model: "+model, http.StatusNotFound)
-// 		return
-// 	}
+		var options InstanceOptions
+		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
 
-// 	if err := cmd.Process.Signal(os.Interrupt); err != nil {
-// 		http.Error(w, "Failed to stop llama server: "+err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
+		instance, err := h.InstanceManager.UpdateInstance(uuid, &options)
+		if err != nil {
+			http.Error(w, "Failed to update instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-// 	delete(instances, model)
-// 	w.Write([]byte("Llama server stopped for model: " + model))
-// }
+		instance, err = h.InstanceManager.RestartInstance(uuid)
+		if err != nil {
+			http.Error(w, "Failed to restart instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(instance); err != nil {
+			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (h *Handler) StartInstance() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		uuid, err := uuid.Parse(id)
+		if err != nil {
+			http.Error(w, "Invalid UUID format", http.StatusBadRequest)
+			return
+		}
+
+		instance, err := h.InstanceManager.StartInstance(uuid)
+		if err != nil {
+			http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(instance); err != nil {
+			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (h *Handler) StopInstance() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		uuid, err := uuid.Parse(id)
+		if err != nil {
+			http.Error(w, "Invalid UUID format", http.StatusBadRequest)
+			return
+		}
+
+		instance, err := h.InstanceManager.StopInstance(uuid)
+		if err != nil {
+			http.Error(w, "Failed to stop instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(instance); err != nil {
+			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func (h *Handler) RestartInstance() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		uuid, err := uuid.Parse(id)
+		if err != nil {
+			http.Error(w, "Invalid UUID format", http.StatusBadRequest)
+			return
+		}
+
+		instance, err := h.InstanceManager.RestartInstance(uuid)
+		if err != nil {
+			http.Error(w, "Failed to restart instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(instance); err != nil {
+			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}

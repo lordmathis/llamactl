@@ -87,7 +87,8 @@ func (im *instanceManager) UpdateInstance(id uuid.UUID, options *InstanceOptions
 	if !exists {
 		return nil, fmt.Errorf("instance with ID %s not found", id)
 	}
-	instance.Options = options
+
+	instance.SetOptions(options)
 	return instance, nil
 }
 
@@ -117,7 +118,10 @@ func (im *instanceManager) StartInstance(id uuid.UUID) (*Instance, error) {
 		return instance, fmt.Errorf("instance with ID %s is already running", id)
 	}
 
-	//TODO:
+	if err := instance.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start instance %s: %w", id, err)
+	}
+
 	return instance, nil
 }
 
@@ -131,7 +135,10 @@ func (im *instanceManager) StopInstance(id uuid.UUID) (*Instance, error) {
 		return instance, fmt.Errorf("instance with ID %s is already stopped", id)
 	}
 
-	// TODO:
+	if err := instance.Stop(); err != nil {
+		return nil, fmt.Errorf("failed to stop instance %s: %w", id, err)
+	}
+
 	return instance, nil
 }
 
