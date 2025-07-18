@@ -8,7 +8,7 @@ import (
 )
 
 type InstanceOptions struct {
-	Name string
+	Name string `json:"name,omitempty"`
 	*LlamaServerOptions
 }
 

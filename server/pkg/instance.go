@@ -1,19 +1,12 @@
 package llamactl
 
+import (
+	"github.com/google/uuid"
+)
+
 type Instance struct {
+	ID      uuid.UUID
+	Port    int
 	Status  string
-	Options *LlamaServerOptions
-}
-
-type InstanceManager interface {
-}
-
-type instanceManager struct {
-	instances map[string]*Instance
-}
-
-func NewInstanceManager() InstanceManager {
-	return &instanceManager{
-		instances: make(map[string]*Instance),
-	}
+	Options *InstanceOptions
 }
