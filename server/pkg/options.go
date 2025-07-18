@@ -8,8 +8,33 @@ import (
 )
 
 type InstanceOptions struct {
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitempty"` // Display name
+
+	// Auto restart
+	AutoRestart  bool `json:"auto_restart,omitempty"`
+	MaxRestarts  int  `json:"max_restarts,omitempty"`
+	RestartDelay int  `json:"restart_delay,omitempty"` // in seconds
+
 	*LlamaServerOptions
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling with default values
+func (o *InstanceOptions) UnmarshalJSON(data []byte) error {
+	// Set defaults first
+	o.AutoRestart = true
+	o.MaxRestarts = 3
+	o.RestartDelay = 5
+
+	// Create a temporary struct to avoid recursion
+	type tempInstanceOptions InstanceOptions
+	temp := (*tempInstanceOptions)(o)
+
+	// Unmarshal into the temporary struct
+	if err := json.Unmarshal(data, temp); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type LlamaServerOptions struct {

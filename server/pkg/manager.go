@@ -46,15 +46,30 @@ func (im *instanceManager) ListInstances() ([]*Instance, error) {
 // CreateInstance creates a new instance with the given options and returns it.
 // The instance is initially in a "stopped" state.
 func (im *instanceManager) CreateInstance(options *InstanceOptions) (*Instance, error) {
-	id := uuid.New()
-	instance := &Instance{
-		ID:      id,
-		Port:    8080,      // Default port, can be changed later
-		Status:  "stopped", // Initial status
-		Options: options,
+	if options == nil {
+		return nil, fmt.Errorf("instance options cannot be nil")
 	}
-	im.instances[id] = instance
+
+	// Generate a unique ID for the new instance
+	id := uuid.New()
+	for im.instances[id] != nil {
+		id = uuid.New() // Ensure unique ID
+	}
+
+	// Assign a port if not specified
+	if options.Port == 0 {
+		port, err := im.getNextAvailablePort()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get next available port: %w", err)
+		}
+		options.Port = port
+	}
+
+	instance := NewInstance(id, options)
+	im.instances[instance.ID] = instance
+
 	return instance, nil
+
 }
 
 // GetInstance retrieves an instance by its ID.
@@ -83,8 +98,8 @@ func (im *instanceManager) DeleteInstance(id uuid.UUID) error {
 		return fmt.Errorf("instance with ID %s not found", id)
 	}
 
-	if im.instances[id].Status != "stopped" {
-		return fmt.Errorf("cannot delete a running instance, stop it first")
+	if im.instances[id].Running {
+		return fmt.Errorf("instance with ID %s is still running, stop it before deleting", id)
 	}
 
 	delete(im.instances, id)
@@ -98,13 +113,11 @@ func (im *instanceManager) StartInstance(id uuid.UUID) (*Instance, error) {
 	if !exists {
 		return nil, fmt.Errorf("instance with ID %s not found", id)
 	}
-	if instance.Status == "running" {
+	if instance.Running {
 		return instance, fmt.Errorf("instance with ID %s is already running", id)
 	}
 
 	//TODO:
-
-	instance.Status = "running"
 	return instance, nil
 }
 
@@ -114,12 +127,11 @@ func (im *instanceManager) StopInstance(id uuid.UUID) (*Instance, error) {
 	if !exists {
 		return nil, fmt.Errorf("instance with ID %s not found", id)
 	}
-	if instance.Status == "stopped" {
+	if !instance.Running {
 		return instance, fmt.Errorf("instance with ID %s is already stopped", id)
 	}
 
 	// TODO:
-	instance.Status = "stopped"
 	return instance, nil
 }
 
