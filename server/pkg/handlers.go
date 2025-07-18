@@ -221,3 +221,21 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 		}
 	}
 }
+
+func (h *Handler) DeleteInstance() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		uuid, err := uuid.Parse(id)
+		if err != nil {
+			http.Error(w, "Invalid UUID format", http.StatusBadRequest)
+			return
+		}
+
+		if err := h.InstanceManager.DeleteInstance(uuid); err != nil {
+			http.Error(w, "Failed to delete instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent) // No content for successful deletion
+	}
+}
