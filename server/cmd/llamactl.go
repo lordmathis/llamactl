@@ -14,6 +14,12 @@ import (
 // @basePath /api/v1
 func main() {
 
+	config, err := llamactl.LoadConfig("")
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		fmt.Println("Using default configuration.")
+	}
+
 	// Initialize the instance manager
 	instanceManager := llamactl.NewInstanceManager()
 
