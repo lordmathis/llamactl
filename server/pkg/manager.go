@@ -7,7 +7,7 @@ import (
 // InstanceManager defines the interface for managing instances of the llama server.
 type InstanceManager interface {
 	ListInstances() ([]*Instance, error)
-	CreateInstance(options *InstanceOptions) (*Instance, error)
+	CreateInstance(name string, options *InstanceOptions) (*Instance, error)
 	GetInstance(name string) (*Instance, error)
 	UpdateInstance(name string, options *InstanceOptions) (*Instance, error)
 	DeleteInstance(name string) error
@@ -43,19 +43,24 @@ func (im *instanceManager) ListInstances() ([]*Instance, error) {
 
 // CreateInstance creates a new instance with the given options and returns it.
 // The instance is initially in a "stopped" state.
-func (im *instanceManager) CreateInstance(options *InstanceOptions) (*Instance, error) {
+func (im *instanceManager) CreateInstance(name string, options *InstanceOptions) (*Instance, error) {
 	if options == nil {
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
 
-	// Check if name is provided
-	if options.Name == "" || !isValidInstanceName(options.Name) {
-		return nil, fmt.Errorf("invalid instance name: %s", options.Name)
+	err := ValidateInstanceName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ValidateInstanceOptions(options)
+	if err != nil {
+		return nil, err
 	}
 
 	// Check if instance with this name already exists
-	if im.instances[options.Name] != nil {
-		return nil, fmt.Errorf("instance with name %s already exists", options.Name)
+	if im.instances[name] != nil {
+		return nil, fmt.Errorf("instance with name %s already exists", name)
 	}
 
 	// Assign a port if not specified
@@ -67,21 +72,10 @@ func (im *instanceManager) CreateInstance(options *InstanceOptions) (*Instance, 
 		options.Port = port
 	}
 
-	instance := NewInstance(options.Name, options)
+	instance := NewInstance(name, options)
 	im.instances[instance.Name] = instance
 
 	return instance, nil
-}
-
-// isValidInstanceName checks if the instance name is valid.
-func isValidInstanceName(name string) bool {
-	// A simple validation: name should only contain alphanumeric characters, dashes, and underscores
-	for _, char := range name {
-		if !(('a' <= char && char <= 'z') || ('A' <= char && char <= 'Z') || ('0' <= char && char <= '9') || char == '-' || char == '_') {
-			return false
-		}
-	}
-	return true
 }
 
 // GetInstance retrieves an instance by its name.
@@ -98,6 +92,15 @@ func (im *instanceManager) UpdateInstance(name string, options *InstanceOptions)
 	instance, exists := im.instances[name]
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
+	}
+
+	if options == nil {
+		return nil, fmt.Errorf("instance options cannot be nil")
+	}
+
+	err := ValidateInstanceOptions(options)
+	if err != nil {
+		return nil, err
 	}
 
 	instance.SetOptions(options)

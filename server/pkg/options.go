@@ -33,8 +33,6 @@ func (d Duration) ToDuration() time.Duration {
 }
 
 type InstanceOptions struct {
-	Name string `json:"name,omitempty"` // Display name
-
 	// Auto restart
 	AutoRestart  bool     `json:"auto_restart,omitempty"`
 	MaxRestarts  int      `json:"max_restarts,omitempty"`

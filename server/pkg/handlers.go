@@ -120,13 +120,19 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 // @Router /instances [post]
 func (h *Handler) CreateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		name := chi.URLParam(r, "name")
+		if name == "" {
+			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+			return
+		}
+
 		var options InstanceOptions
 		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
-		instance, err := h.InstanceManager.CreateInstance(&options)
+		instance, err := h.InstanceManager.CreateInstance(name, &options)
 		if err != nil {
 			http.Error(w, "Failed to create instance: "+err.Error(), http.StatusInternalServerError)
 			return
