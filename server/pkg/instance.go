@@ -10,7 +10,9 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os/exec"
+	"runtime"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -99,6 +101,13 @@ func (i *Instance) Start() error {
 
 	i.ctx, i.cancel = context.WithCancel(context.Background())
 	i.cmd = exec.CommandContext(i.ctx, "llama-server", args...)
+
+	if runtime.GOOS != "windows" {
+		if i.cmd.SysProcAttr == nil {
+			i.cmd.SysProcAttr = &syscall.SysProcAttr{}
+		}
+		i.cmd.SysProcAttr.Setpgid = true
+	}
 
 	var err error
 	i.stdout, err = i.cmd.StdoutPipe()
