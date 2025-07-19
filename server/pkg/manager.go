@@ -49,8 +49,8 @@ func (im *instanceManager) CreateInstance(options *InstanceOptions) (*Instance, 
 	}
 
 	// Check if name is provided
-	if options.Name == "" {
-		return nil, fmt.Errorf("instance name cannot be empty")
+	if options.Name == "" || !isValidInstanceName(options.Name) {
+		return nil, fmt.Errorf("invalid instance name: %s", options.Name)
 	}
 
 	// Check if instance with this name already exists
@@ -71,7 +71,17 @@ func (im *instanceManager) CreateInstance(options *InstanceOptions) (*Instance, 
 	im.instances[instance.Name] = instance
 
 	return instance, nil
+}
 
+// isValidInstanceName checks if the instance name is valid.
+func isValidInstanceName(name string) bool {
+	// A simple validation: name should only contain alphanumeric characters, dashes, and underscores
+	for _, char := range name {
+		if !(('a' <= char && char <= 'z') || ('A' <= char && char <= 'Z') || ('0' <= char && char <= '9') || char == '-' || char == '_') {
+			return false
+		}
+	}
+	return true
 }
 
 // GetInstance retrieves an instance by its name.
