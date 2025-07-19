@@ -25,7 +25,7 @@ func NewHandler(im InstanceManager) *Handler {
 // @Summary Get help for llama server
 // @Description Returns the help text for the llama server command
 // @Tags server
-// #Produces text/plain
+// @Produces text/plain
 // @Success 200 {string} string "Help text"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /server/help [get]
@@ -46,7 +46,7 @@ func (h *Handler) HelpHandler() http.HandlerFunc {
 // @Summary Get version of llama server
 // @Description Returns the version of the llama server command
 // @Tags server
-// #Produces text/plain
+// @Produces text/plain
 // @Success 200 {string} string "Version information"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /server/version [get]
@@ -67,7 +67,7 @@ func (h *Handler) VersionHandler() http.HandlerFunc {
 // @Summary List available devices for llama server
 // @Description Returns a list of available devices for the llama server
 // @Tags server
-// #Produces text/plain
+// @Produces text/plain
 // @Success 200 {string} string "List of devices"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /server/devices [get]
@@ -88,7 +88,7 @@ func (h *Handler) ListDevicesHandler() http.HandlerFunc {
 // @Summary List all instances
 // @Description Returns a list of all instances managed by the server
 // @Tags instances
-// @Produce json
+// @Produces json
 // @Success 200 {array} Instance "List of instances"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /instances [get]
@@ -113,12 +113,13 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 // @Description Creates a new instance with the provided configuration options
 // @Tags instances
 // @Accept json
-// @Produce json
-// @Param options body InstanceOptions true "Instance configuration options"
+// @Produces json
+// @Param name path string true "Instance Name"
+// @Param options body CreateInstanceOptions true "Instance configuration options"
 // @Success 201 {object} Instance "Created instance details"
 // @Failure 400 {string} string "Invalid request body"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances [post]
+// @Router /instances/{name} [post]
 func (h *Handler) CreateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -152,6 +153,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 // @Summary Get details of a specific instance
 // @Description Returns the details of a specific instance by name
 // @Tags instances
+// @Produces json
 // @Param name path string true "Instance Name"
 // @Success 200 {object} Instance "Instance details"
 // @Failure 400 {string} string "Invalid name format"
@@ -184,9 +186,9 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 // @Description Updates the configuration of a specific instance by name
 // @Tags instances
 // @Accept json
-// @Produce json
+// @Produces json
 // @Param name path string true "Instance Name"
-// @Param options body InstanceOptions true "Instance configuration options"
+// @Param options body CreateInstanceOptions true "Instance configuration options"
 // @Success 200 {object} Instance "Updated instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
@@ -229,7 +231,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 // @Summary Start a stopped instance
 // @Description Starts a specific instance by name
 // @Tags instances
-// @Produce json
+// @Produces json
 // @Param name path string true "Instance Name"
 // @Success 200 {object} Instance "Started instance details"
 // @Failure 400 {string} string "Invalid name format"
@@ -261,7 +263,7 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 // @Summary Stop a running instance
 // @Description Stops a specific instance by name
 // @Tags instances
-// @Produce json
+// @Produces json
 // @Param name path string true "Instance Name"
 // @Success 200 {object} Instance "Stopped instance details"
 // @Failure 400 {string} string "Invalid name format"
@@ -293,7 +295,7 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 // @Summary Restart a running instance
 // @Description Restarts a specific instance by name
 // @Tags instances
-// @Produce json
+// @Produces json
 // @Param name path string true "Instance Name"
 // @Success 200 {object} Instance "Restarted instance details"
 // @Failure 400 {string} string "Invalid name format"
@@ -325,7 +327,6 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 // @Summary Delete an instance
 // @Description Stops and removes a specific instance by name
 // @Tags instances
-// @Produce json
 // @Param name path string true "Instance Name"
 // @Success 204 "No Content"
 // @Failure 400 {string} string "Invalid name format"
@@ -348,6 +349,17 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 	}
 }
 
+// GetInstanceLogs godoc
+// @Summary Get logs from a specific instance
+// @Description Returns the logs from a specific instance by name with optional line limit
+// @Tags instances
+// @Param name path string true "Instance Name"
+// @Param lines query string false "Number of lines to retrieve (default: all lines)"
+// @Produces text/plain
+// @Success 200 {string} string "Instance logs"
+// @Failure 400 {string} string "Invalid name format or lines parameter"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /instances/{name}/logs [get]
 func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -384,6 +396,16 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 	}
 }
 
+// ProxyToInstance godoc
+// @Summary Proxy requests to a specific instance
+// @Description Forwards HTTP requests to the llama-server instance running on a specific port
+// @Tags instances
+// @Param name path string true "Instance Name"
+// @Success 200 "Request successfully proxied to instance"
+// @Failure 400 {string} string "Invalid name format"
+// @Failure 500 {string} string "Internal Server Error"
+// @Failure 503 {string} string "Instance is not running"
+// @Router /instances/{name}/proxy [get]
 func (h *Handler) ProxyToInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")

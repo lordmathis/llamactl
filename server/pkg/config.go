@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -46,8 +45,8 @@ type InstancesConfig struct {
 	// Default max restarts for new instances
 	DefaultMaxRestarts int `yaml:"default_max_restarts"`
 
-	// Default restart delay for new instances
-	DefaultRestartDelay Duration `yaml:"default_restart_delay"`
+	// Default restart delay for new instances (in seconds)
+	DefaultRestartDelay int `yaml:"default_restart_delay"`
 }
 
 // LoadConfig loads configuration with the following precedence:
@@ -68,7 +67,7 @@ func LoadConfig(configPath string) (Config, error) {
 			LlamaExecutable:     "llama-server",
 			DefaultAutoRestart:  false,
 			DefaultMaxRestarts:  3,
-			DefaultRestartDelay: Duration(5 * time.Second),
+			DefaultRestartDelay: 5,
 		},
 	}
 
@@ -147,27 +146,10 @@ func loadEnvVars(cfg *Config) {
 		}
 	}
 	if restartDelay := os.Getenv("LLAMACTL_DEFAULT_RESTART_DELAY"); restartDelay != "" {
-		if d, err := parseDelaySeconds(restartDelay); err == nil {
-			cfg.Instances.DefaultRestartDelay = Duration(d)
+		if seconds, err := strconv.Atoi(restartDelay); err == nil {
+			cfg.Instances.DefaultRestartDelay = seconds
 		}
 	}
-}
-
-// parseDelaySeconds parses a string as seconds and returns a time.Duration
-// Accepts both plain numbers (seconds) and duration strings like "5s", "30s"
-func parseDelaySeconds(s string) (time.Duration, error) {
-	// If it contains letters, try parsing as duration
-	if strings.ContainsAny(s, "smh") {
-		return time.ParseDuration(s)
-	}
-
-	// Otherwise parse as seconds
-	seconds, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return time.Duration(seconds * float64(time.Second)), nil
 }
 
 // parsePortRange parses port range from string formats like "8000-9000" or "8000,9000"

@@ -18,35 +18,12 @@ import (
 	"time"
 )
 
-// Duration is a custom type that wraps time.Duration for better JSON/Swagger support
-// @description Duration in seconds
-type Duration time.Duration
-
-// MarshalJSON implements json.Marshaler for Duration
-func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Duration(d).Seconds())
-}
-
-// UnmarshalJSON implements json.Unmarshaler for Duration
-func (d *Duration) UnmarshalJSON(data []byte) error {
-	var seconds float64
-	if err := json.Unmarshal(data, &seconds); err != nil {
-		return err
-	}
-	*d = Duration(time.Duration(seconds * float64(time.Second)))
-	return nil
-}
-
-// ToDuration converts Duration to time.Duration
-func (d Duration) ToDuration() time.Duration {
-	return time.Duration(d)
-}
-
 type CreateInstanceOptions struct {
 	// Auto restart
-	AutoRestart  *bool     `json:"auto_restart,omitempty"`
-	MaxRestarts  *int      `json:"max_restarts,omitempty"`
-	RestartDelay *Duration `json:"restart_delay,omitempty"` // Duration in seconds
+	AutoRestart *bool `json:"auto_restart,omitempty"`
+	MaxRestarts *int  `json:"max_restarts,omitempty"`
+	// RestartDelay duration in seconds
+	RestartDelay *int `json:"restart_delay_seconds,omitempty"`
 
 	LlamaServerOptions `json:",inline"`
 }
@@ -332,12 +309,13 @@ func (i *Instance) monitorProcess() {
 	// Handle restart if process crashed and auto-restart is enabled
 	if err != nil && *i.options.AutoRestart && i.restarts < *i.options.MaxRestarts {
 		i.restarts++
+		delayDuration := time.Duration(*i.options.RestartDelay) * time.Second
 		log.Printf("Auto-restarting instance %s (attempt %d/%d) in %v",
-			i.Name, i.restarts, i.options.MaxRestarts, i.options.RestartDelay.ToDuration())
+			i.Name, i.restarts, i.options.MaxRestarts, delayDuration)
 
 		// Unlock mutex during sleep to avoid blocking other operations
 		i.mu.Unlock()
-		time.Sleep(i.options.RestartDelay.ToDuration())
+		time.Sleep(delayDuration)
 		i.mu.Lock()
 
 		// Attempt restart
