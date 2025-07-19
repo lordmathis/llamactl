@@ -9,8 +9,10 @@ import (
 	"log"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -23,9 +25,9 @@ type Instance struct {
 	// Status
 	Running bool `json:"running"`
 
-	// Output channels
-	StdOutChan chan string `json:"-"` // Channel for sending output messages
-	StdErrChan chan string `json:"-"` // Channel for sending error messages
+	// Log files
+	logPath string   `json:"-"`
+	logFile *os.File `json:"-"`
 
 	// internal
 	cmd      *exec.Cmd              `json:"-"` // Command to run the instance
@@ -44,9 +46,37 @@ func NewInstance(name string, options *InstanceOptions) *Instance {
 		options: options,
 
 		Running: false,
+	}
+}
 
-		StdOutChan: make(chan string, 100),
-		StdErrChan: make(chan string, 100),
+// createLogFiles creates and opens the log files for stdout and stderr
+func (i *Instance) createLogFiles() error {
+	if i.logPath == "" {
+		return fmt.Errorf("log file path not set")
+	}
+
+	// Create stdout log file
+	logFile, err := os.OpenFile(i.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create stdout log file: %w", err)
+	}
+
+	i.logFile = logFile
+
+	// Write a startup marker to both files
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	fmt.Fprintf(i.logFile, "\n=== Instance %s started at %s ===\n", i.Name, timestamp)
+
+	return nil
+}
+
+// closeLogFiles closes the log files
+func (i *Instance) closeLogFiles() {
+	if i.logFile != nil {
+		timestamp := time.Now().Format("2006-01-02 15:04:05")
+		fmt.Fprintf(i.logFile, "=== Instance %s stopped at %s ===\n\n", i.Name, timestamp)
+		i.logFile.Close()
+		i.logFile = nil
 	}
 }
 
@@ -97,6 +127,11 @@ func (i *Instance) Start() error {
 		return fmt.Errorf("instance %s is already running", i.Name)
 	}
 
+	// Create log files
+	if err := i.createLogFiles(); err != nil {
+		return fmt.Errorf("failed to create log files: %w", err)
+	}
+
 	args := i.options.BuildCommandArgs()
 
 	i.ctx, i.cancel = context.WithCancel(context.Background())
@@ -112,10 +147,13 @@ func (i *Instance) Start() error {
 	var err error
 	i.stdout, err = i.cmd.StdoutPipe()
 	if err != nil {
+		i.closeLogFiles() // Ensure log files are closed on error
 		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 	i.stderr, err = i.cmd.StderrPipe()
 	if err != nil {
+		i.stdout.Close()  // Ensure stdout is closed on error
+		i.closeLogFiles() // Ensure log files are closed on error
 		return fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
@@ -125,8 +163,8 @@ func (i *Instance) Start() error {
 
 	i.Running = true
 
-	go i.readOutput(i.stdout, i.StdOutChan, "stdout")
-	go i.readOutput(i.stderr, i.StdErrChan, "stderr")
+	go i.readOutput(i.stdout, i.logFile)
+	go i.readOutput(i.stderr, i.logFile)
 
 	go i.monitorProcess()
 
@@ -166,25 +204,65 @@ func (i *Instance) Stop() error {
 
 	i.Running = false
 
-	// Close channels when process is stopped
-	close(i.StdOutChan)
-	close(i.StdErrChan)
+	i.closeLogFiles() // Close log files after stopping
 
 	return nil
 }
 
-// readOutput reads from the given reader and sends lines to the channel
-func (i *Instance) readOutput(reader io.ReadCloser, ch chan string, streamType string) {
+// GetLogs retrieves the last n lines of logs from the instance
+func (i *Instance) GetLogs(num_lines int) (string, error) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	if i.logFile == nil {
+		return "", fmt.Errorf("log file not created for instance %s", i.Name)
+	}
+
+	file, err := os.Open(i.logFile.Name())
+	if err != nil {
+		return "", fmt.Errorf("failed to open log file: %w", err)
+	}
+	defer file.Close()
+
+	if num_lines <= 0 {
+		content, err := io.ReadAll(file)
+		if err != nil {
+			return "", fmt.Errorf("failed to read log file: %w", err)
+		}
+		return string(content), nil
+	}
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+
+	// Read all lines into a slice
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("error reading file: %w", err)
+	}
+
+	// Return the last N lines
+	start := len(lines) - num_lines
+	if start < 0 {
+		start = 0
+	}
+
+	return strings.Join(lines[start:], "\n"), nil
+}
+
+// readOutput reads from the given reader and writes lines to the log file
+func (i *Instance) readOutput(reader io.ReadCloser, logFile *os.File) {
 	defer reader.Close()
 
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()
-		select {
-		case ch <- line:
-		default:
-			// Channel is full, drop the line
-			log.Printf("Dropped %s line for instance %s: %s", streamType, i.Name, line)
+		if logFile != nil {
+			fmt.Fprintln(logFile, line)
+			logFile.Sync() // Ensure data is written to disk
 		}
 	}
 }
@@ -198,8 +276,9 @@ func (i *Instance) monitorProcess() {
 	if !i.Running {
 		return
 	}
-
 	i.Running = false
+
+	i.closeLogFiles()
 
 	// Log the exit
 	if err != nil {
@@ -270,14 +349,6 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	// Handle options - ensure embedded LlamaServerOptions is initialized
 	if temp.Options != nil {
 		i.options = temp.Options
-	}
-
-	// Initialize channels if they don't exist
-	if i.StdOutChan == nil {
-		i.StdOutChan = make(chan string, 100)
-	}
-	if i.StdErrChan == nil {
-		i.StdErrChan = make(chan string, 100)
 	}
 
 	return nil

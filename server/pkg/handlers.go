@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -344,6 +345,42 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func (h *Handler) GetInstanceLogs() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := chi.URLParam(r, "name")
+		if name == "" {
+			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+			return
+		}
+
+		lines := r.URL.Query().Get("lines")
+		if lines == "" {
+			lines = "-1"
+		}
+
+		num_lines, err := strconv.Atoi(lines)
+		if err != nil {
+			http.Error(w, "Invalid lines parameter: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		instance, err := h.InstanceManager.GetInstance(name)
+		if err != nil {
+			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		logs, err := instance.GetLogs(num_lines)
+		if err != nil {
+			http.Error(w, "Failed to get logs: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte(logs))
 	}
 }
 
