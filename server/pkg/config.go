@@ -28,8 +28,8 @@ type ServerConfig struct {
 
 // InstancesConfig contains instance management configuration
 type InstancesConfig struct {
-	// Port range for instances (e.g., "8000-9000")
-	PortRange string `yaml:"port_range"`
+	// Port range for instances (e.g., 8000,9000)
+	PortRange [2]int `yaml:"port_range"`
 
 	// Directory where instance logs will be stored
 	LogDirectory string `yaml:"log_directory"`
@@ -62,7 +62,7 @@ func LoadConfig(configPath string) (Config, error) {
 			Port: 8080,
 		},
 		Instances: InstancesConfig{
-			PortRange:           "8000-9000",
+			PortRange:           [2]int{8000, 9000},
 			LogDirectory:        "/tmp/llamactl",
 			MaxInstances:        10,
 			LlamaExecutable:     "llama-server",
@@ -121,7 +121,9 @@ func loadEnvVars(cfg *Config) {
 
 	// Instance config
 	if portRange := os.Getenv("LLAMACTL_INSTANCE_PORT_RANGE"); portRange != "" {
-		cfg.Instances.PortRange = portRange
+		if ports := parsePortRange(portRange); ports != [2]int{0, 0} {
+			cfg.Instances.PortRange = ports
+		}
 	}
 	if logDir := os.Getenv("LLAMACTL_LOG_DIR"); logDir != "" {
 		cfg.Instances.LogDirectory = logDir
@@ -166,6 +168,29 @@ func parseDelaySeconds(s string) (time.Duration, error) {
 	}
 
 	return time.Duration(seconds * float64(time.Second)), nil
+}
+
+// parsePortRange parses port range from string formats like "8000-9000" or "8000,9000"
+func parsePortRange(s string) [2]int {
+	var parts []string
+
+	// Try both separators
+	if strings.Contains(s, "-") {
+		parts = strings.Split(s, "-")
+	} else if strings.Contains(s, ",") {
+		parts = strings.Split(s, ",")
+	}
+
+	// Parse the two parts
+	if len(parts) == 2 {
+		start, err1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+		end, err2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+		if err1 == nil && err2 == nil {
+			return [2]int{start, end}
+		}
+	}
+
+	return [2]int{0, 0} // Invalid format
 }
 
 // getDefaultConfigLocations returns platform-specific config file locations

@@ -7,9 +7,9 @@ import (
 // InstanceManager defines the interface for managing instances of the llama server.
 type InstanceManager interface {
 	ListInstances() ([]*Instance, error)
-	CreateInstance(name string, options *InstanceOptions) (*Instance, error)
+	CreateInstance(name string, options *CreateInstanceRequest) (*Instance, error)
 	GetInstance(name string) (*Instance, error)
-	UpdateInstance(name string, options *InstanceOptions) (*Instance, error)
+	UpdateInstance(name string, options *CreateInstanceRequest) (*Instance, error)
 	DeleteInstance(name string) error
 	StartInstance(name string) (*Instance, error)
 	StopInstance(name string) (*Instance, error)
@@ -18,17 +18,17 @@ type InstanceManager interface {
 }
 
 type instanceManager struct {
-	instances map[string]*Instance
-	portRange [][2]int // Range of ports to use for instances
-	ports     map[int]bool
+	instances       map[string]*Instance
+	ports           map[int]bool
+	instancesConfig InstancesConfig
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
-func NewInstanceManager() InstanceManager {
+func NewInstanceManager(instancesConfig InstancesConfig) InstanceManager {
 	return &instanceManager{
-		instances: make(map[string]*Instance),
-		portRange: [][2]int{{8000, 9000}},
-		ports:     make(map[int]bool),
+		instances:       make(map[string]*Instance),
+		ports:           make(map[int]bool),
+		instancesConfig: instancesConfig,
 	}
 }
 
@@ -43,7 +43,7 @@ func (im *instanceManager) ListInstances() ([]*Instance, error) {
 
 // CreateInstance creates a new instance with the given options and returns it.
 // The instance is initially in a "stopped" state.
-func (im *instanceManager) CreateInstance(name string, options *InstanceOptions) (*Instance, error) {
+func (im *instanceManager) CreateInstance(name string, options *CreateInstanceRequest) (*Instance, error) {
 	if options == nil {
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
@@ -72,7 +72,7 @@ func (im *instanceManager) CreateInstance(name string, options *InstanceOptions)
 		options.Port = port
 	}
 
-	instance := NewInstance(name, options)
+	instance := NewInstance(name, im.instancesConfig.LogDirectory, options)
 	im.instances[instance.Name] = instance
 
 	return instance, nil
@@ -88,7 +88,7 @@ func (im *instanceManager) GetInstance(name string) (*Instance, error) {
 }
 
 // UpdateInstance updates the options of an existing instance and returns it.
-func (im *instanceManager) UpdateInstance(name string, options *InstanceOptions) (*Instance, error) {
+func (im *instanceManager) UpdateInstance(name string, options *CreateInstanceRequest) (*Instance, error) {
 	instance, exists := im.instances[name]
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
@@ -178,13 +178,14 @@ func (im *instanceManager) GetInstanceLogs(name string) (string, error) {
 }
 
 func (im *instanceManager) getNextAvailablePort() (int, error) {
-	for _, portRange := range im.portRange {
-		for port := portRange[0]; port <= portRange[1]; port++ {
-			if !im.ports[port] {
-				im.ports[port] = true
-				return port, nil
-			}
+	portRange := im.instancesConfig.PortRange
+
+	for port := portRange[0]; port <= portRange[1]; port++ {
+		if !im.ports[port] {
+			im.ports[port] = true
+			return port, nil
 		}
 	}
+
 	return 0, fmt.Errorf("no available ports in the specified range")
 }

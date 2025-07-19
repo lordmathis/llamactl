@@ -18,9 +18,43 @@ import (
 	"time"
 )
 
+// Duration is a custom type that wraps time.Duration for better JSON/Swagger support
+// @description Duration in seconds
+type Duration time.Duration
+
+// MarshalJSON implements json.Marshaler for Duration
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).Seconds())
+}
+
+// UnmarshalJSON implements json.Unmarshaler for Duration
+func (d *Duration) UnmarshalJSON(data []byte) error {
+	var seconds float64
+	if err := json.Unmarshal(data, &seconds); err != nil {
+		return err
+	}
+	*d = Duration(time.Duration(seconds * float64(time.Second)))
+	return nil
+}
+
+// ToDuration converts Duration to time.Duration
+func (d Duration) ToDuration() time.Duration {
+	return time.Duration(d)
+}
+
+type CreateInstanceRequest struct {
+	// Auto restart
+	AutoRestart  bool     `json:"auto_restart,omitempty"`
+	MaxRestarts  int      `json:"max_restarts,omitempty"`
+	RestartDelay Duration `json:"restart_delay,omitempty"` // Duration in seconds
+
+	LlamaServerOptions `json:",inline"`
+}
+
+// Instance represents a running instance of the llama server
 type Instance struct {
-	Name    string           `json:"name"`
-	options *InstanceOptions `json:"-"` // Now unexported - access via GetOptions/SetOptions
+	Name    string                 `json:"name"`
+	options *CreateInstanceRequest `json:"-"` // Now unexported - access via GetOptions/SetOptions
 
 	// Status
 	Running bool `json:"running"`
@@ -40,12 +74,15 @@ type Instance struct {
 	proxy    *httputil.ReverseProxy `json:"-"` // Reverse proxy for this instance
 }
 
-func NewInstance(name string, options *InstanceOptions) *Instance {
+// NewInstance creates a new instance with the given name, log path, and options
+func NewInstance(name string, logPath string, options *CreateInstanceRequest) *Instance {
 	return &Instance{
 		Name:    name,
 		options: options,
 
 		Running: false,
+
+		logPath: logPath,
 	}
 }
 
@@ -80,13 +117,13 @@ func (i *Instance) closeLogFiles() {
 	}
 }
 
-func (i *Instance) GetOptions() *InstanceOptions {
+func (i *Instance) GetOptions() *CreateInstanceRequest {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	return i.options
 }
 
-func (i *Instance) SetOptions(options *InstanceOptions) {
+func (i *Instance) SetOptions(options *CreateInstanceRequest) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	if options == nil {
@@ -317,9 +354,9 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 
 	// Create a temporary struct with exported fields for JSON marshalling
 	temp := struct {
-		Name    string           `json:"name"`
-		Options *InstanceOptions `json:"options,omitempty"`
-		Running bool             `json:"running"`
+		Name    string                 `json:"name"`
+		Options *CreateInstanceRequest `json:"options,omitempty"`
+		Running bool                   `json:"running"`
 	}{
 		Name:    i.Name,
 		Options: i.options,
@@ -333,9 +370,9 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 func (i *Instance) UnmarshalJSON(data []byte) error {
 	// Create a temporary struct for unmarshalling
 	temp := struct {
-		Name    string           `json:"name"`
-		Options *InstanceOptions `json:"options,omitempty"`
-		Running bool             `json:"running"`
+		Name    string                 `json:"name"`
+		Options *CreateInstanceRequest `json:"options,omitempty"`
+		Running bool                   `json:"running"`
 	}{}
 
 	if err := json.Unmarshal(data, &temp); err != nil {

@@ -21,7 +21,7 @@ func main() {
 	}
 
 	// Initialize the instance manager
-	instanceManager := llamactl.NewInstanceManager()
+	instanceManager := llamactl.NewInstanceManager(config.Instances)
 
 	// Create a new handler with the instance manager
 	handler := llamactl.NewHandler(instanceManager)
@@ -30,6 +30,6 @@ func main() {
 	r := llamactl.SetupRouter(handler)
 
 	// Start the server with the router
-	fmt.Println("Starting llamactl on port 8080...")
-	http.ListenAndServe(":8080", r)
+	fmt.Printf("Starting llamactl on port %d...\n", config.Server.Port)
+	http.ListenAndServe(fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port), r)
 }

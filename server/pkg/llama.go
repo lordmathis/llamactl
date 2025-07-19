@@ -5,41 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 )
-
-// Duration is a custom type that wraps time.Duration for better JSON/Swagger support
-// @description Duration in seconds
-type Duration time.Duration
-
-// MarshalJSON implements json.Marshaler for Duration
-func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Duration(d).Seconds())
-}
-
-// UnmarshalJSON implements json.Unmarshaler for Duration
-func (d *Duration) UnmarshalJSON(data []byte) error {
-	var seconds float64
-	if err := json.Unmarshal(data, &seconds); err != nil {
-		return err
-	}
-	*d = Duration(time.Duration(seconds * float64(time.Second)))
-	return nil
-}
-
-// ToDuration converts Duration to time.Duration
-func (d Duration) ToDuration() time.Duration {
-	return time.Duration(d)
-}
-
-type InstanceOptions struct {
-	// Auto restart
-	AutoRestart  bool     `json:"auto_restart,omitempty"`
-	MaxRestarts  int      `json:"max_restarts,omitempty"`
-	RestartDelay Duration `json:"restart_delay,omitempty" example:"5"` // Duration in seconds
-
-	LlamaServerOptions `json:",inline"`
-}
 
 type LlamaServerOptions struct {
 	// Common params
@@ -395,9 +361,4 @@ func (o *LlamaServerOptions) BuildCommandArgs() []string {
 	}
 
 	return args
-}
-
-// BuildCommandArgs converts InstanceOptions to command line arguments by delegating to LlamaServerOptions
-func (o *InstanceOptions) BuildCommandArgs() []string {
-	return o.LlamaServerOptions.BuildCommandArgs()
 }

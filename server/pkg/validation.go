@@ -32,7 +32,7 @@ func validateStringForInjection(value string) error {
 }
 
 // ValidateInstanceOptions performs minimal security validation
-func ValidateInstanceOptions(options *InstanceOptions) error {
+func ValidateInstanceOptions(options *CreateInstanceRequest) error {
 	if options == nil {
 		return ValidationError(fmt.Errorf("options cannot be nil"))
 	}
