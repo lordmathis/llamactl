@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http/httputil"
+	"net/url"
 	"os/exec"
 	"sync"
 	"time"
@@ -24,13 +26,14 @@ type Instance struct {
 	StdErrChan chan string `json:"-"` // Channel for sending error messages
 
 	// internal
-	cmd      *exec.Cmd          `json:"-"` // Command to run the instance
-	ctx      context.Context    `json:"-"` // Context for managing the instance lifecycle
-	cancel   context.CancelFunc `json:"-"` // Function to cancel the context
-	stdout   io.ReadCloser      `json:"-"` // Standard output stream
-	stderr   io.ReadCloser      `json:"-"` // Standard error stream
-	mu       sync.Mutex         `json:"-"` // Mutex for synchronizing access to the instance
-	restarts int                `json:"-"` // Number of restarts
+	cmd      *exec.Cmd              `json:"-"` // Command to run the instance
+	ctx      context.Context        `json:"-"` // Context for managing the instance lifecycle
+	cancel   context.CancelFunc     `json:"-"` // Function to cancel the context
+	stdout   io.ReadCloser          `json:"-"` // Standard output stream
+	stderr   io.ReadCloser          `json:"-"` // Standard error stream
+	mu       sync.Mutex             `json:"-"` // Mutex for synchronizing access to the instance
+	restarts int                    `json:"-"` // Number of restarts
+	proxy    *httputil.ReverseProxy `json:"-"` // Reverse proxy for this instance
 }
 
 func NewInstance(name string, options *InstanceOptions) *Instance {
@@ -59,6 +62,29 @@ func (i *Instance) SetOptions(options *InstanceOptions) {
 		return
 	}
 	i.options = options
+	// Clear the proxy so it gets recreated with new options
+	i.proxy = nil
+}
+
+// GetProxy returns the reverse proxy for this instance, creating it if needed
+func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	if i.proxy == nil {
+		if i.options == nil {
+			return nil, fmt.Errorf("instance %s has no options set", i.Name)
+		}
+
+		targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", i.options.Host, i.options.Port))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", i.Name, err)
+		}
+
+		i.proxy = httputil.NewSingleHostReverseProxy(targetURL)
+	}
+
+	return i.proxy, nil
 }
 
 func (i *Instance) Start() error {
@@ -109,6 +135,9 @@ func (i *Instance) Stop() error {
 
 	// Cancel the context to signal termination
 	i.cancel()
+
+	// Clean up the proxy
+	i.proxy = nil
 
 	// Wait for process to exit (with timeout)
 	done := make(chan error, 1)

@@ -2,8 +2,10 @@ package llamactl
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -336,5 +338,58 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func (h *Handler) ProxyToInstance() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := chi.URLParam(r, "name")
+		if name == "" {
+			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+			return
+		}
+
+		instance, err := h.InstanceManager.GetInstance(name)
+		if err != nil {
+			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if !instance.Running {
+			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
+			return
+		}
+
+		// Get the cached proxy for this instance
+		proxy, err := instance.GetProxy()
+		if err != nil {
+			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Strip the "/api/v1/instances/<name>/proxy" prefix from the request URL
+		prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", name)
+		proxyPath := r.URL.Path[len(prefix):]
+
+		// Ensure the proxy path starts with "/"
+		if !strings.HasPrefix(proxyPath, "/") {
+			proxyPath = "/" + proxyPath
+		}
+
+		// Modify the request to remove the proxy prefix
+		originalPath := r.URL.Path
+		r.URL.Path = proxyPath
+
+		// Set forwarded headers
+		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
+		r.Header.Set("X-Forwarded-Proto", "http")
+
+		// Restore original path for logging purposes
+		defer func() {
+			r.URL.Path = originalPath
+		}()
+
+		// Forward the request using the cached proxy
+		proxy.ServeHTTP(w, r)
 	}
 }

@@ -40,30 +40,9 @@ func SetupRouter(handler *Handler) *chi.Mux {
 				// r.Get("/logs", handler.GetInstanceLogs())        // Get instance logs
 
 				// Llama.cpp server proxy endpoints (proxied to the actual llama.cpp server)
-				// r.Get("/health", handler.ProxyHealthCheck())         // Health check
-				// r.Post("/completion", handler.ProxyCompletion())     // Text completion
-				// r.Post("/tokenize", handler.ProxyTokenize())         // Tokenize text
-				// r.Post("/detokenize", handler.ProxyDetokenize())     // Detokenize tokens
-				// r.Post("/apply-template", handler.ProxyApplyTemplate()) // Apply chat template
-				// r.Post("/embedding", handler.ProxyEmbedding())       // Generate embeddings
-				// r.Post("/reranking", handler.ProxyReranking())       // Rerank documents
-				// r.Post("/rerank", handler.ProxyRerank())             // Rerank documents (alias)
-				// r.Post("/infill", handler.ProxyInfill())             // Code infilling
-				// r.Get("/props", handler.ProxyGetProps())             // Get server properties
-				// r.Post("/props", handler.ProxySetProps())            // Set server properties
-				// r.Post("/embeddings", handler.ProxyEmbeddings())     // Non-OpenAI embeddings
-				// r.Get("/slots", handler.ProxyGetSlots())             // Get slots state
-				// r.Get("/metrics", handler.ProxyGetMetrics())         // Prometheus metrics
-				// r.Post("/slots/{slot_id}", handler.ProxySlotAction()) // Slot actions (save/restore/erase)
-				// r.Get("/lora-adapters", handler.ProxyGetLoraAdapters()) // Get LoRA adapters
-				// r.Post("/lora-adapters", handler.ProxySetLoraAdapters()) // Set LoRA adapters
-
-				// OpenAI-compatible endpoints (proxied to the actual llama.cpp server)
-				// r.Post("/v1/completions", handler.ProxyV1Completions()) // OpenAI completions
-				// r.Post("/v1/chat/completions", handler.ProxyV1ChatCompletions()) // OpenAI chat completions
-				// r.Post("/v1/embeddings", handler.ProxyV1Embeddings())   // OpenAI embeddings
-				// r.Post("/v1/rerank", handler.ProxyV1Rerank())           // OpenAI rerank
-				// r.Post("/v1/reranking", handler.ProxyV1Reranking())     // OpenAI reranking
+				r.Route("/proxy", func(r chi.Router) {
+					r.HandleFunc("/*", handler.ProxyToInstance()) // Proxy all llama.cpp server requests
+				})
 			})
 		})
 	})
