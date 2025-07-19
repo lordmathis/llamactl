@@ -44,9 +44,9 @@ func (d Duration) ToDuration() time.Duration {
 
 type CreateInstanceOptions struct {
 	// Auto restart
-	AutoRestart  bool     `json:"auto_restart,omitempty"`
-	MaxRestarts  int      `json:"max_restarts,omitempty"`
-	RestartDelay Duration `json:"restart_delay,omitempty"` // Duration in seconds
+	AutoRestart  *bool     `json:"auto_restart,omitempty"`
+	MaxRestarts  *int      `json:"max_restarts,omitempty"`
+	RestartDelay *Duration `json:"restart_delay,omitempty"` // Duration in seconds
 
 	LlamaServerOptions `json:",inline"`
 }
@@ -76,6 +76,19 @@ type Instance struct {
 
 // NewInstance creates a new instance with the given name, log path, and options
 func NewInstance(name string, globalSettings *InstancesConfig, options *CreateInstanceOptions) *Instance {
+	if options.AutoRestart == nil {
+		defaultAutoRestart := globalSettings.DefaultAutoRestart
+		options.AutoRestart = &defaultAutoRestart
+	}
+	if options.MaxRestarts == nil {
+		defaultMaxRestarts := globalSettings.DefaultMaxRestarts
+		options.MaxRestarts = &defaultMaxRestarts
+	}
+	if options.RestartDelay == nil {
+		defaultRestartDelay := globalSettings.DefaultRestartDelay
+		options.RestartDelay = &defaultRestartDelay
+	}
+
 	return &Instance{
 		Name:           name,
 		options:        options,
@@ -317,7 +330,7 @@ func (i *Instance) monitorProcess() {
 	}
 
 	// Handle restart if process crashed and auto-restart is enabled
-	if err != nil && i.options.AutoRestart && i.restarts < i.options.MaxRestarts {
+	if err != nil && *i.options.AutoRestart && i.restarts < *i.options.MaxRestarts {
 		i.restarts++
 		log.Printf("Auto-restarting instance %s (attempt %d/%d) in %v",
 			i.Name, i.restarts, i.options.MaxRestarts, i.options.RestartDelay.ToDuration())
@@ -334,7 +347,7 @@ func (i *Instance) monitorProcess() {
 			log.Printf("Successfully restarted instance %s", i.Name)
 			i.restarts = 0 // Reset restart count on successful restart
 		}
-	} else if i.restarts >= i.options.MaxRestarts {
+	} else if i.restarts >= *i.options.MaxRestarts {
 		log.Printf("Instance %s exceeded max restart attempts (%d)", i.Name, i.options.MaxRestarts)
 	}
 }
