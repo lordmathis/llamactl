@@ -9,35 +9,33 @@ import (
 	"os/exec"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Instance struct {
-	ID      uuid.UUID
-	options *InstanceOptions
+	Name    string           `json:"name"`
+	Options *InstanceOptions `json:"options,omitempty"`
 
 	// Status
-	Running bool
+	Running bool `json:"running"`
 
 	// Output channels
-	StdOutChan chan string // Channel for sending output messages
-	StdErrChan chan string // Channel for sending error messages
+	StdOutChan chan string `json:"-"` // Channel for sending output messages
+	StdErrChan chan string `json:"-"` // Channel for sending error messages
 
 	// internal
-	cmd      *exec.Cmd          // Command to run the instance
-	ctx      context.Context    // Context for managing the instance lifecycle
-	cancel   context.CancelFunc // Function to cancel the context
-	stdout   io.ReadCloser      // Standard output stream
-	stderr   io.ReadCloser      // Standard error stream
-	mu       sync.Mutex         // Mutex for synchronizing access to the instance
-	restarts int                // Number of restarts
+	cmd      *exec.Cmd          `json:"-"` // Command to run the instance
+	ctx      context.Context    `json:"-"` // Context for managing the instance lifecycle
+	cancel   context.CancelFunc `json:"-"` // Function to cancel the context
+	stdout   io.ReadCloser      `json:"-"` // Standard output stream
+	stderr   io.ReadCloser      `json:"-"` // Standard error stream
+	mu       sync.Mutex         `json:"-"` // Mutex for synchronizing access to the instance
+	restarts int                `json:"-"` // Number of restarts
 }
 
-func NewInstance(id uuid.UUID, options *InstanceOptions) *Instance {
+func NewInstance(name string, options *InstanceOptions) *Instance {
 	return &Instance{
-		ID:      id,
-		options: options,
+		Name:    name,
+		Options: options,
 
 		Running: false,
 
@@ -49,17 +47,17 @@ func NewInstance(id uuid.UUID, options *InstanceOptions) *Instance {
 func (i *Instance) GetOptions() *InstanceOptions {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	return i.options
+	return i.Options
 }
 
 func (i *Instance) SetOptions(options *InstanceOptions) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	if options == nil {
-		log.Println("Warning: Attempted to set nil options on instance", i.ID)
+		log.Println("Warning: Attempted to set nil options on instance", i.Name)
 		return
 	}
-	i.options = options
+	i.Options = options
 }
 
 func (i *Instance) Start() error {
@@ -67,10 +65,10 @@ func (i *Instance) Start() error {
 	defer i.mu.Unlock()
 
 	if i.Running {
-		return fmt.Errorf("instance %s is already running", i.ID)
+		return fmt.Errorf("instance %s is already running", i.Name)
 	}
 
-	args := i.options.BuildCommandArgs()
+	args := i.Options.BuildCommandArgs()
 
 	i.ctx, i.cancel = context.WithCancel(context.Background())
 	i.cmd = exec.CommandContext(i.ctx, "llama-server", args...)
@@ -86,7 +84,7 @@ func (i *Instance) Start() error {
 	}
 
 	if err := i.cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start instance %s: %w", i.ID, err)
+		return fmt.Errorf("failed to start instance %s: %w", i.Name, err)
 	}
 
 	i.Running = true
@@ -105,7 +103,7 @@ func (i *Instance) Stop() error {
 	defer i.mu.Unlock()
 
 	if !i.Running {
-		return fmt.Errorf("instance %s is not running", i.ID)
+		return fmt.Errorf("instance %s is not running", i.Name)
 	}
 
 	// Cancel the context to signal termination
@@ -147,7 +145,7 @@ func (i *Instance) readOutput(reader io.ReadCloser, ch chan string, streamType s
 		case ch <- line:
 		default:
 			// Channel is full, drop the line
-			log.Printf("Dropped %s line for instance %s: %s", streamType, i.ID, line)
+			log.Printf("Dropped %s line for instance %s: %s", streamType, i.Name, line)
 		}
 	}
 }
@@ -166,30 +164,30 @@ func (i *Instance) monitorProcess() {
 
 	// Log the exit
 	if err != nil {
-		log.Printf("Instance %s crashed with error: %v", i.ID, err)
+		log.Printf("Instance %s crashed with error: %v", i.Name, err)
 	} else {
-		log.Printf("Instance %s exited cleanly", i.ID)
+		log.Printf("Instance %s exited cleanly", i.Name)
 	}
 
 	// Handle restart if process crashed and auto-restart is enabled
-	if err != nil && i.options.AutoRestart && i.restarts < i.options.MaxRestarts {
+	if err != nil && i.Options.AutoRestart && i.restarts < i.Options.MaxRestarts {
 		i.restarts++
 		log.Printf("Auto-restarting instance %s (attempt %d/%d) in %v",
-			i.ID, i.restarts, i.options.MaxRestarts, i.options.RestartDelay)
+			i.Name, i.restarts, i.Options.MaxRestarts, i.Options.RestartDelay.ToDuration())
 
 		// Unlock mutex during sleep to avoid blocking other operations
 		i.mu.Unlock()
-		time.Sleep(i.options.RestartDelay)
+		time.Sleep(i.Options.RestartDelay.ToDuration())
 		i.mu.Lock()
 
 		// Attempt restart
 		if err := i.Start(); err != nil {
-			log.Printf("Failed to restart instance %s: %v", i.ID, err)
+			log.Printf("Failed to restart instance %s: %v", i.Name, err)
 		} else {
-			log.Printf("Successfully restarted instance %s", i.ID)
+			log.Printf("Successfully restarted instance %s", i.Name)
 			i.restarts = 0 // Reset restart count on successful restart
 		}
-	} else if i.restarts >= i.options.MaxRestarts {
-		log.Printf("Instance %s exceeded max restart attempts (%d)", i.ID, i.options.MaxRestarts)
+	} else if i.restarts >= i.Options.MaxRestarts {
+		log.Printf("Instance %s exceeded max restart attempts (%d)", i.Name, i.Options.MaxRestarts)
 	}
 }

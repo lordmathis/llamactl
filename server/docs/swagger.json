@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This is a control server for managing Llama Server instances.",
-        "title": "Llama Server Control",
+        "description": "llamactl is a control server for managing Llama Server instances.",
+        "title": "llamactl API",
         "contact": {},
         "license": {
             "name": "MIT License",
@@ -12,6 +12,327 @@
     },
     "basePath": "/api/v1",
     "paths": {
+        "/instances": {
+            "get": {
+                "description": "Returns a list of all instances managed by the server",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "instances"
+                ],
+                "summary": "List all instances",
+                "responses": {
+                    "200": {
+                        "description": "List of instances",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/llamactl.Instance"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new instance with the provided configuration options",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "instances"
+                ],
+                "summary": "Create and start a new instance",
+                "parameters": [
+                    {
+                        "description": "Instance configuration options",
+                        "name": "options",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/llamactl.InstanceOptions"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created instance details",
+                        "schema": {
+                            "$ref": "#/definitions/llamactl.Instance"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/instances/{name}": {
+            "get": {
+                "description": "Returns the details of a specific instance by name",
+                "tags": [
+                    "instances"
+                ],
+                "summary": "Get details of a specific instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Instance details",
+                        "schema": {
+                            "$ref": "#/definitions/llamactl.Instance"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates the configuration of a specific instance by name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "instances"
+                ],
+                "summary": "Update an instance's configuration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Instance configuration options",
+                        "name": "options",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/llamactl.InstanceOptions"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated instance details",
+                        "schema": {
+                            "$ref": "#/definitions/llamactl.Instance"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Stops and removes a specific instance by name",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "instances"
+                ],
+                "summary": "Delete an instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/instances/{name}/restart": {
+            "post": {
+                "description": "Restarts a specific instance by name",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "instances"
+                ],
+                "summary": "Restart a running instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Restarted instance details",
+                        "schema": {
+                            "$ref": "#/definitions/llamactl.Instance"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/instances/{name}/start": {
+            "post": {
+                "description": "Starts a specific instance by name",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "instances"
+                ],
+                "summary": "Start a stopped instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Started instance details",
+                        "schema": {
+                            "$ref": "#/definitions/llamactl.Instance"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/instances/{name}/stop": {
+            "post": {
+                "description": "Stops a specific instance by name",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "instances"
+                ],
+                "summary": "Stop a running instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Stopped instance details",
+                        "schema": {
+                            "$ref": "#/definitions/llamactl.Instance"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/server/devices": {
             "get": {
                 "description": "Returns a list of available devices for the llama server",
@@ -80,6 +401,31 @@
                     }
                 }
             }
+        }
+    },
+    "definitions": {
+        "llamactl.Instance": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "running": {
+                    "description": "Status",
+                    "type": "boolean"
+                },
+                "stdErrChan": {
+                    "description": "Channel for sending error messages",
+                    "type": "object"
+                },
+                "stdOutChan": {
+                    "description": "Output channels",
+                    "type": "object"
+                }
+            }
+        },
+        "llamactl.InstanceOptions": {
+            "type": "object"
         }
     }
 }

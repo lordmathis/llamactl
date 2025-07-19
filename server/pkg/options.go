@@ -8,13 +8,37 @@ import (
 	"time"
 )
 
+// Duration is a custom type that wraps time.Duration for better JSON/Swagger support
+// @description Duration in seconds
+type Duration time.Duration
+
+// MarshalJSON implements json.Marshaler for Duration
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).Seconds())
+}
+
+// UnmarshalJSON implements json.Unmarshaler for Duration
+func (d *Duration) UnmarshalJSON(data []byte) error {
+	var seconds float64
+	if err := json.Unmarshal(data, &seconds); err != nil {
+		return err
+	}
+	*d = Duration(time.Duration(seconds * float64(time.Second)))
+	return nil
+}
+
+// ToDuration converts Duration to time.Duration
+func (d Duration) ToDuration() time.Duration {
+	return time.Duration(d)
+}
+
 type InstanceOptions struct {
 	Name string `json:"name,omitempty"` // Display name
 
 	// Auto restart
-	AutoRestart  bool          `json:"auto_restart,omitempty"`
-	MaxRestarts  int           `json:"max_restarts,omitempty"`
-	RestartDelay time.Duration `json:"restart_delay,omitempty"` // in seconds
+	AutoRestart  bool     `json:"auto_restart,omitempty"`
+	MaxRestarts  int      `json:"max_restarts,omitempty"`
+	RestartDelay Duration `json:"restart_delay,omitempty" example:"5"` // Duration in seconds
 
 	*LlamaServerOptions
 }
@@ -24,7 +48,7 @@ func (o *InstanceOptions) UnmarshalJSON(data []byte) error {
 	// Set defaults first
 	o.AutoRestart = true
 	o.MaxRestarts = 3
-	o.RestartDelay = 5
+	o.RestartDelay = Duration(5 * time.Second) // 5 seconds
 
 	// Create a temporary struct to avoid recursion
 	type tempInstanceOptions InstanceOptions

@@ -26,10 +26,10 @@ func SetupRouter(handler *Handler) *chi.Mux {
 
 		// Instance management endpoints
 		r.Route("/instances", func(r chi.Router) {
-			// r.Get("/", handler.ListInstances())                    // List all instances
-			// r.Post("/", handler.CreateInstance())                  // Create and start new instance
+			r.Get("/", handler.ListInstances())   // List all instances
+			r.Post("/", handler.CreateInstance()) // Create and start new instance
 
-			r.Route("/{id}", func(r chi.Router) {
+			r.Route("/{name}", func(r chi.Router) {
 				// Instance management
 				r.Get("/", handler.GetInstance())             // Get instance details
 				r.Put("/", handler.UpdateInstance())          // Update instance configuration

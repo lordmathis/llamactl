@@ -1,13 +1,242 @@
 basePath: /api/v1
+definitions:
+  llamactl.Instance:
+    properties:
+      name:
+        type: string
+      running:
+        description: Status
+        type: boolean
+      stdErrChan:
+        description: Channel for sending error messages
+        type: object
+      stdOutChan:
+        description: Output channels
+        type: object
+    type: object
+  llamactl.InstanceOptions:
+    type: object
 info:
   contact: {}
-  description: This is a control server for managing Llama Server instances.
+  description: llamactl is a control server for managing Llama Server instances.
   license:
     name: MIT License
     url: https://opensource.org/license/mit/
-  title: Llama Server Control
+  title: llamactl API
   version: "1.0"
 paths:
+  /instances:
+    get:
+      description: Returns a list of all instances managed by the server
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of instances
+          schema:
+            items:
+              $ref: '#/definitions/llamactl.Instance'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List all instances
+      tags:
+      - instances
+    post:
+      consumes:
+      - application/json
+      description: Creates a new instance with the provided configuration options
+      parameters:
+      - description: Instance configuration options
+        in: body
+        name: options
+        required: true
+        schema:
+          $ref: '#/definitions/llamactl.InstanceOptions'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created instance details
+          schema:
+            $ref: '#/definitions/llamactl.Instance'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create and start a new instance
+      tags:
+      - instances
+  /instances/{name}:
+    delete:
+      description: Stops and removes a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete an instance
+      tags:
+      - instances
+    get:
+      description: Returns the details of a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Instance details
+          schema:
+            $ref: '#/definitions/llamactl.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get details of a specific instance
+      tags:
+      - instances
+    put:
+      consumes:
+      - application/json
+      description: Updates the configuration of a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Instance configuration options
+        in: body
+        name: options
+        required: true
+        schema:
+          $ref: '#/definitions/llamactl.InstanceOptions'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated instance details
+          schema:
+            $ref: '#/definitions/llamactl.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update an instance's configuration
+      tags:
+      - instances
+  /instances/{name}/restart:
+    post:
+      description: Restarts a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Restarted instance details
+          schema:
+            $ref: '#/definitions/llamactl.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Restart a running instance
+      tags:
+      - instances
+  /instances/{name}/start:
+    post:
+      description: Starts a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Started instance details
+          schema:
+            $ref: '#/definitions/llamactl.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Start a stopped instance
+      tags:
+      - instances
+  /instances/{name}/stop:
+    post:
+      description: Stops a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Stopped instance details
+          schema:
+            $ref: '#/definitions/llamactl.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Stop a running instance
+      tags:
+      - instances
   /server/devices:
     get:
       description: Returns a list of available devices for the llama server
