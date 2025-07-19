@@ -3,6 +3,7 @@ package llamactl
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,7 +14,7 @@ import (
 
 type Instance struct {
 	Name    string           `json:"name"`
-	Options *InstanceOptions `json:"options,omitempty"`
+	options *InstanceOptions `json:"-"` // Now unexported - access via GetOptions/SetOptions
 
 	// Status
 	Running bool `json:"running"`
@@ -35,7 +36,7 @@ type Instance struct {
 func NewInstance(name string, options *InstanceOptions) *Instance {
 	return &Instance{
 		Name:    name,
-		Options: options,
+		options: options,
 
 		Running: false,
 
@@ -47,7 +48,7 @@ func NewInstance(name string, options *InstanceOptions) *Instance {
 func (i *Instance) GetOptions() *InstanceOptions {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	return i.Options
+	return i.options
 }
 
 func (i *Instance) SetOptions(options *InstanceOptions) {
@@ -57,7 +58,7 @@ func (i *Instance) SetOptions(options *InstanceOptions) {
 		log.Println("Warning: Attempted to set nil options on instance", i.Name)
 		return
 	}
-	i.Options = options
+	i.options = options
 }
 
 func (i *Instance) Start() error {
@@ -68,7 +69,7 @@ func (i *Instance) Start() error {
 		return fmt.Errorf("instance %s is already running", i.Name)
 	}
 
-	args := i.Options.BuildCommandArgs()
+	args := i.options.BuildCommandArgs()
 
 	i.ctx, i.cancel = context.WithCancel(context.Background())
 	i.cmd = exec.CommandContext(i.ctx, "llama-server", args...)
@@ -170,14 +171,14 @@ func (i *Instance) monitorProcess() {
 	}
 
 	// Handle restart if process crashed and auto-restart is enabled
-	if err != nil && i.Options.AutoRestart && i.restarts < i.Options.MaxRestarts {
+	if err != nil && i.options.AutoRestart && i.restarts < i.options.MaxRestarts {
 		i.restarts++
 		log.Printf("Auto-restarting instance %s (attempt %d/%d) in %v",
-			i.Name, i.restarts, i.Options.MaxRestarts, i.Options.RestartDelay.ToDuration())
+			i.Name, i.restarts, i.options.MaxRestarts, i.options.RestartDelay.ToDuration())
 
 		// Unlock mutex during sleep to avoid blocking other operations
 		i.mu.Unlock()
-		time.Sleep(i.Options.RestartDelay.ToDuration())
+		time.Sleep(i.options.RestartDelay.ToDuration())
 		i.mu.Lock()
 
 		// Attempt restart
@@ -187,7 +188,59 @@ func (i *Instance) monitorProcess() {
 			log.Printf("Successfully restarted instance %s", i.Name)
 			i.restarts = 0 // Reset restart count on successful restart
 		}
-	} else if i.restarts >= i.Options.MaxRestarts {
-		log.Printf("Instance %s exceeded max restart attempts (%d)", i.Name, i.Options.MaxRestarts)
+	} else if i.restarts >= i.options.MaxRestarts {
+		log.Printf("Instance %s exceeded max restart attempts (%d)", i.Name, i.options.MaxRestarts)
 	}
+}
+
+// MarshalJSON implements json.Marshaler for Instance
+func (i *Instance) MarshalJSON() ([]byte, error) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	// Create a temporary struct with exported fields for JSON marshalling
+	temp := struct {
+		Name    string           `json:"name"`
+		Options *InstanceOptions `json:"options,omitempty"`
+		Running bool             `json:"running"`
+	}{
+		Name:    i.Name,
+		Options: i.options,
+		Running: i.Running,
+	}
+
+	return json.Marshal(temp)
+}
+
+// UnmarshalJSON implements json.Unmarshaler for Instance
+func (i *Instance) UnmarshalJSON(data []byte) error {
+	// Create a temporary struct for unmarshalling
+	temp := struct {
+		Name    string           `json:"name"`
+		Options *InstanceOptions `json:"options,omitempty"`
+		Running bool             `json:"running"`
+	}{}
+
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	// Set the fields
+	i.Name = temp.Name
+	i.Running = temp.Running
+
+	// Handle options - ensure embedded LlamaServerOptions is initialized
+	if temp.Options != nil {
+		i.options = temp.Options
+	}
+
+	// Initialize channels if they don't exist
+	if i.StdOutChan == nil {
+		i.StdOutChan = make(chan string, 100)
+	}
+	if i.StdErrChan == nil {
+		i.StdErrChan = make(chan string, 100)
+	}
+
+	return nil
 }

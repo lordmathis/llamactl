@@ -40,26 +40,7 @@ type InstanceOptions struct {
 	MaxRestarts  int      `json:"max_restarts,omitempty"`
 	RestartDelay Duration `json:"restart_delay,omitempty" example:"5"` // Duration in seconds
 
-	*LlamaServerOptions
-}
-
-// UnmarshalJSON implements custom JSON unmarshaling with default values
-func (o *InstanceOptions) UnmarshalJSON(data []byte) error {
-	// Set defaults first
-	o.AutoRestart = true
-	o.MaxRestarts = 3
-	o.RestartDelay = Duration(5 * time.Second) // 5 seconds
-
-	// Create a temporary struct to avoid recursion
-	type tempInstanceOptions InstanceOptions
-	temp := (*tempInstanceOptions)(o)
-
-	// Unmarshal into the temporary struct
-	if err := json.Unmarshal(data, temp); err != nil {
-		return err
-	}
-
-	return nil
+	LlamaServerOptions `json:",inline"`
 }
 
 type LlamaServerOptions struct {
@@ -416,4 +397,9 @@ func (o *LlamaServerOptions) BuildCommandArgs() []string {
 	}
 
 	return args
+}
+
+// BuildCommandArgs converts InstanceOptions to command line arguments by delegating to LlamaServerOptions
+func (o *InstanceOptions) BuildCommandArgs() []string {
+	return o.LlamaServerOptions.BuildCommandArgs()
 }
