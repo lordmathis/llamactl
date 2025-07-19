@@ -127,7 +127,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 			return
 		}
 
-		var options CreateInstanceRequest
+		var options CreateInstanceOptions
 		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
@@ -199,7 +199,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 			return
 		}
 
-		var options CreateInstanceRequest
+		var options CreateInstanceOptions
 		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return

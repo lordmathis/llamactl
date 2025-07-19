@@ -42,7 +42,7 @@ func (d Duration) ToDuration() time.Duration {
 	return time.Duration(d)
 }
 
-type CreateInstanceRequest struct {
+type CreateInstanceOptions struct {
 	// Auto restart
 	AutoRestart  bool     `json:"auto_restart,omitempty"`
 	MaxRestarts  int      `json:"max_restarts,omitempty"`
@@ -53,14 +53,14 @@ type CreateInstanceRequest struct {
 
 // Instance represents a running instance of the llama server
 type Instance struct {
-	Name    string                 `json:"name"`
-	options *CreateInstanceRequest `json:"-"` // Now unexported - access via GetOptions/SetOptions
+	Name           string                 `json:"name"`
+	options        *CreateInstanceOptions `json:"-"`
+	globalSettings *InstancesConfig
 
 	// Status
 	Running bool `json:"running"`
 
-	// Log files
-	logPath string   `json:"-"`
+	// Log file
 	logFile *os.File `json:"-"`
 
 	// internal
@@ -75,25 +75,20 @@ type Instance struct {
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, logPath string, options *CreateInstanceRequest) *Instance {
+func NewInstance(name string, globalSettings *InstancesConfig, options *CreateInstanceOptions) *Instance {
 	return &Instance{
-		Name:    name,
-		options: options,
+		Name:           name,
+		options:        options,
+		globalSettings: globalSettings,
 
 		Running: false,
-
-		logPath: logPath,
 	}
 }
 
-// createLogFiles creates and opens the log files for stdout and stderr
-func (i *Instance) createLogFiles() error {
-	if i.logPath == "" {
-		return fmt.Errorf("log file path not set")
-	}
-
-	// Create stdout log file
-	logFile, err := os.OpenFile(i.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+// createLogFile creates and opens the log files for stdout and stderr
+func (i *Instance) createLogFile() error {
+	logPath := i.globalSettings.LogDirectory + "/" + i.Name + ".log"
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to create stdout log file: %w", err)
 	}
@@ -107,8 +102,8 @@ func (i *Instance) createLogFiles() error {
 	return nil
 }
 
-// closeLogFiles closes the log files
-func (i *Instance) closeLogFiles() {
+// closeLogFile closes the log files
+func (i *Instance) closeLogFile() {
 	if i.logFile != nil {
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
 		fmt.Fprintf(i.logFile, "=== Instance %s stopped at %s ===\n\n", i.Name, timestamp)
@@ -117,13 +112,13 @@ func (i *Instance) closeLogFiles() {
 	}
 }
 
-func (i *Instance) GetOptions() *CreateInstanceRequest {
+func (i *Instance) GetOptions() *CreateInstanceOptions {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	return i.options
 }
 
-func (i *Instance) SetOptions(options *CreateInstanceRequest) {
+func (i *Instance) SetOptions(options *CreateInstanceOptions) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	if options == nil {
@@ -165,7 +160,7 @@ func (i *Instance) Start() error {
 	}
 
 	// Create log files
-	if err := i.createLogFiles(); err != nil {
+	if err := i.createLogFile(); err != nil {
 		return fmt.Errorf("failed to create log files: %w", err)
 	}
 
@@ -184,13 +179,13 @@ func (i *Instance) Start() error {
 	var err error
 	i.stdout, err = i.cmd.StdoutPipe()
 	if err != nil {
-		i.closeLogFiles() // Ensure log files are closed on error
+		i.closeLogFile() // Ensure log files are closed on error
 		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 	i.stderr, err = i.cmd.StderrPipe()
 	if err != nil {
-		i.stdout.Close()  // Ensure stdout is closed on error
-		i.closeLogFiles() // Ensure log files are closed on error
+		i.stdout.Close() // Ensure stdout is closed on error
+		i.closeLogFile() // Ensure log files are closed on error
 		return fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
@@ -241,7 +236,7 @@ func (i *Instance) Stop() error {
 
 	i.Running = false
 
-	i.closeLogFiles() // Close log files after stopping
+	i.closeLogFile() // Close log files after stopping
 
 	return nil
 }
@@ -282,10 +277,7 @@ func (i *Instance) GetLogs(num_lines int) (string, error) {
 	}
 
 	// Return the last N lines
-	start := len(lines) - num_lines
-	if start < 0 {
-		start = 0
-	}
+	start := max(len(lines)-num_lines, 0)
 
 	return strings.Join(lines[start:], "\n"), nil
 }
@@ -315,7 +307,7 @@ func (i *Instance) monitorProcess() {
 	}
 	i.Running = false
 
-	i.closeLogFiles()
+	i.closeLogFile()
 
 	// Log the exit
 	if err != nil {
@@ -355,7 +347,7 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 	// Create a temporary struct with exported fields for JSON marshalling
 	temp := struct {
 		Name    string                 `json:"name"`
-		Options *CreateInstanceRequest `json:"options,omitempty"`
+		Options *CreateInstanceOptions `json:"options,omitempty"`
 		Running bool                   `json:"running"`
 	}{
 		Name:    i.Name,
@@ -371,7 +363,7 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	// Create a temporary struct for unmarshalling
 	temp := struct {
 		Name    string                 `json:"name"`
-		Options *CreateInstanceRequest `json:"options,omitempty"`
+		Options *CreateInstanceOptions `json:"options,omitempty"`
 		Running bool                   `json:"running"`
 	}{}
 

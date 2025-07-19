@@ -7,9 +7,9 @@ import (
 // InstanceManager defines the interface for managing instances of the llama server.
 type InstanceManager interface {
 	ListInstances() ([]*Instance, error)
-	CreateInstance(name string, options *CreateInstanceRequest) (*Instance, error)
+	CreateInstance(name string, options *CreateInstanceOptions) (*Instance, error)
 	GetInstance(name string) (*Instance, error)
-	UpdateInstance(name string, options *CreateInstanceRequest) (*Instance, error)
+	UpdateInstance(name string, options *CreateInstanceOptions) (*Instance, error)
 	DeleteInstance(name string) error
 	StartInstance(name string) (*Instance, error)
 	StopInstance(name string) (*Instance, error)
@@ -43,7 +43,7 @@ func (im *instanceManager) ListInstances() ([]*Instance, error) {
 
 // CreateInstance creates a new instance with the given options and returns it.
 // The instance is initially in a "stopped" state.
-func (im *instanceManager) CreateInstance(name string, options *CreateInstanceRequest) (*Instance, error) {
+func (im *instanceManager) CreateInstance(name string, options *CreateInstanceOptions) (*Instance, error) {
 	if options == nil {
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
@@ -72,7 +72,7 @@ func (im *instanceManager) CreateInstance(name string, options *CreateInstanceRe
 		options.Port = port
 	}
 
-	instance := NewInstance(name, im.instancesConfig.LogDirectory, options)
+	instance := NewInstance(name, &im.instancesConfig, options)
 	im.instances[instance.Name] = instance
 
 	return instance, nil
@@ -88,7 +88,7 @@ func (im *instanceManager) GetInstance(name string) (*Instance, error) {
 }
 
 // UpdateInstance updates the options of an existing instance and returns it.
-func (im *instanceManager) UpdateInstance(name string, options *CreateInstanceRequest) (*Instance, error) {
+func (im *instanceManager) UpdateInstance(name string, options *CreateInstanceOptions) (*Instance, error) {
 	instance, exists := im.instances[name]
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
