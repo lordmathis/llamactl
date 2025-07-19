@@ -4,6 +4,7 @@ import (
 	"fmt"
 	llamactl "llamactl/pkg"
 	"net/http"
+	"os"
 )
 
 // @title llamactl API
@@ -18,6 +19,13 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 		fmt.Println("Using default configuration.")
+	}
+
+	// Crate the log directory if it doesn't exist
+	err = os.MkdirAll(config.Instances.LogDirectory, 0755)
+	if err != nil {
+		fmt.Printf("Error creating log directory: %v\n", err)
+		return
 	}
 
 	// Initialize the instance manager
