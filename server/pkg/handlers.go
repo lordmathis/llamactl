@@ -2,7 +2,6 @@ package llamactl
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os/exec"
 
@@ -83,18 +82,15 @@ func (h *Handler) ListDevicesHandler() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) StartHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var requestBody InstanceOptions
-		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-			fmt.Println("Error decoding request body:", err)
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-
-	}
-}
-
+// GetInstance godoc
+// @Summary Get details of a specific instance
+// @Description Returns the details of a specific instance by ID
+// @Tags instances
+// @Param id path string true "Instance ID"
+// @Success 200 {object} Instance "Instance details"
+// @Failure 400 {string} string "Invalid UUID format"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /instances/{id} [get]
 func (h *Handler) GetInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -118,6 +114,18 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 	}
 }
 
+// UpdateInstance godoc
+// @Summary Update an instance's configuration
+// @Description Updates the configuration of a specific instance by ID
+// @Tags instances
+// @Accept json
+// @Produce json
+// @Param id path string true "Instance ID"
+// @Param options body InstanceOptions true "Instance configuration options"
+// @Success 200 {object} Instance "Updated instance details"
+// @Failure 400 {string} string "Invalid UUID format"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /instances/{id} [put]
 func (h *Handler) UpdateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -153,6 +161,16 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 	}
 }
 
+// StartInstance godoc
+// @Summary Start a stopped instance
+// @Description Starts a specific instance by ID
+// @Tags instances
+// @Produce json
+// @Param id path string true "Instance ID"
+// @Success 200 {object} Instance "Started instance details"
+// @Failure 400 {string} string "Invalid UUID format"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /instances/{id}/start [post]
 func (h *Handler) StartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -176,6 +194,16 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 	}
 }
 
+// StopInstance godoc
+// @Summary Stop a running instance
+// @Description Stops a specific instance by ID
+// @Tags instances
+// @Produce json
+// @Param id path string true "Instance ID"
+// @Success 200 {object} Instance "Stopped instance details"
+// @Failure 400 {string} string "Invalid UUID format"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /instances/{id}/stop [post]
 func (h *Handler) StopInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -199,6 +227,16 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 	}
 }
 
+// RestartInstance godoc
+// @Summary Restart a running instance
+// @Description Restarts a specific instance by ID
+// @Tags instances
+// @Produce json
+// @Param id path string true "Instance ID"
+// @Success 200 {object} Instance "Restarted instance details"
+// @Failure 400 {string} string "Invalid UUID format"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /instances/{id}/restart [post]
 func (h *Handler) RestartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -222,6 +260,16 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 	}
 }
 
+// DeleteInstance godoc
+// @Summary Delete an instance
+// @Description Stops and removes a specific instance by ID
+// @Tags instances
+// @Produce json
+// @Param id path string true "Instance ID"
+// @Success 204 "No Content"
+// @Failure 400 {string} string "Invalid UUID format"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /instances/{id} [delete]
 func (h *Handler) DeleteInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -236,6 +284,6 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent) // No content for successful deletion
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
