@@ -65,7 +65,7 @@ func LoadConfig(configPath string) (Config, error) {
 			LogDirectory:        "/tmp/llamactl",
 			MaxInstances:        10,
 			LlamaExecutable:     "llama-server",
-			DefaultAutoRestart:  false,
+			DefaultAutoRestart:  true,
 			DefaultMaxRestarts:  3,
 			DefaultRestartDelay: 5,
 		},
