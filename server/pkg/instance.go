@@ -430,10 +430,9 @@ func (i *Instance) handleRestart() {
 		log.Printf("Failed to restart instance %s: %v", i.Name, err)
 	} else {
 		log.Printf("Successfully restarted instance %s", i.Name)
-		// Reset restart count on successful restart
+		// Clear the cancel function
 		i.mu.Lock()
-		i.restarts = 0
-		i.restartCancel = nil // Clear the cancel function
+		i.restartCancel = nil
 		i.mu.Unlock()
 	}
 }
