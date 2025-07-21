@@ -1,20 +1,13 @@
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Header from '@/components/Header'
+import InstanceList from '@/components/InstanceList'
 
 function App() {
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Llamactl Dashboard</h1>
-      
-      <Card className="w-96">
-        <CardHeader>
-          <CardTitle>Sample Instance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4">Status: Running</p>
-          <Button>Stop Instance</Button>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <main className="container mx-auto max-w-4xl px-4 py-8">
+        <InstanceList />
+      </main>
     </div>
   )
 }
