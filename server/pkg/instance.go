@@ -46,29 +46,68 @@ type Instance struct {
 	cancel   context.CancelFunc     `json:"-"` // Function to cancel the context
 	stdout   io.ReadCloser          `json:"-"` // Standard output stream
 	stderr   io.ReadCloser          `json:"-"` // Standard error stream
-	mu       sync.Mutex             `json:"-"` // Mutex for synchronizing access to the instance
+	mu       sync.RWMutex           `json:"-"` // RWMutex for better read/write separation
 	restarts int                    `json:"-"` // Number of restarts
 	proxy    *httputil.ReverseProxy `json:"-"` // Reverse proxy for this instance
+
+	// Restart control
+	restartCancel context.CancelFunc `json:"-"` // Cancel function for pending restarts
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
 func NewInstance(name string, globalSettings *InstancesConfig, options *CreateInstanceOptions) *Instance {
-	if options.AutoRestart == nil {
+	// Make a deep copy of options to avoid modifying the original and to prevent data races
+	optionsCopy := &CreateInstanceOptions{}
+	if options != nil {
+		// Copy the embedded LlamaServerOptions
+		optionsCopy.LlamaServerOptions = options.LlamaServerOptions
+
+		// Copy and validate pointer fields
+		if options.AutoRestart != nil {
+			autoRestart := *options.AutoRestart
+			optionsCopy.AutoRestart = &autoRestart
+		}
+		if options.MaxRestarts != nil {
+			maxRestarts := *options.MaxRestarts
+			if maxRestarts > 100 {
+				log.Printf("Instance %s MaxRestarts value (%d) limited to 100", name, maxRestarts)
+				maxRestarts = 100
+			} else if maxRestarts < 0 {
+				log.Printf("Instance %s MaxRestarts value (%d) cannot be negative, setting to 0", name, maxRestarts)
+				maxRestarts = 0
+			}
+			optionsCopy.MaxRestarts = &maxRestarts
+		}
+		if options.RestartDelay != nil {
+			restartDelay := *options.RestartDelay
+			if restartDelay < 1 {
+				log.Printf("Instance %s RestartDelay value (%d) too low, setting to 5 seconds", name, restartDelay)
+				restartDelay = 5
+			} else if restartDelay > 300 {
+				log.Printf("Instance %s RestartDelay value (%d) too high, limiting to 300 seconds", name, restartDelay)
+				restartDelay = 300
+			}
+			optionsCopy.RestartDelay = &restartDelay
+		}
+	}
+
+	// Set defaults for restart options if not provided
+	if optionsCopy.AutoRestart == nil {
 		defaultAutoRestart := globalSettings.DefaultAutoRestart
-		options.AutoRestart = &defaultAutoRestart
+		optionsCopy.AutoRestart = &defaultAutoRestart
 	}
-	if options.MaxRestarts == nil {
+	if optionsCopy.MaxRestarts == nil {
 		defaultMaxRestarts := globalSettings.DefaultMaxRestarts
-		options.MaxRestarts = &defaultMaxRestarts
+		optionsCopy.MaxRestarts = &defaultMaxRestarts
 	}
-	if options.RestartDelay == nil {
+	if optionsCopy.RestartDelay == nil {
 		defaultRestartDelay := globalSettings.DefaultRestartDelay
-		options.RestartDelay = &defaultRestartDelay
+		optionsCopy.RestartDelay = &defaultRestartDelay
 	}
 
 	return &Instance{
 		Name:           name,
-		options:        options,
+		options:        optionsCopy,
 		globalSettings: globalSettings,
 
 		Running: false,
@@ -103,8 +142,8 @@ func (i *Instance) closeLogFile() {
 }
 
 func (i *Instance) GetOptions() *CreateInstanceOptions {
-	i.mu.Lock()
-	defer i.mu.Unlock()
+	i.mu.RLock()
+	defer i.mu.RUnlock()
 	return i.options
 }
 
@@ -115,7 +154,26 @@ func (i *Instance) SetOptions(options *CreateInstanceOptions) {
 		log.Println("Warning: Attempted to set nil options on instance", i.Name)
 		return
 	}
-	i.options = options
+
+	// Make a deep copy to avoid sharing references
+	optionsCopy := &CreateInstanceOptions{}
+	optionsCopy.LlamaServerOptions = options.LlamaServerOptions
+
+	// Copy pointer fields (validation already done in UnmarshalJSON)
+	if options.AutoRestart != nil {
+		autoRestart := *options.AutoRestart
+		optionsCopy.AutoRestart = &autoRestart
+	}
+	if options.MaxRestarts != nil {
+		maxRestarts := *options.MaxRestarts
+		optionsCopy.MaxRestarts = &maxRestarts
+	}
+	if options.RestartDelay != nil {
+		restartDelay := *options.RestartDelay
+		optionsCopy.RestartDelay = &restartDelay
+	}
+
+	i.options = optionsCopy
 	// Clear the proxy so it gets recreated with new options
 	i.proxy = nil
 }
@@ -147,6 +205,11 @@ func (i *Instance) Start() error {
 
 	if i.Running {
 		return fmt.Errorf("instance %s is already running", i.Name)
+	}
+
+	// Safety check: ensure options are valid
+	if i.options == nil {
+		return fmt.Errorf("instance %s has no options set", i.Name)
 	}
 
 	// Create log files
@@ -199,7 +262,19 @@ func (i *Instance) Stop() error {
 	defer i.mu.Unlock()
 
 	if !i.Running {
+		// Even if not running, cancel any pending restart
+		if i.restartCancel != nil {
+			i.restartCancel()
+			i.restartCancel = nil
+			log.Printf("Cancelled pending restart for instance %s", i.Name)
+		}
 		return fmt.Errorf("instance %s is not running", i.Name)
+	}
+
+	// Cancel any pending restart
+	if i.restartCancel != nil {
+		i.restartCancel()
+		i.restartCancel = nil
 	}
 
 	// Cancel the context to signal termination
@@ -233,14 +308,18 @@ func (i *Instance) Stop() error {
 
 // GetLogs retrieves the last n lines of logs from the instance
 func (i *Instance) GetLogs(num_lines int) (string, error) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
+	i.mu.RLock()
+	logFileName := ""
+	if i.logFile != nil {
+		logFileName = i.logFile.Name()
+	}
+	i.mu.RUnlock()
 
-	if i.logFile == nil {
+	if logFileName == "" {
 		return "", fmt.Errorf("log file not created for instance %s", i.Name)
 	}
 
-	file, err := os.Open(i.logFile.Name())
+	file, err := os.Open(logFileName)
 	if err != nil {
 		return "", fmt.Errorf("failed to open log file: %w", err)
 	}
@@ -295,45 +374,106 @@ func (i *Instance) monitorProcess() {
 	if !i.Running {
 		return
 	}
-	i.Running = false
 
+	i.Running = false
 	i.closeLogFile()
+
+	// Cancel any existing restart context since we're handling a new exit
+	if i.restartCancel != nil {
+		i.restartCancel()
+		i.restartCancel = nil
+	}
 
 	// Log the exit
 	if err != nil {
 		log.Printf("Instance %s crashed with error: %v", i.Name, err)
+		i.attemptRestart()
 	} else {
 		log.Printf("Instance %s exited cleanly", i.Name)
 	}
+}
 
-	// Handle restart if process crashed and auto-restart is enabled
-	if err != nil && *i.options.AutoRestart && i.restarts < *i.options.MaxRestarts {
-		i.restarts++
-		delayDuration := time.Duration(*i.options.RestartDelay) * time.Second
-		log.Printf("Auto-restarting instance %s (attempt %d/%d) in %v",
-			i.Name, i.restarts, i.options.MaxRestarts, delayDuration)
-
-		// Unlock mutex during sleep to avoid blocking other operations
-		i.mu.Unlock()
-		time.Sleep(delayDuration)
-		i.mu.Lock()
-
-		// Attempt restart
-		if err := i.Start(); err != nil {
-			log.Printf("Failed to restart instance %s: %v", i.Name, err)
-		} else {
-			log.Printf("Successfully restarted instance %s", i.Name)
-			i.restarts = 0 // Reset restart count on successful restart
-		}
-	} else if i.restarts >= *i.options.MaxRestarts {
-		log.Printf("Instance %s exceeded max restart attempts (%d)", i.Name, i.options.MaxRestarts)
+// attemptRestart handles the auto-restart logic with safety checks
+func (i *Instance) attemptRestart() {
+	// Validate restart conditions and get safe parameters
+	shouldRestart, maxRestarts, restartDelay := i.validateRestartConditions()
+	if !shouldRestart {
+		return
 	}
+
+	i.restarts++
+	log.Printf("Auto-restarting instance %s (attempt %d/%d) in %v",
+		i.Name, i.restarts, maxRestarts, time.Duration(restartDelay)*time.Second)
+
+	// Create a cancellable context for the restart delay
+	restartCtx, cancel := context.WithCancel(context.Background())
+	i.restartCancel = cancel
+
+	// Sleep and restart without holding the lock
+	i.mu.Unlock()
+
+	// Use context-aware sleep so it can be cancelled
+	select {
+	case <-time.After(time.Duration(restartDelay) * time.Second):
+		// Sleep completed normally, continue with restart
+	case <-restartCtx.Done():
+		// Restart was cancelled
+		log.Printf("Restart cancelled for instance %s", i.Name)
+		return
+	}
+
+	// Restart the instance
+	if err := i.Start(); err != nil {
+		log.Printf("Failed to restart instance %s: %v", i.Name, err)
+	} else {
+		log.Printf("Successfully restarted instance %s", i.Name)
+		// Reset restart count on successful restart
+		i.mu.Lock()
+		i.restarts = 0
+		i.restartCancel = nil // Clear the cancel function
+		i.mu.Unlock()
+	}
+}
+
+// validateRestartConditions checks if the instance should be restarted and returns the parameters
+func (i *Instance) validateRestartConditions() (shouldRestart bool, maxRestarts int, restartDelay int) {
+	if i.options == nil {
+		log.Printf("Instance %s not restarting: options are nil", i.Name)
+		return false, 0, 0
+	}
+
+	if i.options.AutoRestart == nil || !*i.options.AutoRestart {
+		log.Printf("Instance %s not restarting: AutoRestart is disabled", i.Name)
+		return false, 0, 0
+	}
+
+	if i.options.MaxRestarts == nil {
+		log.Printf("Instance %s not restarting: MaxRestarts is nil", i.Name)
+		return false, 0, 0
+	}
+
+	if i.options.RestartDelay == nil {
+		log.Printf("Instance %s not restarting: RestartDelay is nil", i.Name)
+		return false, 0, 0
+	}
+
+	// Values are already validated during unmarshaling/SetOptions
+	maxRestarts = *i.options.MaxRestarts
+	restartDelay = *i.options.RestartDelay
+
+	if i.restarts >= maxRestarts {
+		log.Printf("Instance %s exceeded max restart attempts (%d)", i.Name, maxRestarts)
+		return false, 0, 0
+	}
+
+	return true, maxRestarts, restartDelay
 }
 
 // MarshalJSON implements json.Marshaler for Instance
 func (i *Instance) MarshalJSON() ([]byte, error) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
+	// Use read lock since we're only reading data
+	i.mu.RLock()
+	defer i.mu.RUnlock()
 
 	// Create a temporary struct with exported fields for JSON marshalling
 	temp := struct {
@@ -366,8 +506,25 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	i.Name = temp.Name
 	i.Running = temp.Running
 
-	// Handle options - ensure embedded LlamaServerOptions is initialized
+	// Handle options with validation
 	if temp.Options != nil {
+		// Validate and sanitize restart parameters
+		if temp.Options.MaxRestarts != nil {
+			if *temp.Options.MaxRestarts < 0 {
+				log.Printf("Instance %s MaxRestarts value (%d) cannot be negative, setting to 0", i.Name, *temp.Options.MaxRestarts)
+				maxRestarts := 0
+				temp.Options.MaxRestarts = &maxRestarts
+			}
+		}
+
+		if temp.Options.RestartDelay != nil {
+			if *temp.Options.RestartDelay < 0 {
+				log.Printf("Instance %s RestartDelay value (%d) cannot be negative, setting to 0", i.Name, *temp.Options.RestartDelay)
+				restartDelay := 5
+				temp.Options.RestartDelay = &restartDelay
+			}
+		}
+
 		i.options = temp.Options
 	}
 

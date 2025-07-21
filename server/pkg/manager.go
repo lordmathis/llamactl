@@ -2,6 +2,7 @@ package llamactl
 
 import (
 	"fmt"
+	"sync"
 )
 
 // InstanceManager defines the interface for managing instances of the llama server.
@@ -18,6 +19,7 @@ type InstanceManager interface {
 }
 
 type instanceManager struct {
+	mu              sync.RWMutex
 	instances       map[string]*Instance
 	ports           map[int]bool
 	instancesConfig InstancesConfig
@@ -34,6 +36,9 @@ func NewInstanceManager(instancesConfig InstancesConfig) InstanceManager {
 
 // ListInstances returns a list of all instances managed by the instance manager.
 func (im *instanceManager) ListInstances() ([]*Instance, error) {
+	im.mu.RLock()
+	defer im.mu.RUnlock()
+
 	var instances []*Instance
 	for _, instance := range im.instances {
 		instances = append(instances, instance)
@@ -58,6 +63,9 @@ func (im *instanceManager) CreateInstance(name string, options *CreateInstanceOp
 		return nil, err
 	}
 
+	im.mu.Lock()
+	defer im.mu.Unlock()
+
 	// Check if instance with this name already exists
 	if im.instances[name] != nil {
 		return nil, fmt.Errorf("instance with name %s already exists", name)
@@ -80,6 +88,9 @@ func (im *instanceManager) CreateInstance(name string, options *CreateInstanceOp
 
 // GetInstance retrieves an instance by its name.
 func (im *instanceManager) GetInstance(name string) (*Instance, error) {
+	im.mu.RLock()
+	defer im.mu.RUnlock()
+
 	instance, exists := im.instances[name]
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
@@ -89,7 +100,10 @@ func (im *instanceManager) GetInstance(name string) (*Instance, error) {
 
 // UpdateInstance updates the options of an existing instance and returns it.
 func (im *instanceManager) UpdateInstance(name string, options *CreateInstanceOptions) (*Instance, error) {
+	im.mu.RLock()
 	instance, exists := im.instances[name]
+	im.mu.RUnlock()
+
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
@@ -109,6 +123,9 @@ func (im *instanceManager) UpdateInstance(name string, options *CreateInstanceOp
 
 // DeleteInstance removes stopped instance by its name.
 func (im *instanceManager) DeleteInstance(name string) error {
+	im.mu.Lock()
+	defer im.mu.Unlock()
+
 	_, exists := im.instances[name]
 	if !exists {
 		return fmt.Errorf("instance with name %s not found", name)
@@ -125,7 +142,10 @@ func (im *instanceManager) DeleteInstance(name string) error {
 // StartInstance starts a stopped instance and returns it.
 // If the instance is already running, it returns an error.
 func (im *instanceManager) StartInstance(name string) (*Instance, error) {
+	im.mu.RLock()
 	instance, exists := im.instances[name]
+	im.mu.RUnlock()
+
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
@@ -142,7 +162,10 @@ func (im *instanceManager) StartInstance(name string) (*Instance, error) {
 
 // StopInstance stops a running instance and returns it.
 func (im *instanceManager) StopInstance(name string) (*Instance, error) {
+	im.mu.RLock()
 	instance, exists := im.instances[name]
+	im.mu.RUnlock()
+
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
@@ -168,7 +191,10 @@ func (im *instanceManager) RestartInstance(name string) (*Instance, error) {
 
 // GetInstanceLogs retrieves the logs for a specific instance by its name.
 func (im *instanceManager) GetInstanceLogs(name string) (string, error) {
+	im.mu.RLock()
 	_, exists := im.instances[name]
+	im.mu.RUnlock()
+
 	if !exists {
 		return "", fmt.Errorf("instance with name %s not found", name)
 	}
