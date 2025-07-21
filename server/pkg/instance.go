@@ -369,9 +369,9 @@ func (i *Instance) monitorProcess() {
 	err := i.cmd.Wait()
 
 	i.mu.Lock()
-	defer i.mu.Unlock()
 
 	if !i.Running {
+		i.mu.Unlock()
 		return
 	}
 
@@ -387,17 +387,20 @@ func (i *Instance) monitorProcess() {
 	// Log the exit
 	if err != nil {
 		log.Printf("Instance %s crashed with error: %v", i.Name, err)
-		i.attemptRestart()
+		// Handle restart while holding the lock, then release it
+		i.handleRestart()
 	} else {
 		log.Printf("Instance %s exited cleanly", i.Name)
+		i.mu.Unlock()
 	}
 }
 
-// attemptRestart handles the auto-restart logic with safety checks
-func (i *Instance) attemptRestart() {
+// handleRestart manages the restart process while holding the lock
+func (i *Instance) handleRestart() {
 	// Validate restart conditions and get safe parameters
 	shouldRestart, maxRestarts, restartDelay := i.validateRestartConditions()
 	if !shouldRestart {
+		i.mu.Unlock()
 		return
 	}
 
@@ -409,7 +412,7 @@ func (i *Instance) attemptRestart() {
 	restartCtx, cancel := context.WithCancel(context.Background())
 	i.restartCancel = cancel
 
-	// Sleep and restart without holding the lock
+	// Release the lock before sleeping
 	i.mu.Unlock()
 
 	// Use context-aware sleep so it can be cancelled
