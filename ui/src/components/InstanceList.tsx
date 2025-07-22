@@ -2,7 +2,7 @@ import { useInstances } from '@/hooks/useInstances'
 import InstanceCard from '@/components/InstanceCard'
 
 function InstanceList() {
-  const { instances, loading, error } = useInstances()
+  const { instances, loading, error, startInstance, stopInstance, deleteInstance } = useInstances()
 
   if (loading) {
     return (
@@ -46,6 +46,9 @@ function InstanceList() {
           <InstanceCard 
             key={instance.name} 
             instance={instance}
+            startInstance={startInstance}
+            stopInstance={stopInstance}
+            deleteInstance={deleteInstance}
           />
         ))}
       </div>

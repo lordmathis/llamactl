@@ -2,14 +2,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Instance } from '@/types/instance'
-import { useInstances } from '@/hooks/useInstances'
+import { Edit, FileText, Play, Square, Trash2 } from 'lucide-react'
 
 interface InstanceCardProps {
   instance: Instance
+  startInstance: (name: string) => void
+  stopInstance: (name: string) => void
+  deleteInstance: (name: string) => void
 }
 
-function InstanceCard({ instance }: InstanceCardProps) {
-  const { startInstance, stopInstance, deleteInstance } = useInstances()
+function InstanceCard({ instance, startInstance, stopInstance, deleteInstance }: InstanceCardProps) {
 
   const handleStart = () => {
     startInstance(instance.name)
@@ -25,6 +27,16 @@ function InstanceCard({ instance }: InstanceCardProps) {
     }
   }
 
+  const handleEdit = () => {
+    // Logic for editing the instance (e.g., open a modal)
+    console.log(`Edit instance: ${instance.name}`)
+  }
+
+  const handleLogs = () => {
+    // Logic for viewing logs (e.g., open a logs page)
+    console.log(`View logs for instance: ${instance.name}`)
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -37,33 +49,53 @@ function InstanceCard({ instance }: InstanceCardProps) {
       </CardHeader>
       
       <CardContent>
-        <div className="flex gap-2">
-          {!instance.running ? (
-            <Button 
-              size="sm" 
-              onClick={handleStart}
-              className="flex-1"
-            >
-              Start
-            </Button>
-          ) : (
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={handleStop}
-              className="flex-1"
-            >
-              Stop
-            </Button>
-          )}
+        <div className="flex gap-1">
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={handleStart}
+            disabled={instance.running}
+            title="Start instance"
+          >
+            <Play className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={handleStop}
+            disabled={!instance.running}
+            title="Stop instance"
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={handleEdit}
+            title="Edit instance"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={handleLogs}
+            title="View logs"
+          >
+            <FileText className="h-4 w-4" />
+          </Button>
           
           <Button 
             size="sm" 
             variant="destructive" 
             onClick={handleDelete}
             disabled={instance.running}
+            title="Delete instance"
           >
-            Delete
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </CardContent>
