@@ -1,7 +1,12 @@
 import { useInstances } from '@/hooks/useInstances'
 import InstanceCard from '@/components/InstanceCard'
+import { Instance } from '@/types/instance'
 
-function InstanceList() {
+interface InstanceListProps {
+  editInstance: (instance: Instance) => void
+}
+
+function InstanceList({ editInstance }: InstanceListProps) {
   const { instances, loading, error, startInstance, stopInstance, deleteInstance } = useInstances()
 
   if (loading) {
@@ -49,6 +54,7 @@ function InstanceList() {
             startInstance={startInstance}
             stopInstance={stopInstance}
             deleteInstance={deleteInstance}
+            editInstance={editInstance}
           />
         ))}
       </div>

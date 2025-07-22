@@ -9,9 +9,10 @@ interface InstanceCardProps {
   startInstance: (name: string) => void
   stopInstance: (name: string) => void
   deleteInstance: (name: string) => void
+  editInstance: (instance: Instance) => void
 }
 
-function InstanceCard({ instance, startInstance, stopInstance, deleteInstance }: InstanceCardProps) {
+function InstanceCard({ instance, startInstance, stopInstance, deleteInstance, editInstance }: InstanceCardProps) {
 
   const handleStart = () => {
     startInstance(instance.name)
@@ -28,8 +29,7 @@ function InstanceCard({ instance, startInstance, stopInstance, deleteInstance }:
   }
 
   const handleEdit = () => {
-    // Logic for editing the instance (e.g., open a modal)
-    console.log(`Edit instance: ${instance.name}`)
+    editInstance(instance)
   }
 
   const handleLogs = () => {
