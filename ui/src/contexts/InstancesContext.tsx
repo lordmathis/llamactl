@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { CreateInstanceOptions, Instance } from '@/types/instance'
 import { instancesApi } from '@/lib/api'
 
-interface UseInstancesState {
+interface InstancesContextState {
   instances: Instance[]
   loading: boolean
   error: string | null
 }
 
-interface UseInstancesActions {
+interface InstancesContextActions {
   fetchInstances: () => Promise<void>
   createInstance: (name: string, options: CreateInstanceOptions) => Promise<void>
   updateInstance: (name: string, options: CreateInstanceOptions) => Promise<void>
@@ -19,7 +19,15 @@ interface UseInstancesActions {
   clearError: () => void
 }
 
-export const useInstances = (): UseInstancesState & UseInstancesActions => {
+type InstancesContextType = InstancesContextState & InstancesContextActions
+
+const InstancesContext = createContext<InstancesContextType | undefined>(undefined)
+
+interface InstancesProviderProps {
+  children: ReactNode
+}
+
+export const InstancesProvider = ({ children }: InstancesProviderProps) => {
   const [instances, setInstances] = useState<Instance[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +52,7 @@ export const useInstances = (): UseInstancesState & UseInstancesActions => {
   const createInstance = useCallback(async (name: string, options: CreateInstanceOptions) => {
     try {
       setError(null)
-      await instancesApi.create( name, options )
+      await instancesApi.create(name, options)
       // Refresh the list to include the new instance
       await fetchInstances()
     } catch (err) {
@@ -112,7 +120,7 @@ export const useInstances = (): UseInstancesState & UseInstancesActions => {
     fetchInstances()
   }, [fetchInstances])
 
-  return {
+  const value: InstancesContextType = {
     // State
     instances,
     loading,
@@ -127,4 +135,18 @@ export const useInstances = (): UseInstancesState & UseInstancesActions => {
     deleteInstance,
     clearError,
   }
+
+  return (
+    <InstancesContext.Provider value={value}>
+      {children}
+    </InstancesContext.Provider>
+  )
+}
+
+export const useInstances = (): InstancesContextType => {
+  const context = useContext(InstancesContext)
+  if (context === undefined) {
+    throw new Error('useInstances must be used within an InstancesProvider')
+  }
+  return context
 }

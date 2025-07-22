@@ -1,4 +1,4 @@
-import { useInstances } from '@/hooks/useInstances'
+import { useInstances } from '@/contexts/InstancesContext'
 import InstanceCard from '@/components/InstanceCard'
 import { Instance } from '@/types/instance'
 

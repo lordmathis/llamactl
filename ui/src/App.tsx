@@ -3,7 +3,7 @@ import Header from '@/components/Header'
 import InstanceList from '@/components/InstanceList'
 import InstanceModal from '@/components/InstanceModal'
 import { CreateInstanceOptions, Instance } from '@/types/instance'
-import { useInstances } from '@/hooks/useInstances'
+import { useInstances } from '@/contexts/InstancesContext'
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false)
