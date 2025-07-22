@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Instance } from '@/types/instance'
+import { CreateInstanceOptions, Instance } from '@/types/instance'
 import { instancesApi } from '@/lib/api'
 
 interface UseInstancesState {
@@ -10,6 +10,8 @@ interface UseInstancesState {
 
 interface UseInstancesActions {
   fetchInstances: () => Promise<void>
+  createInstance: (name: string, options: CreateInstanceOptions) => Promise<void>
+  updateInstance: (name: string, options: CreateInstanceOptions) => Promise<void>
   startInstance: (name: string) => Promise<void>
   stopInstance: (name: string) => Promise<void>
   restartInstance: (name: string) => Promise<void>
@@ -38,6 +40,28 @@ export const useInstances = (): UseInstancesState & UseInstancesActions => {
       setLoading(false)
     }
   }, [])
+
+  const createInstance = useCallback(async (name: string, options: CreateInstanceOptions) => {
+    try {
+      setError(null)
+      await instancesApi.create( name, options )
+      // Refresh the list to include the new instance
+      await fetchInstances()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create instance')
+    }
+  }, [fetchInstances])
+
+  const updateInstance = useCallback(async (name: string, options: CreateInstanceOptions) => {
+    try {
+      setError(null)
+      await instancesApi.update(name, options)
+      // Refresh the list to get updated instance
+      await fetchInstances()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update instance')
+    }
+  }, [fetchInstances])
 
   const startInstance = useCallback(async (name: string) => {
     try {
@@ -95,6 +119,8 @@ export const useInstances = (): UseInstancesState & UseInstancesActions => {
     error,
     // Actions
     fetchInstances,
+    createInstance,
+    updateInstance,
     startInstance,
     stopInstance,
     restartInstance,

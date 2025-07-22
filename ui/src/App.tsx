@@ -3,10 +3,12 @@ import Header from '@/components/Header'
 import InstanceList from '@/components/InstanceList'
 import InstanceModal from '@/components/InstanceModal'
 import { CreateInstanceOptions, Instance } from '@/types/instance'
+import { useInstances } from '@/hooks/useInstances'
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingInstance, setEditingInstance] = useState<Instance | undefined>(undefined)
+  const { createInstance, updateInstance } = useInstances()
 
   const handleCreateInstance = () => {
     setEditingInstance(undefined)
@@ -20,13 +22,10 @@ function App() {
 
   const handleSaveInstance = (name: string, options: CreateInstanceOptions) => {
     if (editingInstance) {
-      // TODO: Implement API call to update instance
-      console.log('Updating instance:', { name, options })
+      updateInstance(editingInstance.name, options)
     } else {
-      // TODO: Implement API call to create instance
-      console.log('Creating instance:', { name, options })
+      createInstance(name, options)
     }
-    // For now, just log the data - you'll implement the API call later
   }
 
   return (
