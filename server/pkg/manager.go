@@ -39,7 +39,7 @@ func (im *instanceManager) ListInstances() ([]*Instance, error) {
 	im.mu.RLock()
 	defer im.mu.RUnlock()
 
-	var instances []*Instance
+	instances := make([]*Instance, 0, len(im.instances))
 	for _, instance := range im.instances {
 		instances = append(instances, instance)
 	}
