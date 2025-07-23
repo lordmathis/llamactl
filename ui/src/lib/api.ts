@@ -3,16 +3,16 @@ import { CreateInstanceOptions, Instance } from "@/types/instance"
 const API_BASE = '/api/v1'
 
 // Configuration for API calls
-interface ApiConfig {
-  apiKey?: string
-}
+// interface ApiConfig {
+//   apiKey?: string
+// }
 
 // Global config - can be updated when auth is added
-let apiConfig: ApiConfig = {}
+// let apiConfig: ApiConfig = {}
 
-export const setApiConfig = (config: ApiConfig) => {
-  apiConfig = config
-}
+// export const setApiConfig = (config: ApiConfig) => {
+//   apiConfig = config
+// }
 
 // Base API call function with error handling
 async function apiCall<T>(

@@ -213,12 +213,6 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 			return
 		}
 
-		instance, err = h.InstanceManager.RestartInstance(name)
-		if err != nil {
-			http.Error(w, "Failed to restart instance: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(instance); err != nil {
 			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
