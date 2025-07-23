@@ -99,6 +99,7 @@ func (im *instanceManager) GetInstance(name string) (*Instance, error) {
 }
 
 // UpdateInstance updates the options of an existing instance and returns it.
+// If the instance is running, it will be restarted to apply the new options.
 func (im *instanceManager) UpdateInstance(name string, options *CreateInstanceOptions) (*Instance, error) {
 	im.mu.RLock()
 	instance, exists := im.instances[name]
@@ -117,7 +118,26 @@ func (im *instanceManager) UpdateInstance(name string, options *CreateInstanceOp
 		return nil, err
 	}
 
+	// Check if instance is running before updating options
+	wasRunning := instance.Running
+
+	// If the instance is running, stop it first
+	if wasRunning {
+		if err := instance.Stop(); err != nil {
+			return nil, fmt.Errorf("failed to stop instance %s for update: %w", name, err)
+		}
+	}
+
+	// Now update the options while the instance is stopped
 	instance.SetOptions(options)
+
+	// If it was running before, start it again with the new options
+	if wasRunning {
+		if err := instance.Start(); err != nil {
+			return nil, fmt.Errorf("failed to start instance %s after update: %w", name, err)
+		}
+	}
+
 	return instance, nil
 }
 

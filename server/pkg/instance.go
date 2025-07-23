@@ -52,6 +52,7 @@ type Instance struct {
 
 	// Restart control
 	restartCancel context.CancelFunc `json:"-"` // Cancel function for pending restarts
+	monitorDone   chan struct{}      `json:"-"` // Channel to signal monitor goroutine completion
 }
 
 // validateAndCopyOptions validates and creates a deep copy of the provided options
@@ -174,8 +175,9 @@ func (i *Instance) SetOptions(options *CreateInstanceOptions) {
 		return
 	}
 
-	// Validate and copy options without applying defaults
+	// Validate and copy options and apply defaults
 	optionsCopy := validateAndCopyOptions(i.Name, options)
+	applyDefaultOptions(optionsCopy, i.globalSettings)
 
 	i.options = optionsCopy
 	// Clear the proxy so it gets recreated with new options
@@ -216,6 +218,12 @@ func (i *Instance) Start() error {
 		return fmt.Errorf("instance %s has no options set", i.Name)
 	}
 
+	// Reset restart counter when manually starting (not during auto-restart)
+	// We can detect auto-restart by checking if restartCancel is set
+	if i.restartCancel == nil {
+		i.restarts = 0
+	}
+
 	// Create log files
 	if err := i.createLogFile(); err != nil {
 		return fmt.Errorf("failed to create log files: %w", err)
@@ -252,6 +260,9 @@ func (i *Instance) Start() error {
 
 	i.Running = true
 
+	// Create channel for monitor completion signaling
+	i.monitorDone = make(chan struct{})
+
 	go i.readOutput(i.stdout, i.logFile)
 	go i.readOutput(i.stderr, i.logFile)
 
@@ -263,7 +274,6 @@ func (i *Instance) Start() error {
 // Stop terminates the subprocess
 func (i *Instance) Stop() error {
 	i.mu.Lock()
-	defer i.mu.Unlock()
 
 	if !i.Running {
 		// Even if not running, cancel any pending restart
@@ -272,6 +282,7 @@ func (i *Instance) Stop() error {
 			i.restartCancel = nil
 			log.Printf("Cancelled pending restart for instance %s", i.Name)
 		}
+		i.mu.Unlock()
 		return fmt.Errorf("instance %s is not running", i.Name)
 	}
 
@@ -281,29 +292,47 @@ func (i *Instance) Stop() error {
 		i.restartCancel = nil
 	}
 
-	// Cancel the context to signal termination
-	i.cancel()
+	// Set running to false first to signal intentional stop
+	i.Running = false
 
 	// Clean up the proxy
 	i.proxy = nil
 
-	// Wait for process to exit (with timeout)
-	done := make(chan error, 1)
-	go func() {
-		done <- i.cmd.Wait()
-	}()
+	// Get the monitor done channel before releasing the lock
+	monitorDone := i.monitorDone
 
-	select {
-	case <-done:
-		// Process exited normally
-	case <-time.After(5 * time.Second):
-		// Force kill if it doesn't exit within 5 seconds
-		if i.cmd.Process != nil {
-			i.cmd.Process.Kill()
+	i.mu.Unlock()
+
+	// First, try to gracefully stop with SIGINT
+	if i.cmd.Process != nil {
+		if err := i.cmd.Process.Signal(syscall.SIGINT); err != nil {
+			log.Printf("Failed to send SIGINT to instance %s: %v", i.Name, err)
 		}
 	}
 
-	i.Running = false
+	// Don't call cmd.Wait() here - let the monitor goroutine handle it
+	// Instead, wait for the monitor to complete or timeout
+	select {
+	case <-monitorDone:
+		// Process exited normally
+	case <-time.After(30 * time.Second):
+		// Force kill if it doesn't exit within 30 seconds
+		if i.cmd.Process != nil {
+			killErr := i.cmd.Process.Kill()
+			if killErr != nil {
+				log.Printf("Failed to force kill instance %s: %v", i.Name, killErr)
+			}
+			log.Printf("Instance %s did not stop in time, force killed", i.Name)
+
+			// Wait a bit more for the monitor to finish after force kill
+			select {
+			case <-monitorDone:
+				// Monitor completed after force kill
+			case <-time.After(2 * time.Second):
+				log.Printf("Warning: Monitor goroutine did not complete after force kill for instance %s", i.Name)
+			}
+		}
+	}
 
 	i.closeLogFile() // Close log files after stopping
 
@@ -370,10 +399,17 @@ func (i *Instance) readOutput(reader io.ReadCloser, logFile *os.File) {
 }
 
 func (i *Instance) monitorProcess() {
+	defer func() {
+		if i.monitorDone != nil {
+			close(i.monitorDone)
+		}
+	}()
+
 	err := i.cmd.Wait()
 
 	i.mu.Lock()
 
+	// Check if the instance was intentionally stopped
 	if !i.Running {
 		i.mu.Unlock()
 		return
