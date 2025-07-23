@@ -201,7 +201,7 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={!instanceName.trim() || !!nameError}>
-            {isEditing ? 'Save Changes' : 'Create Instance'}
+            {isEditing ? 'Update & Restart Instance' : 'Create Instance'}
           </Button>
         </DialogFooter>
       </DialogContent>

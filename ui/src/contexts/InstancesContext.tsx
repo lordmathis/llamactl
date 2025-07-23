@@ -53,7 +53,6 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     try {
       setError(null)
       await instancesApi.create(name, options)
-      // Refresh the list to include the new instance
       await fetchInstances()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create instance')
@@ -64,7 +63,6 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     try {
       setError(null)
       await instancesApi.update(name, options)
-      // Refresh the list to get updated instance
       await fetchInstances()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update instance')
@@ -75,7 +73,6 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     try {
       setError(null)
       await instancesApi.start(name)
-      // Refresh the list to get updated status
       await fetchInstances()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start instance')
@@ -86,7 +83,6 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     try {
       setError(null)
       await instancesApi.stop(name)
-      // Refresh the list to get updated status
       await fetchInstances()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to stop instance')
@@ -97,7 +93,6 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     try {
       setError(null)
       await instancesApi.restart(name)
-      // Refresh the list to get updated status
       await fetchInstances()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to restart instance')
@@ -108,7 +103,6 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     try {
       setError(null)
       await instancesApi.delete(name)
-      // Refresh the list to get updated status
       await fetchInstances()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete instance')
