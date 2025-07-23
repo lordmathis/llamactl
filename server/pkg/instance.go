@@ -38,7 +38,8 @@ type Instance struct {
 	Running bool `json:"running"`
 
 	// Log file
-	logFile *os.File `json:"-"`
+	logFile     *os.File `json:"-"`
+	logFilePath string   `json:"-"` // Store the log file path separately
 
 	// internal
 	cmd      *exec.Cmd              `json:"-"` // Command to run the instance
@@ -136,7 +137,24 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 
 // createLogFile creates and opens the log files for stdout and stderr
 func (i *Instance) createLogFile() error {
+	if i.globalSettings == nil {
+		return fmt.Errorf("globalSettings is nil for instance %s", i.Name)
+	}
+
+	if i.globalSettings.LogDirectory == "" {
+		return fmt.Errorf("LogDirectory is empty for instance %s", i.Name)
+	}
+
 	logPath := i.globalSettings.LogDirectory + "/" + i.Name + ".log"
+
+	// Store the log file path for later access
+	i.logFilePath = logPath
+
+	// Check if directory exists, create if not
+	if err := os.MkdirAll(i.globalSettings.LogDirectory, 0755); err != nil {
+		return fmt.Errorf("failed to create log directory: %w", err)
+	}
+
 	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to create stdout log file: %w", err)
@@ -342,10 +360,7 @@ func (i *Instance) Stop() error {
 // GetLogs retrieves the last n lines of logs from the instance
 func (i *Instance) GetLogs(num_lines int) (string, error) {
 	i.mu.RLock()
-	logFileName := ""
-	if i.logFile != nil {
-		logFileName = i.logFile.Name()
-	}
+	logFileName := i.logFilePath
 	i.mu.RUnlock()
 
 	if logFileName == "" {
