@@ -30,6 +30,7 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
   instance
 }) => {
   const isEditing = !!instance
+  const isRunning = instance?.running || true // Assume running if instance exists
   
   const [instanceName, setInstanceName] = useState('')
   const [formData, setFormData] = useState<CreateInstanceOptions>({})
@@ -237,7 +238,7 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={!instanceName.trim() || !!nameError}>
-            {isEditing ? 'Update & Restart Instance' : 'Create Instance'}
+            {isEditing ? (isRunning ? 'Update & Restart Instance' : 'Update Instance') : 'Create Instance'}
           </Button>
         </DialogFooter>
       </DialogContent>
