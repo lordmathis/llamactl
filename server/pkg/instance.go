@@ -54,10 +54,11 @@ type Instance struct {
 	restartCancel context.CancelFunc `json:"-"` // Cancel function for pending restarts
 }
 
-// NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalSettings *InstancesConfig, options *CreateInstanceOptions) *Instance {
-	// Make a deep copy of options to avoid modifying the original and to prevent data races
+// validateAndCopyOptions validates and creates a deep copy of the provided options
+// It applies validation rules and returns a safe copy
+func validateAndCopyOptions(name string, options *CreateInstanceOptions) *CreateInstanceOptions {
 	optionsCopy := &CreateInstanceOptions{}
+
 	if options != nil {
 		// Copy the embedded LlamaServerOptions
 		optionsCopy.LlamaServerOptions = options.LlamaServerOptions
@@ -67,6 +68,7 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 			autoRestart := *options.AutoRestart
 			optionsCopy.AutoRestart = &autoRestart
 		}
+
 		if options.MaxRestarts != nil {
 			maxRestarts := *options.MaxRestarts
 			if maxRestarts > 100 {
@@ -78,6 +80,7 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 			}
 			optionsCopy.MaxRestarts = &maxRestarts
 		}
+
 		if options.RestartDelay != nil {
 			restartDelay := *options.RestartDelay
 			if restartDelay < 1 {
@@ -91,19 +94,35 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 		}
 	}
 
-	// Set defaults for restart options if not provided
-	if optionsCopy.AutoRestart == nil {
+	return optionsCopy
+}
+
+// applyDefaultOptions applies default values from global settings to any nil options
+func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *InstancesConfig) {
+	if globalSettings == nil {
+		return
+	}
+
+	if options.AutoRestart == nil {
 		defaultAutoRestart := globalSettings.DefaultAutoRestart
-		optionsCopy.AutoRestart = &defaultAutoRestart
+		options.AutoRestart = &defaultAutoRestart
 	}
-	if optionsCopy.MaxRestarts == nil {
+	if options.MaxRestarts == nil {
 		defaultMaxRestarts := globalSettings.DefaultMaxRestarts
-		optionsCopy.MaxRestarts = &defaultMaxRestarts
+		options.MaxRestarts = &defaultMaxRestarts
 	}
-	if optionsCopy.RestartDelay == nil {
+	if options.RestartDelay == nil {
 		defaultRestartDelay := globalSettings.DefaultRestartDelay
-		optionsCopy.RestartDelay = &defaultRestartDelay
+		options.RestartDelay = &defaultRestartDelay
 	}
+}
+
+// NewInstance creates a new instance with the given name, log path, and options
+func NewInstance(name string, globalSettings *InstancesConfig, options *CreateInstanceOptions) *Instance {
+	// Validate and copy options
+	optionsCopy := validateAndCopyOptions(name, options)
+	// Apply defaults
+	applyDefaultOptions(optionsCopy, globalSettings)
 
 	return &Instance{
 		Name:           name,
@@ -155,23 +174,8 @@ func (i *Instance) SetOptions(options *CreateInstanceOptions) {
 		return
 	}
 
-	// Make a deep copy to avoid sharing references
-	optionsCopy := &CreateInstanceOptions{}
-	optionsCopy.LlamaServerOptions = options.LlamaServerOptions
-
-	// Copy pointer fields (validation already done in UnmarshalJSON)
-	if options.AutoRestart != nil {
-		autoRestart := *options.AutoRestart
-		optionsCopy.AutoRestart = &autoRestart
-	}
-	if options.MaxRestarts != nil {
-		maxRestarts := *options.MaxRestarts
-		optionsCopy.MaxRestarts = &maxRestarts
-	}
-	if options.RestartDelay != nil {
-		restartDelay := *options.RestartDelay
-		optionsCopy.RestartDelay = &restartDelay
-	}
+	// Validate and copy options without applying defaults
+	optionsCopy := validateAndCopyOptions(i.Name, options)
 
 	i.options = optionsCopy
 	// Clear the proxy so it gets recreated with new options
@@ -508,26 +512,9 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	i.Name = temp.Name
 	i.Running = temp.Running
 
-	// Handle options with validation
+	// Handle options with validation but no defaults
 	if temp.Options != nil {
-		// Validate and sanitize restart parameters
-		if temp.Options.MaxRestarts != nil {
-			if *temp.Options.MaxRestarts < 0 {
-				log.Printf("Instance %s MaxRestarts value (%d) cannot be negative, setting to 0", i.Name, *temp.Options.MaxRestarts)
-				maxRestarts := 0
-				temp.Options.MaxRestarts = &maxRestarts
-			}
-		}
-
-		if temp.Options.RestartDelay != nil {
-			if *temp.Options.RestartDelay < 0 {
-				log.Printf("Instance %s RestartDelay value (%d) cannot be negative, setting to 0", i.Name, *temp.Options.RestartDelay)
-				restartDelay := 5
-				temp.Options.RestartDelay = &restartDelay
-			}
-		}
-
-		i.options = temp.Options
+		i.options = validateAndCopyOptions(i.Name, temp.Options)
 	}
 
 	return nil
