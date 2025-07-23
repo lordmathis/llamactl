@@ -109,6 +109,9 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
     setShowAdvanced(!showAdvanced)
   }
 
+  // Check if auto_restart is enabled
+  const isAutoRestartEnabled = formData.auto_restart === true
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
@@ -146,17 +149,47 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
               </p>
             </div>
 
-            {/* Basic Fields - Automatically generated from type */}
+            {/* Auto Restart Configuration Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Auto Restart Configuration</h3>
+              
+              {/* Auto Restart Toggle */}
+              <ZodFormField
+                fieldKey="auto_restart"
+                value={formData.auto_restart}
+                onChange={handleFieldChange}
+              />
+
+              {/* Show restart options only when auto restart is enabled */}
+              {isAutoRestartEnabled && (
+                <div className="ml-6 space-y-4 border-l-2 border-muted pl-4">
+                  <ZodFormField
+                    fieldKey="max_restarts"
+                    value={formData.max_restarts}
+                    onChange={handleFieldChange}
+                  />
+                  <ZodFormField
+                    fieldKey="restart_delay"
+                    value={formData.restart_delay}
+                    onChange={handleFieldChange}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Basic Fields - Automatically generated from type (excluding auto restart options) */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Basic Configuration</h3>
-              {basicFields.map((fieldKey) => (
-                <ZodFormField
-                  key={fieldKey}
-                  fieldKey={fieldKey}
-                  value={formData[fieldKey]}
-                  onChange={handleFieldChange}
-                />
-              ))}
+              {basicFields
+                .filter(fieldKey => fieldKey !== 'auto_restart') // Exclude auto_restart as it's handled above
+                .map((fieldKey) => (
+                  <ZodFormField
+                    key={fieldKey}
+                    fieldKey={fieldKey}
+                    value={formData[fieldKey]}
+                    onChange={handleFieldChange}
+                  />
+                ))}
             </div>
 
             {/* Advanced Fields Toggle */}
@@ -173,23 +206,26 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
                 )}
                 Advanced Configuration
                 <span className="text-muted-foreground text-sm font-normal">
-                  ({advancedFields.length} options)
+                  ({advancedFields.filter(f => !['max_restarts', 'restart_delay'].includes(f as string)).length} options)
                 </span>
               </Button>
             </div>
 
-            {/* Advanced Fields - Automatically generated from type */}
+            {/* Advanced Fields - Automatically generated from type (excluding restart options) */}
             {showAdvanced && (
               <div className="space-y-4 pl-6 border-l-2 border-muted">
                 <div className="space-y-4">
-                  {advancedFields.sort().map((fieldKey) => (
-                    <ZodFormField
-                      key={fieldKey}
-                      fieldKey={fieldKey}
-                      value={formData[fieldKey]}
-                      onChange={handleFieldChange}
-                    />
-                  ))}
+                  {advancedFields
+                    .filter(fieldKey => !['max_restarts', 'restart_delay'].includes(fieldKey as string)) // Exclude restart options as they're handled above
+                    .sort()
+                    .map((fieldKey) => (
+                      <ZodFormField
+                        key={fieldKey}
+                        fieldKey={fieldKey}
+                        value={formData[fieldKey]}
+                        onChange={handleFieldChange}
+                      />
+                    ))}
                 </div>
               </div>
             )}

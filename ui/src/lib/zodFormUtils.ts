@@ -11,6 +11,16 @@ export const basicFieldsConfig: Record<string, {
     label: 'Auto Restart',
     description: 'Automatically restart the instance on failure'
   },
+  max_restarts: {
+    label: 'Max Restarts',
+    placeholder: '3',
+    description: 'Maximum number of restart attempts (0 = unlimited)'
+  },
+  restart_delay: {
+    label: 'Restart Delay (seconds)',
+    placeholder: '5',
+    description: 'Delay in seconds before attempting restart'
+  },
   model: {
     label: 'Model Path',
     placeholder: '/path/to/model.gguf',
