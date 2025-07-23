@@ -28,6 +28,35 @@ type CreateInstanceOptions struct {
 	LlamaServerOptions `json:",inline"`
 }
 
+// UnmarshalJSON implements custom JSON unmarshaling for CreateInstanceOptions
+// This is needed because the embedded LlamaServerOptions has its own UnmarshalJSON
+// which can interfere with proper unmarshaling of the pointer fields
+func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
+	// First, unmarshal into a temporary struct without the embedded type
+	type tempCreateOptions struct {
+		AutoRestart  *bool `json:"auto_restart,omitempty"`
+		MaxRestarts  *int  `json:"max_restarts,omitempty"`
+		RestartDelay *int  `json:"restart_delay_seconds,omitempty"`
+	}
+
+	var temp tempCreateOptions
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	// Copy the pointer fields
+	c.AutoRestart = temp.AutoRestart
+	c.MaxRestarts = temp.MaxRestarts
+	c.RestartDelay = temp.RestartDelay
+
+	// Now unmarshal the embedded LlamaServerOptions
+	if err := json.Unmarshal(data, &c.LlamaServerOptions); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Instance represents a running instance of the llama server
 type Instance struct {
 	Name           string                 `json:"name"`
@@ -73,10 +102,7 @@ func validateAndCopyOptions(name string, options *CreateInstanceOptions) *Create
 
 		if options.MaxRestarts != nil {
 			maxRestarts := *options.MaxRestarts
-			if maxRestarts > 100 {
-				log.Printf("Instance %s MaxRestarts value (%d) limited to 100", name, maxRestarts)
-				maxRestarts = 100
-			} else if maxRestarts < 0 {
+			if maxRestarts < 0 {
 				log.Printf("Instance %s MaxRestarts value (%d) cannot be negative, setting to 0", name, maxRestarts)
 				maxRestarts = 0
 			}
@@ -85,12 +111,9 @@ func validateAndCopyOptions(name string, options *CreateInstanceOptions) *Create
 
 		if options.RestartDelay != nil {
 			restartDelay := *options.RestartDelay
-			if restartDelay < 1 {
-				log.Printf("Instance %s RestartDelay value (%d) too low, setting to 5 seconds", name, restartDelay)
-				restartDelay = 5
-			} else if restartDelay > 300 {
-				log.Printf("Instance %s RestartDelay value (%d) too high, limiting to 300 seconds", name, restartDelay)
-				restartDelay = 300
+			if restartDelay < 0 {
+				log.Printf("Instance %s RestartDelay value (%d) cannot be negative, setting to 0 seconds", name, restartDelay)
+				restartDelay = 0
 			}
 			optionsCopy.RestartDelay = &restartDelay
 		}
@@ -109,10 +132,12 @@ func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *Instanc
 		defaultAutoRestart := globalSettings.DefaultAutoRestart
 		options.AutoRestart = &defaultAutoRestart
 	}
+
 	if options.MaxRestarts == nil {
 		defaultMaxRestarts := globalSettings.DefaultMaxRestarts
 		options.MaxRestarts = &defaultMaxRestarts
 	}
+
 	if options.RestartDelay == nil {
 		defaultRestartDelay := globalSettings.DefaultRestartDelay
 		options.RestartDelay = &defaultRestartDelay
@@ -145,12 +170,10 @@ func (i *Instance) createLogFile() error {
 		return fmt.Errorf("LogDirectory is empty for instance %s", i.Name)
 	}
 
+	// Set up instance logs
 	logPath := i.globalSettings.LogDirectory + "/" + i.Name + ".log"
 
-	// Store the log file path for later access
 	i.logFilePath = logPath
-
-	// Check if directory exists, create if not
 	if err := os.MkdirAll(i.globalSettings.LogDirectory, 0755); err != nil {
 		return fmt.Errorf("failed to create log directory: %w", err)
 	}
@@ -188,6 +211,7 @@ func (i *Instance) GetOptions() *CreateInstanceOptions {
 func (i *Instance) SetOptions(options *CreateInstanceOptions) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
 	if options == nil {
 		log.Println("Warning: Attempted to set nil options on instance", i.Name)
 		return
@@ -262,13 +286,13 @@ func (i *Instance) Start() error {
 	var err error
 	i.stdout, err = i.cmd.StdoutPipe()
 	if err != nil {
-		i.closeLogFile() // Ensure log files are closed on error
+		i.closeLogFile()
 		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 	i.stderr, err = i.cmd.StderrPipe()
 	if err != nil {
-		i.stdout.Close() // Ensure stdout is closed on error
-		i.closeLogFile() // Ensure log files are closed on error
+		i.stdout.Close()
+		i.closeLogFile()
 		return fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
@@ -321,15 +345,13 @@ func (i *Instance) Stop() error {
 
 	i.mu.Unlock()
 
-	// First, try to gracefully stop with SIGINT
+	// Stop the process with SIGINT
 	if i.cmd.Process != nil {
 		if err := i.cmd.Process.Signal(syscall.SIGINT); err != nil {
 			log.Printf("Failed to send SIGINT to instance %s: %v", i.Name, err)
 		}
 	}
 
-	// Don't call cmd.Wait() here - let the monitor goroutine handle it
-	// Instead, wait for the monitor to complete or timeout
 	select {
 	case <-monitorDone:
 		// Process exited normally
@@ -352,7 +374,7 @@ func (i *Instance) Stop() error {
 		}
 	}
 
-	i.closeLogFile() // Close log files after stopping
+	i.closeLogFile()
 
 	return nil
 }
