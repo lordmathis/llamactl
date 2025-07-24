@@ -1,10 +1,15 @@
+// ui/src/components/InstanceList.tsx
 import { useInstances } from '@/contexts/InstancesContext'
 import InstanceCard from '@/components/InstanceCard'
 import { Instance } from '@/types/instance'
+import { memo } from 'react'
 
 interface InstanceListProps {
   editInstance: (instance: Instance) => void
 }
+
+// Memoize InstanceCard to prevent re-renders when other instances change
+const MemoizedInstanceCard = memo(InstanceCard)
 
 function InstanceList({ editInstance }: InstanceListProps) {
   const { instances, loading, error, startInstance, stopInstance, deleteInstance } = useInstances()
@@ -48,7 +53,7 @@ function InstanceList({ editInstance }: InstanceListProps) {
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {instances.map((instance) => (
-          <InstanceCard 
+          <MemoizedInstanceCard 
             key={instance.name} 
             instance={instance}
             startInstance={startInstance}

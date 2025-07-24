@@ -1,11 +1,12 @@
+// ui/src/components/InstanceCard.tsx
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Instance } from "@/types/instance";
 import { Edit, FileText, Play, Square, Trash2 } from "lucide-react";
 import LogsModal from "@/components/LogModal";
-import { useState } from "react";
 import HealthBadge from "@/components/HealthBadge";
+import { useState } from "react";
+import { useInstanceHealth } from "@/hooks/useInstanceHealth";
 
 interface InstanceCardProps {
   instance: Instance;
@@ -22,8 +23,8 @@ function InstanceCard({
   deleteInstance,
   editInstance,
 }: InstanceCardProps) {
-
   const [isLogsOpen, setIsLogsOpen] = useState(false);
+  const health = useInstanceHealth(instance.name, instance.running);
 
   const handleStart = () => {
     startInstance(instance.name);
@@ -55,7 +56,7 @@ function InstanceCard({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">{instance.name}</CardTitle>
-            {instance.running ? <HealthBadge health={instance.health} /> : <Badge variant="secondary">Stopped</Badge>}
+            {instance.running && <HealthBadge health={health} />}
           </div>
         </CardHeader>
 

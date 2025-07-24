@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { CreateInstanceOptions, Instance, HealthStatus } from '@/types/instance'
+import { CreateInstanceOptions, Instance } from '@/types/instance'
 import { instancesApi } from '@/lib/api'
-import { healthService } from '@/lib/healthService'
 
 interface InstancesContextState {
   instances: Instance[]
@@ -29,37 +28,15 @@ interface InstancesProviderProps {
 }
 
 export const InstancesProvider = ({ children }: InstancesProviderProps) => {
-  const [instances, setInstances] = useState<Instance[]>([])
+  const [instancesMap, setInstancesMap] = useState<Map<string, Instance>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Convert map to array for consumers
+  const instances = Array.from(instancesMap.values())
+
   const clearError = useCallback(() => {
     setError(null)
-  }, [])
-
-  const updateInstanceHealth = useCallback((instanceName: string, health: HealthStatus) => {
-    setInstances(prev => prev.map(instance => 
-      instance.name === instanceName 
-        ? { ...instance, health }
-        : instance
-    ))
-  }, [])
-
-  useEffect(() => {
-    instances.forEach(instance => {
-      if (instance.running) {
-        healthService.startHealthCheck(
-          instance.name,
-          (health) => updateInstanceHealth(instance.name, health)
-        )
-      } else {
-        healthService.stopHealthCheck(instance.name)
-      }
-    })
-  }, [instances, updateInstanceHealth])
-
-  useEffect(() => {
-    return () => healthService.stopAll()
   }, [])
 
   const fetchInstances = useCallback(async () => {
@@ -67,7 +44,13 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
       setLoading(true)
       setError(null)
       const data = await instancesApi.list()
-      setInstances(data)
+      
+      // Convert array to map
+      const newMap = new Map<string, Instance>()
+      data.forEach(instance => {
+        newMap.set(instance.name, instance)
+      })
+      setInstancesMap(newMap)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch instances')
     } finally {
@@ -75,67 +58,100 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     }
   }, [])
 
+  const updateInstanceInMap = useCallback((name: string, updates: Partial<Instance>) => {
+    setInstancesMap(prev => {
+      const newMap = new Map(prev)
+      const existing = newMap.get(name)
+      if (existing) {
+        newMap.set(name, { ...existing, ...updates })
+      }
+      return newMap
+    })
+  }, [])
+
   const createInstance = useCallback(async (name: string, options: CreateInstanceOptions) => {
     try {
       setError(null)
-      await instancesApi.create(name, options)
-      await fetchInstances()
+      const newInstance = await instancesApi.create(name, options)
+      
+      // Add to map directly
+      setInstancesMap(prev => {
+        const newMap = new Map(prev)
+        newMap.set(name, newInstance)
+        return newMap
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create instance')
     }
-  }, [fetchInstances])
+  }, [])
 
   const updateInstance = useCallback(async (name: string, options: CreateInstanceOptions) => {
     try {
       setError(null)
-      await instancesApi.update(name, options)
-      await fetchInstances()
+      const updatedInstance = await instancesApi.update(name, options)
+      
+      // Update in map directly
+      setInstancesMap(prev => {
+        const newMap = new Map(prev)
+        newMap.set(name, updatedInstance)
+        return newMap
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update instance')
     }
-  }, [fetchInstances])
+  }, [])
 
   const startInstance = useCallback(async (name: string) => {
     try {
       setError(null)
       await instancesApi.start(name)
-      await fetchInstances()
+      
+      // Update only this instance's running status
+      updateInstanceInMap(name, { running: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start instance')
     }
-  }, [fetchInstances])
+  }, [updateInstanceInMap])
 
   const stopInstance = useCallback(async (name: string) => {
     try {
       setError(null)
-      healthService.stopHealthCheck(name)
       await instancesApi.stop(name)
-      await fetchInstances()
+      
+      // Update only this instance's running status
+      updateInstanceInMap(name, { running: false })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to stop instance')
     }
-  }, [fetchInstances])
+  }, [updateInstanceInMap])
 
   const restartInstance = useCallback(async (name: string) => {
     try {
       setError(null)
       await instancesApi.restart(name)
-      await fetchInstances()
+      
+      // Update only this instance's running status
+      updateInstanceInMap(name, { running: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to restart instance')
     }
-  }, [fetchInstances])
+  }, [updateInstanceInMap])
 
   const deleteInstance = useCallback(async (name: string) => {
     try {
       setError(null)
-      healthService.stopHealthCheck(name)
       await instancesApi.delete(name)
-      await fetchInstances()
+      
+      // Remove from map directly
+      setInstancesMap(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(name)
+        return newMap
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete instance')
     }
-  }, [fetchInstances])
+  }, [])
 
   useEffect(() => {
     fetchInstances()
