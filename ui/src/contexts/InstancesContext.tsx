@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { CreateInstanceOptions, Instance } from '@/types/instance'
+import { CreateInstanceOptions, Instance, HealthStatus } from '@/types/instance'
 import { instancesApi } from '@/lib/api'
+import { healthService } from '@/lib/healthService'
 
 interface InstancesContextState {
   instances: Instance[]
@@ -34,6 +35,31 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
 
   const clearError = useCallback(() => {
     setError(null)
+  }, [])
+
+  const updateInstanceHealth = useCallback((instanceName: string, health: HealthStatus) => {
+    setInstances(prev => prev.map(instance => 
+      instance.name === instanceName 
+        ? { ...instance, health }
+        : instance
+    ))
+  }, [])
+
+  useEffect(() => {
+    instances.forEach(instance => {
+      if (instance.running) {
+        healthService.startHealthCheck(
+          instance.name,
+          (health) => updateInstanceHealth(instance.name, health)
+        )
+      } else {
+        healthService.stopHealthCheck(instance.name)
+      }
+    })
+  }, [instances, updateInstanceHealth])
+
+  useEffect(() => {
+    return () => healthService.stopAll()
   }, [])
 
   const fetchInstances = useCallback(async () => {
@@ -82,6 +108,7 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
   const stopInstance = useCallback(async (name: string) => {
     try {
       setError(null)
+      healthService.stopHealthCheck(name)
       await instancesApi.stop(name)
       await fetchInstances()
     } catch (err) {
@@ -102,6 +129,7 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
   const deleteInstance = useCallback(async (name: string) => {
     try {
       setError(null)
+      healthService.stopHealthCheck(name)
       await instancesApi.delete(name)
       await fetchInstances()
     } catch (err) {
@@ -109,17 +137,14 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     }
   }, [fetchInstances])
 
-  // Fetch instances on mount
   useEffect(() => {
     fetchInstances()
   }, [fetchInstances])
 
   const value: InstancesContextType = {
-    // State
     instances,
     loading,
     error,
-    // Actions
     fetchInstances,
     createInstance,
     updateInstance,

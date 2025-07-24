@@ -3,8 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Instance } from "@/types/instance";
 import { Edit, FileText, Play, Square, Trash2 } from "lucide-react";
-import LogsModal from "@/components/ui/LogModal";
+import LogsModal from "@/components/LogModal";
 import { useState } from "react";
+import HealthBadge from "@/components/HealthBadge";
 
 interface InstanceCardProps {
   instance: Instance;
@@ -54,9 +55,7 @@ function InstanceCard({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">{instance.name}</CardTitle>
-            <Badge variant={instance.running ? "default" : "secondary"}>
-              {instance.running ? "Running" : "Stopped"}
-            </Badge>
+            {instance.running ? <HealthBadge health={instance.health} /> : <Badge variant="secondary">Stopped</Badge>}
           </div>
         </CardHeader>
 

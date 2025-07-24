@@ -1,4 +1,3 @@
-// ui/src/components/SystemInfoModal.tsx
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
