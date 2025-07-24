@@ -68,6 +68,30 @@ async function apiCall<T>(
   }
 }
 
+// Server API functions  
+export const serverApi = {
+  // GET /server/help
+  getHelp: async (): Promise<string> => {
+    const response = await fetch(`${API_BASE}/server/help`)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    return response.text()
+  },
+  
+  // GET /server/version  
+  getVersion: async (): Promise<string> => {
+    const response = await fetch(`${API_BASE}/server/version`)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    return response.text()
+  },
+  
+  // GET /server/devices
+  getDevices: async (): Promise<string> => {
+    const response = await fetch(`${API_BASE}/server/devices`)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    return response.text()
+  },
+}
+
 // Instance API functions
 export const instancesApi = {
   // GET /instances

@@ -1,10 +1,12 @@
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
+import { HelpCircle } from "lucide-react";
 
 interface HeaderProps {
-  onCreateInstance: () => void
+  onCreateInstance: () => void;
+  onShowSystemInfo: () => void;
 }
 
-function Header({ onCreateInstance }: HeaderProps) {
+function Header({ onCreateInstance, onShowSystemInfo }: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200">
       <div className="container mx-auto max-w-4xl px-4 py-4">
@@ -12,14 +14,23 @@ function Header({ onCreateInstance }: HeaderProps) {
           <h1 className="text-2xl font-bold text-gray-900">
             LlamaCtl Dashboard
           </h1>
-          
-          <Button onClick={onCreateInstance}>
-            Create Instance
-          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button onClick={onCreateInstance}>Create Instance</Button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onShowSystemInfo}
+              title="System Info"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </header>
-  )
+  );
 }
 
-export default Header
+export default Header;
