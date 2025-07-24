@@ -48,6 +48,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 	})
 
 	// OpenAI-compatible endpoints (model name in request body determines routing)
+	r.Post("/v1/", handler.OpenAIProxy()) // Proxy to OpenAI-compatible endpoints based on instance name in request body
 	// r.Post("/v1/completions", handler.OpenAICompletions())         // Route based on model name in request
 	// r.Post("/v1/chat/completions", handler.OpenAIChatCompletions()) // Route based on model name in request
 	// r.Post("/v1/embeddings", handler.OpenAIEmbeddings())           // Route based on model name in request (if supported)

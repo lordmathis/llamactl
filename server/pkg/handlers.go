@@ -452,3 +452,41 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 		proxy.ServeHTTP(w, r)
 	}
 }
+
+// OpenAIProxy godoc
+func (h *Handler) OpenAIProxy() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract model name from request body
+		var requestBody map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		modelName, ok := requestBody["model"].(string)
+		if !ok || modelName == "" {
+			http.Error(w, "Model name is required", http.StatusBadRequest)
+			return
+		}
+
+		// Route to the appropriate instance based on model name
+		instance, err := h.InstanceManager.GetInstance(modelName)
+		if err != nil {
+			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if !instance.Running {
+			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
+			return
+		}
+
+		proxy, err := instance.GetProxy()
+		if err != nil {
+			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		proxy.ServeHTTP(w, r)
+	}
+}
