@@ -1,0 +1,245 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-webui:
+    name: Build Web UI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "./webui/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd webui
+          npm ci
+
+      - name: Build Web UI
+        run: |
+          cd webui
+          npm run build
+
+      - name: Upload Web UI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: webui-dist
+          path: webui/dist/
+          retention-days: 1
+
+  build:
+    name: Build Binaries
+    needs: build-webui
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          # Windows ARM64 support is limited
+          - goos: windows
+            goarch: arm64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Download Web UI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: webui-dist
+          path: webui/dist/
+
+      - name: Build binary
+        id: build_binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          # Set binary extension for Windows
+          BINARY_NAME="llamactl"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BINARY_NAME="${BINARY_NAME}.exe"
+          fi
+          
+          # Build the binary
+          go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o "${BINARY_NAME}" ./cmd/server
+          
+          # Create archive
+          ARCHIVE_NAME="llamactl-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            zip "${ARCHIVE_NAME}.zip" "${BINARY_NAME}"
+            echo "ASSET_PATH=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+          else
+            tar -czf "${ARCHIVE_NAME}.tar.gz" "${BINARY_NAME}"
+            echo "ASSET_PATH=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+          fi
+          
+          echo "ASSET_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
+          echo "asset_name=${ARCHIVE_NAME}" >> $GITHUB_OUTPUT
+          echo "asset_path=${ASSET_PATH}" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build_binary.outputs.asset_name }}
+          path: ${{ steps.build_binary.outputs.asset_path }}
+          retention-days: 1
+
+  generate-changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n1)
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, generating changelog from first commit"
+            PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
+          
+          # Generate changelog
+          CHANGELOG=$(cat << 'EOL'
+          ## What's Changed
+          
+          EOL
+          )
+          
+          # Get commits between tags
+          COMMITS=$(git log --pretty=format:"* %s (%h)" "$PREVIOUS_TAG..${{ github.ref_name }}" --no-merges)
+          
+          if [ -z "$COMMITS" ]; then
+            CHANGELOG="${CHANGELOG}* No changes since previous release"
+          else
+            CHANGELOG="${CHANGELOG}${COMMITS}"
+          fi
+          
+          # Add full changelog link if we have a previous tag and it's not a commit hash
+          if [[ "$PREVIOUS_TAG" =~ ^v[0-9] ]]; then
+            CHANGELOG="${CHANGELOG}
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...${{ github.ref_name }}"
+          fi
+          
+          # Save changelog to output (handle multiline)
+          {
+            echo 'changelog<<EOF'
+            echo "$CHANGELOG"
+            echo EOF
+          } >> $GITHUB_OUTPUT
+
+  release:
+    name: Create Release
+    needs: [build, generate-changelog]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts/ -name "*.tar.gz" -o -name "*.zip" | while read file; do
+            cp "$file" release-assets/
+          done
+          ls -la release-assets/
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: ${{ needs.generate-changelog.outputs.changelog }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+      - name: Upload Release Assets
+        run: |
+          for asset in release-assets/*; do
+            if [ -f "$asset" ]; then
+              echo "Uploading $asset"
+              asset_name=$(basename "$asset")
+              curl \
+                -X POST \
+                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Content-Type: application/octet-stream" \
+                --data-binary @"$asset" \
+                "${{ steps.create_release.outputs.upload_url }}?name=${asset_name}"
+            fi
+          done
+
+  checksums:
+    name: Generate Checksums
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release assets
+        run: |
+          mkdir -p assets
+          # Get release assets
+          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | \
+            jq -r '.id')
+          
+          curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets" | \
+            jq -r '.[].browser_download_url' | \
+            while read url; do
+              echo "Downloading $url"
+              curl -L -o "assets/$(basename "$url")" "$url"
+            done
+
+      - name: Generate checksums
+        run: |
+          cd assets
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Upload checksums
+        run: |
+          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | \
+            jq -r '.id')
+          
+          curl \
+            -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: text/plain" \
+            --data-binary @assets/checksums.txt \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=checksums.txt"
