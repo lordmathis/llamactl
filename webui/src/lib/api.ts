@@ -1,4 +1,4 @@
-import { CreateInstanceOptions, Instance } from "@/types/instance";
+import type { CreateInstanceOptions, Instance } from "@/types/instance";
 
 const API_BASE = "/api/v1";
 

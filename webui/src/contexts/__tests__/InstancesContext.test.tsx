@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { InstancesProvider, useInstances } from '@/contexts/InstancesContext'
 import { instancesApi } from '@/lib/api'
-import { Instance } from '@/types/instance'
+import type { Instance } from '@/types/instance'
 
 // Mock the API module
 vi.mock('@/lib/api', () => ({

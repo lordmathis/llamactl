@@ -1,7 +1,7 @@
 // ui/src/components/HealthBadge.tsx
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { HealthStatus } from "@/types/instance";
+import type { HealthStatus } from "@/types/instance";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 
 interface HealthBadgeProps {

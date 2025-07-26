@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceModal from '@/components/InstanceModal'
-import { Instance } from '@/types/instance'
+import type { Instance } from '@/types/instance'
 
 describe('InstanceModal - Form Logic and Validation', () => {
   const mockOnSave = vi.fn()
@@ -136,7 +136,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       }
     }
 
-    it('pre-fills form with existing instance data', async () => {
+    it('pre-fills form with existing instance data', () => {
       render(
         <InstanceModal
           open={true}
@@ -177,7 +177,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       })
     })
 
-    it('shows correct button text for running vs stopped instances', async () => {
+    it('shows correct button text for running vs stopped instances', () => {
       const runningInstance: Instance = { ...mockInstance, running: true }
       
       const { rerender } = render(
@@ -205,7 +205,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
   })
 
   describe('Auto Restart Configuration', () => {
-    it('shows restart options when auto restart is enabled', async () => {      
+    it('shows restart options when auto restart is enabled', () => {
       render(
         <InstanceModal
           open={true}

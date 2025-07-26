@@ -1,7 +1,7 @@
 // ui/src/components/InstanceCard.tsx
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Instance } from "@/types/instance";
+import type { Instance } from "@/types/instance";
 import { Edit, FileText, Play, Square, Trash2 } from "lucide-react";
 import LogsModal from "@/components/LogModal";
 import HealthBadge from "@/components/HealthBadge";

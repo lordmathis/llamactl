@@ -1,4 +1,4 @@
-import { CreateInstanceOptions } from '@/schemas/instanceOptions'
+import type { CreateInstanceOptions } from '@/schemas/instanceOptions'
 
 export { type CreateInstanceOptions } from '@/schemas/instanceOptions'
 

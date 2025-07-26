@@ -2,7 +2,7 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import InstanceList from "@/components/InstanceList";
 import InstanceModal from "@/components/InstanceModal";
-import { CreateInstanceOptions, Instance } from "@/types/instance";
+import { type CreateInstanceOptions, type Instance } from "@/types/instance";
 import { useInstances } from "@/contexts/InstancesContext";
 import SystemInfoModal from "./components/SystemInfoModal";
 

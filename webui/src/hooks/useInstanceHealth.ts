@@ -1,6 +1,6 @@
 // ui/src/hooks/useInstanceHealth.ts
 import { useState, useEffect } from 'react'
-import { HealthStatus } from '@/types/instance'
+import type { HealthStatus } from '@/types/instance'
 import { healthService } from '@/lib/healthService'
 
 export function useInstanceHealth(instanceName: string, isRunning: boolean): HealthStatus | undefined {

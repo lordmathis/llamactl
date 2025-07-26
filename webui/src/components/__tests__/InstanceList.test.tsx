@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import InstanceList from '@/components/InstanceList'
 import { InstancesProvider } from '@/contexts/InstancesContext'
 import { instancesApi } from '@/lib/api'
-import { Instance } from '@/types/instance'
+import type { Instance } from '@/types/instance'
 
 // Mock the API
 vi.mock('@/lib/api', () => ({

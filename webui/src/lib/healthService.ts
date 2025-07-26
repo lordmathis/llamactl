@@ -1,4 +1,4 @@
-import { HealthStatus } from '@/types/instance'
+import { type HealthStatus } from '@/types/instance'
 
 type HealthCallback = (health: HealthStatus) => void
 

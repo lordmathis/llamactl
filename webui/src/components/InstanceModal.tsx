@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CreateInstanceOptions, Instance } from "@/types/instance";
+import type { CreateInstanceOptions, Instance } from "@/types/instance";
 import { getBasicFields, getAdvancedFields } from "@/lib/zodFormUtils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import ZodFormField from "@/components/ZodFormField";
