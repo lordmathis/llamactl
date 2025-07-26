@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "webui/src/**"
+      - "webui/package.json"
+      - "webui/package-lock.json"
+      - ".github/workflows/webui_test.yaml"
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: "./webui/package-lock.json"
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: npm run test:run
