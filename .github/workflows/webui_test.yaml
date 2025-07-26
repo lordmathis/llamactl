@@ -4,9 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "webui/src/**"
-      - "webui/package.json"
-      - "webui/package-lock.json"
+      - "webui/**"
       - ".github/workflows/webui_test.yaml"
   pull_request:
     branches: [ main ]

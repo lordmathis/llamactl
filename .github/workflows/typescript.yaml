@@ -1,0 +1,44 @@
+name: TypeScript Type Check
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - "*"
+    paths:
+      - "webui/**"
+      - ".github/workflows/typescript.yaml"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  type-check:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./webui
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "./webui/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript type check
+        run: npm run type-check
+
+      - name: Run ESLint
+        run: npm run lint
+        continue-on-error: true
