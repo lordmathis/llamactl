@@ -1,6 +1,6 @@
 # llamactl
 
-![Go Tests](https://github.com/lordmathis/llamactl/actions/workflows/go_test.yaml) ![WebUI Tests](https://github.com/lordmathis/llamactl/actions/workflows/webui_test.yaml)
+![Go Tests](https://github.com/lordmathis/llamactl/actions/workflows/go_test.yaml/badge.svg) ![WebUI Tests](https://github.com/lordmathis/llamactl/actions/workflows/webui_test.yaml/badge.svg)
 
 A control server for managing multiple Llama Server instances with a web-based dashboard.
 
