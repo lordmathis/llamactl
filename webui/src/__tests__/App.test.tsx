@@ -167,7 +167,7 @@ describe('App Component - Critical Business Logic Only', () => {
       renderApp()
 
       // App should still render and show error
-      expect(screen.getByText('LlamaCtl Dashboard')).toBeInTheDocument()
+      expect(screen.getByText('Llamactl Dashboard')).toBeInTheDocument()
       await waitFor(() => {
         expect(screen.getByText('Error loading instances')).toBeInTheDocument()
       })
