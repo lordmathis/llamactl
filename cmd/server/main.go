@@ -21,7 +21,7 @@ func main() {
 		fmt.Println("Using default configuration.")
 	}
 
-	// Crate the log directory if it doesn't exist
+	// Create the log directory if it doesn't exist
 	err = os.MkdirAll(config.Instances.LogDirectory, 0755)
 	if err != nil {
 		fmt.Printf("Error creating log directory: %v\n", err)

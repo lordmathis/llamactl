@@ -1,11 +1,14 @@
 package llamactl
 
 import (
+	"fmt"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
 
 	_ "llamactl/docs"
+	"llamactl/webui"
 )
 
 func SetupRouter(handler *Handler) *chi.Mux {
@@ -49,11 +52,16 @@ func SetupRouter(handler *Handler) *chi.Mux {
 
 	// OpenAI-compatible endpoints (model name in request body determines routing)
 	r.Post("/v1/", handler.OpenAIProxy()) // Proxy to OpenAI-compatible endpoints based on instance name in request body
-	// r.Post("/v1/completions", handler.OpenAICompletions())         // Route based on model name in request
-	// r.Post("/v1/chat/completions", handler.OpenAIChatCompletions()) // Route based on model name in request
-	// r.Post("/v1/embeddings", handler.OpenAIEmbeddings())           // Route based on model name in request (if supported)
-	// r.Post("/v1/rerank", handler.OpenAIRerank())                   // Route based on model name in request (if supported)
-	// r.Post("/v1/reranking", handler.OpenAIReranking())             // Route based on model name in request (if supported)
+	// r.Post("/v1/completions", handler.OpenAICompletions())
+	// r.Post("/v1/chat/completions", handler.OpenAIChatCompletions())
+	// r.Post("/v1/embeddings", handler.OpenAIEmbeddings())
+	// r.Post("/v1/rerank", handler.OpenAIRerank())
+	// r.Post("/v1/reranking", handler.OpenAIReranking())
+
+	// Serve WebUI files
+	if err := webui.SetupWebUI(r); err != nil {
+		fmt.Printf("Failed to set up WebUI: %v\n", err)
+	}
 
 	return r
 }
