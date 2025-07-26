@@ -1,0 +1,32 @@
+name: Go Tests
+on:
+  push:
+    branches:
+      - "*"
+    paths:
+      - "pkg/**"
+      - "cmd/**"
+      - "go.mod"
+      - "go.sum"
+      - "webui/webui.go"
+  pull_request:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: true
+      - name: Run Tests
+        run: go test ./... -v
+      - name: Run Tests with Race Detector
+        run: go test -race ./... -v
