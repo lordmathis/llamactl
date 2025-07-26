@@ -69,7 +69,6 @@ jobs:
           path: webui/dist/
 
       - name: Build binary
-        id: build_binary
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -190,17 +189,20 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
 
       - name: Upload Release Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Install GitHub CLI
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
+          
+          # Upload each asset
           for asset in release-assets/*; do
             if [ -f "$asset" ]; then
-              echo "Uploading $asset"
-              asset_name=$(basename "$asset")
-              curl \
-                -X POST \
-                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                -H "Content-Type: application/octet-stream" \
-                --data-binary @"$asset" \
-                "${{ steps.create_release.outputs.upload_url }}?name=${asset_name}"
+              echo "Uploading $(basename "$asset")"
+              gh release upload ${{ github.ref_name }} "$asset" --repo ${{ github.repository }}
             fi
           done
 
@@ -209,37 +211,44 @@ jobs:
     needs: [release]
     runs-on: ubuntu-latest
     steps:
-      - name: Download release assets
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Prepare assets and generate checksums
         run: |
           mkdir -p assets
-          # Get release assets
-          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | \
-            jq -r '.id')
           
-          curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets" | \
-            jq -r '.[].browser_download_url' | \
-            while read url; do
-              echo "Downloading $url"
-              curl -L -o "assets/$(basename "$url")" "$url"
-            done
-
-      - name: Generate checksums
-        run: |
+          # Copy all archives to assets directory
+          find artifacts/ -name "*.tar.gz" -o -name "*.zip" | while read file; do
+            cp "$file" assets/
+          done
+          
+          # List what we have
+          echo "Files found:"
+          ls -la assets/
+          
+          # Generate checksums if we have files
           cd assets
-          sha256sum * > checksums.txt
-          cat checksums.txt
+          if [ "$(ls -A .)" ]; then
+            sha256sum * > checksums.txt
+            echo "Generated checksums:"
+            cat checksums.txt
+          else
+            echo "No files found to checksum"
+            exit 1
+          fi
 
-      - name: Upload checksums
+      - name: Upload checksums to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | \
-            jq -r '.id')
+          # Install GitHub CLI
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
           
-          curl \
-            -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: text/plain" \
-            --data-binary @assets/checksums.txt \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=checksums.txt"
+          # Upload checksums
+          gh release upload ${{ github.ref_name }} assets/checksums.txt --repo ${{ github.repository }}
