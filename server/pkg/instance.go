@@ -1,7 +1,6 @@
 package llamactl
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,13 +8,8 @@ import (
 	"log"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"os/exec"
-	"runtime"
-	"strings"
 	"sync"
-	"syscall"
-	"time"
 )
 
 type CreateInstanceOptions struct {
@@ -66,9 +60,8 @@ type Instance struct {
 	// Status
 	Running bool `json:"running"`
 
-	// Log file
-	logFile     *os.File `json:"-"`
-	logFilePath string   `json:"-"` // Store the log file path separately
+	// Logging file
+	logger *InstanceLogger `json:"-"`
 
 	// internal
 	cmd      *exec.Cmd              `json:"-"` // Command to run the instance
@@ -150,55 +143,16 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 	optionsCopy := validateAndCopyOptions(name, options)
 	// Apply defaults
 	applyDefaultOptions(optionsCopy, globalSettings)
+	// Create the instance logger
+	logger := NewInstanceLogger(name, globalSettings.LogDirectory)
 
 	return &Instance{
 		Name:           name,
 		options:        optionsCopy,
 		globalSettings: globalSettings,
+		logger:         logger,
 
 		Running: false,
-	}
-}
-
-// createLogFile creates and opens the log files for stdout and stderr
-func (i *Instance) createLogFile() error {
-	if i.globalSettings == nil {
-		return fmt.Errorf("globalSettings is nil for instance %s", i.Name)
-	}
-
-	if i.globalSettings.LogDirectory == "" {
-		return fmt.Errorf("LogDirectory is empty for instance %s", i.Name)
-	}
-
-	// Set up instance logs
-	logPath := i.globalSettings.LogDirectory + "/" + i.Name + ".log"
-
-	i.logFilePath = logPath
-	if err := os.MkdirAll(i.globalSettings.LogDirectory, 0755); err != nil {
-		return fmt.Errorf("failed to create log directory: %w", err)
-	}
-
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to create stdout log file: %w", err)
-	}
-
-	i.logFile = logFile
-
-	// Write a startup marker to both files
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	fmt.Fprintf(i.logFile, "\n=== Instance %s started at %s ===\n", i.Name, timestamp)
-
-	return nil
-}
-
-// closeLogFile closes the log files
-func (i *Instance) closeLogFile() {
-	if i.logFile != nil {
-		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		fmt.Fprintf(i.logFile, "=== Instance %s stopped at %s ===\n\n", i.Name, timestamp)
-		i.logFile.Close()
-		i.logFile = nil
 	}
 }
 
@@ -245,307 +199,6 @@ func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 	}
 
 	return i.proxy, nil
-}
-
-func (i *Instance) Start() error {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	if i.Running {
-		return fmt.Errorf("instance %s is already running", i.Name)
-	}
-
-	// Safety check: ensure options are valid
-	if i.options == nil {
-		return fmt.Errorf("instance %s has no options set", i.Name)
-	}
-
-	// Reset restart counter when manually starting (not during auto-restart)
-	// We can detect auto-restart by checking if restartCancel is set
-	if i.restartCancel == nil {
-		i.restarts = 0
-	}
-
-	// Create log files
-	if err := i.createLogFile(); err != nil {
-		return fmt.Errorf("failed to create log files: %w", err)
-	}
-
-	args := i.options.BuildCommandArgs()
-
-	i.ctx, i.cancel = context.WithCancel(context.Background())
-	i.cmd = exec.CommandContext(i.ctx, "llama-server", args...)
-
-	if runtime.GOOS != "windows" {
-		if i.cmd.SysProcAttr == nil {
-			i.cmd.SysProcAttr = &syscall.SysProcAttr{}
-		}
-		i.cmd.SysProcAttr.Setpgid = true
-	}
-
-	var err error
-	i.stdout, err = i.cmd.StdoutPipe()
-	if err != nil {
-		i.closeLogFile()
-		return fmt.Errorf("failed to get stdout pipe: %w", err)
-	}
-	i.stderr, err = i.cmd.StderrPipe()
-	if err != nil {
-		i.stdout.Close()
-		i.closeLogFile()
-		return fmt.Errorf("failed to get stderr pipe: %w", err)
-	}
-
-	if err := i.cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start instance %s: %w", i.Name, err)
-	}
-
-	i.Running = true
-
-	// Create channel for monitor completion signaling
-	i.monitorDone = make(chan struct{})
-
-	go i.readOutput(i.stdout, i.logFile)
-	go i.readOutput(i.stderr, i.logFile)
-
-	go i.monitorProcess()
-
-	return nil
-}
-
-// Stop terminates the subprocess
-func (i *Instance) Stop() error {
-	i.mu.Lock()
-
-	if !i.Running {
-		// Even if not running, cancel any pending restart
-		if i.restartCancel != nil {
-			i.restartCancel()
-			i.restartCancel = nil
-			log.Printf("Cancelled pending restart for instance %s", i.Name)
-		}
-		i.mu.Unlock()
-		return fmt.Errorf("instance %s is not running", i.Name)
-	}
-
-	// Cancel any pending restart
-	if i.restartCancel != nil {
-		i.restartCancel()
-		i.restartCancel = nil
-	}
-
-	// Set running to false first to signal intentional stop
-	i.Running = false
-
-	// Clean up the proxy
-	i.proxy = nil
-
-	// Get the monitor done channel before releasing the lock
-	monitorDone := i.monitorDone
-
-	i.mu.Unlock()
-
-	// Stop the process with SIGINT
-	if i.cmd.Process != nil {
-		if err := i.cmd.Process.Signal(syscall.SIGINT); err != nil {
-			log.Printf("Failed to send SIGINT to instance %s: %v", i.Name, err)
-		}
-	}
-
-	select {
-	case <-monitorDone:
-		// Process exited normally
-	case <-time.After(30 * time.Second):
-		// Force kill if it doesn't exit within 30 seconds
-		if i.cmd.Process != nil {
-			killErr := i.cmd.Process.Kill()
-			if killErr != nil {
-				log.Printf("Failed to force kill instance %s: %v", i.Name, killErr)
-			}
-			log.Printf("Instance %s did not stop in time, force killed", i.Name)
-
-			// Wait a bit more for the monitor to finish after force kill
-			select {
-			case <-monitorDone:
-				// Monitor completed after force kill
-			case <-time.After(2 * time.Second):
-				log.Printf("Warning: Monitor goroutine did not complete after force kill for instance %s", i.Name)
-			}
-		}
-	}
-
-	i.closeLogFile()
-
-	return nil
-}
-
-// GetLogs retrieves the last n lines of logs from the instance
-func (i *Instance) GetLogs(num_lines int) (string, error) {
-	i.mu.RLock()
-	logFileName := i.logFilePath
-	i.mu.RUnlock()
-
-	if logFileName == "" {
-		return "", fmt.Errorf("log file not created for instance %s", i.Name)
-	}
-
-	file, err := os.Open(logFileName)
-	if err != nil {
-		return "", fmt.Errorf("failed to open log file: %w", err)
-	}
-	defer file.Close()
-
-	if num_lines <= 0 {
-		content, err := io.ReadAll(file)
-		if err != nil {
-			return "", fmt.Errorf("failed to read log file: %w", err)
-		}
-		return string(content), nil
-	}
-
-	var lines []string
-	scanner := bufio.NewScanner(file)
-
-	// Read all lines into a slice
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("error reading file: %w", err)
-	}
-
-	// Return the last N lines
-	start := max(len(lines)-num_lines, 0)
-
-	return strings.Join(lines[start:], "\n"), nil
-}
-
-// readOutput reads from the given reader and writes lines to the log file
-func (i *Instance) readOutput(reader io.ReadCloser, logFile *os.File) {
-	defer reader.Close()
-
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if logFile != nil {
-			fmt.Fprintln(logFile, line)
-			logFile.Sync() // Ensure data is written to disk
-		}
-	}
-}
-
-func (i *Instance) monitorProcess() {
-	defer func() {
-		if i.monitorDone != nil {
-			close(i.monitorDone)
-		}
-	}()
-
-	err := i.cmd.Wait()
-
-	i.mu.Lock()
-
-	// Check if the instance was intentionally stopped
-	if !i.Running {
-		i.mu.Unlock()
-		return
-	}
-
-	i.Running = false
-	i.closeLogFile()
-
-	// Cancel any existing restart context since we're handling a new exit
-	if i.restartCancel != nil {
-		i.restartCancel()
-		i.restartCancel = nil
-	}
-
-	// Log the exit
-	if err != nil {
-		log.Printf("Instance %s crashed with error: %v", i.Name, err)
-		// Handle restart while holding the lock, then release it
-		i.handleRestart()
-	} else {
-		log.Printf("Instance %s exited cleanly", i.Name)
-		i.mu.Unlock()
-	}
-}
-
-// handleRestart manages the restart process while holding the lock
-func (i *Instance) handleRestart() {
-	// Validate restart conditions and get safe parameters
-	shouldRestart, maxRestarts, restartDelay := i.validateRestartConditions()
-	if !shouldRestart {
-		i.mu.Unlock()
-		return
-	}
-
-	i.restarts++
-	log.Printf("Auto-restarting instance %s (attempt %d/%d) in %v",
-		i.Name, i.restarts, maxRestarts, time.Duration(restartDelay)*time.Second)
-
-	// Create a cancellable context for the restart delay
-	restartCtx, cancel := context.WithCancel(context.Background())
-	i.restartCancel = cancel
-
-	// Release the lock before sleeping
-	i.mu.Unlock()
-
-	// Use context-aware sleep so it can be cancelled
-	select {
-	case <-time.After(time.Duration(restartDelay) * time.Second):
-		// Sleep completed normally, continue with restart
-	case <-restartCtx.Done():
-		// Restart was cancelled
-		log.Printf("Restart cancelled for instance %s", i.Name)
-		return
-	}
-
-	// Restart the instance
-	if err := i.Start(); err != nil {
-		log.Printf("Failed to restart instance %s: %v", i.Name, err)
-	} else {
-		log.Printf("Successfully restarted instance %s", i.Name)
-		// Clear the cancel function
-		i.mu.Lock()
-		i.restartCancel = nil
-		i.mu.Unlock()
-	}
-}
-
-// validateRestartConditions checks if the instance should be restarted and returns the parameters
-func (i *Instance) validateRestartConditions() (shouldRestart bool, maxRestarts int, restartDelay int) {
-	if i.options == nil {
-		log.Printf("Instance %s not restarting: options are nil", i.Name)
-		return false, 0, 0
-	}
-
-	if i.options.AutoRestart == nil || !*i.options.AutoRestart {
-		log.Printf("Instance %s not restarting: AutoRestart is disabled", i.Name)
-		return false, 0, 0
-	}
-
-	if i.options.MaxRestarts == nil {
-		log.Printf("Instance %s not restarting: MaxRestarts is nil", i.Name)
-		return false, 0, 0
-	}
-
-	if i.options.RestartDelay == nil {
-		log.Printf("Instance %s not restarting: RestartDelay is nil", i.Name)
-		return false, 0, 0
-	}
-
-	// Values are already validated during unmarshaling/SetOptions
-	maxRestarts = *i.options.MaxRestarts
-	restartDelay = *i.options.RestartDelay
-
-	if i.restarts >= maxRestarts {
-		log.Printf("Instance %s exceeded max restart attempts (%d)", i.Name, maxRestarts)
-		return false, 0, 0
-	}
-
-	return true, maxRestarts, restartDelay
 }
 
 // MarshalJSON implements json.Marshaler for Instance
