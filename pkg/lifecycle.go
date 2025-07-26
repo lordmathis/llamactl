@@ -41,10 +41,7 @@ func (i *Instance) Start() error {
 	i.cmd = exec.CommandContext(i.ctx, "llama-server", args...)
 
 	if runtime.GOOS != "windows" {
-		if i.cmd.SysProcAttr == nil {
-			i.cmd.SysProcAttr = &syscall.SysProcAttr{}
-		}
-		i.cmd.SysProcAttr.Setpgid = true
+		setProcAttrs(i.cmd)
 	}
 
 	var err error
