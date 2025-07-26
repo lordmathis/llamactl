@@ -1,146 +1,124 @@
-import { CreateInstanceOptions, Instance } from "@/types/instance"
+import { CreateInstanceOptions, Instance } from "@/types/instance";
 
-const API_BASE = '/api/v1'
-
-// Configuration for API calls
-// interface ApiConfig {
-//   apiKey?: string
-// }
-
-// Global config - can be updated when auth is added
-// let apiConfig: ApiConfig = {}
-
-// export const setApiConfig = (config: ApiConfig) => {
-//   apiConfig = config
-// }
+const API_BASE = "/api/v1";
 
 // Base API call function with error handling
 async function apiCall<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  responseType: "json" | "text" = "json"
 ): Promise<T> {
-  const url = `${API_BASE}${endpoint}`
-  
+  const url = `${API_BASE}${endpoint}`;
+
   // Prepare headers
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...options.headers,
-  }
-  
-  // Add API key - not supported yet
-  // if (apiConfig.apiKey) {
-  //   headers['Authorization'] = `Bearer ${apiConfig.apiKey}`
-  // }
-  
+  };
+
   try {
     const response = await fetch(url, {
       ...options,
       headers,
-    })
-    
+    });
+
     if (!response.ok) {
       // Try to get error message from response
-      let errorMessage = `HTTP ${response.status}`
+      let errorMessage = `HTTP ${response.status}`;
       try {
-        const errorText = await response.text()
+        const errorText = await response.text();
         if (errorText) {
-          errorMessage += `: ${errorText}`
+          errorMessage += `: ${errorText}`;
         }
       } catch {
         // If we can't read the error, just use status
       }
-      
-      throw new Error(errorMessage)
+
+      throw new Error(errorMessage);
     }
-    
+
     // Handle empty responses (like DELETE)
     if (response.status === 204) {
-      return undefined as T
+      return undefined as T;
     }
-    
-    const data = await response.json()
-    return data
+
+    // Parse response based on type
+    if (responseType === "text") {
+      const text = await response.text();
+      return text as T;
+    } else {
+      const data = await response.json();
+      return data;
+    }
   } catch (error) {
     if (error instanceof Error) {
-      throw error
+      throw error;
     }
-    throw new Error('Network error occurred')
+    throw new Error("Network error occurred");
   }
 }
 
-// Server API functions  
+// Server API functions
 export const serverApi = {
   // GET /server/help
-  getHelp: async (): Promise<string> => {
-    const response = await fetch(`${API_BASE}/server/help`)
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    return response.text()
-  },
-  
-  // GET /server/version  
-  getVersion: async (): Promise<string> => {
-    const response = await fetch(`${API_BASE}/server/version`)
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    return response.text()
-  },
-  
+  getHelp: () => apiCall<string>("/server/help", {}, "text"),
+
+  // GET /server/version
+  getVersion: () => apiCall<string>("/server/version", {}, "text"),
+
   // GET /server/devices
-  getDevices: async (): Promise<string> => {
-    const response = await fetch(`${API_BASE}/server/devices`)
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    return response.text()
-  },
-}
+  getDevices: () => apiCall<string>("/server/devices", {}, "text"),
+};
 
 // Instance API functions
 export const instancesApi = {
   // GET /instances
-  list: () => apiCall<Instance[]>('/instances'),
-  
+  list: () => apiCall<Instance[]>("/instances"),
+
   // GET /instances/{name}
   get: (name: string) => apiCall<Instance>(`/instances/${name}`),
-  
+
   // POST /instances/{name}
   create: (name: string, options: CreateInstanceOptions) =>
     apiCall<Instance>(`/instances/${name}`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(options),
     }),
-  
+
   // PUT /instances/{name}
   update: (name: string, options: CreateInstanceOptions) =>
     apiCall<Instance>(`/instances/${name}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(options),
     }),
-  
+
   // DELETE /instances/{name}
   delete: (name: string) =>
     apiCall<void>(`/instances/${name}`, {
-      method: 'DELETE',
+      method: "DELETE",
     }),
-  
+
   // POST /instances/{name}/start
   start: (name: string) =>
     apiCall<Instance>(`/instances/${name}/start`, {
-      method: 'POST',
+      method: "POST",
     }),
-  
+
   // POST /instances/{name}/stop
   stop: (name: string) =>
     apiCall<Instance>(`/instances/${name}/stop`, {
-      method: 'POST',
+      method: "POST",
     }),
-  
+
   // POST /instances/{name}/restart
   restart: (name: string) =>
     apiCall<Instance>(`/instances/${name}/restart`, {
-      method: 'POST',
+      method: "POST",
     }),
-  
+
   // GET /instances/{name}/logs
   getLogs: (name: string, lines?: number) => {
-    const params = lines ? `?lines=${lines}` : ''
-    return apiCall<string>(`/instances/${name}/logs${params}`)
+    const params = lines ? `?lines=${lines}` : "";
+    return apiCall<string>(`/instances/${name}/logs${params}`, {}, "text");
   },
-}
+};

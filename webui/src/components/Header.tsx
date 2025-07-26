@@ -16,12 +16,13 @@ function Header({ onCreateInstance, onShowSystemInfo }: HeaderProps) {
           </h1>
 
           <div className="flex items-center gap-2">
-            <Button onClick={onCreateInstance}>Create Instance</Button>
+            <Button onClick={onCreateInstance} data-testid="create-instance-button">Create Instance</Button>
 
             <Button
               variant="outline"
               size="icon"
               onClick={onShowSystemInfo}
+              data-testid="system-info-button"
               title="System Info"
             >
               <HelpCircle className="h-4 w-4" />

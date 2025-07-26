@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -9,123 +9,125 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { CreateInstanceOptions, Instance } from '@/types/instance'
-import { getBasicFields, getAdvancedFields } from '@/lib/zodFormUtils'
-import { ChevronDown, ChevronRight } from 'lucide-react'
-import ZodFormField from '@/components/ZodFormField'
+} from "@/components/ui/dialog";
+import { CreateInstanceOptions, Instance } from "@/types/instance";
+import { getBasicFields, getAdvancedFields } from "@/lib/zodFormUtils";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import ZodFormField from "@/components/ZodFormField";
 
 interface InstanceModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSave: (name: string, options: CreateInstanceOptions) => void
-  instance?: Instance // For editing existing instance
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (name: string, options: CreateInstanceOptions) => void;
+  instance?: Instance; // For editing existing instance
 }
 
 const InstanceModal: React.FC<InstanceModalProps> = ({
   open,
   onOpenChange,
   onSave,
-  instance
+  instance,
 }) => {
-  const isEditing = !!instance
-  const isRunning = instance?.running || true // Assume running if instance exists
-  
-  const [instanceName, setInstanceName] = useState('')
-  const [formData, setFormData] = useState<CreateInstanceOptions>({})
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const [nameError, setNameError] = useState('')
+  const isEditing = !!instance;
+  const isRunning = instance?.running || true; // Assume running if instance exists
+
+  const [instanceName, setInstanceName] = useState("");
+  const [formData, setFormData] = useState<CreateInstanceOptions>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [nameError, setNameError] = useState("");
 
   // Get field lists dynamically from the type
-  const basicFields = getBasicFields()
-  const advancedFields = getAdvancedFields()
+  const basicFields = getBasicFields();
+  const advancedFields = getAdvancedFields();
 
   // Reset form when modal opens/closes or when instance changes
   useEffect(() => {
     if (open) {
       if (instance) {
         // Populate form with existing instance data
-        setInstanceName(instance.name)
-        setFormData(instance.options || {})
+        setInstanceName(instance.name);
+        setFormData(instance.options || {});
       } else {
         // Reset form for new instance
-        setInstanceName('')
+        setInstanceName("");
         setFormData({
           auto_restart: true, // Default value
-        })
+        });
       }
-      setShowAdvanced(false) // Always start with basic view
-      setNameError('') // Reset any name errors
+      setShowAdvanced(false); // Always start with basic view
+      setNameError(""); // Reset any name errors
     }
-  }, [open, instance])
+  }, [open, instance]);
 
   const handleFieldChange = (key: keyof CreateInstanceOptions, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [key]: value
-    }))
-  }
+      [key]: value,
+    }));
+  };
 
   const handleNameChange = (name: string) => {
-    setInstanceName(name)
+    setInstanceName(name);
     // Validate instance name
     if (!name.trim()) {
-      setNameError('Instance name is required')
+      setNameError("Instance name is required");
     } else if (!/^[a-zA-Z0-9-_]+$/.test(name)) {
-      setNameError('Instance name can only contain letters, numbers, hyphens, and underscores')
+      setNameError(
+        "Instance name can only contain letters, numbers, hyphens, and underscores"
+      );
     } else {
-      setNameError('')
+      setNameError("");
     }
-  }
+  };
 
   const handleSave = () => {
     // Validate instance name before saving
     if (!instanceName.trim()) {
-      setNameError('Instance name is required')
-      return
+      setNameError("Instance name is required");
+      return;
     }
 
     // Clean up undefined values to avoid sending empty fields
-    const cleanOptions: CreateInstanceOptions = {}
+    const cleanOptions: CreateInstanceOptions = {};
     Object.entries(formData).forEach(([key, value]) => {
-      if (value !== undefined && value !== '' && value !== null) {
+      if (value !== undefined && value !== "" && value !== null) {
         // Handle arrays - don't include empty arrays
         if (Array.isArray(value) && value.length === 0) {
-          return
+          return;
         }
-        ;(cleanOptions as any)[key] = value
+        (cleanOptions as any)[key] = value;
       }
-    })
+    });
 
-    onSave(instanceName, cleanOptions)
-    onOpenChange(false)
-  }
+    onSave(instanceName, cleanOptions);
+    onOpenChange(false);
+  };
 
   const handleCancel = () => {
-    onOpenChange(false)
-  }
+    onOpenChange(false);
+  };
 
   const toggleAdvanced = () => {
-    setShowAdvanced(!showAdvanced)
-  }
+    setShowAdvanced(!showAdvanced);
+  };
 
   // Check if auto_restart is enabled
-  const isAutoRestartEnabled = formData.auto_restart === true
+  const isAutoRestartEnabled = formData.auto_restart === true;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Edit Instance' : 'Create New Instance'}
+            {isEditing ? "Edit Instance" : "Create New Instance"}
           </DialogTitle>
           <DialogDescription>
-            {isEditing 
-              ? 'Modify the instance configuration below.' 
-              : 'Configure your new llama-server instance below.'}
+            {isEditing
+              ? "Modify the instance configuration below."
+              : "Configure your new llama-server instance below."}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-y-auto">
           <div className="grid gap-6 py-4">
             {/* Instance Name - Special handling since it's not in CreateInstanceOptions */}
@@ -139,11 +141,9 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="my-instance"
                 disabled={isEditing} // Don't allow name changes when editing
-                className={nameError ? 'border-red-500' : ''}
+                className={nameError ? "border-red-500" : ""}
               />
-              {nameError && (
-                <p className="text-sm text-red-500">{nameError}</p>
-              )}
+              {nameError && <p className="text-sm text-red-500">{nameError}</p>}
               <p className="text-sm text-muted-foreground">
                 Unique identifier for the instance
               </p>
@@ -151,8 +151,10 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
 
             {/* Auto Restart Configuration Section */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Auto Restart Configuration</h3>
-              
+              <h3 className="text-lg font-medium">
+                Auto Restart Configuration
+              </h3>
+
               {/* Auto Restart Toggle */}
               <ZodFormField
                 fieldKey="auto_restart"
@@ -181,7 +183,12 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Basic Configuration</h3>
               {basicFields
-                .filter(fieldKey => fieldKey !== 'auto_restart') // Exclude auto_restart as it's handled above
+                .filter(
+                  (fieldKey) =>
+                    fieldKey !== "auto_restart" &&
+                    fieldKey !== "max_restarts" &&
+                    fieldKey !== "restart_delay"
+                ) // Exclude auto_restart, max_restarts, and restart_delay as they're handled above
                 .map((fieldKey) => (
                   <ZodFormField
                     key={fieldKey}
@@ -206,7 +213,14 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
                 )}
                 Advanced Configuration
                 <span className="text-muted-foreground text-sm font-normal">
-                  ({advancedFields.filter(f => !['max_restarts', 'restart_delay'].includes(f as string)).length} options)
+                  (
+                  {
+                    advancedFields.filter(
+                      (f) =>
+                        !["max_restarts", "restart_delay"].includes(f as string)
+                    ).length
+                  }{" "}
+                  options)
                 </span>
               </Button>
             </div>
@@ -216,7 +230,12 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
               <div className="space-y-4 pl-6 border-l-2 border-muted">
                 <div className="space-y-4">
                   {advancedFields
-                    .filter(fieldKey => !['max_restarts', 'restart_delay'].includes(fieldKey as string)) // Exclude restart options as they're handled above
+                    .filter(
+                      (fieldKey) =>
+                        !["max_restarts", "restart_delay"].includes(
+                          fieldKey as string
+                        )
+                    ) // Exclude restart options as they're handled above
                     .sort()
                     .map((fieldKey) => (
                       <ZodFormField
@@ -233,16 +252,28 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
         </div>
 
         <DialogFooter className="pt-4 border-t">
-          <Button variant="outline" onClick={handleCancel}>
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            data-testid="modal-cancel-button"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!instanceName.trim() || !!nameError}>
-            {isEditing ? (isRunning ? 'Update & Restart Instance' : 'Update Instance') : 'Create Instance'}
+          <Button
+            onClick={handleSave}
+            disabled={!instanceName.trim() || !!nameError}
+            data-testid="modal-save-button"
+          >
+            {isEditing
+              ? isRunning
+                ? "Update & Restart Instance"
+                : "Update Instance"
+              : "Create Instance"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default InstanceModal
+export default InstanceModal;

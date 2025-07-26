@@ -68,6 +68,7 @@ function InstanceCard({
               onClick={handleStart}
               disabled={instance.running}
               title="Start instance"
+              data-testid="start-instance-button"
             >
               <Play className="h-4 w-4" />
             </Button>
@@ -78,6 +79,7 @@ function InstanceCard({
               onClick={handleStop}
               disabled={!instance.running}
               title="Stop instance"
+              data-testid="stop-instance-button"
             >
               <Square className="h-4 w-4" />
             </Button>
@@ -87,6 +89,7 @@ function InstanceCard({
               variant="outline"
               onClick={handleEdit}
               title="Edit instance"
+              data-testid="edit-instance-button"
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -96,6 +99,7 @@ function InstanceCard({
               variant="outline"
               onClick={handleLogs}
               title="View logs"
+              data-testid="view-logs-button"
             >
               <FileText className="h-4 w-4" />
             </Button>
@@ -106,6 +110,7 @@ function InstanceCard({
               onClick={handleDelete}
               disabled={instance.running}
               title="Delete instance"
+              data-testid="delete-instance-button"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
