@@ -1,8 +1,10 @@
 package llamactl
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -456,9 +458,17 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 // OpenAIProxy godoc
 func (h *Handler) OpenAIProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Extract model name from request body
+		// Read the entire body first
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			return
+		}
+		r.Body.Close()
+
+		// Parse the body to extract model name
 		var requestBody map[string]any
-		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		if err := json.Unmarshal(bodyBytes, &requestBody); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
@@ -486,6 +496,10 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Recreate the request body from the bytes we read
+		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		r.ContentLength = int64(len(bodyBytes))
 
 		proxy.ServeHTTP(w, r)
 	}
