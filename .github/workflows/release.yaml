@@ -177,34 +177,15 @@ jobs:
           ls -la release-assets/
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           body: ${{ needs.generate-changelog.outputs.changelog }}
+          files: release-assets/*
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-
-      - name: Upload Release Assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Install GitHub CLI
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh -y
-          
-          # Upload each asset
-          for asset in release-assets/*; do
-            if [ -f "$asset" ]; then
-              echo "Uploading $(basename "$asset")"
-              gh release upload ${{ github.ref_name }} "$asset" --repo ${{ github.repository }}
-            fi
-          done
 
   checksums:
     name: Generate Checksums
@@ -241,14 +222,8 @@ jobs:
           fi
 
       - name: Upload checksums to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: assets/checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Install GitHub CLI
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh -y
-          
-          # Upload checksums
-          gh release upload ${{ github.ref_name }} assets/checksums.txt --repo ${{ github.repository }}
