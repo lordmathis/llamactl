@@ -84,6 +84,9 @@ jobs:
           go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o "${BINARY_NAME}" ./cmd/server
           
           # Create archive
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            matrix.goos="macos"
+          fi
           ARCHIVE_NAME="llamactl-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}"
           if [ "${{ matrix.goos }}" = "windows" ]; then
             zip "${ARCHIVE_NAME}.zip" "${BINARY_NAME}"
