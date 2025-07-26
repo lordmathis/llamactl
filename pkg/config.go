@@ -63,7 +63,7 @@ func LoadConfig(configPath string) (Config, error) {
 		Instances: InstancesConfig{
 			PortRange:           [2]int{8000, 9000},
 			LogDirectory:        "/tmp/llamactl",
-			MaxInstances:        10,
+			MaxInstances:        -1, // -1 means unlimited
 			LlamaExecutable:     "llama-server",
 			DefaultAutoRestart:  true,
 			DefaultMaxRestarts:  3,
@@ -120,7 +120,7 @@ func loadEnvVars(cfg *Config) {
 
 	// Instance config
 	if portRange := os.Getenv("LLAMACTL_INSTANCE_PORT_RANGE"); portRange != "" {
-		if ports := parsePortRange(portRange); ports != [2]int{0, 0} {
+		if ports := ParsePortRange(portRange); ports != [2]int{0, 0} {
 			cfg.Instances.PortRange = ports
 		}
 	}
@@ -152,8 +152,8 @@ func loadEnvVars(cfg *Config) {
 	}
 }
 
-// parsePortRange parses port range from string formats like "8000-9000" or "8000,9000"
-func parsePortRange(s string) [2]int {
+// ParsePortRange parses port range from string formats like "8000-9000" or "8000,9000"
+func ParsePortRange(s string) [2]int {
 	var parts []string
 
 	// Try both separators
@@ -227,7 +227,7 @@ func getDefaultConfigLocations() []string {
 
 		// Additional system locations
 		if xdgConfigDirs := os.Getenv("XDG_CONFIG_DIRS"); xdgConfigDirs != "" {
-			for _, dir := range strings.Split(xdgConfigDirs, ":") {
+			for dir := range strings.SplitSeq(xdgConfigDirs, ":") {
 				if dir != "" {
 					locations = append(locations, filepath.Join(dir, "llamactl", "config.yaml"))
 				}

@@ -13,6 +13,7 @@ var (
 		regexp.MustCompile(`[;&|$` + "`" + `]`), // Shell metacharacters
 		regexp.MustCompile(`\$\(.*\)`),          // Command substitution $(...)
 		regexp.MustCompile("`.*`"),              // Command substitution backticks
+		regexp.MustCompile(`[\x00-\x1F\x7F]`),   // Control characters (including newline, tab, null byte, etc.)
 	}
 
 	// Simple validation for instance names

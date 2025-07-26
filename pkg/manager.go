@@ -53,6 +53,10 @@ func (im *instanceManager) CreateInstance(name string, options *CreateInstanceOp
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
 
+	if len(im.instances) >= im.instancesConfig.MaxInstances && im.instancesConfig.MaxInstances != -1 {
+		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances)
+	}
+
 	err := ValidateInstanceName(name)
 	if err != nil {
 		return nil, err
@@ -78,10 +82,17 @@ func (im *instanceManager) CreateInstance(name string, options *CreateInstanceOp
 			return nil, fmt.Errorf("failed to get next available port: %w", err)
 		}
 		options.Port = port
+	} else {
+		// Validate the specified port
+		if _, exists := im.ports[options.Port]; exists {
+			return nil, fmt.Errorf("port %d is already in use", options.Port)
+		}
+		im.ports[options.Port] = true
 	}
 
 	instance := NewInstance(name, &im.instancesConfig, options)
 	im.instances[instance.Name] = instance
+	im.ports[options.Port] = true
 
 	return instance, nil
 }
@@ -155,6 +166,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 		return fmt.Errorf("instance with name %s is still running, stop it before deleting", name)
 	}
 
+	delete(im.ports, im.instances[name].options.Port)
 	delete(im.instances, name)
 	return nil
 }
