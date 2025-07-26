@@ -1,4 +1,4 @@
-name: Tests
+name: WebUI Tests
 
 on:
   push:
@@ -12,6 +12,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./webui
+
 
     steps:
     - uses: actions/checkout@v4
