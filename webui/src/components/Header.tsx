@@ -12,7 +12,7 @@ function Header({ onCreateInstance, onShowSystemInfo }: HeaderProps) {
       <div className="container mx-auto max-w-4xl px-4 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">
-            LlamaCtl Dashboard
+            Llamactl Dashboard
           </h1>
 
           <div className="flex items-center gap-2">
