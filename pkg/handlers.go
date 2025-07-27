@@ -15,11 +15,13 @@ import (
 
 type Handler struct {
 	InstanceManager InstanceManager
+	config          Config
 }
 
-func NewHandler(im InstanceManager) *Handler {
+func NewHandler(im InstanceManager, config Config) *Handler {
 	return &Handler{
 		InstanceManager: im,
+		config:          config,
 	}
 }
 

@@ -23,6 +23,9 @@ type ServerConfig struct {
 
 	// Server port to bind to
 	Port int `yaml:"port"`
+
+	// Allowed origins for CORS (e.g., "http://localhost:3000")
+	AllowedOrigins []string `yaml:"allowed_origins"`
 }
 
 // InstancesConfig contains instance management configuration
@@ -57,8 +60,9 @@ func LoadConfig(configPath string) (Config, error) {
 	// 1. Start with defaults
 	cfg := Config{
 		Server: ServerConfig{
-			Host: "",
-			Port: 8080,
+			Host:           "0.0.0.0",
+			Port:           8080,
+			AllowedOrigins: []string{"*"}, // Default to allow all origins
 		},
 		Instances: InstancesConfig{
 			PortRange:           [2]int{8000, 9000},
