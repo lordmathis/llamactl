@@ -295,6 +295,45 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Forwards HTTP requests to the llama-server instance running on a specific port",
+                "tags": [
+                    "instances"
+                ],
+                "summary": "Proxy requests to a specific instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Request successfully proxied to instance"
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
+                        "description": "Instance is not running",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/instances/{name}/restart": {
@@ -469,6 +508,58 @@ const docTemplate = `{
                         "description": "Version information",
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/": {
+            "post": {
+                "description": "Handles all POST requests to /v1/*, routing to the appropriate instance based on the request body",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openai"
+                ],
+                "summary": "OpenAI-compatible proxy endpoint",
+                "responses": {
+                    "200": {
+                        "description": "OpenAI response"
+                    },
+                    "400": {
+                        "description": "Invalid request body or model name",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/models": {
+            "get": {
+                "description": "Returns a list of instances in a format compatible with OpenAI API",
+                "tags": [
+                    "openai"
+                ],
+                "summary": "List instances in OpenAI-compatible format",
+                "responses": {
+                    "200": {
+                        "description": "List of OpenAI-compatible instances",
+                        "schema": {
+                            "$ref": "#/definitions/llamactl.OpenAIListInstancesResponse"
                         }
                     },
                     "500": {
@@ -999,12 +1090,47 @@ const docTemplate = `{
         "llamactl.Instance": {
             "type": "object",
             "properties": {
+                "created": {
+                    "description": "Creation time",
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
                 "running": {
                     "description": "Status",
                     "type": "boolean"
+                }
+            }
+        },
+        "llamactl.OpenAIInstance": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "object": {
+                    "type": "string"
+                },
+                "owned_by": {
+                    "type": "string"
+                }
+            }
+        },
+        "llamactl.OpenAIListInstancesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/llamactl.OpenAIInstance"
+                    }
+                },
+                "object": {
+                    "type": "string"
                 }
             }
         }

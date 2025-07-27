@@ -402,6 +402,7 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Failure 503 {string} string "Instance is not running"
 // @Router /instances/{name}/proxy [get]
+// @Router /instances/{name}/proxy [post]
 func (h *Handler) ProxyToInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -455,7 +456,55 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 	}
 }
 
+// OpenAIListInstances godoc
+// @Summary List instances in OpenAI-compatible format
+// @Description Returns a list of instances in a format compatible with OpenAI API
+// @Tags openai
+// @Produces json
+// @Success 200 {object} OpenAIListInstancesResponse "List of OpenAI-compatible instances"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /v1/models [get]
+func (h *Handler) OpenAIListInstances() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		instances, err := h.InstanceManager.ListInstances()
+		if err != nil {
+			http.Error(w, "Failed to list instances: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		openaiInstances := make([]OpenAIInstance, len(instances))
+		for i, instance := range instances {
+			openaiInstances[i] = OpenAIInstance{
+				ID:      instance.Name,
+				Object:  "model",
+				Created: instance.Created,
+				OwnedBy: "llamactl",
+			}
+		}
+
+		openaiResponse := OpenAIListInstancesResponse{
+			Object: "list",
+			Data:   openaiInstances,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(openaiResponse); err != nil {
+			http.Error(w, "Failed to encode instances: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
 // OpenAIProxy godoc
+// @Summary OpenAI-compatible proxy endpoint
+// @Description Handles all POST requests to /v1/*, routing to the appropriate instance based on the request body
+// @Tags openai
+// @Accept json
+// @Produces json
+// @Success 200 "OpenAI response"
+// @Failure 400 {string} string "Invalid request body or model name"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /v1/ [post]
 func (h *Handler) OpenAIProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read the entire body first

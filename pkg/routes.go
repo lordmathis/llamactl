@@ -50,6 +50,8 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		})
 	})
 
+	r.Get(("/v1/models"), handler.OpenAIListInstances()) // List instances in OpenAI-compatible format
+
 	// OpenAI-compatible proxy endpoint
 	// Handles all POST requests to /v1/*, including:
 	//   - /v1/completions

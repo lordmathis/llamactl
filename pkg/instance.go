@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os/exec"
 	"sync"
+	"time"
 )
 
 type CreateInstanceOptions struct {
@@ -59,6 +60,9 @@ type Instance struct {
 
 	// Status
 	Running bool `json:"running"`
+
+	// Creation time
+	Created int64 `json:"created,omitempty"` // Unix timestamp when the instance was created
 
 	// Logging file
 	logger *InstanceLogger `json:"-"`
@@ -153,6 +157,8 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 		logger:         logger,
 
 		Running: false,
+
+		Created: time.Now().Unix(),
 	}
 }
 

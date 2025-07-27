@@ -347,11 +347,34 @@ definitions:
     type: object
   llamactl.Instance:
     properties:
+      created:
+        description: Creation time
+        type: integer
       name:
         type: string
       running:
         description: Status
         type: boolean
+    type: object
+  llamactl.OpenAIInstance:
+    properties:
+      created:
+        type: integer
+      id:
+        type: string
+      object:
+        type: string
+      owned_by:
+        type: string
+    type: object
+  llamactl.OpenAIListInstancesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/llamactl.OpenAIInstance'
+        type: array
+      object:
+        type: string
     type: object
 info:
   contact: {}
@@ -548,6 +571,33 @@ paths:
       summary: Proxy requests to a specific instance
       tags:
       - instances
+    post:
+      description: Forwards HTTP requests to the llama-server instance running on
+        a specific port
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Request successfully proxied to instance
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+        "503":
+          description: Instance is not running
+          schema:
+            type: string
+      summary: Proxy requests to a specific instance
+      tags:
+      - instances
   /instances/{name}/restart:
     post:
       description: Restarts a specific instance by name
@@ -668,4 +718,40 @@ paths:
       summary: Get version of llama server
       tags:
       - server
+  /v1/:
+    post:
+      consumes:
+      - application/json
+      description: Handles all POST requests to /v1/*, routing to the appropriate
+        instance based on the request body
+      responses:
+        "200":
+          description: OpenAI response
+        "400":
+          description: Invalid request body or model name
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: OpenAI-compatible proxy endpoint
+      tags:
+      - openai
+  /v1/models:
+    get:
+      description: Returns a list of instances in a format compatible with OpenAI
+        API
+      responses:
+        "200":
+          description: List of OpenAI-compatible instances
+          schema:
+            $ref: '#/definitions/llamactl.OpenAIListInstancesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: List instances in OpenAI-compatible format
+      tags:
+      - openai
 swagger: "2.0"
