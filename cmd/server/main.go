@@ -32,7 +32,7 @@ func main() {
 	instanceManager := llamactl.NewInstanceManager(config.Instances)
 
 	// Create a new handler with the instance manager
-	handler := llamactl.NewHandler(instanceManager)
+	handler := llamactl.NewHandler(instanceManager, config)
 
 	// Setup the router with the handler
 	r := llamactl.SetupRouter(handler)

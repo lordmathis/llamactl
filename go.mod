@@ -4,6 +4,7 @@ go 1.24.5
 
 require (
 	github.com/go-chi/chi/v5 v5.2.2
+	github.com/go-chi/cors v1.2.2
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.5
 	gopkg.in/yaml.v3 v3.0.1

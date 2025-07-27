@@ -16,8 +16,8 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	}
 
 	// Verify default values
-	if cfg.Server.Host != "" {
-		t.Errorf("Expected default host to be empty, got %q", cfg.Server.Host)
+	if cfg.Server.Host != "0.0.0.0" {
+		t.Errorf("Expected default host to be 0.0.0.0, got %q", cfg.Server.Host)
 	}
 	if cfg.Server.Port != 8080 {
 		t.Errorf("Expected default port to be 8080, got %d", cfg.Server.Port)
