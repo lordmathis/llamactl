@@ -142,9 +142,12 @@ func (i *Instance) Stop() error {
 
 func (i *Instance) monitorProcess() {
 	defer func() {
+		i.mu.Lock()
 		if i.monitorDone != nil {
 			close(i.monitorDone)
+			i.monitorDone = nil
 		}
+		i.mu.Unlock()
 	}()
 
 	err := i.cmd.Wait()
