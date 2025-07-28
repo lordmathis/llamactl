@@ -108,63 +108,9 @@ jobs:
             *.zip
           retention-days: 1
 
-  generate-changelog:
-    name: Generate Changelog
-    runs-on: ubuntu-latest
-    outputs:
-      changelog: ${{ steps.changelog.outputs.changelog }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          # Get the previous tag
-          PREVIOUS_TAG=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -n1)
-          
-          if [ -z "$PREVIOUS_TAG" ]; then
-            echo "No previous tag found, generating changelog from first commit"
-            PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
-          fi
-          
-          echo "Generating changelog from $PREVIOUS_TAG to ${{ github.ref_name }}"
-          
-          # Generate changelog
-          CHANGELOG=$(cat << 'EOL'
-          ## What's Changed
-          
-          EOL
-          )
-          
-          # Get commits between tags
-          COMMITS=$(git log --pretty=format:"* %s (%h)" "$PREVIOUS_TAG..${{ github.ref_name }}" --no-merges)
-          
-          if [ -z "$COMMITS" ]; then
-            CHANGELOG="${CHANGELOG}* No changes since previous release"
-          else
-            CHANGELOG="${CHANGELOG}${COMMITS}"
-          fi
-          
-          # Add full changelog link if we have a previous tag and it's not a commit hash
-          if [[ "$PREVIOUS_TAG" =~ ^v[0-9] ]]; then
-            CHANGELOG="${CHANGELOG}
-
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...${{ github.ref_name }}"
-          fi
-          
-          # Save changelog to output (handle multiline)
-          {
-            echo 'changelog<<EOF'
-            echo "$CHANGELOG"
-            echo EOF
-          } >> $GITHUB_OUTPUT
-
   release:
     name: Create Release
-    needs: [build, generate-changelog]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
@@ -184,8 +130,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: Release ${{ github.ref_name }}
-          body: ${{ needs.generate-changelog.outputs.changelog }}
+          tag_name: ${{ github.ref_name }}
           files: release-assets/*
+          generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
         env:
