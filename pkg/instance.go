@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os/exec"
@@ -191,18 +192,34 @@ func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	if i.proxy == nil {
-		if i.options == nil {
-			return nil, fmt.Errorf("instance %s has no options set", i.Name)
-		}
-
-		targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", i.options.Host, i.options.Port))
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", i.Name, err)
-		}
-
-		i.proxy = httputil.NewSingleHostReverseProxy(targetURL)
+	if i.proxy != nil {
+		return i.proxy, nil
 	}
+
+	if i.options == nil {
+		return nil, fmt.Errorf("instance %s has no options set", i.Name)
+	}
+
+	targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", i.options.Host, i.options.Port))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", i.Name, err)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		// Remove CORS headers from llama-server response to avoid conflicts
+		// llamactl will add its own CORS headers
+		resp.Header.Del("Access-Control-Allow-Origin")
+		resp.Header.Del("Access-Control-Allow-Methods")
+		resp.Header.Del("Access-Control-Allow-Headers")
+		resp.Header.Del("Access-Control-Allow-Credentials")
+		resp.Header.Del("Access-Control-Max-Age")
+		resp.Header.Del("Access-Control-Expose-Headers")
+		return nil
+	}
+
+	i.proxy = proxy
 
 	return i.proxy, nil
 }
