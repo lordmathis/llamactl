@@ -29,6 +29,7 @@ func NewHandler(im InstanceManager, config Config) *Handler {
 // @Summary Get help for llama server
 // @Description Returns the help text for the llama server command
 // @Tags server
+// @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "Help text"
 // @Failure 500 {string} string "Internal Server Error"
@@ -50,6 +51,7 @@ func (h *Handler) HelpHandler() http.HandlerFunc {
 // @Summary Get version of llama server
 // @Description Returns the version of the llama server command
 // @Tags server
+// @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "Version information"
 // @Failure 500 {string} string "Internal Server Error"
@@ -71,6 +73,7 @@ func (h *Handler) VersionHandler() http.HandlerFunc {
 // @Summary List available devices for llama server
 // @Description Returns a list of available devices for the llama server
 // @Tags server
+// @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "List of devices"
 // @Failure 500 {string} string "Internal Server Error"
@@ -92,6 +95,7 @@ func (h *Handler) ListDevicesHandler() http.HandlerFunc {
 // @Summary List all instances
 // @Description Returns a list of all instances managed by the server
 // @Tags instances
+// @Security ApiKeyAuth
 // @Produces json
 // @Success 200 {array} Instance "List of instances"
 // @Failure 500 {string} string "Internal Server Error"
@@ -116,6 +120,7 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 // @Summary Create and start a new instance
 // @Description Creates a new instance with the provided configuration options
 // @Tags instances
+// @Security ApiKeyAuth
 // @Accept json
 // @Produces json
 // @Param name path string true "Instance Name"
@@ -157,6 +162,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 // @Summary Get details of a specific instance
 // @Description Returns the details of a specific instance by name
 // @Tags instances
+// @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
 // @Success 200 {object} Instance "Instance details"
@@ -189,6 +195,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 // @Summary Update an instance's configuration
 // @Description Updates the configuration of a specific instance by name
 // @Tags instances
+// @Security ApiKeyAuth
 // @Accept json
 // @Produces json
 // @Param name path string true "Instance Name"
@@ -229,6 +236,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 // @Summary Start a stopped instance
 // @Description Starts a specific instance by name
 // @Tags instances
+// @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
 // @Success 200 {object} Instance "Started instance details"
@@ -261,6 +269,7 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 // @Summary Stop a running instance
 // @Description Stops a specific instance by name
 // @Tags instances
+// @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
 // @Success 200 {object} Instance "Stopped instance details"
@@ -293,6 +302,7 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 // @Summary Restart a running instance
 // @Description Restarts a specific instance by name
 // @Tags instances
+// @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
 // @Success 200 {object} Instance "Restarted instance details"
@@ -325,6 +335,7 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 // @Summary Delete an instance
 // @Description Stops and removes a specific instance by name
 // @Tags instances
+// @Security ApiKeyAuth
 // @Param name path string true "Instance Name"
 // @Success 204 "No Content"
 // @Failure 400 {string} string "Invalid name format"
@@ -351,6 +362,7 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 // @Summary Get logs from a specific instance
 // @Description Returns the logs from a specific instance by name with optional line limit
 // @Tags instances
+// @Security ApiKeyAuth
 // @Param name path string true "Instance Name"
 // @Param lines query string false "Number of lines to retrieve (default: all lines)"
 // @Produces text/plain
@@ -398,6 +410,7 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 // @Summary Proxy requests to a specific instance
 // @Description Forwards HTTP requests to the llama-server instance running on a specific port
 // @Tags instances
+// @Security ApiKeyAuth
 // @Param name path string true "Instance Name"
 // @Success 200 "Request successfully proxied to instance"
 // @Failure 400 {string} string "Invalid name format"
@@ -462,6 +475,7 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 // @Summary List instances in OpenAI-compatible format
 // @Description Returns a list of instances in a format compatible with OpenAI API
 // @Tags openai
+// @Security ApiKeyAuth
 // @Produces json
 // @Success 200 {object} OpenAIListInstancesResponse "List of OpenAI-compatible instances"
 // @Failure 500 {string} string "Internal Server Error"
@@ -499,8 +513,9 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 
 // OpenAIProxy godoc
 // @Summary OpenAI-compatible proxy endpoint
-// @Description Handles all POST requests to /v1/*, routing to the appropriate instance based on the request body
+// @Description Handles all POST requests to /v1/*, routing to the appropriate instance based on the request body. Requires API key authentication via the `Authorization` header.
 // @Tags openai
+// @Security ApiKeyAuth
 // @Accept json
 // @Produces json
 // @Success 200 "OpenAI response"

@@ -54,11 +54,13 @@ go build -o llamactl ./cmd/server
 
 ## Configuration
 
+
 llamactl can be configured via configuration files or environment variables. Configuration is loaded in the following order of precedence:
 
 1. Hardcoded defaults
 2. Configuration file
 3. Environment variables
+
 
 ### Configuration Files
 
@@ -76,19 +78,35 @@ Configuration files are searched in the following locations:
 
 You can specify the path to config file with `LLAMACTL_CONFIG_PATH` environment variable
 
+## API Key Authentication
+
+llamactl now supports API Key authentication for both management and inference (OpenAI-compatible) endpoints. The are separate keys for management and inference APIs. Management keys grant full access; inference keys grant access to OpenAI-compatible endpoints
+
+**How to Use:**
+- Pass your API key in requests using one of:
+  - `Authorization: Bearer <key>` header
+  - `X-API-Key: <key>` header
+  - `api_key=<key>` query parameter
+
+**Auto-generated keys**: If no keys are set and authentication is required, a key will be generated and printed to the terminal at startup. For production, set your own keys in config or environment variables.
+
 ### Configuration Options
 
 #### Server Configuration
 
 ```yaml
 server:
-  host: ""              # Server host to bind to (default: "")
-  port: 8080             # Server port to bind to (default: 8080)
+  host: "0.0.0.0"         # Server host to bind to (default: "0.0.0.0")
+  port: 8080              # Server port to bind to (default: 8080)
+  allowed_origins: ["*"]  # CORS allowed origins (default: ["*"])
+  enable_swagger: false   # Enable Swagger UI (default: false)
 ```
 
 **Environment Variables:**
 - `LLAMACTL_HOST` - Server host
 - `LLAMACTL_PORT` - Server port
+- `LLAMACTL_ALLOWED_ORIGINS` - Comma-separated CORS origins
+- `LLAMACTL_ENABLE_SWAGGER` - Enable Swagger UI (true/false)
 
 #### Instance Configuration
 
@@ -112,6 +130,22 @@ instances:
 - `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts
 - `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds
 
+#### Auth Configuration
+
+```yaml
+auth:
+  require_inference_auth: true           # Require API key for OpenAI endpoints (default: true)
+  inference_keys: []                     # List of valid inference API keys
+  require_management_auth: true          # Require API key for management endpoints (default: true)
+  management_keys: []                    # List of valid management API keys
+```
+
+**Environment Variables:**
+- `LLAMACTL_REQUIRE_INFERENCE_AUTH` - Require auth for OpenAI endpoints (true/false)
+- `LLAMACTL_INFERENCE_KEYS` - Comma-separated inference API keys
+- `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)
+- `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys
+
 ### Example Configuration
 
 ```yaml
@@ -127,6 +161,12 @@ instances:
   default_auto_restart: true
   default_max_restarts: 5
   default_restart_delay: 10
+ 
+auth:
+  require_inference_auth: true
+  inference_keys: ["sk-inference-abc123"]
+  require_management_auth: true
+  management_keys: ["sk-management-xyz456"]
 ```
 
 ## Usage

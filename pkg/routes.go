@@ -26,12 +26,22 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		MaxAge:           300,
 	}))
 
-	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"),
-	))
+	// Add API authentication middleware
+	authMiddleware := NewAPIAuthMiddleware(handler.config.Auth)
+
+	if handler.config.Server.EnableSwagger {
+		r.Get("/swagger/*", httpSwagger.Handler(
+			httpSwagger.URL("/swagger/doc.json"),
+		))
+	}
 
 	// Define routes
 	r.Route("/api/v1", func(r chi.Router) {
+
+		if authMiddleware != nil && handler.config.Auth.RequireManagementAuth {
+			r.Use(authMiddleware.AuthMiddleware(KeyTypeManagement))
+		}
+
 		r.Route("/server", func(r chi.Router) {
 			r.Get("/help", handler.HelpHandler())
 			r.Get("/version", handler.VersionHandler())
@@ -61,17 +71,25 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		})
 	})
 
-	r.Get(("/v1/models"), handler.OpenAIListInstances()) // List instances in OpenAI-compatible format
+	r.Route(("/v1"), func(r chi.Router) {
 
-	// OpenAI-compatible proxy endpoint
-	// Handles all POST requests to /v1/*, including:
-	//   - /v1/completions
-	//   - /v1/chat/completions
-	//   - /v1/embeddings
-	//   - /v1/rerank
-	//   - /v1/reranking
-	// The instance/model to use is determined by the request body.
-	r.Post("/v1/*", handler.OpenAIProxy())
+		if authMiddleware != nil && handler.config.Auth.RequireInferenceAuth {
+			r.Use(authMiddleware.AuthMiddleware(KeyTypeInference))
+		}
+
+		r.Get(("/models"), handler.OpenAIListInstances()) // List instances in OpenAI-compatible format
+
+		// OpenAI-compatible proxy endpoint
+		// Handles all POST requests to /v1/*, including:
+		//   - /v1/completions
+		//   - /v1/chat/completions
+		//   - /v1/embeddings
+		//   - /v1/rerank
+		//   - /v1/reranking
+		// The instance/model to use is determined by the request body.
+		r.Post("/*", handler.OpenAIProxy())
+
+	})
 
 	// Serve WebUI files
 	if err := webui.SetupWebUI(r); err != nil {

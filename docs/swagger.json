@@ -14,6 +14,11 @@
     "paths": {
         "/instances": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns a list of all instances managed by the server",
                 "tags": [
                     "instances"
@@ -40,6 +45,11 @@
         },
         "/instances/{name}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the details of a specific instance by name",
                 "tags": [
                     "instances"
@@ -76,6 +86,11 @@
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Updates the configuration of a specific instance by name",
                 "consumes": [
                     "application/json"
@@ -124,6 +139,11 @@
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Creates a new instance with the provided configuration options",
                 "consumes": [
                     "application/json"
@@ -172,6 +192,11 @@
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Stops and removes a specific instance by name",
                 "tags": [
                     "instances"
@@ -207,6 +232,11 @@
         },
         "/instances/{name}/logs": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the logs from a specific instance by name with optional line limit",
                 "tags": [
                     "instances"
@@ -251,6 +281,11 @@
         },
         "/instances/{name}/proxy": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Forwards HTTP requests to the llama-server instance running on a specific port",
                 "tags": [
                     "instances"
@@ -290,6 +325,11 @@
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Forwards HTTP requests to the llama-server instance running on a specific port",
                 "tags": [
                     "instances"
@@ -331,6 +371,11 @@
         },
         "/instances/{name}/restart": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Restarts a specific instance by name",
                 "tags": [
                     "instances"
@@ -369,6 +414,11 @@
         },
         "/instances/{name}/start": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Starts a specific instance by name",
                 "tags": [
                     "instances"
@@ -407,6 +457,11 @@
         },
         "/instances/{name}/stop": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Stops a specific instance by name",
                 "tags": [
                     "instances"
@@ -445,6 +500,11 @@
         },
         "/server/devices": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns a list of available devices for the llama server",
                 "tags": [
                     "server"
@@ -468,6 +528,11 @@
         },
         "/server/help": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the help text for the llama server command",
                 "tags": [
                     "server"
@@ -491,6 +556,11 @@
         },
         "/server/version": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the version of the llama server command",
                 "tags": [
                     "server"
@@ -514,7 +584,12 @@
         },
         "/v1/": {
             "post": {
-                "description": "Handles all POST requests to /v1/*, routing to the appropriate instance based on the request body",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Handles all POST requests to /v1/*, routing to the appropriate instance based on the request body. Requires API key authentication via the `Authorization` header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -543,6 +618,11 @@
         },
         "/v1/models": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns a list of instances in a format compatible with OpenAI API",
                 "tags": [
                     "openai"

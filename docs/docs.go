@@ -21,6 +21,11 @@ const docTemplate = `{
     "paths": {
         "/instances": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns a list of all instances managed by the server",
                 "tags": [
                     "instances"
@@ -47,6 +52,11 @@ const docTemplate = `{
         },
         "/instances/{name}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the details of a specific instance by name",
                 "tags": [
                     "instances"
@@ -83,6 +93,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Updates the configuration of a specific instance by name",
                 "consumes": [
                     "application/json"
@@ -131,6 +146,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Creates a new instance with the provided configuration options",
                 "consumes": [
                     "application/json"
@@ -179,6 +199,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Stops and removes a specific instance by name",
                 "tags": [
                     "instances"
@@ -214,6 +239,11 @@ const docTemplate = `{
         },
         "/instances/{name}/logs": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the logs from a specific instance by name with optional line limit",
                 "tags": [
                     "instances"
@@ -258,6 +288,11 @@ const docTemplate = `{
         },
         "/instances/{name}/proxy": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Forwards HTTP requests to the llama-server instance running on a specific port",
                 "tags": [
                     "instances"
@@ -297,6 +332,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Forwards HTTP requests to the llama-server instance running on a specific port",
                 "tags": [
                     "instances"
@@ -338,6 +378,11 @@ const docTemplate = `{
         },
         "/instances/{name}/restart": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Restarts a specific instance by name",
                 "tags": [
                     "instances"
@@ -376,6 +421,11 @@ const docTemplate = `{
         },
         "/instances/{name}/start": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Starts a specific instance by name",
                 "tags": [
                     "instances"
@@ -414,6 +464,11 @@ const docTemplate = `{
         },
         "/instances/{name}/stop": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Stops a specific instance by name",
                 "tags": [
                     "instances"
@@ -452,6 +507,11 @@ const docTemplate = `{
         },
         "/server/devices": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns a list of available devices for the llama server",
                 "tags": [
                     "server"
@@ -475,6 +535,11 @@ const docTemplate = `{
         },
         "/server/help": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the help text for the llama server command",
                 "tags": [
                     "server"
@@ -498,6 +563,11 @@ const docTemplate = `{
         },
         "/server/version": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the version of the llama server command",
                 "tags": [
                     "server"
@@ -521,7 +591,12 @@ const docTemplate = `{
         },
         "/v1/": {
             "post": {
-                "description": "Handles all POST requests to /v1/*, routing to the appropriate instance based on the request body",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Handles all POST requests to /v1/*, routing to the appropriate instance based on the request body. Requires API key authentication via the ` + "`" + `Authorization` + "`" + ` header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -550,6 +625,11 @@ const docTemplate = `{
         },
         "/v1/models": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns a list of instances in a format compatible with OpenAI API",
                 "tags": [
                     "openai"
