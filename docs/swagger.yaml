@@ -399,6 +399,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: List all instances
       tags:
       - instances
@@ -422,6 +424,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Delete an instance
       tags:
       - instances
@@ -446,6 +450,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Get details of a specific instance
       tags:
       - instances
@@ -478,6 +484,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Create and start a new instance
       tags:
       - instances
@@ -510,6 +518,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Update an instance's configuration
       tags:
       - instances
@@ -540,6 +550,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Get logs from a specific instance
       tags:
       - instances
@@ -568,6 +580,8 @@ paths:
           description: Instance is not running
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Proxy requests to a specific instance
       tags:
       - instances
@@ -595,6 +609,8 @@ paths:
           description: Instance is not running
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Proxy requests to a specific instance
       tags:
       - instances
@@ -620,6 +636,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Restart a running instance
       tags:
       - instances
@@ -645,6 +663,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Start a stopped instance
       tags:
       - instances
@@ -670,6 +690,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Stop a running instance
       tags:
       - instances
@@ -685,6 +707,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: List available devices for llama server
       tags:
       - server
@@ -700,6 +724,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Get help for llama server
       tags:
       - server
@@ -715,6 +741,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Get version of llama server
       tags:
       - server
@@ -723,7 +751,8 @@ paths:
       consumes:
       - application/json
       description: Handles all POST requests to /v1/*, routing to the appropriate
-        instance based on the request body
+        instance based on the request body. Requires API key authentication via the
+        `Authorization` header.
       responses:
         "200":
           description: OpenAI response
@@ -735,6 +764,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: OpenAI-compatible proxy endpoint
       tags:
       - openai
@@ -751,6 +782,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: List instances in OpenAI-compatible format
       tags:
       - openai
