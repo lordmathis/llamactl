@@ -10,17 +10,30 @@ async function apiCall<T>(
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
 
-  // Prepare headers
-  const headers: HeadersInit = {
+  // Get auth token from sessionStorage (same as AuthContext)
+  const storedKey = sessionStorage.getItem('llamactl_management_key');
+
+  // Prepare headers with auth
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
+
+  // Add auth header if available
+  if (storedKey) {
+    headers['Authorization'] = `Bearer ${storedKey}`;
+  }
 
   try {
     const response = await fetch(url, {
       ...options,
       headers,
     });
+
+    // Handle authentication errors
+    if (response.status === 401) {
+      throw new Error('Authentication required');
+    }
 
     if (!response.ok) {
       // Try to get error message from response
@@ -47,7 +60,7 @@ async function apiCall<T>(
       const text = await response.text();
       return text as T;
     } else {
-      const data = await response.json();
+      const data = await response.json() as T;
       return data;
     }
   } catch (error) {
