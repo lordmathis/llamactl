@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceDialog from '@/components/InstanceDialog'
@@ -8,9 +8,15 @@ describe('InstanceModal - Form Logic and Validation', () => {
   const mockOnSave = vi.fn()
   const mockOnOpenChange = vi.fn()
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+beforeEach(() => {
+  vi.clearAllMocks()
+  window.sessionStorage.setItem('llamactl_management_key', 'test-api-key-123')
+  global.fetch = vi.fn(() => Promise.resolve(new Response(null, { status: 200 })))
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
   describe('Create Mode', () => {
     it('validates instance name is required', async () => {

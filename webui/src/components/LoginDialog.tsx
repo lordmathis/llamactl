@@ -62,12 +62,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
     }
   }
 
-  const handleCancel = () => {
-    setApiKey('')
-    clearError()
-    onOpenChange?.(false)
-  }
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !isSubmitDisabled) {
       // Create a synthetic FormEvent to satisfy handleSubmit's type

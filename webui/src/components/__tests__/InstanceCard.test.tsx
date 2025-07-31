@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceCard from '@/components/InstanceCard'
@@ -27,9 +27,15 @@ describe('InstanceCard - Instance Actions and State', () => {
     options: { model: 'running-model.gguf' }
   }
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+beforeEach(() => {
+  vi.clearAllMocks()
+  window.sessionStorage.setItem('llamactl_management_key', 'test-api-key-123')
+  global.fetch = vi.fn(() => Promise.resolve(new Response(null, { status: 200 })))
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
   describe('Instance Action Buttons', () => {
     it('calls startInstance when start button clicked on stopped instance', async () => {
