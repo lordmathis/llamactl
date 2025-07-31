@@ -30,7 +30,7 @@ interface SystemInfo {
   help: string
 }
 
-const SystemInfoModal: React.FC<SystemInfoModalProps> = ({
+const SystemInfoDialog: React.FC<SystemInfoModalProps> = ({
   open,
   onOpenChange
 }) => {
@@ -59,7 +59,7 @@ const SystemInfoModal: React.FC<SystemInfoModalProps> = ({
     }
   }
 
-  // Load data when modal opens
+  // Load data when dialog opens
   useEffect(() => {
     if (open) {
       fetchSystemInfo()
@@ -180,4 +180,4 @@ const SystemInfoModal: React.FC<SystemInfoModalProps> = ({
   )
 }
 
-export default SystemInfoModal
+export default SystemInfoDialog

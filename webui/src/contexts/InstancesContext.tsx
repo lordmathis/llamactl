@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { type ReactNode, createContext, useContext, useState, useEffect, useCallback } from 'react'
 import type { CreateInstanceOptions, Instance } from '@/types/instance'
 import { instancesApi } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface InstancesContextState {
   instances: Instance[]
@@ -29,6 +29,7 @@ interface InstancesProviderProps {
 }
 
 export const InstancesProvider = ({ children }: InstancesProviderProps) => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [instancesMap, setInstancesMap] = useState<Map<string, Instance>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -41,6 +42,11 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
   }, [])
 
   const fetchInstances = useCallback(async () => {
+    if (!isAuthenticated) {
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -57,7 +63,7 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isAuthenticated])
 
   const updateInstanceInMap = useCallback((name: string, updates: Partial<Instance>) => {
     setInstancesMap(prev => {
@@ -154,9 +160,19 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     }
   }, [])
 
+  // Only fetch instances when auth is ready and user is authenticated
   useEffect(() => {
-    fetchInstances()
-  }, [fetchInstances])
+    if (!authLoading) {
+      if (isAuthenticated) {
+        void fetchInstances()
+      } else {
+        // Clear instances when not authenticated
+        setInstancesMap(new Map())
+        setLoading(false)
+        setError(null)
+      }
+    }
+  }, [authLoading, isAuthenticated, fetchInstances])
 
   const value: InstancesContextType = {
     instances,

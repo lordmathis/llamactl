@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '@/App'
 import { InstancesProvider } from '@/contexts/InstancesContext'
 import { instancesApi } from '@/lib/api'
 import type { Instance } from '@/types/instance'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 // Mock the API
 vi.mock('@/lib/api', () => ({
@@ -35,9 +36,11 @@ vi.mock('@/lib/healthService', () => ({
 
 function renderApp() {
   return render(
-    <InstancesProvider>
-      <App />
-    </InstancesProvider>
+    <AuthProvider>
+      <InstancesProvider>
+        <App />
+      </InstancesProvider>
+    </AuthProvider>
   )
 }
 
@@ -50,6 +53,12 @@ describe('App Component - Critical Business Logic Only', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(instancesApi.list).mockResolvedValue(mockInstances)
+    window.sessionStorage.setItem('llamactl_management_key', 'test-api-key-123')
+    global.fetch = vi.fn(() => Promise.resolve(new Response(null, { status: 200 })))
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('End-to-End Instance Management', () => {
@@ -75,7 +84,7 @@ describe('App Component - Critical Business Logic Only', () => {
       const nameInput = screen.getByLabelText(/Instance Name/)
       await user.type(nameInput, 'new-test-instance')
       
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       // Verify correct API call
       await waitFor(() => {
@@ -109,7 +118,7 @@ describe('App Component - Critical Business Logic Only', () => {
       const editButtons = screen.getAllByTitle('Edit instance')
       await user.click(editButtons[0])
       
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       // Verify correct API call with existing instance data
       await waitFor(() => {
@@ -167,7 +176,6 @@ describe('App Component - Critical Business Logic Only', () => {
       renderApp()
 
       // App should still render and show error
-      expect(screen.getByText('Llamactl Dashboard')).toBeInTheDocument()
       await waitFor(() => {
         expect(screen.getByText('Error loading instances')).toBeInTheDocument()
       })

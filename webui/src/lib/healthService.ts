@@ -1,4 +1,5 @@
 import { type HealthStatus } from '@/types/instance'
+import { instancesApi } from '@/lib/api'
 
 type HealthCallback = (health: HealthStatus) => void
 
@@ -8,31 +9,33 @@ class HealthService {
 
   async checkHealth(instanceName: string): Promise<HealthStatus> {
     try {
-      const response = await fetch(`/api/v1/instances/${instanceName}/proxy/health`)
+      await instancesApi.getHealth(instanceName)
       
-      if (response.status === 200) {
-        return {
-          status: 'ok',
-          lastChecked: new Date()
+      return {
+        status: 'ok',
+        lastChecked: new Date()
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        // Check if it's a 503 (service unavailable - loading)
+        if (error.message.includes('503')) {
+          return {
+            status: 'loading',
+            message: 'Instance is starting up',
+            lastChecked: new Date()
+          }
         }
-      } else if (response.status === 503) {
-        const data = await response.json()
-        return {
-          status: 'loading',
-          message: data.error.message,
-          lastChecked: new Date()
-        }
-      } else {
+        
         return {
           status: 'error',
-          message: `HTTP ${response.status}`,
+          message: error.message,
           lastChecked: new Date()
         }
       }
-    } catch (error) {
+      
       return {
         status: 'error',
-        message: 'Network error',
+        message: 'Unknown error',
         lastChecked: new Date()
       }
     }
@@ -82,7 +85,7 @@ class HealthService {
       }, 60000)
       
       this.intervals.set(instanceName, interval)
-    }, 2000)
+    }, 5000)
   }
 
   private stopHealthCheck(instanceName: string): void {

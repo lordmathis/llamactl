@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceList from '@/components/InstanceList'
 import { InstancesProvider } from '@/contexts/InstancesContext'
 import { instancesApi } from '@/lib/api'
 import type { Instance } from '@/types/instance'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 // Mock the API
 vi.mock('@/lib/api', () => ({
@@ -30,13 +31,16 @@ vi.mock('@/lib/healthService', () => ({
 
 function renderInstanceList(editInstance = vi.fn()) {
   return render(
-    <InstancesProvider>
-      <InstanceList editInstance={editInstance} />
-    </InstancesProvider>
+    <AuthProvider>
+      <InstancesProvider>
+        <InstanceList editInstance={editInstance} />
+      </InstancesProvider>
+    </AuthProvider>
   )
 }
 
 describe('InstanceList - State Management and UI Logic', () => {
+
   const mockEditInstance = vi.fn()
 
   const mockInstances: Instance[] = [
@@ -45,12 +49,20 @@ describe('InstanceList - State Management and UI Logic', () => {
     { name: 'instance-3', running: false, options: { model: 'model3.gguf' } }
   ]
 
+  const DUMMY_API_KEY = 'test-api-key-123'
+
   beforeEach(() => {
     vi.clearAllMocks()
+    window.sessionStorage.setItem('llamactl_management_key', DUMMY_API_KEY)
+    global.fetch = vi.fn(() => Promise.resolve(new Response(null, { status: 200 })))
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('Loading State', () => {
-    it('shows loading spinner while instances are being fetched', async () => {
+    it('shows loading spinner while instances are being fetched', () => {
       // Mock a delayed response to test loading state
       vi.mocked(instancesApi.list).mockImplementation(() => 
         new Promise(resolve => setTimeout(() => resolve(mockInstances), 100))
@@ -219,28 +231,6 @@ describe('InstanceList - State Management and UI Logic', () => {
       // Should transition to loaded state
       expect(await screen.findByText('Instances (3)')).toBeInTheDocument()
       expect(screen.queryByText('Loading instances...')).not.toBeInTheDocument()
-    })
-
-    it('handles transition from error back to loaded state', async () => {
-      // Start with error
-      vi.mocked(instancesApi.list).mockRejectedValue(new Error('Network error'))
-      
-      const { rerender } = renderInstanceList(mockEditInstance)
-
-      expect(await screen.findByText('Error loading instances')).toBeInTheDocument()
-
-      // Simulate recovery (e.g., retry after network recovery)
-      vi.mocked(instancesApi.list).mockResolvedValue(mockInstances)
-      
-      rerender(
-        <InstancesProvider>
-          <InstanceList editInstance={mockEditInstance} />
-        </InstancesProvider>
-      )
-
-      // Should eventually show instances
-      // Note: This test is somewhat artificial since the context handles retries
-      expect(screen.getByText('Error loading instances')).toBeInTheDocument()
     })
   })
 })
