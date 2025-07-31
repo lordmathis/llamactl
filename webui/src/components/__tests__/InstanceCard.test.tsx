@@ -93,7 +93,7 @@ describe('InstanceCard - Instance Actions and State', () => {
       expect(mockEditInstance).toHaveBeenCalledWith(stoppedInstance)
     })
 
-    it('opens logs modal when logs button clicked', async () => {
+    it('opens logs dialog when logs button clicked', async () => {
       const user = userEvent.setup()
       
       render(
@@ -109,7 +109,7 @@ describe('InstanceCard - Instance Actions and State', () => {
       const logsButton = screen.getByTitle('View logs')
       await user.click(logsButton)
       
-      // Should open logs modal (we can verify this by checking if modal title appears)
+      // Should open logs dialog (we can verify this by checking if dialog title appears)
       expect(screen.getByText(`Logs: ${stoppedInstance.name}`)).toBeInTheDocument()
     })
   })
@@ -272,19 +272,19 @@ describe('InstanceCard - Instance Actions and State', () => {
         />
       )
 
-      // Open logs modal
+      // Open logs dialog
       await user.click(screen.getByTitle('View logs'))
       
-      // Verify modal opened with correct instance data
+      // Verify dialog opened with correct instance data
       expect(screen.getByText('Logs: running-instance')).toBeInTheDocument()
       
-      // Close modal to test close functionality
+      // Close dialog to test close functionality
       const closeButtons = screen.getAllByText('Close')
-      const modalCloseButton = closeButtons.find(button => 
+      const dialogCloseButton = closeButtons.find(button => 
         button.closest('[data-slot="dialog-content"]')
       )
-      expect(modalCloseButton).toBeTruthy()
-      await user.click(modalCloseButton!)
+      expect(dialogCloseButton).toBeTruthy()
+      await user.click(dialogCloseButton!)
       
       // Modal should close
       expect(screen.queryByText('Logs: running-instance')).not.toBeInTheDocument()

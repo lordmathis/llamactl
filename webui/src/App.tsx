@@ -1,9 +1,9 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import InstanceList from "@/components/InstanceList";
-import InstanceModal from "@/components/InstanceModal";
+import InstanceDialog from "@/components/InstanceDialog";
 import LoginDialog from "@/components/LoginDialog";
-import SystemInfoModal from "./components/SystemInfoModal";
+import SystemInfoDialog from "./components/SystemInfoDialog";
 import { type CreateInstanceOptions, type Instance } from "@/types/instance";
 import { useInstances } from "@/contexts/InstancesContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,14 +68,14 @@ function App() {
         <InstanceList editInstance={handleEditInstance} />
       </main>
 
-      <InstanceModal
+      <InstanceDialog
         open={isInstanceModalOpen}
         onOpenChange={setIsInstanceModalOpen}
         onSave={handleSaveInstance}
         instance={editingInstance}
       />
 
-      <SystemInfoModal
+      <SystemInfoDialog
         open={isSystemInfoModalOpen}
         onOpenChange={setIsSystemInfoModalOpen}
       />

@@ -15,14 +15,14 @@ import { getBasicFields, getAdvancedFields } from "@/lib/zodFormUtils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import ZodFormField from "@/components/ZodFormField";
 
-interface InstanceModalProps {
+interface InstanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (name: string, options: CreateInstanceOptions) => void;
   instance?: Instance; // For editing existing instance
 }
 
-const InstanceModal: React.FC<InstanceModalProps> = ({
+const InstanceDialog: React.FC<InstanceDialogProps> = ({
   open,
   onOpenChange,
   onSave,
@@ -40,7 +40,7 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
   const basicFields = getBasicFields();
   const advancedFields = getAdvancedFields();
 
-  // Reset form when modal opens/closes or when instance changes
+  // Reset form when dialog opens/closes or when instance changes
   useEffect(() => {
     if (open) {
       if (instance) {
@@ -255,14 +255,14 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
           <Button
             variant="outline"
             onClick={handleCancel}
-            data-testid="modal-cancel-button"
+            data-testid="dialog-cancel-button"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
             disabled={!instanceName.trim() || !!nameError}
-            data-testid="modal-save-button"
+            data-testid="dialog-save-button"
           >
             {isEditing
               ? isRunning
@@ -276,4 +276,4 @@ const InstanceModal: React.FC<InstanceModalProps> = ({
   );
 };
 
-export default InstanceModal;
+export default InstanceDialog;

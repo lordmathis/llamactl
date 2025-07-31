@@ -75,7 +75,7 @@ describe('App Component - Critical Business Logic Only', () => {
       const nameInput = screen.getByLabelText(/Instance Name/)
       await user.type(nameInput, 'new-test-instance')
       
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       // Verify correct API call
       await waitFor(() => {
@@ -109,7 +109,7 @@ describe('App Component - Critical Business Logic Only', () => {
       const editButtons = screen.getAllByTitle('Edit instance')
       await user.click(editButtons[0])
       
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       // Verify correct API call with existing instance data
       await waitFor(() => {

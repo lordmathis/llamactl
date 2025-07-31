@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import InstanceModal from '@/components/InstanceModal'
+import InstanceDialog from '@/components/InstanceDialog'
 import type { Instance } from '@/types/instance'
 
 describe('InstanceModal - Form Logic and Validation', () => {
@@ -17,7 +17,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -25,7 +25,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       )
 
       // Try to submit without name
-      const saveButton = screen.getByTestId('modal-save-button')
+      const saveButton = screen.getByTestId('dialog-save-button')
       expect(saveButton).toBeDisabled()
 
       // Add name, button should be enabled
@@ -41,7 +41,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -54,7 +54,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       await user.type(nameInput, 'test instance!')
       
       expect(screen.getByText(/can only contain letters, numbers, hyphens, and underscores/)).toBeInTheDocument()
-      expect(screen.getByTestId('modal-save-button')).toBeDisabled()
+      expect(screen.getByTestId('dialog-save-button')).toBeDisabled()
 
       // Clear and test valid name
       await user.clear(nameInput)
@@ -62,7 +62,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       
       await waitFor(() => {
         expect(screen.queryByText(/can only contain letters, numbers, hyphens, and underscores/)).not.toBeInTheDocument()
-        expect(screen.getByTestId('modal-save-button')).not.toBeDisabled()
+        expect(screen.getByTestId('dialog-save-button')).not.toBeDisabled()
       })
     })
 
@@ -70,7 +70,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -81,16 +81,16 @@ describe('InstanceModal - Form Logic and Validation', () => {
       await user.type(screen.getByLabelText(/Instance Name/), 'my-instance')
       
       // Submit form
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       expect(mockOnSave).toHaveBeenCalledWith('my-instance', {
         auto_restart: true, // Default value
       })
     })
 
-    it('form resets when modal reopens', async () => {
+    it('form resets when dialog reopens', async () => {
       const { rerender } = render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -101,18 +101,18 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const nameInput = screen.getByLabelText(/Instance Name/)
       await userEvent.setup().type(nameInput, 'temp-name')
 
-      // Close modal
+      // Close dialog
       rerender(
-        <InstanceModal
+        <InstanceDialog
           open={false}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
         />
       )
 
-      // Reopen modal
+      // Reopen dialog
       rerender(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -138,7 +138,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
 
     it('pre-fills form with existing instance data', () => {
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -159,7 +159,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -168,7 +168,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       )
 
       // Submit without changes
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       expect(mockOnSave).toHaveBeenCalledWith('existing-instance', {
         model: 'test-model.gguf',
@@ -181,7 +181,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const runningInstance: Instance = { ...mockInstance, running: true }
       
       const { rerender } = render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -189,10 +189,10 @@ describe('InstanceModal - Form Logic and Validation', () => {
         />
       )
 
-      expect(screen.getByTestId('modal-save-button')).toBeInTheDocument()
+      expect(screen.getByTestId('dialog-save-button')).toBeInTheDocument()
 
       rerender(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -207,7 +207,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
   describe('Auto Restart Configuration', () => {
     it('shows restart options when auto restart is enabled', () => {
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -227,7 +227,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -247,7 +247,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -261,7 +261,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       await user.type(screen.getByLabelText(/Max Restarts/), '5')
       await user.type(screen.getByLabelText(/Restart Delay/), '10')
 
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       expect(mockOnSave).toHaveBeenCalledWith('test-instance', {
         auto_restart: true,
@@ -276,7 +276,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -300,7 +300,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -310,7 +310,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       // Fill only required field
       await user.type(screen.getByLabelText(/Instance Name/), 'clean-instance')
 
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       // Should only include non-empty values
       expect(mockOnSave).toHaveBeenCalledWith('clean-instance', {
@@ -322,7 +322,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -335,7 +335,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const gpuLayersInput = screen.getByLabelText(/GPU Layers/)
       await user.type(gpuLayersInput, '15')
 
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       expect(mockOnSave).toHaveBeenCalledWith('numeric-test', {
         auto_restart: true,
@@ -349,14 +349,14 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
         />
       )
 
-      await user.click(screen.getByTestId('modal-cancel-button'))
+      await user.click(screen.getByTestId('dialog-cancel-button'))
 
       expect(mockOnOpenChange).toHaveBeenCalledWith(false)
     })
@@ -365,7 +365,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const user = userEvent.setup()
       
       render(
-        <InstanceModal
+        <InstanceDialog
           open={true}
           onOpenChange={mockOnOpenChange}
           onSave={mockOnSave}
@@ -373,7 +373,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       )
 
       await user.type(screen.getByLabelText(/Instance Name/), 'test')
-      await user.click(screen.getByTestId('modal-save-button'))
+      await user.click(screen.getByTestId('dialog-save-button'))
 
       expect(mockOnSave).toHaveBeenCalled()
       expect(mockOnOpenChange).toHaveBeenCalledWith(false)

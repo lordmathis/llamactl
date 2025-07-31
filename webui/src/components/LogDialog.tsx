@@ -21,14 +21,14 @@ import {
   Settings
 } from 'lucide-react'
 
-interface LogsModalProps {
+interface LogsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   instanceName: string
   isRunning: boolean
 }
 
-const LogsModal: React.FC<LogsModalProps> = ({
+const LogsDialog: React.FC<LogsDialogProps> = ({
   open,
   onOpenChange,
   instanceName,
@@ -76,7 +76,7 @@ const LogsModal: React.FC<LogsModalProps> = ({
     }
   }
 
-  // Initial load when modal opens
+  // Initial load when dialog opens
   useEffect(() => {
     if (open && instanceName) {
       fetchLogs(lineCount)
@@ -327,4 +327,4 @@ const LogsModal: React.FC<LogsModalProps> = ({
   )
 }
 
-export default LogsModal
+export default LogsDialog

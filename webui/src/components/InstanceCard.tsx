@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Instance } from "@/types/instance";
 import { Edit, FileText, Play, Square, Trash2 } from "lucide-react";
-import LogsModal from "@/components/LogModal";
+import LogsDialog from "@/components/LogDialog";
 import HealthBadge from "@/components/HealthBadge";
 import { useState } from "react";
 import { useInstanceHealth } from "@/hooks/useInstanceHealth";
@@ -118,7 +118,7 @@ function InstanceCard({
         </CardContent>
       </Card>
 
-      <LogsModal
+      <LogsDialog
         open={isLogsOpen}
         onOpenChange={setIsLogsOpen}
         instanceName={instance.name}
