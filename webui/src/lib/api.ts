@@ -134,4 +134,7 @@ export const instancesApi = {
     const params = lines ? `?lines=${lines}` : "";
     return apiCall<string>(`/instances/${name}/logs${params}`, {}, "text");
   },
+
+  // GET /instances/{name}/proxy/health
+  getHealth: (name: string) => apiCall<any>(`/instances/${name}/proxy/health`),
 };
