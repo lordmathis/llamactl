@@ -25,12 +25,37 @@ Follow the installation instructions at https://github.com/ggml-org/llama.cpp
 
 ## Installation
 
-### Build Requirements
+### Download Prebuilt Binaries
+
+The easiest way to install llamactl is to download a prebuilt binary from the [releases page](https://github.com/lordmathis/llamactl/releases).
+
+**Linux/macOS:**
+```bash
+# Download the latest release for your platform
+curl -L https://github.com/lordmathis/llamactl/releases/latest/download/llamactl-$(curl -s https://api.github.com/repos/lordmathis/llamactl/releases/latest | grep tag_name | cut -d '"' -f 4)-linux-amd64.tar.gz | tar -xz
+
+# Move to PATH
+sudo mv llamactl /usr/local/bin/
+
+# Run the server
+llamactl
+```
+
+**Manual Download:**
+1. Go to the [releases page](https://github.com/lordmathis/llamactl/releases)
+2. Download the appropriate archive for your platform
+3. Extract the archive and move the binary to a directory in your PATH
+
+### Build from Source
+
+If you prefer to build from source or need the latest development version:
+
+#### Build Requirements
 
 - Go 1.24 or later
 - Node.js 22 or later (for building the web UI)
 
-### Building with Web UI
+#### Building with Web UI
 
 ```bash
 # Clone the repository
