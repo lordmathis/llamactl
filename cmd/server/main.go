@@ -5,6 +5,8 @@ import (
 	llamactl "llamactl/pkg"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 // @title llamactl API
@@ -37,7 +39,34 @@ func main() {
 	// Setup the router with the handler
 	r := llamactl.SetupRouter(handler)
 
-	// Start the server with the router
-	fmt.Printf("Starting llamactl on port %d...\n", config.Server.Port)
-	http.ListenAndServe(fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port), r)
+	// Handle graceful shutdown
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	server := http.Server{
+		Addr:    fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port),
+		Handler: r,
+	}
+
+	go func() {
+		fmt.Printf("Llamactl server listening on %s:%d\n", config.Server.Host, config.Server.Port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("Error starting server: %v\n", err)
+		}
+	}()
+
+	// Wait for shutdown signal
+	<-stop
+	fmt.Println("Shutting down server...")
+
+	if err := server.Close(); err != nil {
+		fmt.Printf("Error shutting down server: %v\n", err)
+	} else {
+		fmt.Println("Server shut down gracefully.")
+	}
+
+	// Wait for all instances to stop
+	instanceManager.Shutdown()
+
+	fmt.Println("Exiting llamactl.")
 }

@@ -16,6 +16,7 @@ type InstanceManager interface {
 	StopInstance(name string) (*Instance, error)
 	RestartInstance(name string) (*Instance, error)
 	GetInstanceLogs(name string) (string, error)
+	Shutdown()
 }
 
 type instanceManager struct {
@@ -246,4 +247,31 @@ func (im *instanceManager) getNextAvailablePort() (int, error) {
 	}
 
 	return 0, fmt.Errorf("no available ports in the specified range")
+}
+
+func (im *instanceManager) Shutdown() {
+	im.mu.Lock()
+	defer im.mu.Unlock()
+
+	var wg sync.WaitGroup
+	wg.Add(len(im.instances))
+
+	for name, instance := range im.instances {
+		if !instance.Running {
+			wg.Done() // If instance is not running, just mark it as done
+			continue
+		}
+
+		go func(name string, instance *Instance) {
+			defer wg.Done()
+			fmt.Printf("Stopping instance %s...\n", name)
+			// Attempt to stop the instance gracefully
+			if err := instance.Stop(); err != nil {
+				fmt.Printf("Error stopping instance %s: %v\n", name, err)
+			}
+		}(name, instance)
+	}
+
+	wg.Wait()
+	fmt.Println("All instances stopped.")
 }
