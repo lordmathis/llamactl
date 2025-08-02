@@ -192,7 +192,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 	delete(im.instances, name)
 
 	// Delete the instance's config file if persistence is enabled
-	instancePath := filepath.Join(im.instancesConfig.ConfigDir, name+".json")
+	instancePath := filepath.Join(im.instancesConfig.InstancesDir, name+".json")
 	if err := os.Remove(instancePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to delete config file for instance %s: %w", name, err)
 	}
@@ -293,11 +293,11 @@ func (im *instanceManager) getNextAvailablePort() (int, error) {
 
 // persistInstance saves an instance to its JSON file
 func (im *instanceManager) persistInstance(instance *Instance) error {
-	if im.instancesConfig.ConfigDir == "" {
+	if im.instancesConfig.InstancesDir == "" {
 		return nil // Persistence disabled
 	}
 
-	instancePath := filepath.Join(im.instancesConfig.ConfigDir, instance.Name+".json")
+	instancePath := filepath.Join(im.instancesConfig.InstancesDir, instance.Name+".json")
 	tempPath := instancePath + ".tmp"
 
 	// Serialize instance to JSON
@@ -349,17 +349,17 @@ func (im *instanceManager) Shutdown() {
 
 // loadInstances restores all instances from disk
 func (im *instanceManager) loadInstances() error {
-	if im.instancesConfig.ConfigDir == "" {
+	if im.instancesConfig.InstancesDir == "" {
 		return nil // Persistence disabled
 	}
 
 	// Check if instances directory exists
-	if _, err := os.Stat(im.instancesConfig.ConfigDir); os.IsNotExist(err) {
+	if _, err := os.Stat(im.instancesConfig.InstancesDir); os.IsNotExist(err) {
 		return nil // No instances directory, start fresh
 	}
 
 	// Read all JSON files from instances directory
-	files, err := os.ReadDir(im.instancesConfig.ConfigDir)
+	files, err := os.ReadDir(im.instancesConfig.InstancesDir)
 	if err != nil {
 		return fmt.Errorf("failed to read instances directory: %w", err)
 	}
@@ -371,7 +371,7 @@ func (im *instanceManager) loadInstances() error {
 		}
 
 		instanceName := strings.TrimSuffix(file.Name(), ".json")
-		instancePath := filepath.Join(im.instancesConfig.ConfigDir, file.Name())
+		instancePath := filepath.Join(im.instancesConfig.InstancesDir, file.Name())
 
 		if err := im.loadInstance(instanceName, instancePath); err != nil {
 			log.Printf("Failed to load instance %s: %v", instanceName, err)

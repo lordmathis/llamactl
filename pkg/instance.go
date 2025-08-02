@@ -149,7 +149,7 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 	// Apply defaults
 	applyDefaultOptions(optionsCopy, globalSettings)
 	// Create the instance logger
-	logger := NewInstanceLogger(name, globalSettings.LogDir)
+	logger := NewInstanceLogger(name, globalSettings.LogsDir)
 
 	return &Instance{
 		Name:           name,
@@ -235,10 +235,12 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 		Name    string                 `json:"name"`
 		Options *CreateInstanceOptions `json:"options,omitempty"`
 		Running bool                   `json:"running"`
+		Created int64                  `json:"created,omitempty"`
 	}{
 		Name:    i.Name,
 		Options: i.options,
 		Running: i.Running,
+		Created: i.Created,
 	}
 
 	return json.Marshal(temp)
@@ -251,6 +253,7 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 		Name    string                 `json:"name"`
 		Options *CreateInstanceOptions `json:"options,omitempty"`
 		Running bool                   `json:"running"`
+		Created int64                  `json:"created,omitempty"`
 	}{}
 
 	if err := json.Unmarshal(data, &temp); err != nil {
@@ -260,6 +263,7 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	// Set the fields
 	i.Name = temp.Name
 	i.Running = temp.Running
+	i.Created = temp.Created
 
 	// Handle options with validation but no defaults
 	if temp.Options != nil {

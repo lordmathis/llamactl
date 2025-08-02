@@ -138,7 +138,7 @@ server:
 ```yaml
 instances:
   port_range: [8000, 9000]           # Port range for instances
-  log_directory: "/tmp/llamactl"     # Directory for instance logs
+  logs_dir: "/tmp/llamactl"     # Directory for instance logs
   max_instances: -1                  # Maximum instances (-1 = unlimited)
   llama_executable: "llama-server"   # Path to llama-server executable
   default_auto_restart: true         # Default auto-restart setting
@@ -148,7 +148,7 @@ instances:
 
 **Environment Variables:**
 - `LLAMACTL_INSTANCE_PORT_RANGE` - Port range (format: "8000-9000" or "8000,9000")
-- `LLAMACTL_LOG_DIR` - Log directory path
+- `LLAMACTL_LOGS_DIR` - Log directory path
 - `LLAMACTL_MAX_INSTANCES` - Maximum number of instances
 - `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable
 - `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)

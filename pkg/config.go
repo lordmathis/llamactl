@@ -41,10 +41,10 @@ type InstancesConfig struct {
 	DataDir string `yaml:"data_dir"`
 
 	// Instance config directory override
-	ConfigDir string `yaml:"config_dir"`
+	InstancesDir string `yaml:"configs_dir"`
 
 	// Logs directory override
-	LogDir string `yaml:"logs_dir"`
+	LogsDir string `yaml:"logs_dir"`
 
 	// Automatically create the data directory if it doesn't exist
 	AutoCreateDirs bool `yaml:"auto_create_dirs"`
@@ -97,8 +97,8 @@ func LoadConfig(configPath string) (Config, error) {
 		Instances: InstancesConfig{
 			PortRange:           [2]int{8000, 9000},
 			DataDir:             getDefaultDataDirectory(),
-			ConfigDir:           filepath.Join(getDefaultDataDirectory(), "instances"),
-			LogDir:              filepath.Join(getDefaultDataDirectory(), "logs"),
+			InstancesDir:        filepath.Join(getDefaultDataDirectory(), "instances"),
+			LogsDir:             filepath.Join(getDefaultDataDirectory(), "logs"),
 			AutoCreateDirs:      true,
 			MaxInstances:        -1, // -1 means unlimited
 			LlamaExecutable:     "llama-server",
@@ -173,11 +173,11 @@ func loadEnvVars(cfg *Config) {
 	if dataDir := os.Getenv("LLAMACTL_DATA_DIRECTORY"); dataDir != "" {
 		cfg.Instances.DataDir = dataDir
 	}
-	if instancesDir := os.Getenv("LLAMACTL_INSTANCES_DIRECTORY"); instancesDir != "" {
-		cfg.Instances.ConfigDir = instancesDir
+	if instancesDir := os.Getenv("LLAMACTL_INSTANCES_DIR"); instancesDir != "" {
+		cfg.Instances.InstancesDir = instancesDir
 	}
-	if logsDir := os.Getenv("LLAMACTL_LOGS_DIRECTORY"); logsDir != "" {
-		cfg.Instances.LogDir = logsDir
+	if logsDir := os.Getenv("LLAMACTL_LOGS_DIR"); logsDir != "" {
+		cfg.Instances.LogsDir = logsDir
 	}
 	if autoCreate := os.Getenv("LLAMACTL_AUTO_CREATE_DATA_DIR"); autoCreate != "" {
 		if b, err := strconv.ParseBool(autoCreate); err == nil {
@@ -271,23 +271,13 @@ func getDefaultDataDirectory() string {
 
 	case "darwin":
 		// For macOS, use user's Application Support directory
-		// System-wide would be /usr/local/var/llamactl but requires sudo
-		homeDir, _ := os.UserHomeDir()
-		if homeDir != "" {
+		if homeDir, _ := os.UserHomeDir(); homeDir != "" {
 			return filepath.Join(homeDir, "Library", "Application Support", "llamactl")
 		}
 		return "/usr/local/var/llamactl" // Fallback
 
 	default:
 		// Linux and other Unix-like systems
-		// Try system directory first, fallback to user directory
-		if os.Geteuid() == 0 { // Running as root
-			return "/var/lib/llamactl"
-		}
-		// For non-root users, use XDG data home
-		if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
-			return filepath.Join(xdgDataHome, "llamactl")
-		}
 		if homeDir, _ := os.UserHomeDir(); homeDir != "" {
 			return filepath.Join(homeDir, ".local", "share", "llamactl")
 		}
@@ -298,61 +288,31 @@ func getDefaultDataDirectory() string {
 // getDefaultConfigLocations returns platform-specific config file locations
 func getDefaultConfigLocations() []string {
 	var locations []string
-
-	// Current directory (cross-platform)
-	locations = append(locations,
-		"./llamactl.yaml",
-		"./config.yaml",
-	)
-
 	homeDir, _ := os.UserHomeDir()
 
 	switch runtime.GOOS {
 	case "windows":
-		// Windows: Use APPDATA and ProgramData
+		// Windows: Use APPDATA if available, else user home, fallback to ProgramData
 		if appData := os.Getenv("APPDATA"); appData != "" {
 			locations = append(locations, filepath.Join(appData, "llamactl", "config.yaml"))
-		}
-		if programData := os.Getenv("PROGRAMDATA"); programData != "" {
-			locations = append(locations, filepath.Join(programData, "llamactl", "config.yaml"))
-		}
-		// Fallback to user home
-		if homeDir != "" {
+		} else if homeDir != "" {
 			locations = append(locations, filepath.Join(homeDir, "llamactl", "config.yaml"))
 		}
+		locations = append(locations, filepath.Join(os.Getenv("PROGRAMDATA"), "llamactl", "config.yaml"))
 
 	case "darwin":
-		// macOS: Use proper Application Support directories
+		// macOS: Use Application Support in user home, fallback to /Library/Application Support
 		if homeDir != "" {
-			locations = append(locations,
-				filepath.Join(homeDir, "Library", "Application Support", "llamactl", "config.yaml"),
-				filepath.Join(homeDir, ".config", "llamactl", "config.yaml"), // XDG fallback
-			)
+			locations = append(locations, filepath.Join(homeDir, "Library", "Application Support", "llamactl", "config.yaml"))
 		}
 		locations = append(locations, "/Library/Application Support/llamactl/config.yaml")
-		locations = append(locations, "/etc/llamactl/config.yaml") // Unix fallback
 
 	default:
-		// User config: $XDG_CONFIG_HOME/llamactl/config.yaml or ~/.config/llamactl/config.yaml
-		configHome := os.Getenv("XDG_CONFIG_HOME")
-		if configHome == "" && homeDir != "" {
-			configHome = filepath.Join(homeDir, ".config")
+		// Linux/Unix: Use ~/.config/llamactl/config.yaml, fallback to /etc/llamactl/config.yaml
+		if homeDir != "" {
+			locations = append(locations, filepath.Join(homeDir, ".config", "llamactl", "config.yaml"))
 		}
-		if configHome != "" {
-			locations = append(locations, filepath.Join(configHome, "llamactl", "config.yaml"))
-		}
-
-		// System config: /etc/llamactl/config.yaml
 		locations = append(locations, "/etc/llamactl/config.yaml")
-
-		// Additional system locations
-		if xdgConfigDirs := os.Getenv("XDG_CONFIG_DIRS"); xdgConfigDirs != "" {
-			for dir := range strings.SplitSeq(xdgConfigDirs, ":") {
-				if dir != "" {
-					locations = append(locations, filepath.Join(dir, "llamactl", "config.yaml"))
-				}
-			}
-		}
 	}
 
 	return locations
