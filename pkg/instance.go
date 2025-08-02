@@ -149,7 +149,7 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 	// Apply defaults
 	applyDefaultOptions(optionsCopy, globalSettings)
 	// Create the instance logger
-	logger := NewInstanceLogger(name, globalSettings.LogDirectory)
+	logger := NewInstanceLogger(name, globalSettings.LogDir)
 
 	return &Instance{
 		Name:           name,

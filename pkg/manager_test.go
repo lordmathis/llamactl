@@ -10,7 +10,7 @@ import (
 func TestNewInstanceManager(t *testing.T) {
 	config := llamactl.InstancesConfig{
 		PortRange:           [2]int{8000, 9000},
-		LogDirectory:        "/tmp/test",
+		LogDir:              "/tmp/test",
 		MaxInstances:        5,
 		LlamaExecutable:     "llama-server",
 		DefaultAutoRestart:  true,
@@ -490,7 +490,7 @@ func TestUpdateInstance_NotFound(t *testing.T) {
 func createTestManager() llamactl.InstanceManager {
 	config := llamactl.InstancesConfig{
 		PortRange:           [2]int{8000, 9000},
-		LogDirectory:        "/tmp/test",
+		LogDir:              "/tmp/test",
 		MaxInstances:        10,
 		LlamaExecutable:     "llama-server",
 		DefaultAutoRestart:  true,

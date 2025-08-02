@@ -22,17 +22,17 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.Server.Port != 8080 {
 		t.Errorf("Expected default port to be 8080, got %d", cfg.Server.Port)
 	}
-	if cfg.Data.Directory != "/var/lib/llamactl" {
-		t.Errorf("Expected default data directory '/var/lib/llamactl', got %q", cfg.Data.Directory)
+	if cfg.Instances.ConfigDir != "/var/lib/llamactl/instances" {
+		t.Errorf("Expected default instances directory '/var/lib/llamactl/instances', got %q", cfg.Instances.ConfigDir)
 	}
-	if !cfg.Data.AutoCreate {
-		t.Error("Expected default data auto-create to be true")
+	if !cfg.Instances.AutoCreateDirs {
+		t.Error("Expected default instances auto-create to be true")
 	}
 	if cfg.Instances.PortRange != [2]int{8000, 9000} {
 		t.Errorf("Expected default port range [8000, 9000], got %v", cfg.Instances.PortRange)
 	}
-	if cfg.Instances.LogDirectory != "/tmp/llamactl" {
-		t.Errorf("Expected default log directory '/tmp/llamactl', got %q", cfg.Instances.LogDirectory)
+	if cfg.Instances.LogDir != "/tmp/llamactl/logs" {
+		t.Errorf("Expected default logs directory '/tmp/llamactl/logs', got %q", cfg.Instances.LogDir)
 	}
 	if cfg.Instances.MaxInstances != -1 {
 		t.Errorf("Expected default max instances -1, got %d", cfg.Instances.MaxInstances)
@@ -90,8 +90,8 @@ instances:
 	if cfg.Instances.PortRange != [2]int{7000, 8000} {
 		t.Errorf("Expected port range [7000, 8000], got %v", cfg.Instances.PortRange)
 	}
-	if cfg.Instances.LogDirectory != "/custom/logs" {
-		t.Errorf("Expected log directory '/custom/logs', got %q", cfg.Instances.LogDirectory)
+	if cfg.Instances.LogDir != "/custom/logs" {
+		t.Errorf("Expected logs directory '/custom/logs', got %q", cfg.Instances.LogDir)
 	}
 	if cfg.Instances.MaxInstances != 5 {
 		t.Errorf("Expected max instances 5, got %d", cfg.Instances.MaxInstances)
@@ -145,8 +145,8 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 	if cfg.Instances.PortRange != [2]int{5000, 6000} {
 		t.Errorf("Expected port range [5000, 6000], got %v", cfg.Instances.PortRange)
 	}
-	if cfg.Instances.LogDirectory != "/env/logs" {
-		t.Errorf("Expected log directory '/env/logs', got %q", cfg.Instances.LogDirectory)
+	if cfg.Instances.LogDir != "/env/logs" {
+		t.Errorf("Expected logs directory '/env/logs', got %q", cfg.Instances.LogDir)
 	}
 	if cfg.Instances.MaxInstances != 20 {
 		t.Errorf("Expected max instances 20, got %d", cfg.Instances.MaxInstances)

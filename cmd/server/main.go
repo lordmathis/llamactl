@@ -24,15 +24,16 @@ func main() {
 	}
 
 	// Create the data directory if it doesn't exist
-	if config.Data.AutoCreate {
-		if err := os.MkdirAll(config.Data.Directory, 0755); err != nil {
-			fmt.Printf("Error creating data directory: %v\n", err)
-			fmt.Println("Persisting data will not be possible.")
+	if config.Instances.AutoCreateDirs {
+		if err := os.MkdirAll(config.Instances.ConfigDir, 0755); err != nil {
+			fmt.Printf("Error creating config directory %s: %v\n", config.Instances.ConfigDir, err)
+			fmt.Println("Persistence will not be available.")
 		}
-	}
-	if err := os.MkdirAll(config.Instances.LogDirectory, 0755); err != nil {
-		fmt.Printf("Error creating log directory: %v\n", err)
-		fmt.Println("Persisting instance logs will not be possible.")
+
+		if err := os.MkdirAll(config.Instances.LogDir, 0755); err != nil {
+			fmt.Printf("Error creating log directory %s: %v\n", config.Instances.LogDir, err)
+			fmt.Println("Instance logs will not be available.")
+		}
 	}
 
 	// Initialize the instance manager

@@ -15,7 +15,6 @@ type Config struct {
 	Server    ServerConfig    `yaml:"server"`
 	Instances InstancesConfig `yaml:"instances"`
 	Auth      AuthConfig      `yaml:"auth"`
-	Data      DataConfig      `yaml:"data"`
 }
 
 // ServerConfig contains HTTP server configuration
@@ -33,22 +32,22 @@ type ServerConfig struct {
 	EnableSwagger bool `yaml:"enable_swagger"`
 }
 
-// DataConfig contains data storage configuration
-type DataConfig struct {
-	// Directory where all llamactl data will be stored (instances.json, logs, etc.)
-	Directory string `yaml:"directory"`
-
-	// Automatically create the data directory if it doesn't exist
-	AutoCreate bool `yaml:"auto_create"`
-}
-
 // InstancesConfig contains instance management configuration
 type InstancesConfig struct {
 	// Port range for instances (e.g., 8000,9000)
 	PortRange [2]int `yaml:"port_range"`
 
-	// Directory where instance logs will be stored
-	LogDirectory string `yaml:"log_directory"`
+	// Directory where all llamactl data will be stored (instances.json, logs, etc.)
+	DataDir string `yaml:"data_dir"`
+
+	// Instance config directory override
+	ConfigDir string `yaml:"config_dir"`
+
+	// Logs directory override
+	LogDir string `yaml:"logs_dir"`
+
+	// Automatically create the data directory if it doesn't exist
+	AutoCreateDirs bool `yaml:"auto_create_dirs"`
 
 	// Maximum number of instances that can be created
 	MaxInstances int `yaml:"max_instances"`
@@ -95,13 +94,12 @@ func LoadConfig(configPath string) (Config, error) {
 			AllowedOrigins: []string{"*"}, // Default to allow all origins
 			EnableSwagger:  false,
 		},
-		Data: DataConfig{
-			Directory:  getDefaultDataDirectory(),
-			AutoCreate: true,
-		},
 		Instances: InstancesConfig{
 			PortRange:           [2]int{8000, 9000},
-			LogDirectory:        filepath.Join(getDefaultDataDirectory(), "logs"),
+			DataDir:             getDefaultDataDirectory(),
+			ConfigDir:           filepath.Join(getDefaultDataDirectory(), "instances"),
+			LogDir:              filepath.Join(getDefaultDataDirectory(), "logs"),
+			AutoCreateDirs:      true,
 			MaxInstances:        -1, // -1 means unlimited
 			LlamaExecutable:     "llama-server",
 			DefaultAutoRestart:  true,
@@ -173,11 +171,17 @@ func loadEnvVars(cfg *Config) {
 
 	// Data config
 	if dataDir := os.Getenv("LLAMACTL_DATA_DIRECTORY"); dataDir != "" {
-		cfg.Data.Directory = dataDir
+		cfg.Instances.DataDir = dataDir
+	}
+	if instancesDir := os.Getenv("LLAMACTL_INSTANCES_DIRECTORY"); instancesDir != "" {
+		cfg.Instances.ConfigDir = instancesDir
+	}
+	if logsDir := os.Getenv("LLAMACTL_LOGS_DIRECTORY"); logsDir != "" {
+		cfg.Instances.LogDir = logsDir
 	}
 	if autoCreate := os.Getenv("LLAMACTL_AUTO_CREATE_DATA_DIR"); autoCreate != "" {
 		if b, err := strconv.ParseBool(autoCreate); err == nil {
-			cfg.Data.AutoCreate = b
+			cfg.Instances.AutoCreateDirs = b
 		}
 	}
 
@@ -186,9 +190,6 @@ func loadEnvVars(cfg *Config) {
 		if ports := ParsePortRange(portRange); ports != [2]int{0, 0} {
 			cfg.Instances.PortRange = ports
 		}
-	}
-	if logDir := os.Getenv("LLAMACTL_LOG_DIR"); logDir != "" {
-		cfg.Instances.LogDirectory = logDir
 	}
 	if maxInstances := os.Getenv("LLAMACTL_MAX_INSTANCES"); maxInstances != "" {
 		if m, err := strconv.Atoi(maxInstances); err == nil {
