@@ -210,6 +210,13 @@ func (im *instanceManager) StartInstance(name string) (*Instance, error) {
 		return nil, fmt.Errorf("failed to start instance %s: %w", name, err)
 	}
 
+	im.mu.Lock()
+	defer im.mu.Unlock()
+	err := im.persistInstance(instance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
+	}
+
 	return instance, nil
 }
 
@@ -228,6 +235,13 @@ func (im *instanceManager) StopInstance(name string) (*Instance, error) {
 
 	if err := instance.Stop(); err != nil {
 		return nil, fmt.Errorf("failed to stop instance %s: %w", name, err)
+	}
+
+	im.mu.Lock()
+	defer im.mu.Unlock()
+	err := im.persistInstance(instance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
 	}
 
 	return instance, nil
