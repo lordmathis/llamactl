@@ -1,7 +1,10 @@
 package llamactl
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -95,6 +98,10 @@ func (im *instanceManager) CreateInstance(name string, options *CreateInstanceOp
 	im.instances[instance.Name] = instance
 	im.ports[options.Port] = true
 
+	if err := im.persistInstance(instance); err != nil {
+		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
+	}
+
 	return instance, nil
 }
 
@@ -150,6 +157,12 @@ func (im *instanceManager) UpdateInstance(name string, options *CreateInstanceOp
 		}
 	}
 
+	im.mu.Lock()
+	defer im.mu.Unlock()
+	if err := im.persistInstance(instance); err != nil {
+		return nil, fmt.Errorf("failed to persist updated instance %s: %w", name, err)
+	}
+
 	return instance, nil
 }
 
@@ -169,6 +182,13 @@ func (im *instanceManager) DeleteInstance(name string) error {
 
 	delete(im.ports, im.instances[name].options.Port)
 	delete(im.instances, name)
+
+	// Delete the instance's config file if persistence is enabled
+	instancePath := filepath.Join(im.instancesConfig.ConfigDir, name+".json")
+	if err := os.Remove(instancePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete config file for instance %s: %w", name, err)
+	}
+
 	return nil
 }
 
@@ -247,6 +267,35 @@ func (im *instanceManager) getNextAvailablePort() (int, error) {
 	}
 
 	return 0, fmt.Errorf("no available ports in the specified range")
+}
+
+// persistInstance saves an instance to its JSON file
+func (im *instanceManager) persistInstance(instance *Instance) error {
+	if im.instancesConfig.ConfigDir == "" {
+		return nil // Persistence disabled
+	}
+
+	instancePath := filepath.Join(im.instancesConfig.ConfigDir, instance.Name+".json")
+	tempPath := instancePath + ".tmp"
+
+	// Serialize instance to JSON
+	jsonData, err := json.MarshalIndent(instance, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal instance %s: %w", instance.Name, err)
+	}
+
+	// Write to temporary file first
+	if err := os.WriteFile(tempPath, jsonData, 0644); err != nil {
+		return fmt.Errorf("failed to write temp file for instance %s: %w", instance.Name, err)
+	}
+
+	// Atomic rename
+	if err := os.Rename(tempPath, instancePath); err != nil {
+		os.Remove(tempPath) // Clean up temp file
+		return fmt.Errorf("failed to rename temp file for instance %s: %w", instance.Name, err)
+	}
+
+	return nil
 }
 
 func (im *instanceManager) Shutdown() {
