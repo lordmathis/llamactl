@@ -16,6 +16,7 @@ A control server for managing multiple Llama Server instances with a web-based d
 - **OpenAI Compatible**: Route requests to instances by instance name
 - **Configuration Management**: Comprehensive llama-server parameter support
 - **System Information**: View llama-server version, devices, and help
+- **API Key Authentication**: Secure access with separate management and inference keys
 
 ## Prerequisites
 
@@ -86,9 +87,7 @@ llamactl can be configured via configuration files or environment variables. Con
 2. Configuration file
 3. Environment variables
 
-
 ### Configuration Files
-
 
 #### Configuration File Locations
 
@@ -107,20 +106,7 @@ Configuration files are searched in the following locations (in order of precede
 
 You can specify the path to config file with `LLAMACTL_CONFIG_PATH` environment variable.
 
-## API Key Authentication
-
-llamactl now supports API Key authentication for both management and inference (OpenAI-compatible) endpoints. The are separate keys for management and inference APIs. Management keys grant full access; inference keys grant access to OpenAI-compatible endpoints
-
-**How to Use:**
-- Pass your API key in requests using one of:
-  - `Authorization: Bearer <key>` header
-  - `X-API-Key: <key>` header
-  - `api_key=<key>` query parameter
-
-**Auto-generated keys**: If no keys are set and authentication is required, a key will be generated and printed to the terminal at startup. For production, set your own keys in config or environment variables.
-
 ### Configuration Options
-
 
 #### Server Configuration
 
@@ -137,7 +123,6 @@ server:
 - `LLAMACTL_PORT` - Server port
 - `LLAMACTL_ALLOWED_ORIGINS` - Comma-separated CORS origins
 - `LLAMACTL_ENABLE_SWAGGER` - Enable Swagger UI (true/false)
-
 
 #### Instance Configuration
 
@@ -167,8 +152,7 @@ instances:
 - `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts
 - `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds
 
-
-#### Auth Configuration
+#### Authentication Configuration
 
 ```yaml
 auth:
@@ -183,7 +167,6 @@ auth:
 - `LLAMACTL_INFERENCE_KEYS` - Comma-separated inference API keys
 - `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)
 - `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys
-
 
 ### Example Configuration
 
@@ -226,6 +209,22 @@ LLAMACTL_CONFIG_PATH=/path/to/config.yaml ./llamactl
 LLAMACTL_PORT=9090 LLAMACTL_LOG_DIR=/custom/logs ./llamactl
 ```
 
+### Authentication
+
+llamactl supports API Key authentication for both management and inference (OpenAI-compatible) endpoints. There are separate keys for management and inference APIs:
+
+- **Management keys** grant full access to instance management
+- **Inference keys** grant access to OpenAI-compatible endpoints
+- Management keys also work for inference endpoints (higher privilege)
+
+**How to Use:**
+Pass your API key in requests using one of:
+- `Authorization: Bearer <key>` header
+- `X-API-Key: <key>` header
+- `api_key=<key>` query parameter
+
+**Auto-generated keys**: If no keys are set and authentication is required, a key will be generated and printed to the terminal at startup. For production, set your own keys in config or environment variables.
+
 ### Web Dashboard
 
 Open your browser and navigate to `http://localhost:8080` to access the web dashboard.
@@ -239,6 +238,7 @@ The REST API is available at `http://localhost:8080/api/v1`. See the Swagger doc
 ```bash
 curl -X POST http://localhost:8080/api/v1/instances/my-instance \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-management-your-key" \
   -d '{
     "model": "/path/to/model.gguf",
     "gpu_layers": 32,
@@ -249,17 +249,22 @@ curl -X POST http://localhost:8080/api/v1/instances/my-instance \
 #### List Instances
 
 ```bash
-curl http://localhost:8080/api/v1/instances
+curl -H "Authorization: Bearer sk-management-your-key" \
+  http://localhost:8080/api/v1/instances
 ```
 
 #### Start/Stop Instance
 
 ```bash
 # Start
-curl -X POST http://localhost:8080/api/v1/instances/my-instance/start
+curl -X POST \
+  -H "Authorization: Bearer sk-management-your-key" \
+  http://localhost:8080/api/v1/instances/my-instance/start
 
 # Stop
-curl -X POST http://localhost:8080/api/v1/instances/my-instance/stop
+curl -X POST \
+  -H "Authorization: Bearer sk-management-your-key" \
+  http://localhost:8080/api/v1/instances/my-instance/stop
 ```
 
 ### OpenAI Compatible Endpoints
@@ -269,6 +274,7 @@ Route requests to instances by including the instance name as the model paramete
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-inference-your-key" \
   -d '{
     "model": "my-instance",
     "messages": [{"role": "user", "content": "Hello!"}]
