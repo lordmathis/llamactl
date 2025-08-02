@@ -3,8 +3,10 @@ package llamactl
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -31,11 +33,17 @@ type instanceManager struct {
 
 // NewInstanceManager creates a new instance of InstanceManager.
 func NewInstanceManager(instancesConfig InstancesConfig) InstanceManager {
-	return &instanceManager{
+	im := &instanceManager{
 		instances:       make(map[string]*Instance),
 		ports:           make(map[int]bool),
 		instancesConfig: instancesConfig,
 	}
+
+	// Load existing instances from disk
+	if err := im.loadInstances(); err != nil {
+		log.Printf("Error loading instances: %v", err)
+	}
+	return im
 }
 
 // ListInstances returns a list of all instances managed by the instance manager.
@@ -337,4 +345,108 @@ func (im *instanceManager) Shutdown() {
 
 	wg.Wait()
 	fmt.Println("All instances stopped.")
+}
+
+// loadInstances restores all instances from disk
+func (im *instanceManager) loadInstances() error {
+	if im.instancesConfig.ConfigDir == "" {
+		return nil // Persistence disabled
+	}
+
+	// Check if instances directory exists
+	if _, err := os.Stat(im.instancesConfig.ConfigDir); os.IsNotExist(err) {
+		return nil // No instances directory, start fresh
+	}
+
+	// Read all JSON files from instances directory
+	files, err := os.ReadDir(im.instancesConfig.ConfigDir)
+	if err != nil {
+		return fmt.Errorf("failed to read instances directory: %w", err)
+	}
+
+	loadedCount := 0
+	for _, file := range files {
+		if file.IsDir() || !strings.HasSuffix(file.Name(), ".json") {
+			continue
+		}
+
+		instanceName := strings.TrimSuffix(file.Name(), ".json")
+		instancePath := filepath.Join(im.instancesConfig.ConfigDir, file.Name())
+
+		if err := im.loadInstance(instanceName, instancePath); err != nil {
+			log.Printf("Failed to load instance %s: %v", instanceName, err)
+			continue
+		}
+
+		loadedCount++
+	}
+
+	if loadedCount > 0 {
+		log.Printf("Loaded %d instances from persistence", loadedCount)
+		// Auto-start instances that have auto-restart enabled
+		go im.autoStartInstances()
+	}
+
+	return nil
+}
+
+// loadInstance loads a single instance from its JSON file
+func (im *instanceManager) loadInstance(name, path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read instance file: %w", err)
+	}
+
+	var persistedInstance Instance
+	if err := json.Unmarshal(data, &persistedInstance); err != nil {
+		return fmt.Errorf("failed to unmarshal instance: %w", err)
+	}
+
+	// Validate the instance name matches the filename
+	if persistedInstance.Name != name {
+		return fmt.Errorf("instance name mismatch: file=%s, instance.Name=%s", name, persistedInstance.Name)
+	}
+
+	// Create new instance using NewInstance (handles validation, defaults, setup)
+	instance := NewInstance(name, &im.instancesConfig, persistedInstance.GetOptions())
+
+	// Restore persisted fields that NewInstance doesn't set
+	instance.Created = persistedInstance.Created
+	instance.Running = persistedInstance.Running
+
+	// Check for port conflicts and add to maps
+	if instance.GetOptions() != nil && instance.GetOptions().Port > 0 {
+		port := instance.GetOptions().Port
+		if im.ports[port] {
+			return fmt.Errorf("port conflict: instance %s wants port %d which is already in use", name, port)
+		}
+		im.ports[port] = true
+	}
+
+	im.instances[name] = instance
+	return nil
+}
+
+// autoStartInstances starts instances that were running when persisted and have auto-restart enabled
+func (im *instanceManager) autoStartInstances() {
+	im.mu.RLock()
+	var instancesToStart []*Instance
+	for _, instance := range im.instances {
+		if instance.Running && // Was running when persisted
+			instance.GetOptions() != nil &&
+			instance.GetOptions().AutoRestart != nil &&
+			*instance.GetOptions().AutoRestart {
+			instancesToStart = append(instancesToStart, instance)
+		}
+	}
+	im.mu.RUnlock()
+
+	for _, instance := range instancesToStart {
+		log.Printf("Auto-starting instance %s", instance.Name)
+		// Reset running state before starting (since Start() expects stopped instance)
+		instance.Running = false
+		if err := instance.Start(); err != nil {
+			log.Printf("Failed to auto-start instance %s: %v", instance.Name, err)
+		}
+	}
 }
