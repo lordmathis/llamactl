@@ -23,11 +23,16 @@ func main() {
 		fmt.Println("Using default configuration.")
 	}
 
-	// Create the log directory if it doesn't exist
-	err = os.MkdirAll(config.Instances.LogDirectory, 0755)
-	if err != nil {
+	// Create the data directory if it doesn't exist
+	if config.Data.AutoCreate {
+		if err := os.MkdirAll(config.Data.Directory, 0755); err != nil {
+			fmt.Printf("Error creating data directory: %v\n", err)
+			fmt.Println("Persisting data will not be possible.")
+		}
+	}
+	if err := os.MkdirAll(config.Instances.LogDirectory, 0755); err != nil {
 		fmt.Printf("Error creating log directory: %v\n", err)
-		return
+		fmt.Println("Persisting instance logs will not be possible.")
 	}
 
 	// Initialize the instance manager

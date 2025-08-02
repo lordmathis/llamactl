@@ -15,6 +15,7 @@ type Config struct {
 	Server    ServerConfig    `yaml:"server"`
 	Instances InstancesConfig `yaml:"instances"`
 	Auth      AuthConfig      `yaml:"auth"`
+	Data      DataConfig      `yaml:"data"`
 }
 
 // ServerConfig contains HTTP server configuration
@@ -30,6 +31,15 @@ type ServerConfig struct {
 
 	// Enable Swagger UI for API documentation
 	EnableSwagger bool `yaml:"enable_swagger"`
+}
+
+// DataConfig contains data storage configuration
+type DataConfig struct {
+	// Directory where all llamactl data will be stored (instances.json, logs, etc.)
+	Directory string `yaml:"directory"`
+
+	// Automatically create the data directory if it doesn't exist
+	AutoCreate bool `yaml:"auto_create"`
 }
 
 // InstancesConfig contains instance management configuration
@@ -85,9 +95,13 @@ func LoadConfig(configPath string) (Config, error) {
 			AllowedOrigins: []string{"*"}, // Default to allow all origins
 			EnableSwagger:  false,
 		},
+		Data: DataConfig{
+			Directory:  getDefaultDataDirectory(),
+			AutoCreate: true,
+		},
 		Instances: InstancesConfig{
 			PortRange:           [2]int{8000, 9000},
-			LogDirectory:        "/tmp/llamactl",
+			LogDirectory:        filepath.Join(getDefaultDataDirectory(), "logs"),
 			MaxInstances:        -1, // -1 means unlimited
 			LlamaExecutable:     "llama-server",
 			DefaultAutoRestart:  true,
@@ -154,6 +168,16 @@ func loadEnvVars(cfg *Config) {
 	if enableSwagger := os.Getenv("LLAMACTL_ENABLE_SWAGGER"); enableSwagger != "" {
 		if b, err := strconv.ParseBool(enableSwagger); err == nil {
 			cfg.Server.EnableSwagger = b
+		}
+	}
+
+	// Data config
+	if dataDir := os.Getenv("LLAMACTL_DATA_DIRECTORY"); dataDir != "" {
+		cfg.Data.Directory = dataDir
+	}
+	if autoCreate := os.Getenv("LLAMACTL_AUTO_CREATE_DATA_DIR"); autoCreate != "" {
+		if b, err := strconv.ParseBool(autoCreate); err == nil {
+			cfg.Data.AutoCreate = b
 		}
 	}
 
@@ -229,6 +253,45 @@ func ParsePortRange(s string) [2]int {
 	}
 
 	return [2]int{0, 0} // Invalid format
+}
+
+// getDefaultDataDirectory returns platform-specific default data directory
+func getDefaultDataDirectory() string {
+	switch runtime.GOOS {
+	case "windows":
+		// Try PROGRAMDATA first (system-wide), fallback to LOCALAPPDATA (user)
+		if programData := os.Getenv("PROGRAMDATA"); programData != "" {
+			return filepath.Join(programData, "llamactl")
+		}
+		if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
+			return filepath.Join(localAppData, "llamactl")
+		}
+		return "C:\\ProgramData\\llamactl" // Final fallback
+
+	case "darwin":
+		// For macOS, use user's Application Support directory
+		// System-wide would be /usr/local/var/llamactl but requires sudo
+		homeDir, _ := os.UserHomeDir()
+		if homeDir != "" {
+			return filepath.Join(homeDir, "Library", "Application Support", "llamactl")
+		}
+		return "/usr/local/var/llamactl" // Fallback
+
+	default:
+		// Linux and other Unix-like systems
+		// Try system directory first, fallback to user directory
+		if os.Geteuid() == 0 { // Running as root
+			return "/var/lib/llamactl"
+		}
+		// For non-root users, use XDG data home
+		if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+			return filepath.Join(xdgDataHome, "llamactl")
+		}
+		if homeDir, _ := os.UserHomeDir(); homeDir != "" {
+			return filepath.Join(homeDir, ".local", "share", "llamactl")
+		}
+		return "/var/lib/llamactl" // Final fallback
+	}
 }
 
 // getDefaultConfigLocations returns platform-specific config file locations

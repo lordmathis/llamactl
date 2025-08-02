@@ -22,6 +22,12 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.Server.Port != 8080 {
 		t.Errorf("Expected default port to be 8080, got %d", cfg.Server.Port)
 	}
+	if cfg.Data.Directory != "/var/lib/llamactl" {
+		t.Errorf("Expected default data directory '/var/lib/llamactl', got %q", cfg.Data.Directory)
+	}
+	if !cfg.Data.AutoCreate {
+		t.Error("Expected default data auto-create to be true")
+	}
 	if cfg.Instances.PortRange != [2]int{8000, 9000} {
 		t.Errorf("Expected default port range [8000, 9000], got %v", cfg.Instances.PortRange)
 	}
