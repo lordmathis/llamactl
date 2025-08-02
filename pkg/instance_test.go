@@ -9,7 +9,7 @@ import (
 
 func TestNewInstance(t *testing.T) {
 	globalSettings := &llamactl.InstancesConfig{
-		LogDirectory:        "/tmp/test",
+		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
@@ -54,7 +54,7 @@ func TestNewInstance(t *testing.T) {
 
 func TestNewInstance_WithRestartOptions(t *testing.T) {
 	globalSettings := &llamactl.InstancesConfig{
-		LogDirectory:        "/tmp/test",
+		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
@@ -91,7 +91,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 
 func TestNewInstance_ValidationAndDefaults(t *testing.T) {
 	globalSettings := &llamactl.InstancesConfig{
-		LogDirectory:        "/tmp/test",
+		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
@@ -123,7 +123,7 @@ func TestNewInstance_ValidationAndDefaults(t *testing.T) {
 
 func TestSetOptions(t *testing.T) {
 	globalSettings := &llamactl.InstancesConfig{
-		LogDirectory:        "/tmp/test",
+		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
@@ -164,7 +164,7 @@ func TestSetOptions(t *testing.T) {
 
 func TestSetOptions_NilOptions(t *testing.T) {
 	globalSettings := &llamactl.InstancesConfig{
-		LogDirectory:        "/tmp/test",
+		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
@@ -191,7 +191,7 @@ func TestSetOptions_NilOptions(t *testing.T) {
 
 func TestGetProxy(t *testing.T) {
 	globalSettings := &llamactl.InstancesConfig{
-		LogDirectory: "/tmp/test",
+		LogsDir: "/tmp/test",
 	}
 
 	options := &llamactl.CreateInstanceOptions{
@@ -224,7 +224,7 @@ func TestGetProxy(t *testing.T) {
 
 func TestMarshalJSON(t *testing.T) {
 	globalSettings := &llamactl.InstancesConfig{
-		LogDirectory:        "/tmp/test",
+		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
@@ -406,7 +406,7 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 	}
 
 	globalSettings := &llamactl.InstancesConfig{
-		LogDirectory: "/tmp/test",
+		LogsDir: "/tmp/test",
 	}
 
 	for _, tt := range tests {

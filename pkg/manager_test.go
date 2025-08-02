@@ -1,6 +1,10 @@
 package llamactl_test
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -10,7 +14,7 @@ import (
 func TestNewInstanceManager(t *testing.T) {
 	config := llamactl.InstancesConfig{
 		PortRange:           [2]int{8000, 9000},
-		LogDirectory:        "/tmp/test",
+		LogsDir:             "/tmp/test",
 		MaxInstances:        5,
 		LlamaExecutable:     "llama-server",
 		DefaultAutoRestart:  true,
@@ -486,11 +490,396 @@ func TestUpdateInstance_NotFound(t *testing.T) {
 	}
 }
 
+func TestPersistence_InstancePersistedOnCreation(t *testing.T) {
+	// Create temporary directory for persistence
+	tempDir := t.TempDir()
+
+	config := llamactl.InstancesConfig{
+		PortRange:    [2]int{8000, 9000},
+		InstancesDir: tempDir,
+		MaxInstances: 10,
+	}
+	manager := llamactl.NewInstanceManager(config)
+
+	options := &llamactl.CreateInstanceOptions{
+		LlamaServerOptions: llamactl.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+			Port:  8080,
+		},
+	}
+
+	// Create instance
+	_, err := manager.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	// Check that JSON file was created
+	expectedPath := filepath.Join(tempDir, "test-instance.json")
+	if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
+		t.Errorf("Expected persistence file %s to exist", expectedPath)
+	}
+
+	// Verify file contains correct data
+	data, err := os.ReadFile(expectedPath)
+	if err != nil {
+		t.Fatalf("Failed to read persistence file: %v", err)
+	}
+
+	var persistedInstance map[string]interface{}
+	if err := json.Unmarshal(data, &persistedInstance); err != nil {
+		t.Fatalf("Failed to unmarshal persisted data: %v", err)
+	}
+
+	if persistedInstance["name"] != "test-instance" {
+		t.Errorf("Expected name 'test-instance', got %v", persistedInstance["name"])
+	}
+}
+
+func TestPersistence_InstancePersistedOnUpdate(t *testing.T) {
+	tempDir := t.TempDir()
+
+	config := llamactl.InstancesConfig{
+		PortRange:    [2]int{8000, 9000},
+		InstancesDir: tempDir,
+		MaxInstances: 10,
+	}
+	manager := llamactl.NewInstanceManager(config)
+
+	// Create instance
+	options := &llamactl.CreateInstanceOptions{
+		LlamaServerOptions: llamactl.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+			Port:  8080,
+		},
+	}
+	_, err := manager.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	// Update instance
+	newOptions := &llamactl.CreateInstanceOptions{
+		LlamaServerOptions: llamactl.LlamaServerOptions{
+			Model: "/path/to/new-model.gguf",
+			Port:  8081,
+		},
+	}
+	_, err = manager.UpdateInstance("test-instance", newOptions)
+	if err != nil {
+		t.Fatalf("UpdateInstance failed: %v", err)
+	}
+
+	// Verify persistence file was updated
+	expectedPath := filepath.Join(tempDir, "test-instance.json")
+	data, err := os.ReadFile(expectedPath)
+	if err != nil {
+		t.Fatalf("Failed to read persistence file: %v", err)
+	}
+
+	var persistedInstance map[string]interface{}
+	if err := json.Unmarshal(data, &persistedInstance); err != nil {
+		t.Fatalf("Failed to unmarshal persisted data: %v", err)
+	}
+
+	// Check that the options were updated
+	options_data, ok := persistedInstance["options"].(map[string]interface{})
+	if !ok {
+		t.Fatal("Expected options to be present in persisted data")
+	}
+
+	if options_data["model"] != "/path/to/new-model.gguf" {
+		t.Errorf("Expected updated model '/path/to/new-model.gguf', got %v", options_data["model"])
+	}
+}
+
+func TestPersistence_InstanceFileDeletedOnDeletion(t *testing.T) {
+	tempDir := t.TempDir()
+
+	config := llamactl.InstancesConfig{
+		PortRange:    [2]int{8000, 9000},
+		InstancesDir: tempDir,
+		MaxInstances: 10,
+	}
+	manager := llamactl.NewInstanceManager(config)
+
+	// Create instance
+	options := &llamactl.CreateInstanceOptions{
+		LlamaServerOptions: llamactl.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+		},
+	}
+	_, err := manager.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	expectedPath := filepath.Join(tempDir, "test-instance.json")
+
+	// Verify file exists
+	if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
+		t.Fatal("Expected persistence file to exist before deletion")
+	}
+
+	// Delete instance
+	err = manager.DeleteInstance("test-instance")
+	if err != nil {
+		t.Fatalf("DeleteInstance failed: %v", err)
+	}
+
+	// Verify file was deleted
+	if _, err := os.Stat(expectedPath); !os.IsNotExist(err) {
+		t.Error("Expected persistence file to be deleted")
+	}
+}
+
+func TestPersistence_InstancesLoadedFromDisk(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create JSON files manually (simulating previous run)
+	instance1JSON := `{
+		"name": "instance1",
+		"running": false,
+		"options": {
+			"model": "/path/to/model1.gguf",
+			"port": 8080
+		}
+	}`
+
+	instance2JSON := `{
+		"name": "instance2", 
+		"running": false,
+		"options": {
+			"model": "/path/to/model2.gguf",
+			"port": 8081
+		}
+	}`
+
+	// Write JSON files
+	err := os.WriteFile(filepath.Join(tempDir, "instance1.json"), []byte(instance1JSON), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write test JSON file: %v", err)
+	}
+
+	err = os.WriteFile(filepath.Join(tempDir, "instance2.json"), []byte(instance2JSON), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write test JSON file: %v", err)
+	}
+
+	// Create manager - should load instances from disk
+	config := llamactl.InstancesConfig{
+		PortRange:    [2]int{8000, 9000},
+		InstancesDir: tempDir,
+		MaxInstances: 10,
+	}
+	manager := llamactl.NewInstanceManager(config)
+
+	// Verify instances were loaded
+	instances, err := manager.ListInstances()
+	if err != nil {
+		t.Fatalf("ListInstances failed: %v", err)
+	}
+
+	if len(instances) != 2 {
+		t.Fatalf("Expected 2 loaded instances, got %d", len(instances))
+	}
+
+	// Check instances by name
+	instancesByName := make(map[string]*llamactl.Instance)
+	for _, instance := range instances {
+		instancesByName[instance.Name] = instance
+	}
+
+	instance1, exists := instancesByName["instance1"]
+	if !exists {
+		t.Error("Expected instance1 to be loaded")
+	} else {
+		if instance1.GetOptions().Model != "/path/to/model1.gguf" {
+			t.Errorf("Expected model '/path/to/model1.gguf', got %q", instance1.GetOptions().Model)
+		}
+		if instance1.GetOptions().Port != 8080 {
+			t.Errorf("Expected port 8080, got %d", instance1.GetOptions().Port)
+		}
+	}
+
+	instance2, exists := instancesByName["instance2"]
+	if !exists {
+		t.Error("Expected instance2 to be loaded")
+	} else {
+		if instance2.GetOptions().Model != "/path/to/model2.gguf" {
+			t.Errorf("Expected model '/path/to/model2.gguf', got %q", instance2.GetOptions().Model)
+		}
+		if instance2.GetOptions().Port != 8081 {
+			t.Errorf("Expected port 8081, got %d", instance2.GetOptions().Port)
+		}
+	}
+}
+
+func TestPersistence_PortMapPopulatedFromLoadedInstances(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create JSON file with specific port
+	instanceJSON := `{
+		"name": "test-instance",
+		"running": false,
+		"options": {
+			"model": "/path/to/model.gguf",
+			"port": 8080
+		}
+	}`
+
+	err := os.WriteFile(filepath.Join(tempDir, "test-instance.json"), []byte(instanceJSON), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write test JSON file: %v", err)
+	}
+
+	// Create manager - should load instance and register port
+	config := llamactl.InstancesConfig{
+		PortRange:    [2]int{8000, 9000},
+		InstancesDir: tempDir,
+		MaxInstances: 10,
+	}
+	manager := llamactl.NewInstanceManager(config)
+
+	// Try to create new instance with same port - should fail due to conflict
+	options := &llamactl.CreateInstanceOptions{
+		LlamaServerOptions: llamactl.LlamaServerOptions{
+			Model: "/path/to/model2.gguf",
+			Port:  8080, // Same port as loaded instance
+		},
+	}
+
+	_, err = manager.CreateInstance("new-instance", options)
+	if err == nil {
+		t.Error("Expected error for port conflict with loaded instance")
+	}
+	if !strings.Contains(err.Error(), "port") || !strings.Contains(err.Error(), "in use") {
+		t.Errorf("Expected port conflict error, got: %v", err)
+	}
+}
+
+func TestPersistence_CompleteInstanceDataRoundTrip(t *testing.T) {
+	tempDir := t.TempDir()
+
+	config := llamactl.InstancesConfig{
+		PortRange:           [2]int{8000, 9000},
+		InstancesDir:        tempDir,
+		MaxInstances:        10,
+		DefaultAutoRestart:  true,
+		DefaultMaxRestarts:  3,
+		DefaultRestartDelay: 5,
+	}
+
+	// Create first manager and instance with comprehensive options
+	manager1 := llamactl.NewInstanceManager(config)
+
+	autoRestart := false
+	maxRestarts := 10
+	restartDelay := 30
+
+	originalOptions := &llamactl.CreateInstanceOptions{
+		AutoRestart:  &autoRestart,
+		MaxRestarts:  &maxRestarts,
+		RestartDelay: &restartDelay,
+		LlamaServerOptions: llamactl.LlamaServerOptions{
+			Model:       "/path/to/model.gguf",
+			Port:        8080,
+			Host:        "localhost",
+			CtxSize:     4096,
+			GPULayers:   32,
+			Temperature: 0.7,
+			TopK:        40,
+			TopP:        0.9,
+			Verbose:     true,
+			FlashAttn:   false,
+			Lora:        []string{"adapter1.bin", "adapter2.bin"},
+			HFRepo:      "microsoft/DialoGPT-medium",
+		},
+	}
+
+	originalInstance, err := manager1.CreateInstance("roundtrip-test", originalOptions)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	// Create second manager (simulating restart) - should load the instance
+	manager2 := llamactl.NewInstanceManager(config)
+
+	loadedInstance, err := manager2.GetInstance("roundtrip-test")
+	if err != nil {
+		t.Fatalf("GetInstance failed after reload: %v", err)
+	}
+
+	// Compare all data
+	if loadedInstance.Name != originalInstance.Name {
+		t.Errorf("Name mismatch: original=%q, loaded=%q", originalInstance.Name, loadedInstance.Name)
+	}
+
+	originalOpts := originalInstance.GetOptions()
+	loadedOpts := loadedInstance.GetOptions()
+
+	// Compare restart options
+	if *loadedOpts.AutoRestart != *originalOpts.AutoRestart {
+		t.Errorf("AutoRestart mismatch: original=%v, loaded=%v", *originalOpts.AutoRestart, *loadedOpts.AutoRestart)
+	}
+	if *loadedOpts.MaxRestarts != *originalOpts.MaxRestarts {
+		t.Errorf("MaxRestarts mismatch: original=%v, loaded=%v", *originalOpts.MaxRestarts, *loadedOpts.MaxRestarts)
+	}
+	if *loadedOpts.RestartDelay != *originalOpts.RestartDelay {
+		t.Errorf("RestartDelay mismatch: original=%v, loaded=%v", *originalOpts.RestartDelay, *loadedOpts.RestartDelay)
+	}
+
+	// Compare llama server options
+	if loadedOpts.Model != originalOpts.Model {
+		t.Errorf("Model mismatch: original=%q, loaded=%q", originalOpts.Model, loadedOpts.Model)
+	}
+	if loadedOpts.Port != originalOpts.Port {
+		t.Errorf("Port mismatch: original=%d, loaded=%d", originalOpts.Port, loadedOpts.Port)
+	}
+	if loadedOpts.Host != originalOpts.Host {
+		t.Errorf("Host mismatch: original=%q, loaded=%q", originalOpts.Host, loadedOpts.Host)
+	}
+	if loadedOpts.CtxSize != originalOpts.CtxSize {
+		t.Errorf("CtxSize mismatch: original=%d, loaded=%d", originalOpts.CtxSize, loadedOpts.CtxSize)
+	}
+	if loadedOpts.GPULayers != originalOpts.GPULayers {
+		t.Errorf("GPULayers mismatch: original=%d, loaded=%d", originalOpts.GPULayers, loadedOpts.GPULayers)
+	}
+	if loadedOpts.Temperature != originalOpts.Temperature {
+		t.Errorf("Temperature mismatch: original=%f, loaded=%f", originalOpts.Temperature, loadedOpts.Temperature)
+	}
+	if loadedOpts.TopK != originalOpts.TopK {
+		t.Errorf("TopK mismatch: original=%d, loaded=%d", originalOpts.TopK, loadedOpts.TopK)
+	}
+	if loadedOpts.TopP != originalOpts.TopP {
+		t.Errorf("TopP mismatch: original=%f, loaded=%f", originalOpts.TopP, loadedOpts.TopP)
+	}
+	if loadedOpts.Verbose != originalOpts.Verbose {
+		t.Errorf("Verbose mismatch: original=%v, loaded=%v", originalOpts.Verbose, loadedOpts.Verbose)
+	}
+	if loadedOpts.FlashAttn != originalOpts.FlashAttn {
+		t.Errorf("FlashAttn mismatch: original=%v, loaded=%v", originalOpts.FlashAttn, loadedOpts.FlashAttn)
+	}
+	if loadedOpts.HFRepo != originalOpts.HFRepo {
+		t.Errorf("HFRepo mismatch: original=%q, loaded=%q", originalOpts.HFRepo, loadedOpts.HFRepo)
+	}
+
+	// Compare slice fields
+	if !reflect.DeepEqual(loadedOpts.Lora, originalOpts.Lora) {
+		t.Errorf("Lora mismatch: original=%v, loaded=%v", originalOpts.Lora, loadedOpts.Lora)
+	}
+
+	// Verify created timestamp is preserved
+	if loadedInstance.Created != originalInstance.Created {
+		t.Errorf("Created timestamp mismatch: original=%d, loaded=%d", originalInstance.Created, loadedInstance.Created)
+	}
+}
+
 // Helper function to create a test manager with standard config
 func createTestManager() llamactl.InstanceManager {
 	config := llamactl.InstancesConfig{
 		PortRange:           [2]int{8000, 9000},
-		LogDirectory:        "/tmp/test",
+		LogsDir:             "/tmp/test",
 		MaxInstances:        10,
 		LlamaExecutable:     "llama-server",
 		DefaultAutoRestart:  true,

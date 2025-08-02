@@ -11,10 +11,12 @@ A control server for managing multiple Llama Server instances with a web-based d
 - **Auto-restart**: Configurable automatic restart on instance failure
 - **Instance Monitoring**: Real-time health checks and status monitoring
 - **Log Management**: View, search, and download instance logs
+- **Data Persistence**: Persistent storage of instance state.
 - **REST API**: Full API for programmatic control
 - **OpenAI Compatible**: Route requests to instances by instance name
 - **Configuration Management**: Comprehensive llama-server parameter support
 - **System Information**: View llama-server version, devices, and help
+- **API Key Authentication**: Secure access with separate management and inference keys
 
 ## Prerequisites
 
@@ -79,41 +81,30 @@ go build -o llamactl ./cmd/server
 
 ## Configuration
 
-
 llamactl can be configured via configuration files or environment variables. Configuration is loaded in the following order of precedence:
 
 1. Hardcoded defaults
 2. Configuration file
 3. Environment variables
 
-
 ### Configuration Files
 
-Configuration files are searched in the following locations:
+#### Configuration File Locations
+
+Configuration files are searched in the following locations (in order of precedence):
 
 **Linux/macOS:**
 - `./llamactl.yaml` or `./config.yaml` (current directory)
-- `~/.config/llamactl/config.yaml`
+- `$HOME/.config/llamactl/config.yaml`
 - `/etc/llamactl/config.yaml`
 
 **Windows:**
 - `./llamactl.yaml` or `./config.yaml` (current directory)
 - `%APPDATA%\llamactl\config.yaml`
+- `%USERPROFILE%\llamactl\config.yaml`
 - `%PROGRAMDATA%\llamactl\config.yaml`
 
-You can specify the path to config file with `LLAMACTL_CONFIG_PATH` environment variable
-
-## API Key Authentication
-
-llamactl now supports API Key authentication for both management and inference (OpenAI-compatible) endpoints. The are separate keys for management and inference APIs. Management keys grant full access; inference keys grant access to OpenAI-compatible endpoints
-
-**How to Use:**
-- Pass your API key in requests using one of:
-  - `Authorization: Bearer <key>` header
-  - `X-API-Key: <key>` header
-  - `api_key=<key>` query parameter
-
-**Auto-generated keys**: If no keys are set and authentication is required, a key will be generated and printed to the terminal at startup. For production, set your own keys in config or environment variables.
+You can specify the path to config file with `LLAMACTL_CONFIG_PATH` environment variable.
 
 ### Configuration Options
 
@@ -137,8 +128,11 @@ server:
 
 ```yaml
 instances:
-  port_range: [8000, 9000]           # Port range for instances
-  log_directory: "/tmp/llamactl"     # Directory for instance logs
+  port_range: [8000, 9000]           # Port range for instances (default: [8000, 9000])
+  data_dir: "~/.local/share/llamactl" # Directory for all llamactl data (default varies by OS)
+  configs_dir: "~/.local/share/llamactl/instances" # Directory for instance configs (default: data_dir/instances)
+  logs_dir: "~/.local/share/llamactl/logs" # Directory for instance logs (default: data_dir/logs)
+  auto_create_dirs: true             # Automatically create data/config/logs directories (default: true)
   max_instances: -1                  # Maximum instances (-1 = unlimited)
   llama_executable: "llama-server"   # Path to llama-server executable
   default_auto_restart: true         # Default auto-restart setting
@@ -148,14 +142,17 @@ instances:
 
 **Environment Variables:**
 - `LLAMACTL_INSTANCE_PORT_RANGE` - Port range (format: "8000-9000" or "8000,9000")
-- `LLAMACTL_LOG_DIR` - Log directory path
+- `LLAMACTL_DATA_DIRECTORY` - Data directory path
+- `LLAMACTL_INSTANCES_DIR` - Instance configs directory path
+- `LLAMACTL_LOGS_DIR` - Log directory path
+- `LLAMACTL_AUTO_CREATE_DATA_DIR` - Auto-create data/config/logs directories (true/false)
 - `LLAMACTL_MAX_INSTANCES` - Maximum number of instances
 - `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable
 - `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)
 - `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts
 - `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds
 
-#### Auth Configuration
+#### Authentication Configuration
 
 ```yaml
 auth:
@@ -180,13 +177,16 @@ server:
 
 instances:
   port_range: [8001, 8100]
-  log_directory: "/var/log/llamactl"
+  data_dir: "/var/lib/llamactl"
+  configs_dir: "/var/lib/llamactl/instances"
+  logs_dir: "/var/log/llamactl"
+  auto_create_dirs: true
   max_instances: 10
   llama_executable: "/usr/local/bin/llama-server"
   default_auto_restart: true
   default_max_restarts: 5
   default_restart_delay: 10
- 
+
 auth:
   require_inference_auth: true
   inference_keys: ["sk-inference-abc123"]
@@ -209,6 +209,22 @@ LLAMACTL_CONFIG_PATH=/path/to/config.yaml ./llamactl
 LLAMACTL_PORT=9090 LLAMACTL_LOG_DIR=/custom/logs ./llamactl
 ```
 
+### Authentication
+
+llamactl supports API Key authentication for both management and inference (OpenAI-compatible) endpoints. There are separate keys for management and inference APIs:
+
+- **Management keys** grant full access to instance management
+- **Inference keys** grant access to OpenAI-compatible endpoints
+- Management keys also work for inference endpoints (higher privilege)
+
+**How to Use:**
+Pass your API key in requests using one of:
+- `Authorization: Bearer <key>` header
+- `X-API-Key: <key>` header
+- `api_key=<key>` query parameter
+
+**Auto-generated keys**: If no keys are set and authentication is required, a key will be generated and printed to the terminal at startup. For production, set your own keys in config or environment variables.
+
 ### Web Dashboard
 
 Open your browser and navigate to `http://localhost:8080` to access the web dashboard.
@@ -222,6 +238,7 @@ The REST API is available at `http://localhost:8080/api/v1`. See the Swagger doc
 ```bash
 curl -X POST http://localhost:8080/api/v1/instances/my-instance \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-management-your-key" \
   -d '{
     "model": "/path/to/model.gguf",
     "gpu_layers": 32,
@@ -232,17 +249,22 @@ curl -X POST http://localhost:8080/api/v1/instances/my-instance \
 #### List Instances
 
 ```bash
-curl http://localhost:8080/api/v1/instances
+curl -H "Authorization: Bearer sk-management-your-key" \
+  http://localhost:8080/api/v1/instances
 ```
 
 #### Start/Stop Instance
 
 ```bash
 # Start
-curl -X POST http://localhost:8080/api/v1/instances/my-instance/start
+curl -X POST \
+  -H "Authorization: Bearer sk-management-your-key" \
+  http://localhost:8080/api/v1/instances/my-instance/start
 
 # Stop
-curl -X POST http://localhost:8080/api/v1/instances/my-instance/stop
+curl -X POST \
+  -H "Authorization: Bearer sk-management-your-key" \
+  http://localhost:8080/api/v1/instances/my-instance/stop
 ```
 
 ### OpenAI Compatible Endpoints
@@ -252,6 +274,7 @@ Route requests to instances by including the instance name as the model paramete
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-inference-your-key" \
   -d '{
     "model": "my-instance",
     "messages": [{"role": "user", "content": "Hello!"}]

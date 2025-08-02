@@ -37,8 +37,17 @@ type InstancesConfig struct {
 	// Port range for instances (e.g., 8000,9000)
 	PortRange [2]int `yaml:"port_range"`
 
-	// Directory where instance logs will be stored
-	LogDirectory string `yaml:"log_directory"`
+	// Directory where all llamactl data will be stored (instances.json, logs, etc.)
+	DataDir string `yaml:"data_dir"`
+
+	// Instance config directory override
+	InstancesDir string `yaml:"configs_dir"`
+
+	// Logs directory override
+	LogsDir string `yaml:"logs_dir"`
+
+	// Automatically create the data directory if it doesn't exist
+	AutoCreateDirs bool `yaml:"auto_create_dirs"`
 
 	// Maximum number of instances that can be created
 	MaxInstances int `yaml:"max_instances"`
@@ -87,7 +96,10 @@ func LoadConfig(configPath string) (Config, error) {
 		},
 		Instances: InstancesConfig{
 			PortRange:           [2]int{8000, 9000},
-			LogDirectory:        "/tmp/llamactl",
+			DataDir:             getDefaultDataDirectory(),
+			InstancesDir:        filepath.Join(getDefaultDataDirectory(), "instances"),
+			LogsDir:             filepath.Join(getDefaultDataDirectory(), "logs"),
+			AutoCreateDirs:      true,
 			MaxInstances:        -1, // -1 means unlimited
 			LlamaExecutable:     "llama-server",
 			DefaultAutoRestart:  true,
@@ -157,14 +169,27 @@ func loadEnvVars(cfg *Config) {
 		}
 	}
 
+	// Data config
+	if dataDir := os.Getenv("LLAMACTL_DATA_DIRECTORY"); dataDir != "" {
+		cfg.Instances.DataDir = dataDir
+	}
+	if instancesDir := os.Getenv("LLAMACTL_INSTANCES_DIR"); instancesDir != "" {
+		cfg.Instances.InstancesDir = instancesDir
+	}
+	if logsDir := os.Getenv("LLAMACTL_LOGS_DIR"); logsDir != "" {
+		cfg.Instances.LogsDir = logsDir
+	}
+	if autoCreate := os.Getenv("LLAMACTL_AUTO_CREATE_DATA_DIR"); autoCreate != "" {
+		if b, err := strconv.ParseBool(autoCreate); err == nil {
+			cfg.Instances.AutoCreateDirs = b
+		}
+	}
+
 	// Instance config
 	if portRange := os.Getenv("LLAMACTL_INSTANCE_PORT_RANGE"); portRange != "" {
 		if ports := ParsePortRange(portRange); ports != [2]int{0, 0} {
 			cfg.Instances.PortRange = ports
 		}
-	}
-	if logDir := os.Getenv("LLAMACTL_LOG_DIR"); logDir != "" {
-		cfg.Instances.LogDirectory = logDir
 	}
 	if maxInstances := os.Getenv("LLAMACTL_MAX_INSTANCES"); maxInstances != "" {
 		if m, err := strconv.Atoi(maxInstances); err == nil {
@@ -231,64 +256,63 @@ func ParsePortRange(s string) [2]int {
 	return [2]int{0, 0} // Invalid format
 }
 
+// getDefaultDataDirectory returns platform-specific default data directory
+func getDefaultDataDirectory() string {
+	switch runtime.GOOS {
+	case "windows":
+		// Try PROGRAMDATA first (system-wide), fallback to LOCALAPPDATA (user)
+		if programData := os.Getenv("PROGRAMDATA"); programData != "" {
+			return filepath.Join(programData, "llamactl")
+		}
+		if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
+			return filepath.Join(localAppData, "llamactl")
+		}
+		return "C:\\ProgramData\\llamactl" // Final fallback
+
+	case "darwin":
+		// For macOS, use user's Application Support directory
+		if homeDir, _ := os.UserHomeDir(); homeDir != "" {
+			return filepath.Join(homeDir, "Library", "Application Support", "llamactl")
+		}
+		return "/usr/local/var/llamactl" // Fallback
+
+	default:
+		// Linux and other Unix-like systems
+		if homeDir, _ := os.UserHomeDir(); homeDir != "" {
+			return filepath.Join(homeDir, ".local", "share", "llamactl")
+		}
+		return "/var/lib/llamactl" // Final fallback
+	}
+}
+
 // getDefaultConfigLocations returns platform-specific config file locations
 func getDefaultConfigLocations() []string {
 	var locations []string
-
-	// Current directory (cross-platform)
-	locations = append(locations,
-		"./llamactl.yaml",
-		"./config.yaml",
-	)
-
 	homeDir, _ := os.UserHomeDir()
 
 	switch runtime.GOOS {
 	case "windows":
-		// Windows: Use APPDATA and ProgramData
+		// Windows: Use APPDATA if available, else user home, fallback to ProgramData
 		if appData := os.Getenv("APPDATA"); appData != "" {
 			locations = append(locations, filepath.Join(appData, "llamactl", "config.yaml"))
-		}
-		if programData := os.Getenv("PROGRAMDATA"); programData != "" {
-			locations = append(locations, filepath.Join(programData, "llamactl", "config.yaml"))
-		}
-		// Fallback to user home
-		if homeDir != "" {
+		} else if homeDir != "" {
 			locations = append(locations, filepath.Join(homeDir, "llamactl", "config.yaml"))
 		}
+		locations = append(locations, filepath.Join(os.Getenv("PROGRAMDATA"), "llamactl", "config.yaml"))
 
 	case "darwin":
-		// macOS: Use proper Application Support directories
+		// macOS: Use Application Support in user home, fallback to /Library/Application Support
 		if homeDir != "" {
-			locations = append(locations,
-				filepath.Join(homeDir, "Library", "Application Support", "llamactl", "config.yaml"),
-				filepath.Join(homeDir, ".config", "llamactl", "config.yaml"), // XDG fallback
-			)
+			locations = append(locations, filepath.Join(homeDir, "Library", "Application Support", "llamactl", "config.yaml"))
 		}
 		locations = append(locations, "/Library/Application Support/llamactl/config.yaml")
-		locations = append(locations, "/etc/llamactl/config.yaml") // Unix fallback
 
 	default:
-		// User config: $XDG_CONFIG_HOME/llamactl/config.yaml or ~/.config/llamactl/config.yaml
-		configHome := os.Getenv("XDG_CONFIG_HOME")
-		if configHome == "" && homeDir != "" {
-			configHome = filepath.Join(homeDir, ".config")
+		// Linux/Unix: Use ~/.config/llamactl/config.yaml, fallback to /etc/llamactl/config.yaml
+		if homeDir != "" {
+			locations = append(locations, filepath.Join(homeDir, ".config", "llamactl", "config.yaml"))
 		}
-		if configHome != "" {
-			locations = append(locations, filepath.Join(configHome, "llamactl", "config.yaml"))
-		}
-
-		// System config: /etc/llamactl/config.yaml
 		locations = append(locations, "/etc/llamactl/config.yaml")
-
-		// Additional system locations
-		if xdgConfigDirs := os.Getenv("XDG_CONFIG_DIRS"); xdgConfigDirs != "" {
-			for dir := range strings.SplitSeq(xdgConfigDirs, ":") {
-				if dir != "" {
-					locations = append(locations, filepath.Join(dir, "llamactl", "config.yaml"))
-				}
-			}
-		}
 	}
 
 	return locations

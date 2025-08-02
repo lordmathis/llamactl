@@ -17,17 +17,24 @@ import (
 // @basePath /api/v1
 func main() {
 
-	config, err := llamactl.LoadConfig("")
+	configPath := os.Getenv("LLAMACTL_CONFIG_PATH")
+	config, err := llamactl.LoadConfig(configPath)
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 		fmt.Println("Using default configuration.")
 	}
 
-	// Create the log directory if it doesn't exist
-	err = os.MkdirAll(config.Instances.LogDirectory, 0755)
-	if err != nil {
-		fmt.Printf("Error creating log directory: %v\n", err)
-		return
+	// Create the data directory if it doesn't exist
+	if config.Instances.AutoCreateDirs {
+		if err := os.MkdirAll(config.Instances.InstancesDir, 0755); err != nil {
+			fmt.Printf("Error creating config directory %s: %v\n", config.Instances.InstancesDir, err)
+			fmt.Println("Persistence will not be available.")
+		}
+
+		if err := os.MkdirAll(config.Instances.LogsDir, 0755); err != nil {
+			fmt.Printf("Error creating log directory %s: %v\n", config.Instances.LogsDir, err)
+			fmt.Println("Instance logs will not be available.")
+		}
 	}
 
 	// Initialize the instance manager

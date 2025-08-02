@@ -22,11 +22,23 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.Server.Port != 8080 {
 		t.Errorf("Expected default port to be 8080, got %d", cfg.Server.Port)
 	}
+
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("Failed to get user home directory: %v", err)
+	}
+
+	if cfg.Instances.InstancesDir != filepath.Join(homedir, ".local", "share", "llamactl", "instances") {
+		t.Errorf("Expected default instances directory '%s', got %q", filepath.Join(homedir, ".local", "share", "llamactl", "instances"), cfg.Instances.InstancesDir)
+	}
+	if cfg.Instances.LogsDir != filepath.Join(homedir, ".local", "share", "llamactl", "logs") {
+		t.Errorf("Expected default logs directory '%s', got %q", filepath.Join(homedir, ".local", "share", "llamactl", "logs"), cfg.Instances.LogsDir)
+	}
+	if !cfg.Instances.AutoCreateDirs {
+		t.Error("Expected default instances auto-create to be true")
+	}
 	if cfg.Instances.PortRange != [2]int{8000, 9000} {
 		t.Errorf("Expected default port range [8000, 9000], got %v", cfg.Instances.PortRange)
-	}
-	if cfg.Instances.LogDirectory != "/tmp/llamactl" {
-		t.Errorf("Expected default log directory '/tmp/llamactl', got %q", cfg.Instances.LogDirectory)
 	}
 	if cfg.Instances.MaxInstances != -1 {
 		t.Errorf("Expected default max instances -1, got %d", cfg.Instances.MaxInstances)
@@ -56,7 +68,7 @@ server:
   port: 9090
 instances:
   port_range: [7000, 8000]
-  log_directory: "/custom/logs"
+  logs_dir: "/custom/logs"
   max_instances: 5
   llama_executable: "/usr/bin/llama-server"
   default_auto_restart: false
@@ -84,8 +96,8 @@ instances:
 	if cfg.Instances.PortRange != [2]int{7000, 8000} {
 		t.Errorf("Expected port range [7000, 8000], got %v", cfg.Instances.PortRange)
 	}
-	if cfg.Instances.LogDirectory != "/custom/logs" {
-		t.Errorf("Expected log directory '/custom/logs', got %q", cfg.Instances.LogDirectory)
+	if cfg.Instances.LogsDir != "/custom/logs" {
+		t.Errorf("Expected logs directory '/custom/logs', got %q", cfg.Instances.LogsDir)
 	}
 	if cfg.Instances.MaxInstances != 5 {
 		t.Errorf("Expected max instances 5, got %d", cfg.Instances.MaxInstances)
@@ -110,7 +122,7 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 		"LLAMACTL_HOST":                  "0.0.0.0",
 		"LLAMACTL_PORT":                  "3000",
 		"LLAMACTL_INSTANCE_PORT_RANGE":   "5000-6000",
-		"LLAMACTL_LOG_DIR":               "/env/logs",
+		"LLAMACTL_LOGS_DIR":              "/env/logs",
 		"LLAMACTL_MAX_INSTANCES":         "20",
 		"LLAMACTL_LLAMA_EXECUTABLE":      "/env/llama-server",
 		"LLAMACTL_DEFAULT_AUTO_RESTART":  "false",
@@ -139,8 +151,8 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 	if cfg.Instances.PortRange != [2]int{5000, 6000} {
 		t.Errorf("Expected port range [5000, 6000], got %v", cfg.Instances.PortRange)
 	}
-	if cfg.Instances.LogDirectory != "/env/logs" {
-		t.Errorf("Expected log directory '/env/logs', got %q", cfg.Instances.LogDirectory)
+	if cfg.Instances.LogsDir != "/env/logs" {
+		t.Errorf("Expected logs directory '/env/logs', got %q", cfg.Instances.LogsDir)
 	}
 	if cfg.Instances.MaxInstances != 20 {
 		t.Errorf("Expected max instances 20, got %d", cfg.Instances.MaxInstances)

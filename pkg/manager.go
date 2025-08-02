@@ -1,7 +1,12 @@
 package llamactl
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -28,11 +33,17 @@ type instanceManager struct {
 
 // NewInstanceManager creates a new instance of InstanceManager.
 func NewInstanceManager(instancesConfig InstancesConfig) InstanceManager {
-	return &instanceManager{
+	im := &instanceManager{
 		instances:       make(map[string]*Instance),
 		ports:           make(map[int]bool),
 		instancesConfig: instancesConfig,
 	}
+
+	// Load existing instances from disk
+	if err := im.loadInstances(); err != nil {
+		log.Printf("Error loading instances: %v", err)
+	}
+	return im
 }
 
 // ListInstances returns a list of all instances managed by the instance manager.
@@ -95,6 +106,10 @@ func (im *instanceManager) CreateInstance(name string, options *CreateInstanceOp
 	im.instances[instance.Name] = instance
 	im.ports[options.Port] = true
 
+	if err := im.persistInstance(instance); err != nil {
+		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
+	}
+
 	return instance, nil
 }
 
@@ -150,6 +165,12 @@ func (im *instanceManager) UpdateInstance(name string, options *CreateInstanceOp
 		}
 	}
 
+	im.mu.Lock()
+	defer im.mu.Unlock()
+	if err := im.persistInstance(instance); err != nil {
+		return nil, fmt.Errorf("failed to persist updated instance %s: %w", name, err)
+	}
+
 	return instance, nil
 }
 
@@ -158,17 +179,24 @@ func (im *instanceManager) DeleteInstance(name string) error {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 
-	_, exists := im.instances[name]
+	instance, exists := im.instances[name]
 	if !exists {
 		return fmt.Errorf("instance with name %s not found", name)
 	}
 
-	if im.instances[name].Running {
+	if instance.Running {
 		return fmt.Errorf("instance with name %s is still running, stop it before deleting", name)
 	}
 
-	delete(im.ports, im.instances[name].options.Port)
+	delete(im.ports, instance.options.Port)
 	delete(im.instances, name)
+
+	// Delete the instance's config file if persistence is enabled
+	instancePath := filepath.Join(im.instancesConfig.InstancesDir, instance.Name+".json")
+	if err := os.Remove(instancePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete config file for instance %s: %w", instance.Name, err)
+	}
+
 	return nil
 }
 
@@ -190,6 +218,13 @@ func (im *instanceManager) StartInstance(name string) (*Instance, error) {
 		return nil, fmt.Errorf("failed to start instance %s: %w", name, err)
 	}
 
+	im.mu.Lock()
+	defer im.mu.Unlock()
+	err := im.persistInstance(instance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
+	}
+
 	return instance, nil
 }
 
@@ -208,6 +243,13 @@ func (im *instanceManager) StopInstance(name string) (*Instance, error) {
 
 	if err := instance.Stop(); err != nil {
 		return nil, fmt.Errorf("failed to stop instance %s: %w", name, err)
+	}
+
+	im.mu.Lock()
+	defer im.mu.Unlock()
+	err := im.persistInstance(instance)
+	if err != nil {
+		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
 	}
 
 	return instance, nil
@@ -249,6 +291,35 @@ func (im *instanceManager) getNextAvailablePort() (int, error) {
 	return 0, fmt.Errorf("no available ports in the specified range")
 }
 
+// persistInstance saves an instance to its JSON file
+func (im *instanceManager) persistInstance(instance *Instance) error {
+	if im.instancesConfig.InstancesDir == "" {
+		return nil // Persistence disabled
+	}
+
+	instancePath := filepath.Join(im.instancesConfig.InstancesDir, instance.Name+".json")
+	tempPath := instancePath + ".tmp"
+
+	// Serialize instance to JSON
+	jsonData, err := json.MarshalIndent(instance, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal instance %s: %w", instance.Name, err)
+	}
+
+	// Write to temporary file first
+	if err := os.WriteFile(tempPath, jsonData, 0644); err != nil {
+		return fmt.Errorf("failed to write temp file for instance %s: %w", instance.Name, err)
+	}
+
+	// Atomic rename
+	if err := os.Rename(tempPath, instancePath); err != nil {
+		os.Remove(tempPath) // Clean up temp file
+		return fmt.Errorf("failed to rename temp file for instance %s: %w", instance.Name, err)
+	}
+
+	return nil
+}
+
 func (im *instanceManager) Shutdown() {
 	im.mu.Lock()
 	defer im.mu.Unlock()
@@ -274,4 +345,108 @@ func (im *instanceManager) Shutdown() {
 
 	wg.Wait()
 	fmt.Println("All instances stopped.")
+}
+
+// loadInstances restores all instances from disk
+func (im *instanceManager) loadInstances() error {
+	if im.instancesConfig.InstancesDir == "" {
+		return nil // Persistence disabled
+	}
+
+	// Check if instances directory exists
+	if _, err := os.Stat(im.instancesConfig.InstancesDir); os.IsNotExist(err) {
+		return nil // No instances directory, start fresh
+	}
+
+	// Read all JSON files from instances directory
+	files, err := os.ReadDir(im.instancesConfig.InstancesDir)
+	if err != nil {
+		return fmt.Errorf("failed to read instances directory: %w", err)
+	}
+
+	loadedCount := 0
+	for _, file := range files {
+		if file.IsDir() || !strings.HasSuffix(file.Name(), ".json") {
+			continue
+		}
+
+		instanceName := strings.TrimSuffix(file.Name(), ".json")
+		instancePath := filepath.Join(im.instancesConfig.InstancesDir, file.Name())
+
+		if err := im.loadInstance(instanceName, instancePath); err != nil {
+			log.Printf("Failed to load instance %s: %v", instanceName, err)
+			continue
+		}
+
+		loadedCount++
+	}
+
+	if loadedCount > 0 {
+		log.Printf("Loaded %d instances from persistence", loadedCount)
+		// Auto-start instances that have auto-restart enabled
+		go im.autoStartInstances()
+	}
+
+	return nil
+}
+
+// loadInstance loads a single instance from its JSON file
+func (im *instanceManager) loadInstance(name, path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read instance file: %w", err)
+	}
+
+	var persistedInstance Instance
+	if err := json.Unmarshal(data, &persistedInstance); err != nil {
+		return fmt.Errorf("failed to unmarshal instance: %w", err)
+	}
+
+	// Validate the instance name matches the filename
+	if persistedInstance.Name != name {
+		return fmt.Errorf("instance name mismatch: file=%s, instance.Name=%s", name, persistedInstance.Name)
+	}
+
+	// Create new instance using NewInstance (handles validation, defaults, setup)
+	instance := NewInstance(name, &im.instancesConfig, persistedInstance.GetOptions())
+
+	// Restore persisted fields that NewInstance doesn't set
+	instance.Created = persistedInstance.Created
+	instance.Running = persistedInstance.Running
+
+	// Check for port conflicts and add to maps
+	if instance.GetOptions() != nil && instance.GetOptions().Port > 0 {
+		port := instance.GetOptions().Port
+		if im.ports[port] {
+			return fmt.Errorf("port conflict: instance %s wants port %d which is already in use", name, port)
+		}
+		im.ports[port] = true
+	}
+
+	im.instances[name] = instance
+	return nil
+}
+
+// autoStartInstances starts instances that were running when persisted and have auto-restart enabled
+func (im *instanceManager) autoStartInstances() {
+	im.mu.RLock()
+	var instancesToStart []*Instance
+	for _, instance := range im.instances {
+		if instance.Running && // Was running when persisted
+			instance.GetOptions() != nil &&
+			instance.GetOptions().AutoRestart != nil &&
+			*instance.GetOptions().AutoRestart {
+			instancesToStart = append(instancesToStart, instance)
+		}
+	}
+	im.mu.RUnlock()
+
+	for _, instance := range instancesToStart {
+		log.Printf("Auto-starting instance %s", instance.Name)
+		// Reset running state before starting (since Start() expects stopped instance)
+		instance.Running = false
+		if err := instance.Start(); err != nil {
+			log.Printf("Failed to auto-start instance %s: %v", instance.Name, err)
+		}
+	}
 }
