@@ -179,22 +179,22 @@ func (im *instanceManager) DeleteInstance(name string) error {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 
-	_, exists := im.instances[name]
+	instance, exists := im.instances[name]
 	if !exists {
 		return fmt.Errorf("instance with name %s not found", name)
 	}
 
-	if im.instances[name].Running {
+	if instance.Running {
 		return fmt.Errorf("instance with name %s is still running, stop it before deleting", name)
 	}
 
-	delete(im.ports, im.instances[name].options.Port)
+	delete(im.ports, instance.options.Port)
 	delete(im.instances, name)
 
 	// Delete the instance's config file if persistence is enabled
-	instancePath := filepath.Join(im.instancesConfig.InstancesDir, name+".json")
+	instancePath := filepath.Join(im.instancesConfig.InstancesDir, instance.Name+".json")
 	if err := os.Remove(instancePath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to delete config file for instance %s: %w", name, err)
+		return fmt.Errorf("failed to delete config file for instance %s: %w", instance.Name, err)
 	}
 
 	return nil
