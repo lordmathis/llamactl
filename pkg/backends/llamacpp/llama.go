@@ -1,4 +1,4 @@
-package llamactl
+package llamacpp
 
 import (
 	"encoding/json"

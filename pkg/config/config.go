@@ -1,4 +1,4 @@
-package llamactl
+package config
 
 import (
 	"os"
@@ -10,8 +10,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents the configuration for llamactl
-type Config struct {
+// AppConfig represents the configuration for llamactl
+type AppConfig struct {
 	Server    ServerConfig    `yaml:"server"`
 	Instances InstancesConfig `yaml:"instances"`
 	Auth      AuthConfig      `yaml:"auth"`
@@ -85,9 +85,9 @@ type AuthConfig struct {
 // 1. Hardcoded defaults
 // 2. Config file
 // 3. Environment variables
-func LoadConfig(configPath string) (Config, error) {
+func LoadConfig(configPath string) (AppConfig, error) {
 	// 1. Start with defaults
-	cfg := Config{
+	cfg := AppConfig{
 		Server: ServerConfig{
 			Host:           "0.0.0.0",
 			Port:           8080,
@@ -126,7 +126,7 @@ func LoadConfig(configPath string) (Config, error) {
 }
 
 // loadConfigFile attempts to load config from file with fallback locations
-func loadConfigFile(cfg *Config, configPath string) error {
+func loadConfigFile(cfg *AppConfig, configPath string) error {
 	var configLocations []string
 
 	// If specific config path provided, use only that
@@ -150,7 +150,7 @@ func loadConfigFile(cfg *Config, configPath string) error {
 }
 
 // loadEnvVars overrides config with environment variables
-func loadEnvVars(cfg *Config) {
+func loadEnvVars(cfg *AppConfig) {
 	// Server config
 	if host := os.Getenv("LLAMACTL_HOST"); host != "" {
 		cfg.Server.Host = host

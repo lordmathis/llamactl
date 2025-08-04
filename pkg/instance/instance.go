@@ -1,10 +1,12 @@
-package llamactl
+package instance
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"llamactl/pkg/backends/llamacpp"
+	"llamactl/pkg/config"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -21,7 +23,7 @@ type CreateInstanceOptions struct {
 	// RestartDelay duration in seconds
 	RestartDelay *int `json:"restart_delay_seconds,omitempty"`
 
-	LlamaServerOptions `json:",inline"`
+	llamacpp.LlamaServerOptions `json:",inline"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for CreateInstanceOptions
@@ -53,11 +55,11 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Instance represents a running instance of the llama server
-type Instance struct {
+// Process represents a running instance of the llama server
+type Process struct {
 	Name           string                 `json:"name"`
 	options        *CreateInstanceOptions `json:"-"`
-	globalSettings *InstancesConfig
+	globalSettings *config.InstancesConfig
 
 	// Status
 	Running bool `json:"running"`
@@ -121,7 +123,7 @@ func validateAndCopyOptions(name string, options *CreateInstanceOptions) *Create
 }
 
 // applyDefaultOptions applies default values from global settings to any nil options
-func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *InstancesConfig) {
+func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *config.InstancesConfig) {
 	if globalSettings == nil {
 		return
 	}
@@ -143,7 +145,7 @@ func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *Instanc
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalSettings *InstancesConfig, options *CreateInstanceOptions) *Instance {
+func NewInstance(name string, globalSettings *config.InstancesConfig, options *CreateInstanceOptions) *Process {
 	// Validate and copy options
 	optionsCopy := validateAndCopyOptions(name, options)
 	// Apply defaults
@@ -151,7 +153,7 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 	// Create the instance logger
 	logger := NewInstanceLogger(name, globalSettings.LogsDir)
 
-	return &Instance{
+	return &Process{
 		Name:           name,
 		options:        optionsCopy,
 		globalSettings: globalSettings,
@@ -163,13 +165,13 @@ func NewInstance(name string, globalSettings *InstancesConfig, options *CreateIn
 	}
 }
 
-func (i *Instance) GetOptions() *CreateInstanceOptions {
+func (i *Process) GetOptions() *CreateInstanceOptions {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 	return i.options
 }
 
-func (i *Instance) SetOptions(options *CreateInstanceOptions) {
+func (i *Process) SetOptions(options *CreateInstanceOptions) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -188,7 +190,7 @@ func (i *Instance) SetOptions(options *CreateInstanceOptions) {
 }
 
 // GetProxy returns the reverse proxy for this instance, creating it if needed
-func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
+func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -225,7 +227,7 @@ func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 }
 
 // MarshalJSON implements json.Marshaler for Instance
-func (i *Instance) MarshalJSON() ([]byte, error) {
+func (i *Process) MarshalJSON() ([]byte, error) {
 	// Use read lock since we're only reading data
 	i.mu.RLock()
 	defer i.mu.RUnlock()
@@ -247,7 +249,7 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON implements json.Unmarshaler for Instance
-func (i *Instance) UnmarshalJSON(data []byte) error {
+func (i *Process) UnmarshalJSON(data []byte) error {
 	// Create a temporary struct for unmarshalling
 	temp := struct {
 		Name    string                 `json:"name"`

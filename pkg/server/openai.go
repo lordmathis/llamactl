@@ -1,4 +1,4 @@
-package llamactl
+package server
 
 type OpenAIListInstancesResponse struct {
 	Object string           `json:"object"`

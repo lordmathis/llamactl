@@ -1,10 +1,13 @@
-package llamactl
+package server
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"llamactl/pkg/config"
+	"llamactl/pkg/instance"
+	"llamactl/pkg/manager"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -14,14 +17,14 @@ import (
 )
 
 type Handler struct {
-	InstanceManager InstanceManager
-	config          Config
+	InstanceManager manager.InstanceManager
+	cfg             config.AppConfig
 }
 
-func NewHandler(im InstanceManager, config Config) *Handler {
+func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 	return &Handler{
 		InstanceManager: im,
-		config:          config,
+		cfg:             cfg,
 	}
 }
 
@@ -137,13 +140,13 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 			return
 		}
 
-		var options CreateInstanceOptions
+		var options instance.CreateInstanceOptions
 		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
-		instance, err := h.InstanceManager.CreateInstance(name, &options)
+		inst, err := h.InstanceManager.CreateInstance(name, &options)
 		if err != nil {
 			http.Error(w, "Failed to create instance: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -151,7 +154,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		if err := json.NewEncoder(w).Encode(instance); err != nil {
+		if err := json.NewEncoder(w).Encode(inst); err != nil {
 			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -177,14 +180,14 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 			return
 		}
 
-		instance, err := h.InstanceManager.GetInstance(name)
+		inst, err := h.InstanceManager.GetInstance(name)
 		if err != nil {
 			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(instance); err != nil {
+		if err := json.NewEncoder(w).Encode(inst); err != nil {
 			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -212,20 +215,20 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 			return
 		}
 
-		var options CreateInstanceOptions
+		var options instance.CreateInstanceOptions
 		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
-		instance, err := h.InstanceManager.UpdateInstance(name, &options)
+		inst, err := h.InstanceManager.UpdateInstance(name, &options)
 		if err != nil {
 			http.Error(w, "Failed to update instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(instance); err != nil {
+		if err := json.NewEncoder(w).Encode(inst); err != nil {
 			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -251,14 +254,14 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 			return
 		}
 
-		instance, err := h.InstanceManager.StartInstance(name)
+		inst, err := h.InstanceManager.StartInstance(name)
 		if err != nil {
 			http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(instance); err != nil {
+		if err := json.NewEncoder(w).Encode(inst); err != nil {
 			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -284,14 +287,14 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 			return
 		}
 
-		instance, err := h.InstanceManager.StopInstance(name)
+		inst, err := h.InstanceManager.StopInstance(name)
 		if err != nil {
 			http.Error(w, "Failed to stop instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(instance); err != nil {
+		if err := json.NewEncoder(w).Encode(inst); err != nil {
 			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -317,14 +320,14 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 			return
 		}
 
-		instance, err := h.InstanceManager.RestartInstance(name)
+		inst, err := h.InstanceManager.RestartInstance(name)
 		if err != nil {
 			http.Error(w, "Failed to restart instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(instance); err != nil {
+		if err := json.NewEncoder(w).Encode(inst); err != nil {
 			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -389,13 +392,13 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 			return
 		}
 
-		instance, err := h.InstanceManager.GetInstance(name)
+		inst, err := h.InstanceManager.GetInstance(name)
 		if err != nil {
 			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		logs, err := instance.GetLogs(num_lines)
+		logs, err := inst.GetLogs(num_lines)
 		if err != nil {
 			http.Error(w, "Failed to get logs: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -426,19 +429,19 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 			return
 		}
 
-		instance, err := h.InstanceManager.GetInstance(name)
+		inst, err := h.InstanceManager.GetInstance(name)
 		if err != nil {
 			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if !instance.Running {
+		if !inst.Running {
 			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
 			return
 		}
 
 		// Get the cached proxy for this instance
-		proxy, err := instance.GetProxy()
+		proxy, err := inst.GetProxy()
 		if err != nil {
 			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -489,11 +492,11 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 		}
 
 		openaiInstances := make([]OpenAIInstance, len(instances))
-		for i, instance := range instances {
+		for i, inst := range instances {
 			openaiInstances[i] = OpenAIInstance{
-				ID:      instance.Name,
+				ID:      inst.Name,
 				Object:  "model",
-				Created: instance.Created,
+				Created: inst.Created,
 				OwnedBy: "llamactl",
 			}
 		}
@@ -545,19 +548,19 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
-		// Route to the appropriate instance based on model name
-		instance, err := h.InstanceManager.GetInstance(modelName)
+		// Route to the appropriate inst based on model name
+		inst, err := h.InstanceManager.GetInstance(modelName)
 		if err != nil {
 			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if !instance.Running {
+		if !inst.Running {
 			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
 			return
 		}
 
-		proxy, err := instance.GetProxy()
+		proxy, err := inst.GetProxy()
 		if err != nil {
 			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
 			return

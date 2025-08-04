@@ -1,10 +1,11 @@
-package llamactl
+package server
 
 import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
+	"llamactl/pkg/config"
 	"log"
 	"net/http"
 	"os"
@@ -26,7 +27,7 @@ type APIAuthMiddleware struct {
 }
 
 // NewAPIAuthMiddleware creates a new APIAuthMiddleware with the given configuration
-func NewAPIAuthMiddleware(config AuthConfig) *APIAuthMiddleware {
+func NewAPIAuthMiddleware(authCfg config.AuthConfig) *APIAuthMiddleware {
 
 	var generated bool = false
 
@@ -35,25 +36,25 @@ func NewAPIAuthMiddleware(config AuthConfig) *APIAuthMiddleware {
 
 	const banner = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-	if config.RequireManagementAuth && len(config.ManagementKeys) == 0 {
+	if authCfg.RequireManagementAuth && len(authCfg.ManagementKeys) == 0 {
 		key := generateAPIKey(KeyTypeManagement)
 		managementAPIKeys[key] = true
 		generated = true
 		fmt.Printf("%s\n⚠️  MANAGEMENT AUTHENTICATION REQUIRED\n%s\n", banner, banner)
 		fmt.Printf("🔑  Generated Management API Key:\n\n    %s\n\n", key)
 	}
-	for _, key := range config.ManagementKeys {
+	for _, key := range authCfg.ManagementKeys {
 		managementAPIKeys[key] = true
 	}
 
-	if config.RequireInferenceAuth && len(config.InferenceKeys) == 0 {
+	if authCfg.RequireInferenceAuth && len(authCfg.InferenceKeys) == 0 {
 		key := generateAPIKey(KeyTypeInference)
 		inferenceAPIKeys[key] = true
 		generated = true
 		fmt.Printf("%s\n⚠️  INFERENCE AUTHENTICATION REQUIRED\n%s\n", banner, banner)
 		fmt.Printf("🔑  Generated Inference API Key:\n\n    %s\n\n", key)
 	}
-	for _, key := range config.InferenceKeys {
+	for _, key := range authCfg.InferenceKeys {
 		inferenceAPIKeys[key] = true
 	}
 
@@ -66,9 +67,9 @@ func NewAPIAuthMiddleware(config AuthConfig) *APIAuthMiddleware {
 	}
 
 	return &APIAuthMiddleware{
-		requireInferenceAuth:  config.RequireInferenceAuth,
+		requireInferenceAuth:  authCfg.RequireInferenceAuth,
 		inferenceKeys:         inferenceAPIKeys,
-		requireManagementAuth: config.RequireManagementAuth,
+		requireManagementAuth: authCfg.RequireManagementAuth,
 		managementKeys:        managementAPIKeys,
 	}
 }

@@ -1,6 +1,6 @@
 //go:build !windows
 
-package llamactl
+package instance
 
 import (
 	"os/exec"

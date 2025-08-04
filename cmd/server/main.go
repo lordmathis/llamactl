@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
-	llamactl "llamactl/pkg"
+	"llamactl/pkg/config"
+	"llamactl/pkg/manager"
+	"llamactl/pkg/server"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,45 +20,45 @@ import (
 func main() {
 
 	configPath := os.Getenv("LLAMACTL_CONFIG_PATH")
-	config, err := llamactl.LoadConfig(configPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 		fmt.Println("Using default configuration.")
 	}
 
 	// Create the data directory if it doesn't exist
-	if config.Instances.AutoCreateDirs {
-		if err := os.MkdirAll(config.Instances.InstancesDir, 0755); err != nil {
-			fmt.Printf("Error creating config directory %s: %v\n", config.Instances.InstancesDir, err)
+	if cfg.Instances.AutoCreateDirs {
+		if err := os.MkdirAll(cfg.Instances.InstancesDir, 0755); err != nil {
+			fmt.Printf("Error creating config directory %s: %v\n", cfg.Instances.InstancesDir, err)
 			fmt.Println("Persistence will not be available.")
 		}
 
-		if err := os.MkdirAll(config.Instances.LogsDir, 0755); err != nil {
-			fmt.Printf("Error creating log directory %s: %v\n", config.Instances.LogsDir, err)
+		if err := os.MkdirAll(cfg.Instances.LogsDir, 0755); err != nil {
+			fmt.Printf("Error creating log directory %s: %v\n", cfg.Instances.LogsDir, err)
 			fmt.Println("Instance logs will not be available.")
 		}
 	}
 
 	// Initialize the instance manager
-	instanceManager := llamactl.NewInstanceManager(config.Instances)
+	instanceManager := manager.NewInstanceManager(cfg.Instances)
 
 	// Create a new handler with the instance manager
-	handler := llamactl.NewHandler(instanceManager, config)
+	handler := server.NewHandler(instanceManager, cfg)
 
 	// Setup the router with the handler
-	r := llamactl.SetupRouter(handler)
+	r := server.SetupRouter(handler)
 
 	// Handle graceful shutdown
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	server := http.Server{
-		Addr:    fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port),
+		Addr:    fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
 		Handler: r,
 	}
 
 	go func() {
-		fmt.Printf("Llamactl server listening on %s:%d\n", config.Server.Host, config.Server.Port)
+		fmt.Printf("Llamactl server listening on %s:%d\n", cfg.Server.Host, cfg.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Error starting server: %v\n", err)
 		}

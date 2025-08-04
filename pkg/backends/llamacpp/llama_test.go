@@ -1,17 +1,16 @@
-package llamactl_test
+package llamacpp_test
 
 import (
 	"encoding/json"
 	"fmt"
+	"llamactl/pkg/backends/llamacpp"
 	"reflect"
 	"slices"
 	"testing"
-
-	llamactl "llamactl/pkg"
 )
 
 func TestBuildCommandArgs_BasicFields(t *testing.T) {
-	options := llamactl.LlamaServerOptions{
+	options := llamacpp.LlamaServerOptions{
 		Model:     "/path/to/model.gguf",
 		Port:      8080,
 		Host:      "localhost",
@@ -46,27 +45,27 @@ func TestBuildCommandArgs_BasicFields(t *testing.T) {
 func TestBuildCommandArgs_BooleanFields(t *testing.T) {
 	tests := []struct {
 		name     string
-		options  llamactl.LlamaServerOptions
+		options  llamacpp.LlamaServerOptions
 		expected []string
 		excluded []string
 	}{
 		{
 			name: "verbose true",
-			options: llamactl.LlamaServerOptions{
+			options: llamacpp.LlamaServerOptions{
 				Verbose: true,
 			},
 			expected: []string{"--verbose"},
 		},
 		{
 			name: "verbose false",
-			options: llamactl.LlamaServerOptions{
+			options: llamacpp.LlamaServerOptions{
 				Verbose: false,
 			},
 			excluded: []string{"--verbose"},
 		},
 		{
 			name: "multiple booleans",
-			options: llamactl.LlamaServerOptions{
+			options: llamacpp.LlamaServerOptions{
 				Verbose:   true,
 				FlashAttn: true,
 				Mlock:     false,
@@ -97,7 +96,7 @@ func TestBuildCommandArgs_BooleanFields(t *testing.T) {
 }
 
 func TestBuildCommandArgs_NumericFields(t *testing.T) {
-	options := llamactl.LlamaServerOptions{
+	options := llamacpp.LlamaServerOptions{
 		Port:        8080,
 		Threads:     4,
 		CtxSize:     2048,
@@ -127,7 +126,7 @@ func TestBuildCommandArgs_NumericFields(t *testing.T) {
 }
 
 func TestBuildCommandArgs_ZeroValues(t *testing.T) {
-	options := llamactl.LlamaServerOptions{
+	options := llamacpp.LlamaServerOptions{
 		Port:        0,     // Should be excluded
 		Threads:     0,     // Should be excluded
 		Temperature: 0,     // Should be excluded
@@ -154,7 +153,7 @@ func TestBuildCommandArgs_ZeroValues(t *testing.T) {
 }
 
 func TestBuildCommandArgs_ArrayFields(t *testing.T) {
-	options := llamactl.LlamaServerOptions{
+	options := llamacpp.LlamaServerOptions{
 		Lora:               []string{"adapter1.bin", "adapter2.bin"},
 		OverrideTensor:     []string{"tensor1", "tensor2", "tensor3"},
 		DrySequenceBreaker: []string{".", "!", "?"},
@@ -179,7 +178,7 @@ func TestBuildCommandArgs_ArrayFields(t *testing.T) {
 }
 
 func TestBuildCommandArgs_EmptyArrays(t *testing.T) {
-	options := llamactl.LlamaServerOptions{
+	options := llamacpp.LlamaServerOptions{
 		Lora:           []string{}, // Empty array should not generate args
 		OverrideTensor: []string{}, // Empty array should not generate args
 	}
@@ -196,7 +195,7 @@ func TestBuildCommandArgs_EmptyArrays(t *testing.T) {
 
 func TestBuildCommandArgs_FieldNameConversion(t *testing.T) {
 	// Test snake_case to kebab-case conversion
-	options := llamactl.LlamaServerOptions{
+	options := llamacpp.LlamaServerOptions{
 		CtxSize:      4096,
 		GPULayers:    32,
 		ThreadsBatch: 2,
@@ -235,7 +234,7 @@ func TestUnmarshalJSON_StandardFields(t *testing.T) {
 		"temperature": 0.7
 	}`
 
-	var options llamactl.LlamaServerOptions
+	var options llamacpp.LlamaServerOptions
 	err := json.Unmarshal([]byte(jsonData), &options)
 	if err != nil {
 		t.Fatalf("Unmarshal failed: %v", err)
@@ -268,12 +267,12 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 	tests := []struct {
 		name     string
 		jsonData string
-		checkFn  func(llamactl.LlamaServerOptions) error
+		checkFn  func(llamacpp.LlamaServerOptions) error
 	}{
 		{
 			name:     "threads alternatives",
 			jsonData: `{"t": 4, "tb": 2}`,
-			checkFn: func(opts llamactl.LlamaServerOptions) error {
+			checkFn: func(opts llamacpp.LlamaServerOptions) error {
 				if opts.Threads != 4 {
 					return fmt.Errorf("expected threads 4, got %d", opts.Threads)
 				}
@@ -286,7 +285,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 		{
 			name:     "context size alternatives",
 			jsonData: `{"c": 2048}`,
-			checkFn: func(opts llamactl.LlamaServerOptions) error {
+			checkFn: func(opts llamacpp.LlamaServerOptions) error {
 				if opts.CtxSize != 2048 {
 					return fmt.Errorf("expected ctx_size 4096, got %d", opts.CtxSize)
 				}
@@ -296,7 +295,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 		{
 			name:     "gpu layers alternatives",
 			jsonData: `{"ngl": 16}`,
-			checkFn: func(opts llamactl.LlamaServerOptions) error {
+			checkFn: func(opts llamacpp.LlamaServerOptions) error {
 				if opts.GPULayers != 16 {
 					return fmt.Errorf("expected gpu_layers 32, got %d", opts.GPULayers)
 				}
@@ -306,7 +305,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 		{
 			name:     "model alternatives",
 			jsonData: `{"m": "/path/model.gguf"}`,
-			checkFn: func(opts llamactl.LlamaServerOptions) error {
+			checkFn: func(opts llamacpp.LlamaServerOptions) error {
 				if opts.Model != "/path/model.gguf" {
 					return fmt.Errorf("expected model '/path/model.gguf', got %q", opts.Model)
 				}
@@ -316,7 +315,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 		{
 			name:     "temperature alternatives",
 			jsonData: `{"temp": 0.8}`,
-			checkFn: func(opts llamactl.LlamaServerOptions) error {
+			checkFn: func(opts llamacpp.LlamaServerOptions) error {
 				if opts.Temperature != 0.8 {
 					return fmt.Errorf("expected temperature 0.8, got %f", opts.Temperature)
 				}
@@ -327,7 +326,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var options llamactl.LlamaServerOptions
+			var options llamacpp.LlamaServerOptions
 			err := json.Unmarshal([]byte(tt.jsonData), &options)
 			if err != nil {
 				t.Fatalf("Unmarshal failed: %v", err)
@@ -343,7 +342,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 func TestUnmarshalJSON_InvalidJSON(t *testing.T) {
 	invalidJSON := `{"port": "not-a-number", "invalid": syntax}`
 
-	var options llamactl.LlamaServerOptions
+	var options llamacpp.LlamaServerOptions
 	err := json.Unmarshal([]byte(invalidJSON), &options)
 	if err == nil {
 		t.Error("Expected error for invalid JSON")
@@ -357,7 +356,7 @@ func TestUnmarshalJSON_ArrayFields(t *testing.T) {
 		"dry_sequence_breaker": [".", "!", "?"]
 	}`
 
-	var options llamactl.LlamaServerOptions
+	var options llamacpp.LlamaServerOptions
 	err := json.Unmarshal([]byte(jsonData), &options)
 	if err != nil {
 		t.Fatalf("Unmarshal failed: %v", err)

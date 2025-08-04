@@ -1,4 +1,4 @@
-package llamactl
+package instance
 
 import (
 	"bufio"
@@ -52,7 +52,7 @@ func (i *InstanceLogger) Create() error {
 }
 
 // GetLogs retrieves the last n lines of logs from the instance
-func (i *Instance) GetLogs(num_lines int) (string, error) {
+func (i *Process) GetLogs(num_lines int) (string, error) {
 	i.mu.RLock()
 	logFileName := i.logger.logFilePath
 	i.mu.RUnlock()

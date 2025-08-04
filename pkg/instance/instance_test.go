@@ -1,28 +1,30 @@
-package llamactl_test
+package instance_test
 
 import (
 	"encoding/json"
+	"llamactl/pkg/backends/llamacpp"
+	"llamactl/pkg/config"
+	"llamactl/pkg/instance"
+	"llamactl/pkg/testutil"
 	"testing"
-
-	llamactl "llamactl/pkg"
 )
 
 func TestNewInstance(t *testing.T) {
-	globalSettings := &llamactl.InstancesConfig{
+	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
 	}
 
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
 	}
 
-	instance := llamactl.NewInstance("test-instance", globalSettings, options)
+	instance := instance.NewInstance("test-instance", globalSettings, options)
 
 	if instance.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", instance.Name)
@@ -53,7 +55,7 @@ func TestNewInstance(t *testing.T) {
 }
 
 func TestNewInstance_WithRestartOptions(t *testing.T) {
-	globalSettings := &llamactl.InstancesConfig{
+	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
@@ -65,16 +67,16 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	maxRestarts := 10
 	restartDelay := 15
 
-	options := &llamactl.CreateInstanceOptions{
+	options := &instance.CreateInstanceOptions{
 		AutoRestart:  &autoRestart,
 		MaxRestarts:  &maxRestarts,
 		RestartDelay: &restartDelay,
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	instance := llamactl.NewInstance("test-instance", globalSettings, options)
+	instance := instance.NewInstance("test-instance", globalSettings, options)
 	opts := instance.GetOptions()
 
 	// Check that explicit values override defaults
@@ -90,7 +92,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 }
 
 func TestNewInstance_ValidationAndDefaults(t *testing.T) {
-	globalSettings := &llamactl.InstancesConfig{
+	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
@@ -101,15 +103,15 @@ func TestNewInstance_ValidationAndDefaults(t *testing.T) {
 	invalidMaxRestarts := -5
 	invalidRestartDelay := -10
 
-	options := &llamactl.CreateInstanceOptions{
+	options := &instance.CreateInstanceOptions{
 		MaxRestarts:  &invalidMaxRestarts,
 		RestartDelay: &invalidRestartDelay,
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	instance := llamactl.NewInstance("test-instance", globalSettings, options)
+	instance := instance.NewInstance("test-instance", globalSettings, options)
 	opts := instance.GetOptions()
 
 	// Check that negative values were corrected to 0
@@ -122,32 +124,32 @@ func TestNewInstance_ValidationAndDefaults(t *testing.T) {
 }
 
 func TestSetOptions(t *testing.T) {
-	globalSettings := &llamactl.InstancesConfig{
+	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
 	}
 
-	initialOptions := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	initialOptions := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
 	}
 
-	instance := llamactl.NewInstance("test-instance", globalSettings, initialOptions)
+	inst := instance.NewInstance("test-instance", globalSettings, initialOptions)
 
 	// Update options
-	newOptions := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	newOptions := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",
 			Port:  8081,
 		},
 	}
 
-	instance.SetOptions(newOptions)
-	opts := instance.GetOptions()
+	inst.SetOptions(newOptions)
+	opts := inst.GetOptions()
 
 	if opts.Model != "/path/to/new-model.gguf" {
 		t.Errorf("Expected updated model '/path/to/new-model.gguf', got %q", opts.Model)
@@ -163,20 +165,20 @@ func TestSetOptions(t *testing.T) {
 }
 
 func TestSetOptions_NilOptions(t *testing.T) {
-	globalSettings := &llamactl.InstancesConfig{
+	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
 	}
 
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	instance := llamactl.NewInstance("test-instance", globalSettings, options)
+	instance := instance.NewInstance("test-instance", globalSettings, options)
 	originalOptions := instance.GetOptions()
 
 	// Try to set nil options
@@ -190,21 +192,21 @@ func TestSetOptions_NilOptions(t *testing.T) {
 }
 
 func TestGetProxy(t *testing.T) {
-	globalSettings := &llamactl.InstancesConfig{
+	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
 
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Host: "localhost",
 			Port: 8080,
 		},
 	}
 
-	instance := llamactl.NewInstance("test-instance", globalSettings, options)
+	inst := instance.NewInstance("test-instance", globalSettings, options)
 
 	// Get proxy for the first time
-	proxy1, err := instance.GetProxy()
+	proxy1, err := inst.GetProxy()
 	if err != nil {
 		t.Fatalf("GetProxy failed: %v", err)
 	}
@@ -213,7 +215,7 @@ func TestGetProxy(t *testing.T) {
 	}
 
 	// Get proxy again - should return cached version
-	proxy2, err := instance.GetProxy()
+	proxy2, err := inst.GetProxy()
 	if err != nil {
 		t.Fatalf("GetProxy failed: %v", err)
 	}
@@ -223,21 +225,21 @@ func TestGetProxy(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
-	globalSettings := &llamactl.InstancesConfig{
+	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
 	}
 
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
 	}
 
-	instance := llamactl.NewInstance("test-instance", globalSettings, options)
+	instance := instance.NewInstance("test-instance", globalSettings, options)
 
 	data, err := json.Marshal(instance)
 	if err != nil {
@@ -284,20 +286,20 @@ func TestUnmarshalJSON(t *testing.T) {
 		}
 	}`
 
-	var instance llamactl.Instance
-	err := json.Unmarshal([]byte(jsonData), &instance)
+	var inst instance.Process
+	err := json.Unmarshal([]byte(jsonData), &inst)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
 	}
 
-	if instance.Name != "test-instance" {
-		t.Errorf("Expected name 'test-instance', got %q", instance.Name)
+	if inst.Name != "test-instance" {
+		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
 	}
-	if !instance.Running {
+	if !inst.Running {
 		t.Error("Expected running to be true")
 	}
 
-	opts := instance.GetOptions()
+	opts := inst.GetOptions()
 	if opts == nil {
 		t.Fatal("Expected options to be set")
 	}
@@ -324,13 +326,13 @@ func TestUnmarshalJSON_PartialOptions(t *testing.T) {
 		}
 	}`
 
-	var instance llamactl.Instance
-	err := json.Unmarshal([]byte(jsonData), &instance)
+	var inst instance.Process
+	err := json.Unmarshal([]byte(jsonData), &inst)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
 	}
 
-	opts := instance.GetOptions()
+	opts := inst.GetOptions()
 	if opts.Model != "/path/to/model.gguf" {
 		t.Errorf("Expected model '/path/to/model.gguf', got %q", opts.Model)
 	}
@@ -348,20 +350,20 @@ func TestUnmarshalJSON_NoOptions(t *testing.T) {
 		"running": false
 	}`
 
-	var instance llamactl.Instance
-	err := json.Unmarshal([]byte(jsonData), &instance)
+	var inst instance.Process
+	err := json.Unmarshal([]byte(jsonData), &inst)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
 	}
 
-	if instance.Name != "test-instance" {
-		t.Errorf("Expected name 'test-instance', got %q", instance.Name)
+	if inst.Name != "test-instance" {
+		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
 	}
-	if instance.Running {
+	if inst.Running {
 		t.Error("Expected running to be false")
 	}
 
-	opts := instance.GetOptions()
+	opts := inst.GetOptions()
 	if opts != nil {
 		t.Error("Expected options to be nil when not provided in JSON")
 	}
@@ -384,42 +386,42 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 		},
 		{
 			name:          "valid positive values",
-			maxRestarts:   intPtr(10),
-			restartDelay:  intPtr(30),
+			maxRestarts:   testutil.IntPtr(10),
+			restartDelay:  testutil.IntPtr(30),
 			expectedMax:   10,
 			expectedDelay: 30,
 		},
 		{
 			name:          "zero values",
-			maxRestarts:   intPtr(0),
-			restartDelay:  intPtr(0),
+			maxRestarts:   testutil.IntPtr(0),
+			restartDelay:  testutil.IntPtr(0),
 			expectedMax:   0,
 			expectedDelay: 0,
 		},
 		{
 			name:          "negative values should be corrected",
-			maxRestarts:   intPtr(-5),
-			restartDelay:  intPtr(-10),
+			maxRestarts:   testutil.IntPtr(-5),
+			restartDelay:  testutil.IntPtr(-10),
 			expectedMax:   0,
 			expectedDelay: 0,
 		},
 	}
 
-	globalSettings := &llamactl.InstancesConfig{
+	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := &llamactl.CreateInstanceOptions{
+			options := &instance.CreateInstanceOptions{
 				MaxRestarts:  tt.maxRestarts,
 				RestartDelay: tt.restartDelay,
-				LlamaServerOptions: llamactl.LlamaServerOptions{
+				LlamaServerOptions: llamacpp.LlamaServerOptions{
 					Model: "/path/to/model.gguf",
 				},
 			}
 
-			instance := llamactl.NewInstance("test", globalSettings, options)
+			instance := instance.NewInstance("test", globalSettings, options)
 			opts := instance.GetOptions()
 
 			if tt.maxRestarts != nil {

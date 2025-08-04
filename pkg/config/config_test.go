@@ -1,16 +1,15 @@
-package llamactl_test
+package config_test
 
 import (
+	"llamactl/pkg/config"
 	"os"
 	"path/filepath"
 	"testing"
-
-	llamactl "llamactl/pkg"
 )
 
 func TestLoadConfig_Defaults(t *testing.T) {
 	// Test loading config when no file exists and no env vars set
-	cfg, err := llamactl.LoadConfig("nonexistent-file.yaml")
+	cfg, err := config.LoadConfig("nonexistent-file.yaml")
 	if err != nil {
 		t.Fatalf("LoadConfig should not error with defaults: %v", err)
 	}
@@ -81,7 +80,7 @@ instances:
 		t.Fatalf("Failed to write test config file: %v", err)
 	}
 
-	cfg, err := llamactl.LoadConfig(configFile)
+	cfg, err := config.LoadConfig(configFile)
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
@@ -136,7 +135,7 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 		defer os.Unsetenv(key)
 	}
 
-	cfg, err := llamactl.LoadConfig("nonexistent-file.yaml")
+	cfg, err := config.LoadConfig("nonexistent-file.yaml")
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
@@ -195,7 +194,7 @@ instances:
 	defer os.Unsetenv("LLAMACTL_HOST")
 	defer os.Unsetenv("LLAMACTL_MAX_INSTANCES")
 
-	cfg, err := llamactl.LoadConfig(configFile)
+	cfg, err := config.LoadConfig(configFile)
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
@@ -231,7 +230,7 @@ instances:
 		t.Fatalf("Failed to write test config file: %v", err)
 	}
 
-	_, err = llamactl.LoadConfig(configFile)
+	_, err = config.LoadConfig(configFile)
 	if err == nil {
 		t.Error("Expected LoadConfig to return error for invalid YAML")
 	}
@@ -257,7 +256,7 @@ func TestParsePortRange(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := llamactl.ParsePortRange(tt.input)
+			result := config.ParsePortRange(tt.input)
 			if result != tt.expected {
 				t.Errorf("ParsePortRange(%q) = %v, expected %v", tt.input, result, tt.expected)
 			}
@@ -272,31 +271,31 @@ func TestLoadConfig_EnvironmentVariableTypes(t *testing.T) {
 	testCases := []struct {
 		envVar   string
 		envValue string
-		checkFn  func(*llamactl.Config) bool
+		checkFn  func(*config.AppConfig) bool
 		desc     string
 	}{
 		{
 			envVar:   "LLAMACTL_PORT",
 			envValue: "invalid-port",
-			checkFn:  func(c *llamactl.Config) bool { return c.Server.Port == 8080 }, // Should keep default
+			checkFn:  func(c *config.AppConfig) bool { return c.Server.Port == 8080 }, // Should keep default
 			desc:     "invalid port number should keep default",
 		},
 		{
 			envVar:   "LLAMACTL_MAX_INSTANCES",
 			envValue: "not-a-number",
-			checkFn:  func(c *llamactl.Config) bool { return c.Instances.MaxInstances == -1 }, // Should keep default
+			checkFn:  func(c *config.AppConfig) bool { return c.Instances.MaxInstances == -1 }, // Should keep default
 			desc:     "invalid max instances should keep default",
 		},
 		{
 			envVar:   "LLAMACTL_DEFAULT_AUTO_RESTART",
 			envValue: "invalid-bool",
-			checkFn:  func(c *llamactl.Config) bool { return c.Instances.DefaultAutoRestart == true }, // Should keep default
+			checkFn:  func(c *config.AppConfig) bool { return c.Instances.DefaultAutoRestart == true }, // Should keep default
 			desc:     "invalid boolean should keep default",
 		},
 		{
 			envVar:   "LLAMACTL_INSTANCE_PORT_RANGE",
 			envValue: "invalid-range",
-			checkFn:  func(c *llamactl.Config) bool { return c.Instances.PortRange == [2]int{8000, 9000} }, // Should keep default
+			checkFn:  func(c *config.AppConfig) bool { return c.Instances.PortRange == [2]int{8000, 9000} }, // Should keep default
 			desc:     "invalid port range should keep default",
 		},
 	}
@@ -306,7 +305,7 @@ func TestLoadConfig_EnvironmentVariableTypes(t *testing.T) {
 			os.Setenv(tc.envVar, tc.envValue)
 			defer os.Unsetenv(tc.envVar)
 
-			cfg, err := llamactl.LoadConfig("nonexistent-file.yaml")
+			cfg, err := config.LoadConfig("nonexistent-file.yaml")
 			if err != nil {
 				t.Fatalf("LoadConfig failed: %v", err)
 			}
@@ -335,7 +334,7 @@ server:
 		t.Fatalf("Failed to write test config file: %v", err)
 	}
 
-	cfg, err := llamactl.LoadConfig(configFile)
+	cfg, err := config.LoadConfig(configFile)
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}

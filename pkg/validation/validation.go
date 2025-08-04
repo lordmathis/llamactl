@@ -1,7 +1,8 @@
-package llamactl
+package validation
 
 import (
 	"fmt"
+	"llamactl/pkg/instance"
 	"reflect"
 	"regexp"
 )
@@ -33,7 +34,7 @@ func validateStringForInjection(value string) error {
 }
 
 // ValidateInstanceOptions performs minimal security validation
-func ValidateInstanceOptions(options *CreateInstanceOptions) error {
+func ValidateInstanceOptions(options *instance.CreateInstanceOptions) error {
 	if options == nil {
 		return ValidationError(fmt.Errorf("options cannot be nil"))
 	}
@@ -101,16 +102,16 @@ func validateStructStrings(v any, fieldPath string) error {
 	return nil
 }
 
-func ValidateInstanceName(name string) error {
+func ValidateInstanceName(name string) (string, error) {
 	// Validate instance name
 	if name == "" {
-		return ValidationError(fmt.Errorf("name cannot be empty"))
+		return "", ValidationError(fmt.Errorf("name cannot be empty"))
 	}
 	if !validNamePattern.MatchString(name) {
-		return ValidationError(fmt.Errorf("name contains invalid characters (only alphanumeric, hyphens, underscores allowed)"))
+		return "", ValidationError(fmt.Errorf("name contains invalid characters (only alphanumeric, hyphens, underscores allowed)"))
 	}
 	if len(name) > 50 {
-		return ValidationError(fmt.Errorf("name too long (max 50 characters)"))
+		return "", ValidationError(fmt.Errorf("name too long (max 50 characters)"))
 	}
-	return nil
+	return name, nil
 }
