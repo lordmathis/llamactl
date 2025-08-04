@@ -15,21 +15,21 @@ import (
 
 // InstanceManager defines the interface for managing instances of the llama server.
 type InstanceManager interface {
-	ListInstances() ([]*instance.Instance, error)
-	CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
-	GetInstance(name string) (*instance.Instance, error)
-	UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
+	ListInstances() ([]*instance.Process, error)
+	CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
+	GetInstance(name string) (*instance.Process, error)
+	UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
 	DeleteInstance(name string) error
-	StartInstance(name string) (*instance.Instance, error)
-	StopInstance(name string) (*instance.Instance, error)
-	RestartInstance(name string) (*instance.Instance, error)
+	StartInstance(name string) (*instance.Process, error)
+	StopInstance(name string) (*instance.Process, error)
+	RestartInstance(name string) (*instance.Process, error)
 	GetInstanceLogs(name string) (string, error)
 	Shutdown()
 }
 
 type instanceManager struct {
 	mu              sync.RWMutex
-	instances       map[string]*instance.Instance
+	instances       map[string]*instance.Process
 	ports           map[int]bool
 	instancesConfig config.InstancesConfig
 }
@@ -37,7 +37,7 @@ type instanceManager struct {
 // NewInstanceManager creates a new instance of InstanceManager.
 func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager {
 	im := &instanceManager{
-		instances:       make(map[string]*instance.Instance),
+		instances:       make(map[string]*instance.Process),
 		ports:           make(map[int]bool),
 		instancesConfig: instancesConfig,
 	}
@@ -50,11 +50,11 @@ func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager 
 }
 
 // ListInstances returns a list of all instances managed by the instance manager.
-func (im *instanceManager) ListInstances() ([]*instance.Instance, error) {
+func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
 	im.mu.RLock()
 	defer im.mu.RUnlock()
 
-	instances := make([]*instance.Instance, 0, len(im.instances))
+	instances := make([]*instance.Process, 0, len(im.instances))
 	for _, inst := range im.instances {
 		instances = append(instances, inst)
 	}
@@ -63,7 +63,7 @@ func (im *instanceManager) ListInstances() ([]*instance.Instance, error) {
 
 // CreateInstance creates a new instance with the given options and returns it.
 // The instance is initially in a "stopped" state.
-func (im *instanceManager) CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error) {
+func (im *instanceManager) CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
 	if options == nil {
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
@@ -117,7 +117,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 }
 
 // GetInstance retrieves an instance by its name.
-func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) {
+func (im *instanceManager) GetInstance(name string) (*instance.Process, error) {
 	im.mu.RLock()
 	defer im.mu.RUnlock()
 
@@ -130,7 +130,7 @@ func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) 
 
 // UpdateInstance updates the options of an existing instance and returns it.
 // If the instance is running, it will be restarted to apply the new options.
-func (im *instanceManager) UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error) {
+func (im *instanceManager) UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
 	im.mu.RLock()
 	instance, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -205,7 +205,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 
 // StartInstance starts a stopped instance and returns it.
 // If the instance is already running, it returns an error.
-func (im *instanceManager) StartInstance(name string) (*instance.Instance, error) {
+func (im *instanceManager) StartInstance(name string) (*instance.Process, error) {
 	im.mu.RLock()
 	instance, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -232,7 +232,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 }
 
 // StopInstance stops a running instance and returns it.
-func (im *instanceManager) StopInstance(name string) (*instance.Instance, error) {
+func (im *instanceManager) StopInstance(name string) (*instance.Process, error) {
 	im.mu.RLock()
 	instance, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -259,7 +259,7 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 }
 
 // RestartInstance stops and then starts an instance, returning the updated instance.
-func (im *instanceManager) RestartInstance(name string) (*instance.Instance, error) {
+func (im *instanceManager) RestartInstance(name string) (*instance.Process, error) {
 	instance, err := im.StopInstance(name)
 	if err != nil {
 		return nil, err
@@ -295,7 +295,7 @@ func (im *instanceManager) getNextAvailablePort() (int, error) {
 }
 
 // persistInstance saves an instance to its JSON file
-func (im *instanceManager) persistInstance(instance *instance.Instance) error {
+func (im *instanceManager) persistInstance(instance *instance.Process) error {
 	if im.instancesConfig.InstancesDir == "" {
 		return nil // Persistence disabled
 	}
@@ -336,7 +336,7 @@ func (im *instanceManager) Shutdown() {
 			continue
 		}
 
-		go func(name string, inst *instance.Instance) {
+		go func(name string, inst *instance.Process) {
 			defer wg.Done()
 			fmt.Printf("Stopping instance %s...\n", name)
 			// Attempt to stop the instance gracefully
@@ -400,7 +400,7 @@ func (im *instanceManager) loadInstance(name, path string) error {
 		return fmt.Errorf("failed to read instance file: %w", err)
 	}
 
-	var persistedInstance instance.Instance
+	var persistedInstance instance.Process
 	if err := json.Unmarshal(data, &persistedInstance); err != nil {
 		return fmt.Errorf("failed to unmarshal instance: %w", err)
 	}
@@ -433,7 +433,7 @@ func (im *instanceManager) loadInstance(name, path string) error {
 // autoStartInstances starts instances that were running when persisted and have auto-restart enabled
 func (im *instanceManager) autoStartInstances() {
 	im.mu.RLock()
-	var instancesToStart []*instance.Instance
+	var instancesToStart []*instance.Process
 	for _, inst := range im.instances {
 		if inst.Running && // Was running when persisted
 			inst.GetOptions() != nil &&

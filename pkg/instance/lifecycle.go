@@ -11,7 +11,7 @@ import (
 )
 
 // Start starts the llama server instance and returns an error if it fails.
-func (i *Instance) Start() error {
+func (i *Process) Start() error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -75,7 +75,7 @@ func (i *Instance) Start() error {
 }
 
 // Stop terminates the subprocess
-func (i *Instance) Stop() error {
+func (i *Process) Stop() error {
 	i.mu.Lock()
 
 	if !i.Running {
@@ -140,7 +140,7 @@ func (i *Instance) Stop() error {
 	return nil
 }
 
-func (i *Instance) monitorProcess() {
+func (i *Process) monitorProcess() {
 	defer func() {
 		i.mu.Lock()
 		if i.monitorDone != nil {
@@ -181,7 +181,7 @@ func (i *Instance) monitorProcess() {
 }
 
 // handleRestart manages the restart process while holding the lock
-func (i *Instance) handleRestart() {
+func (i *Process) handleRestart() {
 	// Validate restart conditions and get safe parameters
 	shouldRestart, maxRestarts, restartDelay := i.validateRestartConditions()
 	if !shouldRestart {
@@ -223,7 +223,7 @@ func (i *Instance) handleRestart() {
 }
 
 // validateRestartConditions checks if the instance should be restarted and returns the parameters
-func (i *Instance) validateRestartConditions() (shouldRestart bool, maxRestarts int, restartDelay int) {
+func (i *Process) validateRestartConditions() (shouldRestart bool, maxRestarts int, restartDelay int) {
 	if i.options == nil {
 		log.Printf("Instance %s not restarting: options are nil", i.Name)
 		return false, 0, 0

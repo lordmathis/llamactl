@@ -286,7 +286,7 @@ func TestUnmarshalJSON(t *testing.T) {
 		}
 	}`
 
-	var inst instance.Instance
+	var inst instance.Process
 	err := json.Unmarshal([]byte(jsonData), &inst)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
@@ -326,7 +326,7 @@ func TestUnmarshalJSON_PartialOptions(t *testing.T) {
 		}
 	}`
 
-	var inst instance.Instance
+	var inst instance.Process
 	err := json.Unmarshal([]byte(jsonData), &inst)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
@@ -350,7 +350,7 @@ func TestUnmarshalJSON_NoOptions(t *testing.T) {
 		"running": false
 	}`
 
-	var inst instance.Instance
+	var inst instance.Process
 	err := json.Unmarshal([]byte(jsonData), &inst)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)

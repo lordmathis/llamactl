@@ -18,10 +18,10 @@ import (
 
 type Handler struct {
 	InstanceManager manager.InstanceManager
-	cfg             config.Config
+	cfg             config.AppConfig
 }
 
-func NewHandler(im manager.InstanceManager, cfg config.Config) *Handler {
+func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 	return &Handler{
 		InstanceManager: im,
 		cfg:             cfg,

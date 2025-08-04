@@ -271,31 +271,31 @@ func TestLoadConfig_EnvironmentVariableTypes(t *testing.T) {
 	testCases := []struct {
 		envVar   string
 		envValue string
-		checkFn  func(*config.Config) bool
+		checkFn  func(*config.AppConfig) bool
 		desc     string
 	}{
 		{
 			envVar:   "LLAMACTL_PORT",
 			envValue: "invalid-port",
-			checkFn:  func(c *config.Config) bool { return c.Server.Port == 8080 }, // Should keep default
+			checkFn:  func(c *config.AppConfig) bool { return c.Server.Port == 8080 }, // Should keep default
 			desc:     "invalid port number should keep default",
 		},
 		{
 			envVar:   "LLAMACTL_MAX_INSTANCES",
 			envValue: "not-a-number",
-			checkFn:  func(c *config.Config) bool { return c.Instances.MaxInstances == -1 }, // Should keep default
+			checkFn:  func(c *config.AppConfig) bool { return c.Instances.MaxInstances == -1 }, // Should keep default
 			desc:     "invalid max instances should keep default",
 		},
 		{
 			envVar:   "LLAMACTL_DEFAULT_AUTO_RESTART",
 			envValue: "invalid-bool",
-			checkFn:  func(c *config.Config) bool { return c.Instances.DefaultAutoRestart == true }, // Should keep default
+			checkFn:  func(c *config.AppConfig) bool { return c.Instances.DefaultAutoRestart == true }, // Should keep default
 			desc:     "invalid boolean should keep default",
 		},
 		{
 			envVar:   "LLAMACTL_INSTANCE_PORT_RANGE",
 			envValue: "invalid-range",
-			checkFn:  func(c *config.Config) bool { return c.Instances.PortRange == [2]int{8000, 9000} }, // Should keep default
+			checkFn:  func(c *config.AppConfig) bool { return c.Instances.PortRange == [2]int{8000, 9000} }, // Should keep default
 			desc:     "invalid port range should keep default",
 		},
 	}

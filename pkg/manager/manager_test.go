@@ -687,7 +687,7 @@ func TestPersistence_InstancesLoadedFromDisk(t *testing.T) {
 	}
 
 	// Check instances by name
-	instancesByName := make(map[string]*instance.Instance)
+	instancesByName := make(map[string]*instance.Process)
 	for _, inst := range instances {
 		instancesByName[inst.Name] = inst
 	}
