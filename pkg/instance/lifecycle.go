@@ -1,4 +1,4 @@
-package llamactl
+package instance
 
 import (
 	"context"

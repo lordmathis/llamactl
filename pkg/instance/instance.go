@@ -1,10 +1,12 @@
-package llamactl
+package instance
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"llamactl/pkg/backends/llamacpp"
+	"llamactl/pkg/config"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -21,7 +23,7 @@ type CreateInstanceOptions struct {
 	// RestartDelay duration in seconds
 	RestartDelay *int `json:"restart_delay_seconds,omitempty"`
 
-	LlamaServerOptions `json:",inline"`
+	llamacpp.LlamaServerOptions `json:",inline"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for CreateInstanceOptions
@@ -57,7 +59,7 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 type Instance struct {
 	Name           string                 `json:"name"`
 	options        *CreateInstanceOptions `json:"-"`
-	globalSettings *InstancesConfig
+	globalSettings *config.InstancesConfig
 
 	// Status
 	Running bool `json:"running"`
@@ -121,7 +123,7 @@ func validateAndCopyOptions(name string, options *CreateInstanceOptions) *Create
 }
 
 // applyDefaultOptions applies default values from global settings to any nil options
-func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *InstancesConfig) {
+func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *config.InstancesConfig) {
 	if globalSettings == nil {
 		return
 	}
@@ -143,7 +145,7 @@ func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *Instanc
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalSettings *InstancesConfig, options *CreateInstanceOptions) *Instance {
+func NewInstance(name string, globalSettings *config.InstancesConfig, options *CreateInstanceOptions) *Instance {
 	// Validate and copy options
 	optionsCopy := validateAndCopyOptions(name, options)
 	// Apply defaults

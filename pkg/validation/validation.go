@@ -1,7 +1,8 @@
-package llamactl
+package validation
 
 import (
 	"fmt"
+	"llamactl/pkg/instance"
 	"reflect"
 	"regexp"
 )
@@ -33,7 +34,7 @@ func validateStringForInjection(value string) error {
 }
 
 // ValidateInstanceOptions performs minimal security validation
-func ValidateInstanceOptions(options *CreateInstanceOptions) error {
+func ValidateInstanceOptions(options *instance.CreateInstanceOptions) error {
 	if options == nil {
 		return ValidationError(fmt.Errorf("options cannot be nil"))
 	}

@@ -1,4 +1,4 @@
-package llamactl
+package config
 
 import (
 	"os"

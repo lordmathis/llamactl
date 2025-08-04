@@ -1,18 +1,18 @@
-package llamactl_test
+package server_test
 
 import (
+	"llamactl/pkg/config"
+	"llamactl/pkg/server"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	llamactl "llamactl/pkg"
 )
 
 func TestAuthMiddleware(t *testing.T) {
 	tests := []struct {
 		name           string
-		keyType        llamactl.KeyType
+		keyType        server.KeyType
 		inferenceKeys  []string
 		managementKeys []string
 		requestKey     string
@@ -22,7 +22,7 @@ func TestAuthMiddleware(t *testing.T) {
 		// Valid key tests
 		{
 			name:           "valid inference key for inference",
-			keyType:        llamactl.KeyTypeInference,
+			keyType:        server.KeyTypeInference,
 			inferenceKeys:  []string{"sk-inference-valid123"},
 			requestKey:     "sk-inference-valid123",
 			method:         "GET",
@@ -30,7 +30,7 @@ func TestAuthMiddleware(t *testing.T) {
 		},
 		{
 			name:           "valid management key for inference", // Management keys work for inference
-			keyType:        llamactl.KeyTypeInference,
+			keyType:        server.KeyTypeInference,
 			managementKeys: []string{"sk-management-admin123"},
 			requestKey:     "sk-management-admin123",
 			method:         "GET",
@@ -38,7 +38,7 @@ func TestAuthMiddleware(t *testing.T) {
 		},
 		{
 			name:           "valid management key for management",
-			keyType:        llamactl.KeyTypeManagement,
+			keyType:        server.KeyTypeManagement,
 			managementKeys: []string{"sk-management-admin123"},
 			requestKey:     "sk-management-admin123",
 			method:         "GET",
@@ -48,7 +48,7 @@ func TestAuthMiddleware(t *testing.T) {
 		// Invalid key tests
 		{
 			name:           "inference key for management should fail",
-			keyType:        llamactl.KeyTypeManagement,
+			keyType:        server.KeyTypeManagement,
 			inferenceKeys:  []string{"sk-inference-user123"},
 			requestKey:     "sk-inference-user123",
 			method:         "GET",
@@ -56,7 +56,7 @@ func TestAuthMiddleware(t *testing.T) {
 		},
 		{
 			name:           "invalid inference key",
-			keyType:        llamactl.KeyTypeInference,
+			keyType:        server.KeyTypeInference,
 			inferenceKeys:  []string{"sk-inference-valid123"},
 			requestKey:     "sk-inference-invalid",
 			method:         "GET",
@@ -64,7 +64,7 @@ func TestAuthMiddleware(t *testing.T) {
 		},
 		{
 			name:           "missing inference key",
-			keyType:        llamactl.KeyTypeInference,
+			keyType:        server.KeyTypeInference,
 			inferenceKeys:  []string{"sk-inference-valid123"},
 			requestKey:     "",
 			method:         "GET",
@@ -72,7 +72,7 @@ func TestAuthMiddleware(t *testing.T) {
 		},
 		{
 			name:           "invalid management key",
-			keyType:        llamactl.KeyTypeManagement,
+			keyType:        server.KeyTypeManagement,
 			managementKeys: []string{"sk-management-valid123"},
 			requestKey:     "sk-management-invalid",
 			method:         "GET",
@@ -80,7 +80,7 @@ func TestAuthMiddleware(t *testing.T) {
 		},
 		{
 			name:           "missing management key",
-			keyType:        llamactl.KeyTypeManagement,
+			keyType:        server.KeyTypeManagement,
 			managementKeys: []string{"sk-management-valid123"},
 			requestKey:     "",
 			method:         "GET",
@@ -90,7 +90,7 @@ func TestAuthMiddleware(t *testing.T) {
 		// OPTIONS requests should always pass
 		{
 			name:           "OPTIONS request bypasses inference auth",
-			keyType:        llamactl.KeyTypeInference,
+			keyType:        server.KeyTypeInference,
 			inferenceKeys:  []string{"sk-inference-valid123"},
 			requestKey:     "",
 			method:         "OPTIONS",
@@ -98,7 +98,7 @@ func TestAuthMiddleware(t *testing.T) {
 		},
 		{
 			name:           "OPTIONS request bypasses management auth",
-			keyType:        llamactl.KeyTypeManagement,
+			keyType:        server.KeyTypeManagement,
 			managementKeys: []string{"sk-management-valid123"},
 			requestKey:     "",
 			method:         "OPTIONS",
@@ -108,7 +108,7 @@ func TestAuthMiddleware(t *testing.T) {
 		// Cross-key-type validation
 		{
 			name:           "management key works for inference endpoint",
-			keyType:        llamactl.KeyTypeInference,
+			keyType:        server.KeyTypeInference,
 			inferenceKeys:  []string{},
 			managementKeys: []string{"sk-management-admin"},
 			requestKey:     "sk-management-admin",
@@ -119,11 +119,11 @@ func TestAuthMiddleware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := llamactl.AuthConfig{
+			cfg := config.AuthConfig{
 				InferenceKeys:  tt.inferenceKeys,
 				ManagementKeys: tt.managementKeys,
 			}
-			middleware := llamactl.NewAPIAuthMiddleware(config)
+			middleware := server.NewAPIAuthMiddleware(cfg)
 
 			// Create test request
 			req := httptest.NewRequest(tt.method, "/test", nil)
@@ -133,12 +133,12 @@ func TestAuthMiddleware(t *testing.T) {
 
 			// Create test handler using the appropriate middleware
 			var handler http.Handler
-			if tt.keyType == llamactl.KeyTypeInference {
-				handler = middleware.AuthMiddleware(llamactl.KeyTypeInference)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if tt.keyType == server.KeyTypeInference {
+				handler = middleware.AuthMiddleware(server.KeyTypeInference)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				}))
 			} else {
-				handler = middleware.AuthMiddleware(llamactl.KeyTypeManagement)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler = middleware.AuthMiddleware(server.KeyTypeManagement)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				}))
 			}
@@ -170,17 +170,17 @@ func TestAuthMiddleware(t *testing.T) {
 func TestGenerateAPIKey(t *testing.T) {
 	tests := []struct {
 		name    string
-		keyType llamactl.KeyType
+		keyType server.KeyType
 	}{
-		{"inference key generation", llamactl.KeyTypeInference},
-		{"management key generation", llamactl.KeyTypeManagement},
+		{"inference key generation", server.KeyTypeInference},
+		{"management key generation", server.KeyTypeManagement},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test auto-generation by creating config that will trigger it
-			var config llamactl.AuthConfig
-			if tt.keyType == llamactl.KeyTypeInference {
+			var config config.AuthConfig
+			if tt.keyType == server.KeyTypeInference {
 				config.RequireInferenceAuth = true
 				config.InferenceKeys = []string{} // Empty to trigger generation
 			} else {
@@ -189,19 +189,19 @@ func TestGenerateAPIKey(t *testing.T) {
 			}
 
 			// Create middleware - this should trigger key generation
-			middleware := llamactl.NewAPIAuthMiddleware(config)
+			middleware := server.NewAPIAuthMiddleware(config)
 
 			// Test that auth is required (meaning a key was generated)
 			req := httptest.NewRequest("GET", "/", nil)
 			recorder := httptest.NewRecorder()
 
 			var handler http.Handler
-			if tt.keyType == llamactl.KeyTypeInference {
-				handler = middleware.AuthMiddleware(llamactl.KeyTypeInference)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if tt.keyType == server.KeyTypeInference {
+				handler = middleware.AuthMiddleware(server.KeyTypeInference)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				}))
 			} else {
-				handler = middleware.AuthMiddleware(llamactl.KeyTypeManagement)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler = middleware.AuthMiddleware(server.KeyTypeManagement)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				}))
 			}
@@ -214,18 +214,18 @@ func TestGenerateAPIKey(t *testing.T) {
 			}
 
 			// Test uniqueness by creating another middleware instance
-			middleware2 := llamactl.NewAPIAuthMiddleware(config)
+			middleware2 := server.NewAPIAuthMiddleware(config)
 
 			req2 := httptest.NewRequest("GET", "/", nil)
 			recorder2 := httptest.NewRecorder()
 
-			if tt.keyType == llamactl.KeyTypeInference {
-				handler2 := middleware2.AuthMiddleware(llamactl.KeyTypeInference)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if tt.keyType == server.KeyTypeInference {
+				handler2 := middleware2.AuthMiddleware(server.KeyTypeInference)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				}))
 				handler2.ServeHTTP(recorder2, req2)
 			} else {
-				handler2 := middleware2.AuthMiddleware(llamactl.KeyTypeManagement)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler2 := middleware2.AuthMiddleware(server.KeyTypeManagement)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				}))
 				handler2.ServeHTTP(recorder2, req2)
@@ -307,21 +307,21 @@ func TestAutoGeneration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := llamactl.AuthConfig{
+			cfg := config.AuthConfig{
 				RequireInferenceAuth:  tt.requireInference,
 				RequireManagementAuth: tt.requireManagement,
 				InferenceKeys:         tt.providedInference,
 				ManagementKeys:        tt.providedManagement,
 			}
 
-			middleware := llamactl.NewAPIAuthMiddleware(config)
+			middleware := server.NewAPIAuthMiddleware(cfg)
 
 			// Test inference behavior if inference auth is required
 			if tt.requireInference {
 				req := httptest.NewRequest("GET", "/v1/models", nil)
 				recorder := httptest.NewRecorder()
 
-				handler := middleware.AuthMiddleware(llamactl.KeyTypeInference)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler := middleware.AuthMiddleware(server.KeyTypeInference)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				}))
 
@@ -338,7 +338,7 @@ func TestAutoGeneration(t *testing.T) {
 				req := httptest.NewRequest("GET", "/api/v1/instances", nil)
 				recorder := httptest.NewRecorder()
 
-				handler := middleware.AuthMiddleware(llamactl.KeyTypeManagement)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler := middleware.AuthMiddleware(server.KeyTypeManagement)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				}))
 

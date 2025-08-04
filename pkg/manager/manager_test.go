@@ -1,18 +1,20 @@
-package llamactl_test
+package manager_test
 
 import (
 	"encoding/json"
+	"llamactl/pkg/backends/llamacpp"
+	"llamactl/pkg/config"
+	"llamactl/pkg/instance"
+	"llamactl/pkg/manager"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
-
-	llamactl "llamactl/pkg"
 )
 
 func TestNewInstanceManager(t *testing.T) {
-	config := llamactl.InstancesConfig{
+	cfg := config.InstancesConfig{
 		PortRange:           [2]int{8000, 9000},
 		LogsDir:             "/tmp/test",
 		MaxInstances:        5,
@@ -22,7 +24,7 @@ func TestNewInstanceManager(t *testing.T) {
 		DefaultRestartDelay: 5,
 	}
 
-	manager := llamactl.NewInstanceManager(config)
+	manager := manager.NewInstanceManager(cfg)
 	if manager == nil {
 		t.Fatal("NewInstanceManager returned nil")
 	}
@@ -40,40 +42,40 @@ func TestNewInstanceManager(t *testing.T) {
 func TestCreateInstance_Success(t *testing.T) {
 	manager := createTestManager()
 
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
 	}
 
-	instance, err := manager.CreateInstance("test-instance", options)
+	inst, err := manager.CreateInstance("test-instance", options)
 	if err != nil {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
-	if instance.Name != "test-instance" {
-		t.Errorf("Expected instance name 'test-instance', got %q", instance.Name)
+	if inst.Name != "test-instance" {
+		t.Errorf("Expected instance name 'test-instance', got %q", inst.Name)
 	}
-	if instance.Running {
+	if inst.Running {
 		t.Error("New instance should not be running")
 	}
-	if instance.GetOptions().Port != 8080 {
-		t.Errorf("Expected port 8080, got %d", instance.GetOptions().Port)
+	if inst.GetOptions().Port != 8080 {
+		t.Errorf("Expected port 8080, got %d", inst.GetOptions().Port)
 	}
 }
 
 func TestCreateInstance_DuplicateName(t *testing.T) {
 	manager := createTestManager()
 
-	options1 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options1 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	options2 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options2 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -96,26 +98,26 @@ func TestCreateInstance_DuplicateName(t *testing.T) {
 
 func TestCreateInstance_MaxInstancesLimit(t *testing.T) {
 	// Create manager with low max instances limit
-	config := llamactl.InstancesConfig{
+	cfg := config.InstancesConfig{
 		PortRange:    [2]int{8000, 9000},
 		MaxInstances: 2, // Very low limit for testing
 	}
-	manager := llamactl.NewInstanceManager(config)
+	manager := manager.NewInstanceManager(cfg)
 
-	options1 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options1 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	options2 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options2 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	options3 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options3 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -145,19 +147,19 @@ func TestCreateInstance_PortAssignment(t *testing.T) {
 	manager := createTestManager()
 
 	// Create instance without specifying port
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	instance, err := manager.CreateInstance("test-instance", options)
+	inst, err := manager.CreateInstance("test-instance", options)
 	if err != nil {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
 	// Should auto-assign a port in the range
-	port := instance.GetOptions().Port
+	port := inst.GetOptions().Port
 	if port < 8000 || port > 9000 {
 		t.Errorf("Expected port in range 8000-9000, got %d", port)
 	}
@@ -166,15 +168,15 @@ func TestCreateInstance_PortAssignment(t *testing.T) {
 func TestCreateInstance_PortConflictDetection(t *testing.T) {
 	manager := createTestManager()
 
-	options1 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options1 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080, // Explicit port
 		},
 	}
 
-	options2 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options2 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model2.gguf",
 			Port:  8080, // Same port - should conflict
 		},
@@ -199,14 +201,14 @@ func TestCreateInstance_PortConflictDetection(t *testing.T) {
 func TestCreateInstance_MultiplePortAssignment(t *testing.T) {
 	manager := createTestManager()
 
-	options1 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options1 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	options2 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options2 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -232,26 +234,26 @@ func TestCreateInstance_MultiplePortAssignment(t *testing.T) {
 
 func TestCreateInstance_PortExhaustion(t *testing.T) {
 	// Create manager with very small port range
-	config := llamactl.InstancesConfig{
+	cfg := config.InstancesConfig{
 		PortRange:    [2]int{8000, 8001}, // Only 2 ports available
 		MaxInstances: 10,                 // Higher than available ports
 	}
-	manager := llamactl.NewInstanceManager(config)
+	manager := manager.NewInstanceManager(cfg)
 
-	options1 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options1 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	options2 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options2 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	options3 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options3 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -280,8 +282,8 @@ func TestCreateInstance_PortExhaustion(t *testing.T) {
 func TestDeleteInstance_PortRelease(t *testing.T) {
 	manager := createTestManager()
 
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
@@ -310,8 +312,8 @@ func TestGetInstance_Success(t *testing.T) {
 	manager := createTestManager()
 
 	// Create an instance first
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -356,14 +358,14 @@ func TestListInstances(t *testing.T) {
 	}
 
 	// Create some instances
-	options1 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options1 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
 
-	options2 := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options2 := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -389,8 +391,8 @@ func TestListInstances(t *testing.T) {
 
 	// Check names are present
 	names := make(map[string]bool)
-	for _, instance := range instances {
-		names[instance.Name] = true
+	for _, inst := range instances {
+		names[inst.Name] = true
 	}
 	if !names["instance1"] || !names["instance2"] {
 		t.Error("Expected both instance1 and instance2 in list")
@@ -401,8 +403,8 @@ func TestDeleteInstance_Success(t *testing.T) {
 	manager := createTestManager()
 
 	// Create an instance
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -440,8 +442,8 @@ func TestUpdateInstance_Success(t *testing.T) {
 	manager := createTestManager()
 
 	// Create an instance
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
@@ -452,8 +454,8 @@ func TestUpdateInstance_Success(t *testing.T) {
 	}
 
 	// Update it
-	newOptions := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	newOptions := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",
 			Port:  8081,
 		},
@@ -475,8 +477,8 @@ func TestUpdateInstance_Success(t *testing.T) {
 func TestUpdateInstance_NotFound(t *testing.T) {
 	manager := createTestManager()
 
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -494,15 +496,15 @@ func TestPersistence_InstancePersistedOnCreation(t *testing.T) {
 	// Create temporary directory for persistence
 	tempDir := t.TempDir()
 
-	config := llamactl.InstancesConfig{
+	cfg := config.InstancesConfig{
 		PortRange:    [2]int{8000, 9000},
 		InstancesDir: tempDir,
 		MaxInstances: 10,
 	}
-	manager := llamactl.NewInstanceManager(config)
+	manager := manager.NewInstanceManager(cfg)
 
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
@@ -539,16 +541,16 @@ func TestPersistence_InstancePersistedOnCreation(t *testing.T) {
 func TestPersistence_InstancePersistedOnUpdate(t *testing.T) {
 	tempDir := t.TempDir()
 
-	config := llamactl.InstancesConfig{
+	cfg := config.InstancesConfig{
 		PortRange:    [2]int{8000, 9000},
 		InstancesDir: tempDir,
 		MaxInstances: 10,
 	}
-	manager := llamactl.NewInstanceManager(config)
+	manager := manager.NewInstanceManager(cfg)
 
 	// Create instance
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
@@ -559,8 +561,8 @@ func TestPersistence_InstancePersistedOnUpdate(t *testing.T) {
 	}
 
 	// Update instance
-	newOptions := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	newOptions := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",
 			Port:  8081,
 		},
@@ -596,16 +598,16 @@ func TestPersistence_InstancePersistedOnUpdate(t *testing.T) {
 func TestPersistence_InstanceFileDeletedOnDeletion(t *testing.T) {
 	tempDir := t.TempDir()
 
-	config := llamactl.InstancesConfig{
+	cfg := config.InstancesConfig{
 		PortRange:    [2]int{8000, 9000},
 		InstancesDir: tempDir,
 		MaxInstances: 10,
 	}
-	manager := llamactl.NewInstanceManager(config)
+	manager := manager.NewInstanceManager(cfg)
 
 	// Create instance
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -667,12 +669,12 @@ func TestPersistence_InstancesLoadedFromDisk(t *testing.T) {
 	}
 
 	// Create manager - should load instances from disk
-	config := llamactl.InstancesConfig{
+	cfg := config.InstancesConfig{
 		PortRange:    [2]int{8000, 9000},
 		InstancesDir: tempDir,
 		MaxInstances: 10,
 	}
-	manager := llamactl.NewInstanceManager(config)
+	manager := manager.NewInstanceManager(cfg)
 
 	// Verify instances were loaded
 	instances, err := manager.ListInstances()
@@ -685,9 +687,9 @@ func TestPersistence_InstancesLoadedFromDisk(t *testing.T) {
 	}
 
 	// Check instances by name
-	instancesByName := make(map[string]*llamactl.Instance)
-	for _, instance := range instances {
-		instancesByName[instance.Name] = instance
+	instancesByName := make(map[string]*instance.Instance)
+	for _, inst := range instances {
+		instancesByName[inst.Name] = inst
 	}
 
 	instance1, exists := instancesByName["instance1"]
@@ -734,16 +736,16 @@ func TestPersistence_PortMapPopulatedFromLoadedInstances(t *testing.T) {
 	}
 
 	// Create manager - should load instance and register port
-	config := llamactl.InstancesConfig{
+	cfg := config.InstancesConfig{
 		PortRange:    [2]int{8000, 9000},
 		InstancesDir: tempDir,
 		MaxInstances: 10,
 	}
-	manager := llamactl.NewInstanceManager(config)
+	manager := manager.NewInstanceManager(cfg)
 
 	// Try to create new instance with same port - should fail due to conflict
-	options := &llamactl.CreateInstanceOptions{
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+	options := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model: "/path/to/model2.gguf",
 			Port:  8080, // Same port as loaded instance
 		},
@@ -761,7 +763,7 @@ func TestPersistence_PortMapPopulatedFromLoadedInstances(t *testing.T) {
 func TestPersistence_CompleteInstanceDataRoundTrip(t *testing.T) {
 	tempDir := t.TempDir()
 
-	config := llamactl.InstancesConfig{
+	cfg := config.InstancesConfig{
 		PortRange:           [2]int{8000, 9000},
 		InstancesDir:        tempDir,
 		MaxInstances:        10,
@@ -771,17 +773,17 @@ func TestPersistence_CompleteInstanceDataRoundTrip(t *testing.T) {
 	}
 
 	// Create first manager and instance with comprehensive options
-	manager1 := llamactl.NewInstanceManager(config)
+	manager1 := manager.NewInstanceManager(cfg)
 
 	autoRestart := false
 	maxRestarts := 10
 	restartDelay := 30
 
-	originalOptions := &llamactl.CreateInstanceOptions{
+	originalOptions := &instance.CreateInstanceOptions{
 		AutoRestart:  &autoRestart,
 		MaxRestarts:  &maxRestarts,
 		RestartDelay: &restartDelay,
-		LlamaServerOptions: llamactl.LlamaServerOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
 			Model:       "/path/to/model.gguf",
 			Port:        8080,
 			Host:        "localhost",
@@ -803,7 +805,7 @@ func TestPersistence_CompleteInstanceDataRoundTrip(t *testing.T) {
 	}
 
 	// Create second manager (simulating restart) - should load the instance
-	manager2 := llamactl.NewInstanceManager(config)
+	manager2 := manager.NewInstanceManager(cfg)
 
 	loadedInstance, err := manager2.GetInstance("roundtrip-test")
 	if err != nil {
@@ -876,8 +878,8 @@ func TestPersistence_CompleteInstanceDataRoundTrip(t *testing.T) {
 }
 
 // Helper function to create a test manager with standard config
-func createTestManager() llamactl.InstanceManager {
-	config := llamactl.InstancesConfig{
+func createTestManager() manager.InstanceManager {
+	cfg := config.InstancesConfig{
 		PortRange:           [2]int{8000, 9000},
 		LogsDir:             "/tmp/test",
 		MaxInstances:        10,
@@ -886,5 +888,5 @@ func createTestManager() llamactl.InstanceManager {
 		DefaultMaxRestarts:  3,
 		DefaultRestartDelay: 5,
 	}
-	return llamactl.NewInstanceManager(config)
+	return manager.NewInstanceManager(cfg)
 }

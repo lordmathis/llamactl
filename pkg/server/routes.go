@@ -1,4 +1,4 @@
-package llamactl
+package server
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 
 	// Add CORS middleware
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   handler.config.Server.AllowedOrigins,
+		AllowedOrigins:   handler.cfg.Server.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -27,9 +27,9 @@ func SetupRouter(handler *Handler) *chi.Mux {
 	}))
 
 	// Add API authentication middleware
-	authMiddleware := NewAPIAuthMiddleware(handler.config.Auth)
+	authMiddleware := NewAPIAuthMiddleware(handler.cfg.Auth)
 
-	if handler.config.Server.EnableSwagger {
+	if handler.cfg.Server.EnableSwagger {
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("/swagger/doc.json"),
 		))
@@ -38,7 +38,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 	// Define routes
 	r.Route("/api/v1", func(r chi.Router) {
 
-		if authMiddleware != nil && handler.config.Auth.RequireManagementAuth {
+		if authMiddleware != nil && handler.cfg.Auth.RequireManagementAuth {
 			r.Use(authMiddleware.AuthMiddleware(KeyTypeManagement))
 		}
 
@@ -73,7 +73,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 
 	r.Route(("/v1"), func(r chi.Router) {
 
-		if authMiddleware != nil && handler.config.Auth.RequireInferenceAuth {
+		if authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
 			r.Use(authMiddleware.AuthMiddleware(KeyTypeInference))
 		}
 
