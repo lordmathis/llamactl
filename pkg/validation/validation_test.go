@@ -41,9 +41,16 @@ func TestValidateInstanceName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validation.ValidateInstanceName(tt.input)
+			name, err := validation.ValidateInstanceName(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceName(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return // Skip further checks if we expect an error
+			}
+			// If no error, check that the name is returned as expected
+			if name != tt.input {
+				t.Errorf("ValidateInstanceName(%q) = %q, want %q", tt.input, name, tt.input)
 			}
 		})
 	}

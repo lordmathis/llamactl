@@ -31,7 +31,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances)
 	}
 
-	err := validation.ValidateInstanceName(name)
+	name, err := validation.ValidateInstanceName(name)
 	if err != nil {
 		return nil, err
 	}
