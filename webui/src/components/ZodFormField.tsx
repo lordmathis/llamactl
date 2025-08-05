@@ -51,10 +51,14 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
             <Input
               id={fieldKey}
               type="number"
-              value={value || ''}
+              step="any" // This allows decimal numbers
+              value={value !== undefined ? value : ''}
               onChange={(e) => {
                 const numValue = e.target.value ? parseFloat(e.target.value) : undefined
-                handleChange(numValue)
+                // Only update if the parsed value is valid or the input is empty
+                if (e.target.value === '' || !isNaN(numValue!)) {
+                  handleChange(numValue)
+                }
               }}
               placeholder={config.placeholder}
             />
