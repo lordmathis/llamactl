@@ -7,8 +7,8 @@ import { getFieldType, basicFieldsConfig } from '@/lib/zodFormUtils'
 
 interface ZodFormFieldProps {
   fieldKey: keyof CreateInstanceOptions
-  value: any
-  onChange: (key: keyof CreateInstanceOptions, value: any) => void
+  value: string | number | boolean | string[] | undefined
+  onChange: (key: keyof CreateInstanceOptions, value: string | number | boolean | string[] | undefined) => void
 }
 
 const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }) => {
@@ -18,7 +18,7 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
   // Get type from Zod schema
   const fieldType = getFieldType(fieldKey)
 
-  const handleChange = (newValue: any) => {
+  const handleChange = (newValue: string | number | boolean | string[] | undefined) => {
     onChange(fieldKey, newValue)
   }
 
@@ -29,7 +29,7 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
           <div className="flex items-center space-x-2">
             <Checkbox
               id={fieldKey}
-              checked={value || false}
+              checked={typeof value === 'boolean' ? value : false}
               onCheckedChange={(checked) => handleChange(checked)}
             />
             <Label htmlFor={fieldKey} className="text-sm font-normal">
@@ -52,11 +52,11 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
               id={fieldKey}
               type="number"
               step="any" // This allows decimal numbers
-              value={value !== undefined ? value : ''}
+              value={typeof value === 'string' || typeof value === 'number' ? value : ''}
               onChange={(e) => {
                 const numValue = e.target.value ? parseFloat(e.target.value) : undefined
                 // Only update if the parsed value is valid or the input is empty
-                if (e.target.value === '' || !isNaN(numValue!)) {
+                if (e.target.value === '' || (numValue !== undefined && !isNaN(numValue))) {
                   handleChange(numValue)
                 }
               }}
@@ -105,7 +105,7 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
             <Input
               id={fieldKey}
               type="text"
-              value={value || ''}
+              value={typeof value === 'string' || typeof value === 'number' ? value : ''}
               onChange={(e) => handleChange(e.target.value || undefined)}
               placeholder={config.placeholder}
             />
