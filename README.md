@@ -2,90 +2,132 @@
 
 ![Build and Release](https://github.com/lordmathis/llamactl/actions/workflows/release.yaml/badge.svg) ![Go Tests](https://github.com/lordmathis/llamactl/actions/workflows/go_test.yaml/badge.svg) ![WebUI Tests](https://github.com/lordmathis/llamactl/actions/workflows/webui_test.yaml/badge.svg)
 
-A control server for managing multiple Llama Server instances with a web-based dashboard.
+**Management server for multiple llama.cpp instances with OpenAI-compatible API routing.**
 
-## Features
+## Why llamactl?
 
-- **Multi-instance Management**: Create, start, stop, restart, and delete multiple llama-server instances
-- **Web Dashboard**: Modern React-based UI for managing instances
-- **Auto-restart**: Configurable automatic restart on instance failure
-- **Instance Monitoring**: Real-time health checks and status monitoring
-- **Log Management**: View, search, and download instance logs
-- **Data Persistence**: Persistent storage of instance state.
-- **REST API**: Full API for programmatic control
-- **OpenAI Compatible**: Route requests to instances by instance name
-- **Configuration Management**: Comprehensive llama-server parameter support
-- **System Information**: View llama-server version, devices, and help
-- **API Key Authentication**: Secure access with separate management and inference keys
+🚀 **Multiple Model Serving**: Run different models simultaneously (7B for speed, 70B for quality)  
+🔗 **OpenAI API Compatible**: Drop-in replacement - route requests by model name  
+🌐 **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)  
+🔐 **API Key Authentication**: Separate keys for management vs inference access  
+📊 **Instance Monitoring**: Health checks, auto-restart, log management  
+⚡ **Persistent State**: Instances survive server restarts
 
-## Prerequisites
+**Choose llamactl if**: You need authentication, health monitoring, auto-restart, and centralized management of multiple llama-server instances  
+**Choose Ollama if**: You want the simplest setup with strong community ecosystem and third-party integrations  
+**Choose LM Studio if**: You prefer a polished desktop GUI experience with easy model management
 
-This project requires `llama-server` from llama.cpp to be installed and available in your PATH.
+## Quick Start
 
-**Install llama.cpp:**
-Follow the installation instructions at https://github.com/ggml-org/llama.cpp
+```bash
+# 1. Install llama-server (one-time setup)
+# See: https://github.com/ggml-org/llama.cpp#quick-start
+
+# 2. Download and run llamactl
+LATEST_VERSION=$(curl -s https://api.github.com/repos/lordmathis/llamactl/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+curl -L https://github.com/lordmathis/llamactl/releases/download/${LATEST_VERSION}/llamactl-${LATEST_VERSION}-linux-amd64.tar.gz | tar -xz
+sudo mv llamactl /usr/local/bin/
+
+# 3. Start the server
+llamactl
+# Access dashboard at http://localhost:8080
+```
+
+## Usage
+
+### Create and manage instances via web dashboard:
+1. Open http://localhost:8080
+2. Click "Create Instance"
+3. Set model path and GPU layers
+4. Start or stop the instance
+
+### Or use the REST API:
+```bash
+# Create instance
+curl -X POST localhost:8080/api/v1/instances/my-7b-model \
+  -H "Authorization: Bearer your-key" \
+  -d '{"model": "/path/to/model.gguf", "gpu_layers": 32}'
+
+# Use with OpenAI SDK
+curl -X POST localhost:8080/v1/chat/completions \
+  -H "Authorization: Bearer your-key" \
+  -d '{"model": "my-7b-model", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
 
 ## Installation
 
-### Download Prebuilt Binaries
+### Option 1: Download Binary (Recommended)
 
-The easiest way to install llamactl is to download a prebuilt binary from the [releases page](https://github.com/lordmathis/llamactl/releases).
-
-**Linux/macOS:**
 ```bash
-# Download the latest release for your platform
-curl -L https://github.com/lordmathis/llamactl/releases/latest/download/llamactl-$(curl -s https://api.github.com/repos/lordmathis/llamactl/releases/latest | grep tag_name | cut -d '"' -f 4)-linux-amd64.tar.gz | tar -xz
-
-# Move to PATH
+# Linux/macOS - Get latest version and download
+LATEST_VERSION=$(curl -s https://api.github.com/repos/lordmathis/llamactl/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+curl -L https://github.com/lordmathis/llamactl/releases/download/${LATEST_VERSION}/llamactl-${LATEST_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz | tar -xz
 sudo mv llamactl /usr/local/bin/
 
-# Run the server
-llamactl
+# Or download manually from the releases page:
+# https://github.com/lordmathis/llamactl/releases/latest
+
+# Windows - Download from releases page
 ```
 
-**Manual Download:**
-1. Go to the [releases page](https://github.com/lordmathis/llamactl/releases)
-2. Download the appropriate archive for your platform
-3. Extract the archive and move the binary to a directory in your PATH
-
-### Build from Source
-
-If you prefer to build from source or need the latest development version:
-
-#### Build Requirements
-
-- Go 1.24 or later
-- Node.js 22 or later (for building the web UI)
-
-#### Building with Web UI
-
+### Option 2: Build from Source
+Requires Go 1.24+ and Node.js 22+
 ```bash
-# Clone the repository
 git clone https://github.com/lordmathis/llamactl.git
 cd llamactl
-
-# Install Node.js dependencies
-cd webui
-npm ci
-
-# Build the web UI
-npm run build
-
-# Return to project root and build
-cd ..
+cd webui && npm ci && npm run build && cd ..
 go build -o llamactl ./cmd/server
+```
 
-# Run the server
-./llamactl
+## Prerequisites
+
+You need `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp) installed:
+
+```bash
+# Quick install methods:
+# Homebrew (macOS)
+brew install llama.cpp
+
+# Or build from source - see llama.cpp docs
 ```
 
 ## Configuration
 
-llamactl can be configured via configuration files or environment variables. Configuration is loaded in the following order of precedence:
+llamactl works out of the box with sensible defaults.
 
-1. Hardcoded defaults
-2. Configuration file
-3. Environment variables
+```yaml
+server:
+  host: "0.0.0.0"                # Server host to bind to
+  port: 8080                     # Server port to bind to
+  allowed_origins: ["*"]         # Allowed CORS origins (default: all)
+  enable_swagger: false          # Enable Swagger UI for API docs
+
+instances:
+  port_range: [8000, 9000]       # Port range for instances
+  data_dir: ~/.local/share/llamactl         # Data directory (platform-specific, see below)
+  configs_dir: ~/.local/share/llamactl/instances  # Instance configs directory
+  logs_dir: ~/.local/share/llamactl/logs    # Logs directory
+  auto_create_dirs: true         # Auto-create data/config/logs dirs if missing
+  max_instances: -1              # Max instances (-1 = unlimited)
+  llama_executable: llama-server # Path to llama-server executable
+  default_auto_restart: true     # Auto-restart new instances by default
+  default_max_restarts: 3        # Max restarts for new instances
+  default_restart_delay: 5       # Restart delay (seconds) for new instances
+
+auth:
+  require_inference_auth: true   # Require auth for inference endpoints
+  inference_keys: []             # Keys for inference endpoints
+  require_management_auth: true  # Require auth for management endpoints
+  management_keys: []            # Keys for management endpoints
+```
+
+<details><summary><strong>Full Configuration Guide</strong></summary>
+
+llamactl can be configured via configuration files or environment variables. Configuration is loaded in the following order of precedence:  
+
+```
+Defaults < Configuration file < Environment variables
+```
 
 ### Configuration Files
 
@@ -168,147 +210,8 @@ auth:
 - `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)
 - `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys
 
-### Example Configuration
-
-```yaml
-server:
-  host: "0.0.0.0"
-  port: 8080
-
-instances:
-  port_range: [8001, 8100]
-  data_dir: "/var/lib/llamactl"
-  configs_dir: "/var/lib/llamactl/instances"
-  logs_dir: "/var/log/llamactl"
-  auto_create_dirs: true
-  max_instances: 10
-  llama_executable: "/usr/local/bin/llama-server"
-  default_auto_restart: true
-  default_max_restarts: 5
-  default_restart_delay: 10
-
-auth:
-  require_inference_auth: true
-  inference_keys: ["sk-inference-abc123"]
-  require_management_auth: true
-  management_keys: ["sk-management-xyz456"]
-```
-
-## Usage
-
-### Starting the Server
-
-```bash
-# Start with default configuration
-./llamactl
-
-# Start with custom config file
-LLAMACTL_CONFIG_PATH=/path/to/config.yaml ./llamactl
-
-# Start with environment variables
-LLAMACTL_PORT=9090 LLAMACTL_LOG_DIR=/custom/logs ./llamactl
-```
-
-### Authentication
-
-llamactl supports API Key authentication for both management and inference (OpenAI-compatible) endpoints. There are separate keys for management and inference APIs:
-
-- **Management keys** grant full access to instance management
-- **Inference keys** grant access to OpenAI-compatible endpoints
-- Management keys also work for inference endpoints (higher privilege)
-
-**How to Use:**
-Pass your API key in requests using one of:
-- `Authorization: Bearer <key>` header
-- `X-API-Key: <key>` header
-- `api_key=<key>` query parameter
-
-**Auto-generated keys**: If no keys are set and authentication is required, a key will be generated and printed to the terminal at startup. For production, set your own keys in config or environment variables.
-
-### Web Dashboard
-
-Open your browser and navigate to `http://localhost:8080` to access the web dashboard.
-
-### API Usage
-
-The REST API is available at `http://localhost:8080/api/v1`. See the Swagger documentation at `http://localhost:8080/swagger/` for complete API reference.
-
-#### Create an Instance
-
-```bash
-curl -X POST http://localhost:8080/api/v1/instances/my-instance \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-management-your-key" \
-  -d '{
-    "model": "/path/to/model.gguf",
-    "gpu_layers": 32,
-    "auto_restart": true
-  }'
-```
-
-#### List Instances
-
-```bash
-curl -H "Authorization: Bearer sk-management-your-key" \
-  http://localhost:8080/api/v1/instances
-```
-
-#### Start/Stop Instance
-
-```bash
-# Start
-curl -X POST \
-  -H "Authorization: Bearer sk-management-your-key" \
-  http://localhost:8080/api/v1/instances/my-instance/start
-
-# Stop
-curl -X POST \
-  -H "Authorization: Bearer sk-management-your-key" \
-  http://localhost:8080/api/v1/instances/my-instance/stop
-```
-
-### OpenAI Compatible Endpoints
-
-Route requests to instances by including the instance name as the model parameter:
-
-```bash
-curl -X POST http://localhost:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-inference-your-key" \
-  -d '{
-    "model": "my-instance",
-    "messages": [{"role": "user", "content": "Hello!"}]
-  }'
-```
-
-## Development
-
-### Running Tests
-
-```bash
-# Go tests
-go test ./...
-
-# Web UI tests
-cd webui
-npm test
-```
-
-### Development Server
-
-```bash
-# Start Go server in development mode
-go run ./cmd/server
-
-# Start web UI development server (in another terminal)
-cd webui
-npm run dev
-```
-
-## API Documentation
-
-Interactive API documentation is available at `http://localhost:8080/swagger/` when the server is running.
+</details>
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) file.
