@@ -1,5 +1,4 @@
-import type { CreateInstanceOptions} from '@/schemas/instanceOptions';
-import { getAllFieldKeys } from '@/schemas/instanceOptions'
+import { type CreateInstanceOptions, getAllFieldKeys } from '@/schemas/instanceOptions'
 
 // Only define the basic fields we want to show by default
 export const basicFieldsConfig: Record<string, { 
