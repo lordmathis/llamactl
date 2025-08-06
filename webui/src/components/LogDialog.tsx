@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { instancesApi } from '@/lib/api'
 import { 
   RefreshCw, 
   Download, 
@@ -46,48 +47,44 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch logs function
-  const fetchLogs = async (lines?: number) => {
-    if (!instanceName) return
-    
-    setLoading(true)
-    setError(null)
-    
-    try {
-      const params = lines ? `?lines=${lines}` : ''
-      const response = await fetch(`/api/v1/instances/${instanceName}/logs${params}`)
+  const fetchLogs = React.useCallback(
+    async (lines?: number) => {
+      if (!instanceName) return
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch logs: ${response.status}`)
+      setLoading(true)
+      setError(null)
+      
+      try {
+        const logText = await instancesApi.getLogs(instanceName, lines)
+        setLogs(logText)
+        
+        // Auto-scroll to bottom
+        setTimeout(() => {
+          if (logContainerRef.current) {
+            logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight
+          }
+        }, 100)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch logs')
+      } finally {
+        setLoading(false)
       }
-      
-      const logText = await response.text()
-      setLogs(logText)
-      
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        if (logContainerRef.current) {
-          logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight
-        }
-      }, 100)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch logs')
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    [instanceName]
+  )
 
   // Initial load when dialog opens
   useEffect(() => {
     if (open && instanceName) {
-      fetchLogs(lineCount)
+      void fetchLogs(lineCount)
     }
-  }, [open, instanceName])
+  }, [open, instanceName, fetchLogs, lineCount])
 
   // Auto-refresh effect
   useEffect(() => {
     if (autoRefresh && isRunning && open) {
       refreshIntervalRef.current = setInterval(() => {
-        fetchLogs(lineCount)
+        void fetchLogs(lineCount)
       }, 2000) // Refresh every 2 seconds
     } else {
       if (refreshIntervalRef.current) {
@@ -101,7 +98,7 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
         clearInterval(refreshIntervalRef.current)
       }
     }
-  }, [autoRefresh, isRunning, open, lineCount])
+  }, [autoRefresh, isRunning, open, lineCount, fetchLogs])
 
   // Copy logs to clipboard
   const copyLogs = async () => {
@@ -135,7 +132,7 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
 
   // Apply new line count
   const applyLineCount = () => {
-    fetchLogs(lineCount)
+    void fetchLogs(lineCount)
     setShowSettings(false)
   }
 
@@ -198,7 +195,7 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => fetchLogs(lineCount)}
+                onClick={() => void fetchLogs(lineCount)}
                 disabled={loading}
               >
                 {loading ? (
@@ -290,7 +287,7 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
           <div className="flex items-center gap-2 w-full">
             <Button
               variant="outline"
-              onClick={copyLogs}
+              onClick={() => void copyLogs()}
               disabled={!logs}
             >
               {copied ? (
