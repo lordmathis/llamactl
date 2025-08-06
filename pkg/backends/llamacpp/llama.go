@@ -15,12 +15,12 @@ type LlamaServerOptions struct {
 	CPUMask                 string   `json:"cpu_mask,omitempty"`
 	CPURange                string   `json:"cpu_range,omitempty"`
 	CPUStrict               int      `json:"cpu_strict,omitempty"`
-	Priority                int      `json:"priority,omitempty"`
+	Prio                    int      `json:"prio,omitempty"`
 	Poll                    int      `json:"poll,omitempty"`
 	CPUMaskBatch            string   `json:"cpu_mask_batch,omitempty"`
 	CPURangeBatch           string   `json:"cpu_range_batch,omitempty"`
 	CPUStrictBatch          int      `json:"cpu_strict_batch,omitempty"`
-	PriorityBatch           int      `json:"priority_batch,omitempty"`
+	PrioBatch               int      `json:"prio_batch,omitempty"`
 	PollBatch               int      `json:"poll_batch,omitempty"`
 	CtxSize                 int      `json:"ctx_size,omitempty"`
 	Predict                 int      `json:"predict,omitempty"`
@@ -83,7 +83,7 @@ type LlamaServerOptions struct {
 	Seed               int      `json:"seed,omitempty"`
 	SamplingSeq        string   `json:"sampling_seq,omitempty"`
 	IgnoreEOS          bool     `json:"ignore_eos,omitempty"`
-	Temperature        float64  `json:"temperature,omitempty"`
+	Temperature        float64  `json:"temp,omitempty"`
 	TopK               int      `json:"top_k,omitempty"`
 	TopP               float64  `json:"top_p,omitempty"`
 	MinP               float64  `json:"min_p,omitempty"`
@@ -110,7 +110,7 @@ type LlamaServerOptions struct {
 	JSONSchema         string   `json:"json_schema,omitempty"`
 	JSONSchemaFile     string   `json:"json_schema_file,omitempty"`
 
-	// Server/Example-specific params
+	// Example-specific params
 	NoContextShift       bool    `json:"no_context_shift,omitempty"`
 	Special              bool    `json:"special,omitempty"`
 	NoWarmup             bool    `json:"no_warmup,omitempty"`
@@ -150,17 +150,15 @@ type LlamaServerOptions struct {
 	NoPrefillAssistant   bool    `json:"no_prefill_assistant,omitempty"`
 	SlotPromptSimilarity float64 `json:"slot_prompt_similarity,omitempty"`
 	LoraInitWithoutApply bool    `json:"lora_init_without_apply,omitempty"`
-
-	// Speculative decoding params
-	DraftMax        int     `json:"draft_max,omitempty"`
-	DraftMin        int     `json:"draft_min,omitempty"`
-	DraftPMin       float64 `json:"draft_p_min,omitempty"`
-	CtxSizeDraft    int     `json:"ctx_size_draft,omitempty"`
-	DeviceDraft     string  `json:"device_draft,omitempty"`
-	GPULayersDraft  int     `json:"gpu_layers_draft,omitempty"`
-	ModelDraft      string  `json:"model_draft,omitempty"`
-	CacheTypeKDraft string  `json:"cache_type_k_draft,omitempty"`
-	CacheTypeVDraft string  `json:"cache_type_v_draft,omitempty"`
+	DraftMax             int     `json:"draft_max,omitempty"`
+	DraftMin             int     `json:"draft_min,omitempty"`
+	DraftPMin            float64 `json:"draft_p_min,omitempty"`
+	CtxSizeDraft         int     `json:"ctx_size_draft,omitempty"`
+	DeviceDraft          string  `json:"device_draft,omitempty"`
+	GPULayersDraft       int     `json:"gpu_layers_draft,omitempty"`
+	ModelDraft           string  `json:"model_draft,omitempty"`
+	CacheTypeKDraft      string  `json:"cache_type_k_draft,omitempty"`
+	CacheTypeVDraft      string  `json:"cache_type_v_draft,omitempty"`
 
 	// Audio/TTS params
 	ModelVocoder      string `json:"model_vocoder,omitempty"`
@@ -199,62 +197,75 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 
 	// Handle alternative field names
 	fieldMappings := map[string]string{
-		// Official llama-server short forms from the documentation
-		"t":    "threads",                // -t, --threads N
-		"tb":   "threads_batch",          // -tb, --threads-batch N
-		"C":    "cpu_mask",               // -C, --cpu-mask M
-		"Cr":   "cpu_range",              // -Cr, --cpu-range lo-hi
-		"Cb":   "cpu_mask_batch",         // -Cb, --cpu-mask-batch M
-		"Crb":  "cpu_range_batch",        // -Crb, --cpu-range-batch lo-hi
-		"c":    "ctx_size",               // -c, --ctx-size N
-		"n":    "predict",                // -n, --predict, --n-predict N
-		"b":    "batch_size",             // -b, --batch-size N
-		"ub":   "ubatch_size",            // -ub, --ubatch-size N
-		"fa":   "flash_attn",             // -fa, --flash-attn
-		"e":    "escape",                 // -e, --escape
-		"dkvc": "dump_kv_cache",          // -dkvc, --dump-kv-cache
-		"nkvo": "no_kv_offload",          // -nkvo, --no-kv-offload
-		"ctk":  "cache_type_k",           // -ctk, --cache-type-k TYPE
-		"ctv":  "cache_type_v",           // -ctv, --cache-type-v TYPE
-		"dt":   "defrag_thold",           // -dt, --defrag-thold N
-		"np":   "parallel",               // -np, --parallel N
-		"dev":  "device",                 // -dev, --device <dev1,dev2,..>
-		"ot":   "override_tensor",        // --override-tensor, -ot
-		"ngl":  "gpu_layers",             // -ngl, --gpu-layers, --n-gpu-layers N
-		"sm":   "split_mode",             // -sm, --split-mode
-		"ts":   "tensor_split",           // -ts, --tensor-split N0,N1,N2,...
-		"mg":   "main_gpu",               // -mg, --main-gpu INDEX
-		"m":    "model",                  // -m, --model FNAME
-		"mu":   "model_url",              // -mu, --model-url MODEL_URL
-		"hf":   "hf_repo",                // -hf, -hfr, --hf-repo
-		"hfr":  "hf_repo",                // -hf, -hfr, --hf-repo
-		"hfd":  "hf_repo_draft",          // -hfd, -hfrd, --hf-repo-draft
-		"hfrd": "hf_repo_draft",          // -hfd, -hfrd, --hf-repo-draft
-		"hff":  "hf_file",                // -hff, --hf-file FILE
-		"hfv":  "hf_repo_v",              // -hfv, -hfrv, --hf-repo-v
-		"hfrv": "hf_repo_v",              // -hfv, -hfrv, --hf-repo-v
-		"hffv": "hf_file_v",              // -hffv, --hf-file-v FILE
-		"hft":  "hf_token",               // -hft, --hf-token TOKEN
-		"v":    "verbose",                // -v, --verbose, --log-verbose
-		"lv":   "verbosity",              // -lv, --verbosity, --log-verbosity N
-		"s":    "seed",                   // -s, --seed SEED
-		"temp": "temperature",            // --temp N
-		"l":    "logit_bias",             // -l, --logit-bias
-		"j":    "json_schema",            // -j, --json-schema SCHEMA
-		"jf":   "json_schema_file",       // -jf, --json-schema-file FILE
-		"sp":   "special",                // -sp, --special
-		"cb":   "cont_batching",          // -cb, --cont-batching
-		"nocb": "no_cont_batching",       // -nocb, --no-cont-batching
-		"a":    "alias",                  // -a, --alias STRING
-		"to":   "timeout",                // -to, --timeout N
-		"sps":  "slot_prompt_similarity", // -sps, --slot-prompt-similarity
-		"cd":   "ctx_size_draft",         // -cd, --ctx-size-draft N
-		"devd": "device_draft",           // -devd, --device-draft
-		"ngld": "gpu_layers_draft",       // -ngld, --gpu-layers-draft
-		"md":   "model_draft",            // -md, --model-draft FNAME
-		"ctkd": "cache_type_k_draft",     // -ctkd, --cache-type-k-draft TYPE
-		"ctvd": "cache_type_v_draft",     // -ctvd, --cache-type-v-draft TYPE
-		"mv":   "model_vocoder",          // -mv, --model-vocoder FNAME
+		// Common params
+		"t":             "threads",         // -t, --threads N
+		"tb":            "threads_batch",   // -tb, --threads-batch N
+		"C":             "cpu_mask",        // -C, --cpu-mask M
+		"Cr":            "cpu_range",       // -Cr, --cpu-range lo-hi
+		"Cb":            "cpu_mask_batch",  // -Cb, --cpu-mask-batch M
+		"Crb":           "cpu_range_batch", // -Crb, --cpu-range-batch lo-hi
+		"c":             "ctx_size",        // -c, --ctx-size N
+		"n":             "predict",         // -n, --predict N
+		"n-predict":     "predict",         // --n-predict N
+		"b":             "batch_size",      // -b, --batch-size N
+		"ub":            "ubatch_size",     // -ub, --ubatch-size N
+		"fa":            "flash_attn",      // -fa, --flash-attn
+		"e":             "escape",          // -e, --escape
+		"dkvc":          "dump_kv_cache",   // -dkvc, --dump-kv-cache
+		"nkvo":          "no_kv_offload",   // -nkvo, --no-kv-offload
+		"ctk":           "cache_type_k",    // -ctk, --cache-type-k TYPE
+		"ctv":           "cache_type_v",    // -ctv, --cache-type-v TYPE
+		"dt":            "defrag_thold",    // -dt, --defrag-thold N
+		"np":            "parallel",        // -np, --parallel N
+		"dev":           "device",          // -dev, --device <dev1,dev2,..>
+		"ot":            "override_tensor", // --override-tensor, -ot
+		"ngl":           "gpu_layers",      // -ngl, --gpu-layers, --n-gpu-layers N
+		"n-gpu-layers":  "gpu_layers",      // --n-gpu-layers N
+		"sm":            "split_mode",      // -sm, --split-mode
+		"ts":            "tensor_split",    // -ts, --tensor-split N0,N1,N2,...
+		"mg":            "main_gpu",        // -mg, --main-gpu INDEX
+		"m":             "model",           // -m, --model FNAME
+		"mu":            "model_url",       // -mu, --model-url MODEL_URL
+		"hf":            "hf_repo",         // -hf, -hfr, --hf-repo
+		"hfr":           "hf_repo",         // -hf, -hfr, --hf-repo
+		"hfd":           "hf_repo_draft",   // -hfd, -hfrd, --hf-repo-draft
+		"hfrd":          "hf_repo_draft",   // -hfd, -hfrd, --hf-repo-draft
+		"hff":           "hf_file",         // -hff, --hf-file FILE
+		"hfv":           "hf_repo_v",       // -hfv, -hfrv, --hf-repo-v
+		"hfrv":          "hf_repo_v",       // -hfv, -hfrv, --hf-repo-v
+		"hffv":          "hf_file_v",       // -hffv, --hf-file-v FILE
+		"hft":           "hf_token",        // -hft, --hf-token TOKEN
+		"v":             "verbose",         // -v, --verbose, --log-verbose
+		"log-verbose":   "verbose",         // --log-verbose
+		"lv":            "verbosity",       // -lv, --verbosity, --log-verbosity N
+		"log-verbosity": "verbosity",       // --log-verbosity N
+
+		// Sampling params
+		"s":  "seed",             // -s, --seed SEED
+		"l":  "logit_bias",       // -l, --logit-bias
+		"j":  "json_schema",      // -j, --json-schema SCHEMA
+		"jf": "json_schema_file", // -jf, --json-schema-file FILE
+
+		// Example-specific params
+		"sp":                 "special",                // -sp, --special
+		"cb":                 "cont_batching",          // -cb, --cont-batching
+		"nocb":               "no_cont_batching",       // -nocb, --no-cont-batching
+		"a":                  "alias",                  // -a, --alias STRING
+		"embeddings":         "embedding",              // --embeddings
+		"rerank":             "reranking",              // --reranking
+		"to":                 "timeout",                // -to, --timeout N
+		"sps":                "slot_prompt_similarity", // -sps, --slot-prompt-similarity
+		"draft":              "draft-max",              // -draft, --draft-max N
+		"draft-n":            "draft-max",              // --draft-n-max N
+		"draft-n-min":        "draft_min",              // --draft-n-min N
+		"cd":                 "ctx_size_draft",         // -cd, --ctx-size-draft N
+		"devd":               "device_draft",           // -devd, --device-draft
+		"ngld":               "gpu_layers_draft",       // -ngld, --gpu-layers-draft
+		"n-gpu-layers-draft": "gpu_layers_draft",       // --n-gpu-layers-draft N
+		"md":                 "model_draft",            // -md, --model-draft FNAME
+		"ctkd":               "cache_type_k_draft",     // -ctkd, --cache-type-k-draft TYPE
+		"ctvd":               "cache_type_v_draft",     // -ctvd, --cache-type-v-draft TYPE
+		"mv":                 "model_vocoder",          // -mv, --model-vocoder FNAME
 	}
 
 	// Process alternative field names
