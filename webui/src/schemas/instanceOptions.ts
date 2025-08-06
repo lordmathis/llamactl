@@ -14,12 +14,12 @@ export const CreateInstanceOptionsSchema = z.object({
   cpu_mask: z.string().optional(),
   cpu_range: z.string().optional(),
   cpu_strict: z.number().optional(),
-  priority: z.number().optional(),
+  prio: z.number().optional(),
   poll: z.number().optional(),
   cpu_mask_batch: z.string().optional(),
   cpu_range_batch: z.string().optional(),
   cpu_strict_batch: z.number().optional(),
-  priority_batch: z.number().optional(),
+  prio_batch: z.number().optional(),
   poll_batch: z.number().optional(),
   ctx_size: z.number().optional(),
   predict: z.number().optional(),
@@ -82,7 +82,7 @@ export const CreateInstanceOptionsSchema = z.object({
   seed: z.number().optional(),
   sampling_seq: z.string().optional(),
   ignore_eos: z.boolean().optional(),
-  temperature: z.number().optional(),
+  temp: z.number().optional(),
   top_k: z.number().optional(),
   top_p: z.number().optional(),
   min_p: z.number().optional(),
@@ -109,7 +109,7 @@ export const CreateInstanceOptionsSchema = z.object({
   json_schema: z.string().optional(),
   json_schema_file: z.string().optional(),
 
-  // Server/Example-specific params
+  // Example-specific params
   no_context_shift: z.boolean().optional(),
   special: z.boolean().optional(),
   no_warmup: z.boolean().optional(),
@@ -149,8 +149,6 @@ export const CreateInstanceOptionsSchema = z.object({
   no_prefill_assistant: z.boolean().optional(),
   slot_prompt_similarity: z.number().optional(),
   lora_init_without_apply: z.boolean().optional(),
-
-  // Speculative decoding params
   draft_max: z.number().optional(),
   draft_min: z.number().optional(),
   draft_p_min: z.number().optional(),

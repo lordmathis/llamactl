@@ -109,13 +109,13 @@ func TestBuildCommandArgs_NumericFields(t *testing.T) {
 	args := options.BuildCommandArgs()
 
 	expectedPairs := map[string]string{
-		"--port":        "8080",
-		"--threads":     "4",
-		"--ctx-size":    "2048",
-		"--gpu-layers":  "16",
-		"--temperature": "0.7",
-		"--top-k":       "40",
-		"--top-p":       "0.9",
+		"--port":       "8080",
+		"--threads":    "4",
+		"--ctx-size":   "2048",
+		"--gpu-layers": "16",
+		"--temp":       "0.7",
+		"--top-k":      "40",
+		"--top-p":      "0.9",
 	}
 
 	for flag, expectedValue := range expectedPairs {
@@ -231,7 +231,7 @@ func TestUnmarshalJSON_StandardFields(t *testing.T) {
 		"verbose": true,
 		"ctx_size": 4096,
 		"gpu_layers": 32,
-		"temperature": 0.7
+		"temp": 0.7
 	}`
 
 	var options llamacpp.LlamaServerOptions
