@@ -28,7 +28,23 @@ func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 	}
 }
 
-// HelpHandler godoc
+// VersionHandler godoc
+// @Summary Get llamactl version
+// @Description Returns the version of the llamactl command
+// @Tags version
+// @Security ApiKeyAuth
+// @Produces text/plain
+// @Success 200 {string} string "Version information"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /version [get]
+func (h *Handler) VersionHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprintf(w, "Version: %s\nCommit: %s\nBuild Time: %s\n", h.cfg.Version, h.cfg.CommitHash, h.cfg.BuildTime)
+	}
+}
+
+// LlamaServerHelpHandler godoc
 // @Summary Get help for llama server
 // @Description Returns the help text for the llama server command
 // @Tags server
@@ -37,7 +53,7 @@ func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 // @Success 200 {string} string "Help text"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /server/help [get]
-func (h *Handler) HelpHandler() http.HandlerFunc {
+func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		helpCmd := exec.Command("llama-server", "--help")
 		output, err := helpCmd.CombinedOutput()
@@ -50,7 +66,7 @@ func (h *Handler) HelpHandler() http.HandlerFunc {
 	}
 }
 
-// VersionHandler godoc
+// LlamaServerVersionHandler godoc
 // @Summary Get version of llama server
 // @Description Returns the version of the llama server command
 // @Tags server
@@ -59,7 +75,7 @@ func (h *Handler) HelpHandler() http.HandlerFunc {
 // @Success 200 {string} string "Version information"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /server/version [get]
-func (h *Handler) VersionHandler() http.HandlerFunc {
+func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		versionCmd := exec.Command("llama-server", "--version")
 		output, err := versionCmd.CombinedOutput()
@@ -72,7 +88,7 @@ func (h *Handler) VersionHandler() http.HandlerFunc {
 	}
 }
 
-// ListDevicesHandler godoc
+// LlamaServerListDevicesHandler godoc
 // @Summary List available devices for llama server
 // @Description Returns a list of available devices for the llama server
 // @Tags server
@@ -81,7 +97,7 @@ func (h *Handler) VersionHandler() http.HandlerFunc {
 // @Success 200 {string} string "List of devices"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /server/devices [get]
-func (h *Handler) ListDevicesHandler() http.HandlerFunc {
+func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		listCmd := exec.Command("llama-server", "--list-devices")
 		output, err := listCmd.CombinedOutput()

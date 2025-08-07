@@ -39,6 +39,11 @@ func main() {
 		fmt.Println("Using default configuration.")
 	}
 
+	// Set version information
+	cfg.Version = version
+	cfg.CommitHash = commitHash
+	cfg.BuildTime = buildTime
+
 	// Create the data directory if it doesn't exist
 	if cfg.Instances.AutoCreateDirs {
 		if err := os.MkdirAll(cfg.Instances.InstancesDir, 0755); err != nil {
