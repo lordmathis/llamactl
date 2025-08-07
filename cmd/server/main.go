@@ -13,6 +13,8 @@ import (
 
 // version is set at build time using -ldflags "-X main.version=1.0.0"
 var version string = "unknown"
+var commitHash string = "unknown"
+var buildTime string = "unknown"
 
 // @title llamactl API
 // @version 1.0
@@ -25,6 +27,8 @@ func main() {
 	// --version flag to print the version
 	if len(os.Args) > 1 && os.Args[1] == "--version" {
 		fmt.Printf("llamactl version: %s\n", version)
+		fmt.Printf("Commit hash: %s\n", commitHash)
+		fmt.Printf("Build time: %s\n", buildTime)
 		return
 	}
 
