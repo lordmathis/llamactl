@@ -11,6 +11,9 @@ import (
 	"syscall"
 )
 
+// version is set at build time using -ldflags "-X main.version=1.0.0"
+var version string = "unknown"
+
 // @title llamactl API
 // @version 1.0
 // @description llamactl is a control server for managing Llama Server instances.
@@ -18,6 +21,12 @@ import (
 // @license.url https://opensource.org/license/mit/
 // @basePath /api/v1
 func main() {
+
+	// --version flag to print the version
+	if len(os.Args) > 1 && os.Args[1] == "--version" {
+		fmt.Printf("llamactl version: %s\n", version)
+		return
+	}
 
 	configPath := os.Getenv("LLAMACTL_CONFIG_PATH")
 	cfg, err := config.LoadConfig(configPath)
