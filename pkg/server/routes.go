@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
 
-	_ "llamactl/docs"
+	_ "llamactl/apidocs"
 	"llamactl/webui"
 )
 
