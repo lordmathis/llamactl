@@ -30,7 +30,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/llamactl.Instance"
+                                "$ref": "#/definitions/instance.Process"
                             }
                         }
                     },
@@ -68,7 +68,7 @@
                     "200": {
                         "description": "Instance details",
                         "schema": {
-                            "$ref": "#/definitions/llamactl.Instance"
+                            "$ref": "#/definitions/instance.Process"
                         }
                     },
                     "400": {
@@ -113,7 +113,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/llamactl.CreateInstanceOptions"
+                            "$ref": "#/definitions/instance.CreateInstanceOptions"
                         }
                     }
                 ],
@@ -121,7 +121,7 @@
                     "200": {
                         "description": "Updated instance details",
                         "schema": {
-                            "$ref": "#/definitions/llamactl.Instance"
+                            "$ref": "#/definitions/instance.Process"
                         }
                     },
                     "400": {
@@ -166,7 +166,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/llamactl.CreateInstanceOptions"
+                            "$ref": "#/definitions/instance.CreateInstanceOptions"
                         }
                     }
                 ],
@@ -174,7 +174,7 @@
                     "201": {
                         "description": "Created instance details",
                         "schema": {
-                            "$ref": "#/definitions/llamactl.Instance"
+                            "$ref": "#/definitions/instance.Process"
                         }
                     },
                     "400": {
@@ -394,7 +394,7 @@
                     "200": {
                         "description": "Restarted instance details",
                         "schema": {
-                            "$ref": "#/definitions/llamactl.Instance"
+                            "$ref": "#/definitions/instance.Process"
                         }
                     },
                     "400": {
@@ -437,7 +437,7 @@
                     "200": {
                         "description": "Started instance details",
                         "schema": {
-                            "$ref": "#/definitions/llamactl.Instance"
+                            "$ref": "#/definitions/instance.Process"
                         }
                     },
                     "400": {
@@ -480,7 +480,7 @@
                     "200": {
                         "description": "Stopped instance details",
                         "schema": {
-                            "$ref": "#/definitions/llamactl.Instance"
+                            "$ref": "#/definitions/instance.Process"
                         }
                     },
                     "400": {
@@ -632,7 +632,35 @@
                     "200": {
                         "description": "List of OpenAI-compatible instances",
                         "schema": {
-                            "$ref": "#/definitions/llamactl.OpenAIListInstancesResponse"
+                            "$ref": "#/definitions/server.OpenAIListInstancesResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/version": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the version of the llamactl command",
+                "tags": [
+                    "version"
+                ],
+                "summary": "Get llamactl version",
+                "responses": {
+                    "200": {
+                        "description": "Version information",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
@@ -646,7 +674,7 @@
         }
     },
     "definitions": {
-        "llamactl.CreateInstanceOptions": {
+        "instance.CreateInstanceOptions": {
             "type": "object",
             "properties": {
                 "alias": {
@@ -744,7 +772,6 @@
                     "type": "string"
                 },
                 "draft_max": {
-                    "description": "Speculative decoding params",
                     "type": "integer"
                 },
                 "draft_min": {
@@ -948,7 +975,7 @@
                     "type": "boolean"
                 },
                 "no_context_shift": {
-                    "description": "Server/Example-specific params",
+                    "description": "Example-specific params",
                     "type": "boolean"
                 },
                 "no_escape": {
@@ -1020,10 +1047,10 @@
                 "presence_penalty": {
                     "type": "number"
                 },
-                "priority": {
+                "prio": {
                     "type": "integer"
                 },
-                "priority_batch": {
+                "prio_batch": {
                     "type": "integer"
                 },
                 "props": {
@@ -1094,7 +1121,7 @@
                 "ssl_key_file": {
                     "type": "string"
                 },
-                "temperature": {
+                "temp": {
                     "type": "number"
                 },
                 "tensor_split": {
@@ -1160,7 +1187,7 @@
                 }
             }
         },
-        "llamactl.Instance": {
+        "instance.Process": {
             "type": "object",
             "properties": {
                 "created": {
@@ -1176,7 +1203,7 @@
                 }
             }
         },
-        "llamactl.OpenAIInstance": {
+        "server.OpenAIInstance": {
             "type": "object",
             "properties": {
                 "created": {
@@ -1193,13 +1220,13 @@
                 }
             }
         },
-        "llamactl.OpenAIListInstancesResponse": {
+        "server.OpenAIListInstancesResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/llamactl.OpenAIInstance"
+                        "$ref": "#/definitions/server.OpenAIInstance"
                     }
                 },
                 "object": {

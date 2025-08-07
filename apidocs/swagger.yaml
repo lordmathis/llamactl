@@ -1,6 +1,6 @@
 basePath: /api/v1
 definitions:
-  llamactl.CreateInstanceOptions:
+  instance.CreateInstanceOptions:
     properties:
       alias:
         type: string
@@ -66,7 +66,6 @@ definitions:
       device_draft:
         type: string
       draft_max:
-        description: Speculative decoding params
         type: integer
       draft_min:
         type: integer
@@ -203,7 +202,7 @@ definitions:
       no_cont_batching:
         type: boolean
       no_context_shift:
-        description: Server/Example-specific params
+        description: Example-specific params
         type: boolean
       no_escape:
         type: boolean
@@ -251,9 +250,9 @@ definitions:
         type: integer
       presence_penalty:
         type: number
-      priority:
+      prio:
         type: integer
-      priority_batch:
+      prio_batch:
         type: integer
       props:
         type: boolean
@@ -301,7 +300,7 @@ definitions:
         type: string
       ssl_key_file:
         type: string
-      temperature:
+      temp:
         type: number
       tensor_split:
         type: string
@@ -345,7 +344,7 @@ definitions:
       yarn_orig_ctx:
         type: integer
     type: object
-  llamactl.Instance:
+  instance.Process:
     properties:
       created:
         description: Creation time
@@ -356,7 +355,7 @@ definitions:
         description: Status
         type: boolean
     type: object
-  llamactl.OpenAIInstance:
+  server.OpenAIInstance:
     properties:
       created:
         type: integer
@@ -367,11 +366,11 @@ definitions:
       owned_by:
         type: string
     type: object
-  llamactl.OpenAIListInstancesResponse:
+  server.OpenAIListInstancesResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/llamactl.OpenAIInstance'
+          $ref: '#/definitions/server.OpenAIInstance'
         type: array
       object:
         type: string
@@ -393,7 +392,7 @@ paths:
           description: List of instances
           schema:
             items:
-              $ref: '#/definitions/llamactl.Instance'
+              $ref: '#/definitions/instance.Process'
             type: array
         "500":
           description: Internal Server Error
@@ -441,7 +440,7 @@ paths:
         "200":
           description: Instance details
           schema:
-            $ref: '#/definitions/llamactl.Instance'
+            $ref: '#/definitions/instance.Process'
         "400":
           description: Invalid name format
           schema:
@@ -470,12 +469,12 @@ paths:
         name: options
         required: true
         schema:
-          $ref: '#/definitions/llamactl.CreateInstanceOptions'
+          $ref: '#/definitions/instance.CreateInstanceOptions'
       responses:
         "201":
           description: Created instance details
           schema:
-            $ref: '#/definitions/llamactl.Instance'
+            $ref: '#/definitions/instance.Process'
         "400":
           description: Invalid request body
           schema:
@@ -504,12 +503,12 @@ paths:
         name: options
         required: true
         schema:
-          $ref: '#/definitions/llamactl.CreateInstanceOptions'
+          $ref: '#/definitions/instance.CreateInstanceOptions'
       responses:
         "200":
           description: Updated instance details
           schema:
-            $ref: '#/definitions/llamactl.Instance'
+            $ref: '#/definitions/instance.Process'
         "400":
           description: Invalid name format
           schema:
@@ -627,7 +626,7 @@ paths:
         "200":
           description: Restarted instance details
           schema:
-            $ref: '#/definitions/llamactl.Instance'
+            $ref: '#/definitions/instance.Process'
         "400":
           description: Invalid name format
           schema:
@@ -654,7 +653,7 @@ paths:
         "200":
           description: Started instance details
           schema:
-            $ref: '#/definitions/llamactl.Instance'
+            $ref: '#/definitions/instance.Process'
         "400":
           description: Invalid name format
           schema:
@@ -681,7 +680,7 @@ paths:
         "200":
           description: Stopped instance details
           schema:
-            $ref: '#/definitions/llamactl.Instance'
+            $ref: '#/definitions/instance.Process'
         "400":
           description: Invalid name format
           schema:
@@ -777,7 +776,7 @@ paths:
         "200":
           description: List of OpenAI-compatible instances
           schema:
-            $ref: '#/definitions/llamactl.OpenAIListInstancesResponse'
+            $ref: '#/definitions/server.OpenAIListInstancesResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -787,4 +786,21 @@ paths:
       summary: List instances in OpenAI-compatible format
       tags:
       - openai
+  /version:
+    get:
+      description: Returns the version of the llamactl command
+      responses:
+        "200":
+          description: Version information
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get llamactl version
+      tags:
+      - version
 swagger: "2.0"
