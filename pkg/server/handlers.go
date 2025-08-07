@@ -116,7 +116,7 @@ func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
 // @Tags instances
 // @Security ApiKeyAuth
 // @Produces json
-// @Success 200 {array} Instance "List of instances"
+// @Success 200 {array} instance.Process "List of instances"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /instances [get]
 func (h *Handler) ListInstances() http.HandlerFunc {
@@ -143,8 +143,8 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 // @Accept json
 // @Produces json
 // @Param name path string true "Instance Name"
-// @Param options body CreateInstanceOptions true "Instance configuration options"
-// @Success 201 {object} Instance "Created instance details"
+// @Param options body instance.CreateInstanceOptions true "Instance configuration options"
+// @Success 201 {object} instance.Process "Created instance details"
 // @Failure 400 {string} string "Invalid request body"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /instances/{name} [post]
@@ -184,7 +184,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
-// @Success 200 {object} Instance "Instance details"
+// @Success 200 {object} instance.Process "Instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /instances/{name} [get]
@@ -218,8 +218,8 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 // @Accept json
 // @Produces json
 // @Param name path string true "Instance Name"
-// @Param options body CreateInstanceOptions true "Instance configuration options"
-// @Success 200 {object} Instance "Updated instance details"
+// @Param options body instance.CreateInstanceOptions true "Instance configuration options"
+// @Success 200 {object} instance.Process "Updated instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /instances/{name} [put]
@@ -258,7 +258,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
-// @Success 200 {object} Instance "Started instance details"
+// @Success 200 {object} instance.Process "Started instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /instances/{name}/start [post]
@@ -291,7 +291,7 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
-// @Success 200 {object} Instance "Stopped instance details"
+// @Success 200 {object} instance.Process "Stopped instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /instances/{name}/stop [post]
@@ -324,7 +324,7 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
-// @Success 200 {object} Instance "Restarted instance details"
+// @Success 200 {object} instance.Process "Restarted instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /instances/{name}/restart [post]
