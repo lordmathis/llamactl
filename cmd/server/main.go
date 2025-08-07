@@ -11,6 +11,11 @@ import (
 	"syscall"
 )
 
+// version is set at build time using -ldflags "-X main.version=1.0.0"
+var version string = "unknown"
+var commitHash string = "unknown"
+var buildTime string = "unknown"
+
 // @title llamactl API
 // @version 1.0
 // @description llamactl is a control server for managing Llama Server instances.
@@ -19,12 +24,25 @@ import (
 // @basePath /api/v1
 func main() {
 
+	// --version flag to print the version
+	if len(os.Args) > 1 && os.Args[1] == "--version" {
+		fmt.Printf("llamactl version: %s\n", version)
+		fmt.Printf("Commit hash: %s\n", commitHash)
+		fmt.Printf("Build time: %s\n", buildTime)
+		return
+	}
+
 	configPath := os.Getenv("LLAMACTL_CONFIG_PATH")
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 		fmt.Println("Using default configuration.")
 	}
+
+	// Set version information
+	cfg.Version = version
+	cfg.CommitHash = commitHash
+	cfg.BuildTime = buildTime
 
 	// Create the data directory if it doesn't exist
 	if cfg.Instances.AutoCreateDirs {

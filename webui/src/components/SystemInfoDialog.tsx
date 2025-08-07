@@ -19,6 +19,15 @@ import {
 } from 'lucide-react'
 import { serverApi } from '@/lib/api'
 
+// Helper to get version from environment
+const getAppVersion = (): string => {
+  try {
+    return (import.meta.env as Record<string, string>).VITE_APP_VERSION || 'unknown'
+  } catch {
+    return 'unknown'
+  }
+}
+
 interface SystemInfoModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -109,9 +118,20 @@ const SystemInfoDialog: React.FC<SystemInfoModalProps> = ({
             </div>
           ) : systemInfo ? (
             <div className="space-y-6">
-              {/* Version Section */}
+              {/* Llamactl Version Section */}
               <div className="space-y-3">
-                <h3 className="font-semibold">Version</h3>
+                <h3 className="font-semibold">Llamactl Version</h3>
+                
+                <div className="bg-gray-900 rounded-lg p-4">
+                  <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
+                    {getAppVersion()}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Llama Server Version Section */}
+              <div className="space-y-3">
+                <h3 className="font-semibold">Llama Server Version</h3>
                 
                 <div className="bg-gray-900 rounded-lg p-4">
                   <div className="mb-2">

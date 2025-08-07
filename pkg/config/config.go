@@ -12,9 +12,12 @@ import (
 
 // AppConfig represents the configuration for llamactl
 type AppConfig struct {
-	Server    ServerConfig    `yaml:"server"`
-	Instances InstancesConfig `yaml:"instances"`
-	Auth      AuthConfig      `yaml:"auth"`
+	Server     ServerConfig    `yaml:"server"`
+	Instances  InstancesConfig `yaml:"instances"`
+	Auth       AuthConfig      `yaml:"auth"`
+	Version    string          `yaml:"-"`
+	CommitHash string          `yaml:"-"`
+	BuildTime  string          `yaml:"-"`
 }
 
 // ServerConfig contains HTTP server configuration

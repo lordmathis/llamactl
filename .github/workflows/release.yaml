@@ -29,6 +29,8 @@ jobs:
           npm ci
 
       - name: Build Web UI
+        env:
+          VITE_APP_VERSION: ${{ github.ref_name }}
         run: |
           cd webui
           npm run build

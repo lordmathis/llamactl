@@ -42,10 +42,12 @@ func SetupRouter(handler *Handler) *chi.Mux {
 			r.Use(authMiddleware.AuthMiddleware(KeyTypeManagement))
 		}
 
+		r.Get("/version", handler.VersionHandler()) // Get server version
+
 		r.Route("/server", func(r chi.Router) {
-			r.Get("/help", handler.HelpHandler())
-			r.Get("/version", handler.VersionHandler())
-			r.Get("/devices", handler.ListDevicesHandler())
+			r.Get("/help", handler.LlamaServerHelpHandler())
+			r.Get("/version", handler.LlamaServerVersionHandler())
+			r.Get("/devices", handler.LlamaServerListDevicesHandler())
 		})
 
 		// Instance management endpoints
