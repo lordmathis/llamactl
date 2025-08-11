@@ -7,6 +7,7 @@ import SystemInfoDialog from "./components/SystemInfoDialog";
 import { type CreateInstanceOptions, type Instance } from "@/types/instance";
 import { useInstances } from "@/contexts/InstancesContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 function App() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -42,44 +43,50 @@ function App() {
   // Show loading spinner while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+      <ThemeProvider>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
         </div>
-      </div>
+      </ThemeProvider>
     );
   }
 
   // Show login dialog if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <LoginDialog open={true} />
-      </div>
+      <ThemeProvider>
+        <div className="min-h-screen bg-background">
+          <LoginDialog open={true} />
+        </div>
+      </ThemeProvider>
     );
   }
 
   // Show main app if authenticated
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header onCreateInstance={handleCreateInstance} onShowSystemInfo={handleShowSystemInfo} />
-      <main className="container mx-auto max-w-4xl px-4 py-8">
-        <InstanceList editInstance={handleEditInstance} />
-      </main>
+    <ThemeProvider>
+      <div className="min-h-screen bg-background">
+        <Header onCreateInstance={handleCreateInstance} onShowSystemInfo={handleShowSystemInfo} />
+        <main className="container mx-auto max-w-4xl px-4 py-8">
+          <InstanceList editInstance={handleEditInstance} />
+        </main>
 
-      <InstanceDialog
-        open={isInstanceModalOpen}
-        onOpenChange={setIsInstanceModalOpen}
-        onSave={handleSaveInstance}
-        instance={editingInstance}
-      />
+        <InstanceDialog
+          open={isInstanceModalOpen}
+          onOpenChange={setIsInstanceModalOpen}
+          onSave={handleSaveInstance}
+          instance={editingInstance}
+        />
 
-      <SystemInfoDialog
-        open={isSystemInfoModalOpen}
-        onOpenChange={setIsSystemInfoModalOpen}
-      />
-    </div>
+        <SystemInfoDialog
+          open={isSystemInfoModalOpen}
+          onOpenChange={setIsSystemInfoModalOpen}
+        />
+      </div>
+    </ThemeProvider>
   );
 }
 
