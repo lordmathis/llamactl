@@ -55,6 +55,21 @@ describe('App Component - Critical Business Logic Only', () => {
     vi.mocked(instancesApi.list).mockResolvedValue(mockInstances)
     window.sessionStorage.setItem('llamactl_management_key', 'test-api-key-123')
     global.fetch = vi.fn(() => Promise.resolve(new Response(null, { status: 200 })))
+    
+    // Mock window.matchMedia for dark mode functionality
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
   })
 
   afterEach(() => {
