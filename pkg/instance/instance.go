@@ -17,6 +17,18 @@ import (
 	"time"
 )
 
+// TimeProvider interface allows for testing with mock time
+type TimeProvider interface {
+	Now() time.Time
+}
+
+// realTimeProvider implements TimeProvider using the actual time
+type realTimeProvider struct{}
+
+func (realTimeProvider) Now() time.Time {
+	return time.Now()
+}
+
 type CreateInstanceOptions struct {
 	// Auto restart
 	AutoRestart  *bool `json:"auto_restart,omitempty"`
@@ -90,6 +102,7 @@ type Process struct {
 
 	// Timeout management
 	lastRequestTime atomic.Int64 // Unix timestamp of last request
+	timeProvider    TimeProvider `json:"-"` // Time provider for testing
 }
 
 // validateAndCopyOptions validates and creates a deep copy of the provided options
@@ -179,10 +192,8 @@ func NewInstance(name string, globalSettings *config.InstancesConfig, options *C
 		options:        optionsCopy,
 		globalSettings: globalSettings,
 		logger:         logger,
-
-		Running: false,
-
-		Created: time.Now().Unix(),
+		timeProvider:   realTimeProvider{},
+		Created:        time.Now().Unix(),
 	}
 }
 
@@ -208,6 +219,11 @@ func (i *Process) SetOptions(options *CreateInstanceOptions) {
 	i.options = optionsCopy
 	// Clear the proxy so it gets recreated with new options
 	i.proxy = nil
+}
+
+// SetTimeProvider sets a custom time provider for testing
+func (i *Process) SetTimeProvider(tp TimeProvider) {
+	i.timeProvider = tp
 }
 
 // GetProxy returns the reverse proxy for this instance, creating it if needed

@@ -1,13 +1,11 @@
 package instance
 
-import "time"
-
 // UpdateLastRequestTime updates the last request access time for the instance via proxy
 func (i *Process) UpdateLastRequestTime() {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	lastRequestTime := time.Now().Unix()
+	lastRequestTime := i.timeProvider.Now().Unix()
 	i.lastRequestTime.Store(lastRequestTime)
 }
 
@@ -26,5 +24,5 @@ func (i *Process) ShouldTimeout() bool {
 	// Convert timeout from minutes to seconds for comparison
 	idleTimeoutSeconds := int64(idleTimeoutMinutes * 60)
 
-	return (time.Now().Unix() - lastRequest) > idleTimeoutSeconds
+	return (i.timeProvider.Now().Unix() - lastRequest) > idleTimeoutSeconds
 }

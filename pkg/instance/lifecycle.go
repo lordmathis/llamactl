@@ -31,7 +31,7 @@ func (i *Process) Start() error {
 	}
 
 	// Initialize last request time to current time when starting
-	i.lastRequestTime.Store(time.Now().Unix())
+	i.lastRequestTime.Store(i.timeProvider.Now().Unix())
 
 	// Create log files
 	if err := i.logger.Create(); err != nil {
