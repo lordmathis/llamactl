@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os/exec"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -86,6 +87,9 @@ type Process struct {
 	// Restart control
 	restartCancel context.CancelFunc `json:"-"` // Cancel function for pending restarts
 	monitorDone   chan struct{}      `json:"-"` // Channel to signal monitor goroutine completion
+
+	// Timeout management
+	lastRequestTime atomic.Int64 // Unix timestamp of last request
 }
 
 // validateAndCopyOptions validates and creates a deep copy of the provided options

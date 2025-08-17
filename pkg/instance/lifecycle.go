@@ -140,6 +140,15 @@ func (i *Process) Stop() error {
 	return nil
 }
 
+// UpdateLastRequestTime updates the last request access time for the instance via proxy
+func (i *Process) UpdateLastRequestTime() {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	lastRequestTime := time.Now().Unix()
+	i.lastRequestTime.Store(lastRequestTime)
+}
+
 func (i *Process) monitorProcess() {
 	defer func() {
 		i.mu.Lock()
