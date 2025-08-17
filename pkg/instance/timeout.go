@@ -15,8 +15,7 @@ func (i *Process) ShouldTimeout() bool {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
-	// If idle timeout is not set, no timeout
-	if i.options.IdleTimeout == nil || *i.options.IdleTimeout <= 0 {
+	if !i.Running || i.options.IdleTimeout == nil || *i.options.IdleTimeout <= 0 {
 		return false
 	}
 

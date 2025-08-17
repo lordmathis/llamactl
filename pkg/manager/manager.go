@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 // InstanceManager defines the interface for managing instances of the llama server.
@@ -31,6 +32,9 @@ type instanceManager struct {
 	instances       map[string]*instance.Process
 	ports           map[int]bool
 	instancesConfig config.InstancesConfig
+
+	// Timeout checker
+	timeoutChecker *time.Ticker
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
@@ -39,12 +43,21 @@ func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager 
 		instances:       make(map[string]*instance.Process),
 		ports:           make(map[int]bool),
 		instancesConfig: instancesConfig,
+
+		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
 	}
 
 	// Load existing instances from disk
 	if err := im.loadInstances(); err != nil {
 		log.Printf("Error loading instances: %v", err)
 	}
+
+	go func() {
+		for range im.timeoutChecker.C {
+			im.checkAllTimeouts()
+		}
+	}()
+
 	return im
 }
 
@@ -93,6 +106,12 @@ func (im *instanceManager) persistInstance(instance *instance.Process) error {
 func (im *instanceManager) Shutdown() {
 	im.mu.Lock()
 	defer im.mu.Unlock()
+
+	// Stop the timeout checker
+	if im.timeoutChecker != nil {
+		im.timeoutChecker.Stop()
+		im.timeoutChecker = nil
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(len(im.instances))
