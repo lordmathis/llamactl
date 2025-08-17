@@ -15,13 +15,14 @@ import (
 
 func TestNewInstanceManager(t *testing.T) {
 	cfg := config.InstancesConfig{
-		PortRange:           [2]int{8000, 9000},
-		LogsDir:             "/tmp/test",
-		MaxInstances:        5,
-		LlamaExecutable:     "llama-server",
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
+		PortRange:            [2]int{8000, 9000},
+		LogsDir:              "/tmp/test",
+		MaxInstances:         5,
+		LlamaExecutable:      "llama-server",
+		DefaultAutoRestart:   true,
+		DefaultMaxRestarts:   3,
+		DefaultRestartDelay:  5,
+		TimeoutCheckInterval: 5,
 	}
 
 	manager := manager.NewInstanceManager(cfg)
@@ -99,8 +100,9 @@ func TestCreateInstance_DuplicateName(t *testing.T) {
 func TestCreateInstance_MaxInstancesLimit(t *testing.T) {
 	// Create manager with low max instances limit
 	cfg := config.InstancesConfig{
-		PortRange:    [2]int{8000, 9000},
-		MaxInstances: 2, // Very low limit for testing
+		PortRange:            [2]int{8000, 9000},
+		MaxInstances:         2, // Very low limit for testing
+		TimeoutCheckInterval: 5,
 	}
 	manager := manager.NewInstanceManager(cfg)
 
@@ -235,8 +237,9 @@ func TestCreateInstance_MultiplePortAssignment(t *testing.T) {
 func TestCreateInstance_PortExhaustion(t *testing.T) {
 	// Create manager with very small port range
 	cfg := config.InstancesConfig{
-		PortRange:    [2]int{8000, 8001}, // Only 2 ports available
-		MaxInstances: 10,                 // Higher than available ports
+		PortRange:            [2]int{8000, 8001}, // Only 2 ports available
+		MaxInstances:         10,                 // Higher than available ports
+		TimeoutCheckInterval: 5,
 	}
 	manager := manager.NewInstanceManager(cfg)
 
@@ -497,9 +500,10 @@ func TestPersistence_InstancePersistedOnCreation(t *testing.T) {
 	tempDir := t.TempDir()
 
 	cfg := config.InstancesConfig{
-		PortRange:    [2]int{8000, 9000},
-		InstancesDir: tempDir,
-		MaxInstances: 10,
+		PortRange:            [2]int{8000, 9000},
+		InstancesDir:         tempDir,
+		MaxInstances:         10,
+		TimeoutCheckInterval: 5,
 	}
 	manager := manager.NewInstanceManager(cfg)
 
@@ -542,9 +546,10 @@ func TestPersistence_InstancePersistedOnUpdate(t *testing.T) {
 	tempDir := t.TempDir()
 
 	cfg := config.InstancesConfig{
-		PortRange:    [2]int{8000, 9000},
-		InstancesDir: tempDir,
-		MaxInstances: 10,
+		PortRange:            [2]int{8000, 9000},
+		InstancesDir:         tempDir,
+		MaxInstances:         10,
+		TimeoutCheckInterval: 5,
 	}
 	manager := manager.NewInstanceManager(cfg)
 
@@ -599,9 +604,10 @@ func TestPersistence_InstanceFileDeletedOnDeletion(t *testing.T) {
 	tempDir := t.TempDir()
 
 	cfg := config.InstancesConfig{
-		PortRange:    [2]int{8000, 9000},
-		InstancesDir: tempDir,
-		MaxInstances: 10,
+		PortRange:            [2]int{8000, 9000},
+		InstancesDir:         tempDir,
+		MaxInstances:         10,
+		TimeoutCheckInterval: 5,
 	}
 	manager := manager.NewInstanceManager(cfg)
 
@@ -670,9 +676,10 @@ func TestPersistence_InstancesLoadedFromDisk(t *testing.T) {
 
 	// Create manager - should load instances from disk
 	cfg := config.InstancesConfig{
-		PortRange:    [2]int{8000, 9000},
-		InstancesDir: tempDir,
-		MaxInstances: 10,
+		PortRange:            [2]int{8000, 9000},
+		InstancesDir:         tempDir,
+		MaxInstances:         10,
+		TimeoutCheckInterval: 5,
 	}
 	manager := manager.NewInstanceManager(cfg)
 
@@ -737,9 +744,10 @@ func TestPersistence_PortMapPopulatedFromLoadedInstances(t *testing.T) {
 
 	// Create manager - should load instance and register port
 	cfg := config.InstancesConfig{
-		PortRange:    [2]int{8000, 9000},
-		InstancesDir: tempDir,
-		MaxInstances: 10,
+		PortRange:            [2]int{8000, 9000},
+		InstancesDir:         tempDir,
+		MaxInstances:         10,
+		TimeoutCheckInterval: 5,
 	}
 	manager := manager.NewInstanceManager(cfg)
 
@@ -764,12 +772,13 @@ func TestPersistence_CompleteInstanceDataRoundTrip(t *testing.T) {
 	tempDir := t.TempDir()
 
 	cfg := config.InstancesConfig{
-		PortRange:           [2]int{8000, 9000},
-		InstancesDir:        tempDir,
-		MaxInstances:        10,
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
+		PortRange:            [2]int{8000, 9000},
+		InstancesDir:         tempDir,
+		MaxInstances:         10,
+		DefaultAutoRestart:   true,
+		DefaultMaxRestarts:   3,
+		DefaultRestartDelay:  5,
+		TimeoutCheckInterval: 5,
 	}
 
 	// Create first manager and instance with comprehensive options
@@ -880,13 +889,14 @@ func TestPersistence_CompleteInstanceDataRoundTrip(t *testing.T) {
 // Helper function to create a test manager with standard config
 func createTestManager() manager.InstanceManager {
 	cfg := config.InstancesConfig{
-		PortRange:           [2]int{8000, 9000},
-		LogsDir:             "/tmp/test",
-		MaxInstances:        10,
-		LlamaExecutable:     "llama-server",
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
+		PortRange:            [2]int{8000, 9000},
+		LogsDir:              "/tmp/test",
+		MaxInstances:         10,
+		LlamaExecutable:      "llama-server",
+		DefaultAutoRestart:   true,
+		DefaultMaxRestarts:   3,
+		DefaultRestartDelay:  5,
+		TimeoutCheckInterval: 5,
 	}
 	return manager.NewInstanceManager(cfg)
 }
