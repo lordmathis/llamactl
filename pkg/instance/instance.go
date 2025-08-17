@@ -124,7 +124,7 @@ func validateAndCopyOptions(name string, options *CreateInstanceOptions) *Create
 		if options.IdleTimeout != nil {
 			idleTimeout := *options.IdleTimeout
 			if idleTimeout < 0 {
-				log.Printf("Instance %s IdleTimeout value (%d) cannot be negative, setting to 0 seconds", name, idleTimeout)
+				log.Printf("Instance %s IdleTimeout value (%d) cannot be negative, setting to 0 minutes", name, idleTimeout)
 				idleTimeout = 0
 			}
 			optionsCopy.IdleTimeout = &idleTimeout
@@ -156,7 +156,7 @@ func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *config.
 	}
 
 	if options.IdleTimeout == nil {
-		defaultIdleTimeout := 0 // Default to 0 seconds if not set
+		defaultIdleTimeout := 0
 		options.IdleTimeout = &defaultIdleTimeout
 	}
 }

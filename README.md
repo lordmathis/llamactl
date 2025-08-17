@@ -172,16 +172,17 @@ server:
 
 ```yaml
 instances:
-  port_range: [8000, 9000]           # Port range for instances (default: [8000, 9000])
-  data_dir: "~/.local/share/llamactl" # Directory for all llamactl data (default varies by OS)
-  configs_dir: "~/.local/share/llamactl/instances" # Directory for instance configs (default: data_dir/instances)
-  logs_dir: "~/.local/share/llamactl/logs" # Directory for instance logs (default: data_dir/logs)
-  auto_create_dirs: true             # Automatically create data/config/logs directories (default: true)
-  max_instances: -1                  # Maximum instances (-1 = unlimited)
-  llama_executable: "llama-server"   # Path to llama-server executable
-  default_auto_restart: true         # Default auto-restart setting
-  default_max_restarts: 3            # Default maximum restart attempts
-  default_restart_delay: 5           # Default restart delay in seconds
+  port_range: [8000, 9000]                          # Port range for instances (default: [8000, 9000])
+  data_dir: "~/.local/share/llamactl"               # Directory for all llamactl data (default varies by OS)
+  configs_dir: "~/.local/share/llamactl/instances"  # Directory for instance configs (default: data_dir/instances)
+  logs_dir: "~/.local/share/llamactl/logs"          # Directory for instance logs (default: data_dir/logs)
+  auto_create_dirs: true                            # Automatically create data/config/logs directories (default: true)
+  max_instances: -1                                 # Maximum instances (-1 = unlimited)
+  llama_executable: "llama-server"                  # Path to llama-server executable
+  default_auto_restart: true                        # Default auto-restart setting
+  default_max_restarts: 3                           # Default maximum restart attempts
+  default_restart_delay: 5                          # Default restart delay in seconds
+  timeout_check_interval: 5                         # Default instance timeout check interval in minutes
 ```
 
 **Environment Variables:**
@@ -195,6 +196,7 @@ instances:
 - `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)
 - `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts
 - `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds
+- `LLAMACTL_TIMEOUT_CHECK_INTERVAL` - Default instance timeout check interval in minutes
 
 #### Authentication Configuration
 

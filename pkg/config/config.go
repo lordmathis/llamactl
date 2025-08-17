@@ -66,6 +66,9 @@ type InstancesConfig struct {
 
 	// Default restart delay for new instances (in seconds)
 	DefaultRestartDelay int `yaml:"default_restart_delay"`
+
+	// Interval for checking instance timeouts (in minutes)
+	TimeoutCheckInterval int `yaml:"timeout_check_interval"`
 }
 
 // AuthConfig contains authentication settings
@@ -98,16 +101,17 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			EnableSwagger:  false,
 		},
 		Instances: InstancesConfig{
-			PortRange:           [2]int{8000, 9000},
-			DataDir:             getDefaultDataDirectory(),
-			InstancesDir:        filepath.Join(getDefaultDataDirectory(), "instances"),
-			LogsDir:             filepath.Join(getDefaultDataDirectory(), "logs"),
-			AutoCreateDirs:      true,
-			MaxInstances:        -1, // -1 means unlimited
-			LlamaExecutable:     "llama-server",
-			DefaultAutoRestart:  true,
-			DefaultMaxRestarts:  3,
-			DefaultRestartDelay: 5,
+			PortRange:            [2]int{8000, 9000},
+			DataDir:              getDefaultDataDirectory(),
+			InstancesDir:         filepath.Join(getDefaultDataDirectory(), "instances"),
+			LogsDir:              filepath.Join(getDefaultDataDirectory(), "logs"),
+			AutoCreateDirs:       true,
+			MaxInstances:         -1, // -1 means unlimited
+			LlamaExecutable:      "llama-server",
+			DefaultAutoRestart:   true,
+			DefaultMaxRestarts:   3,
+			DefaultRestartDelay:  5,
+			TimeoutCheckInterval: 5, // Check timeouts every 5 minutes
 		},
 		Auth: AuthConfig{
 			RequireInferenceAuth:  true,
@@ -215,6 +219,11 @@ func loadEnvVars(cfg *AppConfig) {
 	if restartDelay := os.Getenv("LLAMACTL_DEFAULT_RESTART_DELAY"); restartDelay != "" {
 		if seconds, err := strconv.Atoi(restartDelay); err == nil {
 			cfg.Instances.DefaultRestartDelay = seconds
+		}
+	}
+	if timeoutCheckInterval := os.Getenv("LLAMACTL_TIMEOUT_CHECK_INTERVAL"); timeoutCheckInterval != "" {
+		if minutes, err := strconv.Atoi(timeoutCheckInterval); err == nil {
+			cfg.Instances.TimeoutCheckInterval = minutes
 		}
 	}
 	// Auth config
