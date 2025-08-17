@@ -18,11 +18,12 @@ import (
 
 type CreateInstanceOptions struct {
 	// Auto restart
-	AutoRestart *bool `json:"auto_restart,omitempty"`
-	MaxRestarts *int  `json:"max_restarts,omitempty"`
-	// RestartDelay duration in seconds
-	RestartDelay *int `json:"restart_delay_seconds,omitempty"`
-
+	AutoRestart  *bool `json:"auto_restart,omitempty"`
+	MaxRestarts  *int  `json:"max_restarts,omitempty"`
+	RestartDelay *int  `json:"restart_delay,omitempty"`
+	// Timeout
+	IdleTimeout *int `json:"idle_timeout,omitempty"`
+	// LlamaServerOptions contains the options for the llama server
 	llamacpp.LlamaServerOptions `json:",inline"`
 }
 
@@ -34,7 +35,8 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 	type tempCreateOptions struct {
 		AutoRestart  *bool `json:"auto_restart,omitempty"`
 		MaxRestarts  *int  `json:"max_restarts,omitempty"`
-		RestartDelay *int  `json:"restart_delay_seconds,omitempty"`
+		RestartDelay *int  `json:"restart_delay,omitempty"`
+		IdleTimeout  *int  `json:"idle_timeout,omitempty"`
 	}
 
 	var temp tempCreateOptions
@@ -46,6 +48,7 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 	c.AutoRestart = temp.AutoRestart
 	c.MaxRestarts = temp.MaxRestarts
 	c.RestartDelay = temp.RestartDelay
+	c.IdleTimeout = temp.IdleTimeout
 
 	// Now unmarshal the embedded LlamaServerOptions
 	if err := json.Unmarshal(data, &c.LlamaServerOptions); err != nil {
@@ -117,6 +120,15 @@ func validateAndCopyOptions(name string, options *CreateInstanceOptions) *Create
 			}
 			optionsCopy.RestartDelay = &restartDelay
 		}
+
+		if options.IdleTimeout != nil {
+			idleTimeout := *options.IdleTimeout
+			if idleTimeout < 0 {
+				log.Printf("Instance %s IdleTimeout value (%d) cannot be negative, setting to 0 seconds", name, idleTimeout)
+				idleTimeout = 0
+			}
+			optionsCopy.IdleTimeout = &idleTimeout
+		}
 	}
 
 	return optionsCopy
@@ -141,6 +153,11 @@ func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *config.
 	if options.RestartDelay == nil {
 		defaultRestartDelay := globalSettings.DefaultRestartDelay
 		options.RestartDelay = &defaultRestartDelay
+	}
+
+	if options.IdleTimeout == nil {
+		defaultIdleTimeout := 0 // Default to 0 seconds if not set
+		options.IdleTimeout = &defaultIdleTimeout
 	}
 }
 
