@@ -21,7 +21,10 @@ func (i *Process) ShouldTimeout() bool {
 
 	// Check if the last request time exceeds the idle timeout
 	lastRequest := i.lastRequestTime.Load()
-	idleTimeout := *i.options.IdleTimeout
+	idleTimeoutMinutes := *i.options.IdleTimeout
 
-	return (time.Now().Unix() - lastRequest) > int64(idleTimeout)
+	// Convert timeout from minutes to seconds for comparison
+	idleTimeoutSeconds := int64(idleTimeoutMinutes * 60)
+
+	return (time.Now().Unix() - lastRequest) > idleTimeoutSeconds
 }

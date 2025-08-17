@@ -30,6 +30,9 @@ func (i *Process) Start() error {
 		i.restarts = 0
 	}
 
+	// Initialize last request time to current time when starting
+	i.lastRequestTime.Store(time.Now().Unix())
+
 	// Create log files
 	if err := i.logger.Create(); err != nil {
 		return fmt.Errorf("failed to create log files: %w", err)

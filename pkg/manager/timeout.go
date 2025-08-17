@@ -4,16 +4,23 @@ import "log"
 
 func (im *instanceManager) checkAllTimeouts() {
 	im.mu.RLock()
-	defer im.mu.RUnlock()
+	var timeoutInstances []string
 
+	// Identify instances that should timeout
 	for _, inst := range im.instances {
 		if inst.ShouldTimeout() {
-			log.Printf("Instance %s has timed out, stopping it", inst.Name)
-			if proc, err := im.StopInstance(inst.Name); err != nil {
-				log.Printf("Error stopping instance %s: %v", inst.Name, err)
-			} else {
-				log.Printf("Instance %s stopped successfully, process: %v", inst.Name, proc)
-			}
+			timeoutInstances = append(timeoutInstances, inst.Name)
+		}
+	}
+	im.mu.RUnlock() // Release read lock before calling StopInstance
+
+	// Stop the timed-out instances
+	for _, name := range timeoutInstances {
+		log.Printf("Instance %s has timed out, stopping it", name)
+		if proc, err := im.StopInstance(name); err != nil {
+			log.Printf("Error stopping instance %s: %v", name, err)
+		} else {
+			log.Printf("Instance %s stopped successfully, process: %v", name, proc)
 		}
 	}
 }
