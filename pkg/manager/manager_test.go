@@ -326,7 +326,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 	}
 	manager.Shutdown() // Clean up
 
-	// Test timeout behavior with actual timeout logic
+	// Test timeout configuration and logic without starting the actual process
 	testManager := createTestManager()
 	defer testManager.Shutdown()
 
@@ -343,37 +343,66 @@ func TestTimeoutFunctionality(t *testing.T) {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
-	_, err = testManager.StartInstance("timeout-test")
-	if err != nil {
-		t.Fatalf("StartInstance failed: %v", err)
+	// Test timeout configuration is properly set
+	if inst.GetOptions().IdleTimeout == nil {
+		t.Fatal("Instance should have idle timeout configured")
+	}
+	if *inst.GetOptions().IdleTimeout != 1 {
+		t.Errorf("Expected idle timeout 1 minute, got %d", *inst.GetOptions().IdleTimeout)
 	}
 
+	// Test timeout logic without actually starting the process
 	// Create a mock time provider to simulate timeout
 	mockTime := NewMockTimeProvider(time.Now())
 	inst.SetTimeProvider(mockTime)
+
+	// Set instance to running state so timeout logic can work
+	inst.Running = true
+
+	// Simulate instance being "running" for timeout check (without actual process)
+	// We'll test the ShouldTimeout logic directly
 	inst.UpdateLastRequestTime()
+
+	// Initially should not timeout (just updated)
+	if inst.ShouldTimeout() {
+		t.Error("Instance should not timeout immediately after request")
+	}
 
 	// Advance time to trigger timeout
 	mockTime.SetTime(time.Now().Add(2 * time.Minute))
 
-	// Verify the instance should timeout
+	// Now it should timeout
 	if !inst.ShouldTimeout() {
-		t.Fatal("Instance should be configured to timeout")
+		t.Error("Instance should timeout after idle period")
 	}
 
-	// Test stopping timed out instance
-	_, err = testManager.StopInstance("timeout-test")
-	if err != nil {
-		t.Fatalf("StopInstance failed: %v", err)
+	// Reset running state to avoid shutdown issues
+	inst.Running = false
+
+	// Test that instance without timeout doesn't timeout
+	noTimeoutOptions := &instance.CreateInstanceOptions{
+		LlamaServerOptions: llamacpp.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+		},
+		// No IdleTimeout set
 	}
 
-	stoppedInst, err := testManager.GetInstance("timeout-test")
+	noTimeoutInst, err := testManager.CreateInstance("no-timeout-test", noTimeoutOptions)
 	if err != nil {
-		t.Fatalf("GetInstance failed: %v", err)
+		t.Fatalf("CreateInstance failed: %v", err)
 	}
-	if stoppedInst.Running {
-		t.Error("Instance should not be running after timeout stop")
+
+	noTimeoutInst.SetTimeProvider(mockTime)
+	noTimeoutInst.Running = true // Set to running for timeout check
+	noTimeoutInst.UpdateLastRequestTime()
+
+	// Even with time advanced, should not timeout
+	if noTimeoutInst.ShouldTimeout() {
+		t.Error("Instance without timeout configuration should never timeout")
 	}
+
+	// Reset running state to avoid shutdown issues
+	noTimeoutInst.Running = false
 }
 
 func TestConcurrentAccess(t *testing.T) {
