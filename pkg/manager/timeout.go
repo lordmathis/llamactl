@@ -17,10 +17,10 @@ func (im *instanceManager) checkAllTimeouts() {
 	// Stop the timed-out instances
 	for _, name := range timeoutInstances {
 		log.Printf("Instance %s has timed out, stopping it", name)
-		if proc, err := im.StopInstance(name); err != nil {
+		if _, err := im.StopInstance(name); err != nil {
 			log.Printf("Error stopping instance %s: %v", name, err)
 		} else {
-			log.Printf("Instance %s stopped successfully, process: %v", name, proc)
+			log.Printf("Instance %s stopped successfully", name)
 		}
 	}
 }
