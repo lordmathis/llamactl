@@ -1,7 +1,7 @@
 import { type CreateInstanceOptions, getAllFieldKeys } from '@/schemas/instanceOptions'
 
 // Only define the basic fields we want to show by default
-export const basicFieldsConfig: Record<string, { 
+export const basicFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
@@ -20,6 +20,11 @@ export const basicFieldsConfig: Record<string, {
     label: 'Restart Delay (seconds)',
     placeholder: '5',
     description: 'Delay in seconds before attempting restart'
+  },
+  idle_timeout: {
+    label: 'Idle Timeout (minutes)',
+    placeholder: '60',
+    description: 'Time in minutes before instance is considered idle and stopped'
   },
   model: {
     label: 'Model Path',
