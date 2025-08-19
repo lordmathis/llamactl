@@ -36,6 +36,8 @@ type instanceManager struct {
 	// Timeout checker
 	timeoutChecker *time.Ticker
 	shutdownChan   chan struct{}
+	shutdownDone   chan struct{}
+	isShutdown     bool
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
@@ -50,6 +52,7 @@ func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager 
 
 		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
 		shutdownChan:   make(chan struct{}),
+		shutdownDone:   make(chan struct{}),
 	}
 
 	// Load existing instances from disk
@@ -59,19 +62,12 @@ func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager 
 
 	// Start the timeout checker goroutine after initialization is complete
 	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("Timeout checker goroutine recovered from panic: %v", r)
-			}
-		}()
+		defer close(im.shutdownDone)
 
 		for {
 			select {
 			case <-im.timeoutChecker.C:
-				// Check if manager is still valid before proceeding
-				if im != nil {
-					im.checkAllTimeouts()
-				}
+				im.checkAllTimeouts()
 			case <-im.shutdownChan:
 				return // Exit goroutine on shutdown
 			}
@@ -127,18 +123,25 @@ func (im *instanceManager) Shutdown() {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 
-	// Stop the timeout checker
+	// Check if already shutdown
+	if im.isShutdown {
+		return
+	}
+	im.isShutdown = true
+
+	// Signal the timeout checker to stop
+	close(im.shutdownChan)
+
+	// Release lock temporarily to wait for goroutine
+	im.mu.Unlock()
+	// Wait for the timeout checker goroutine to actually stop
+	<-im.shutdownDone
+	// Reacquire lock
+	im.mu.Lock()
+
+	// Now stop the ticker
 	if im.timeoutChecker != nil {
 		im.timeoutChecker.Stop()
-		im.timeoutChecker = nil
-	}
-
-	// Signal the shutdown channel to exit the goroutine
-	select {
-	case <-im.shutdownChan:
-		// Channel already closed
-	default:
-		close(im.shutdownChan)
 	}
 
 	var wg sync.WaitGroup
