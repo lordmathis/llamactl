@@ -1,4 +1,5 @@
 import { type CreateInstanceOptions, getAllFieldKeys } from '@/schemas/instanceOptions'
+import { on } from 'events'
 
 // Only define the basic fields we want to show by default
 export const basicFieldsConfig: Record<string, {
@@ -25,6 +26,10 @@ export const basicFieldsConfig: Record<string, {
     label: 'Idle Timeout (minutes)',
     placeholder: '60',
     description: 'Time in minutes before instance is considered idle and stopped'
+  },
+  on_demand_start: {
+    label: 'On-Demand Start',
+    description: 'Start instance upon receiving OpenAI-compatible API request'
   },
   model: {
     label: 'Model Path',

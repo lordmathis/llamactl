@@ -7,6 +7,7 @@ export const CreateInstanceOptionsSchema = z.object({
   max_restarts: z.number().optional(),
   restart_delay: z.number().optional(),
   idle_timeout: z.number().optional(),
+  on_demand_start: z.boolean().optional(),
 
   // Common params
   verbose_prompt: z.boolean().optional(),
