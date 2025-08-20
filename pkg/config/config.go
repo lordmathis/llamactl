@@ -67,6 +67,9 @@ type InstancesConfig struct {
 	// Default restart delay for new instances (in seconds)
 	DefaultRestartDelay int `yaml:"default_restart_delay"`
 
+	// Default on-demand start setting for new instances
+	DefaultOnDemandStart bool `yaml:"default_on_demand_start"`
+
 	// Interval for checking instance timeouts (in minutes)
 	TimeoutCheckInterval int `yaml:"timeout_check_interval"`
 }
@@ -111,6 +114,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			DefaultAutoRestart:   true,
 			DefaultMaxRestarts:   3,
 			DefaultRestartDelay:  5,
+			DefaultOnDemandStart: false,
 			TimeoutCheckInterval: 5, // Check timeouts every 5 minutes
 		},
 		Auth: AuthConfig{
@@ -219,6 +223,11 @@ func loadEnvVars(cfg *AppConfig) {
 	if restartDelay := os.Getenv("LLAMACTL_DEFAULT_RESTART_DELAY"); restartDelay != "" {
 		if seconds, err := strconv.Atoi(restartDelay); err == nil {
 			cfg.Instances.DefaultRestartDelay = seconds
+		}
+	}
+	if onDemandStart := os.Getenv("LLAMACTL_DEFAULT_ON_DEMAND_START"); onDemandStart != "" {
+		if b, err := strconv.ParseBool(onDemandStart); err == nil {
+			cfg.Instances.DefaultOnDemandStart = b
 		}
 	}
 	if timeoutCheckInterval := os.Getenv("LLAMACTL_TIMEOUT_CHECK_INTERVAL"); timeoutCheckInterval != "" {
