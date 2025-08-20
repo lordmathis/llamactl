@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 // InstanceManager defines the interface for managing instances of the llama server.
@@ -31,20 +32,48 @@ type instanceManager struct {
 	instances       map[string]*instance.Process
 	ports           map[int]bool
 	instancesConfig config.InstancesConfig
+
+	// Timeout checker
+	timeoutChecker *time.Ticker
+	shutdownChan   chan struct{}
+	shutdownDone   chan struct{}
+	isShutdown     bool
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
 func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager {
+	if instancesConfig.TimeoutCheckInterval <= 0 {
+		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
+	}
 	im := &instanceManager{
 		instances:       make(map[string]*instance.Process),
 		ports:           make(map[int]bool),
 		instancesConfig: instancesConfig,
+
+		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
+		shutdownChan:   make(chan struct{}),
+		shutdownDone:   make(chan struct{}),
 	}
 
 	// Load existing instances from disk
 	if err := im.loadInstances(); err != nil {
 		log.Printf("Error loading instances: %v", err)
 	}
+
+	// Start the timeout checker goroutine after initialization is complete
+	go func() {
+		defer close(im.shutdownDone)
+
+		for {
+			select {
+			case <-im.timeoutChecker.C:
+				im.checkAllTimeouts()
+			case <-im.shutdownChan:
+				return // Exit goroutine on shutdown
+			}
+		}
+	}()
+
 	return im
 }
 
@@ -93,6 +122,27 @@ func (im *instanceManager) persistInstance(instance *instance.Process) error {
 func (im *instanceManager) Shutdown() {
 	im.mu.Lock()
 	defer im.mu.Unlock()
+
+	// Check if already shutdown
+	if im.isShutdown {
+		return
+	}
+	im.isShutdown = true
+
+	// Signal the timeout checker to stop
+	close(im.shutdownChan)
+
+	// Release lock temporarily to wait for goroutine
+	im.mu.Unlock()
+	// Wait for the timeout checker goroutine to actually stop
+	<-im.shutdownDone
+	// Reacquire lock
+	im.mu.Lock()
+
+	// Now stop the ticker
+	if im.timeoutChecker != nil {
+		im.timeoutChecker.Stop()
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(len(im.instances))

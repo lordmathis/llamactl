@@ -472,6 +472,9 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 			proxyPath = "/" + proxyPath
 		}
 
+		// Update the last request time for the instance
+		inst.UpdateLastRequestTime()
+
 		// Modify the request to remove the proxy prefix
 		originalPath := r.URL.Path
 		r.URL.Path = proxyPath
@@ -581,6 +584,9 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Update last request time for the instance
+		inst.UpdateLastRequestTime()
 
 		// Recreate the request body from the bytes we read
 		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))

@@ -13,16 +13,30 @@ import (
 	"net/url"
 	"os/exec"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
+// TimeProvider interface allows for testing with mock time
+type TimeProvider interface {
+	Now() time.Time
+}
+
+// realTimeProvider implements TimeProvider using the actual time
+type realTimeProvider struct{}
+
+func (realTimeProvider) Now() time.Time {
+	return time.Now()
+}
+
 type CreateInstanceOptions struct {
 	// Auto restart
-	AutoRestart *bool `json:"auto_restart,omitempty"`
-	MaxRestarts *int  `json:"max_restarts,omitempty"`
-	// RestartDelay duration in seconds
-	RestartDelay *int `json:"restart_delay_seconds,omitempty"`
-
+	AutoRestart  *bool `json:"auto_restart,omitempty"`
+	MaxRestarts  *int  `json:"max_restarts,omitempty"`
+	RestartDelay *int  `json:"restart_delay,omitempty"`
+	// Timeout
+	IdleTimeout *int `json:"idle_timeout,omitempty"`
+	// LlamaServerOptions contains the options for the llama server
 	llamacpp.LlamaServerOptions `json:",inline"`
 }
 
@@ -34,7 +48,8 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 	type tempCreateOptions struct {
 		AutoRestart  *bool `json:"auto_restart,omitempty"`
 		MaxRestarts  *int  `json:"max_restarts,omitempty"`
-		RestartDelay *int  `json:"restart_delay_seconds,omitempty"`
+		RestartDelay *int  `json:"restart_delay,omitempty"`
+		IdleTimeout  *int  `json:"idle_timeout,omitempty"`
 	}
 
 	var temp tempCreateOptions
@@ -46,6 +61,7 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 	c.AutoRestart = temp.AutoRestart
 	c.MaxRestarts = temp.MaxRestarts
 	c.RestartDelay = temp.RestartDelay
+	c.IdleTimeout = temp.IdleTimeout
 
 	// Now unmarshal the embedded LlamaServerOptions
 	if err := json.Unmarshal(data, &c.LlamaServerOptions); err != nil {
@@ -83,6 +99,10 @@ type Process struct {
 	// Restart control
 	restartCancel context.CancelFunc `json:"-"` // Cancel function for pending restarts
 	monitorDone   chan struct{}      `json:"-"` // Channel to signal monitor goroutine completion
+
+	// Timeout management
+	lastRequestTime atomic.Int64 // Unix timestamp of last request
+	timeProvider    TimeProvider `json:"-"` // Time provider for testing
 }
 
 // validateAndCopyOptions validates and creates a deep copy of the provided options
@@ -117,6 +137,15 @@ func validateAndCopyOptions(name string, options *CreateInstanceOptions) *Create
 			}
 			optionsCopy.RestartDelay = &restartDelay
 		}
+
+		if options.IdleTimeout != nil {
+			idleTimeout := *options.IdleTimeout
+			if idleTimeout < 0 {
+				log.Printf("Instance %s IdleTimeout value (%d) cannot be negative, setting to 0 minutes", name, idleTimeout)
+				idleTimeout = 0
+			}
+			optionsCopy.IdleTimeout = &idleTimeout
+		}
 	}
 
 	return optionsCopy
@@ -142,6 +171,11 @@ func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *config.
 		defaultRestartDelay := globalSettings.DefaultRestartDelay
 		options.RestartDelay = &defaultRestartDelay
 	}
+
+	if options.IdleTimeout == nil {
+		defaultIdleTimeout := 0
+		options.IdleTimeout = &defaultIdleTimeout
+	}
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
@@ -158,10 +192,8 @@ func NewInstance(name string, globalSettings *config.InstancesConfig, options *C
 		options:        optionsCopy,
 		globalSettings: globalSettings,
 		logger:         logger,
-
-		Running: false,
-
-		Created: time.Now().Unix(),
+		timeProvider:   realTimeProvider{},
+		Created:        time.Now().Unix(),
 	}
 }
 
@@ -187,6 +219,11 @@ func (i *Process) SetOptions(options *CreateInstanceOptions) {
 	i.options = optionsCopy
 	// Clear the proxy so it gets recreated with new options
 	i.proxy = nil
+}
+
+// SetTimeProvider sets a custom time provider for testing
+func (i *Process) SetTimeProvider(tp TimeProvider) {
+	i.timeProvider = tp
 }
 
 // GetProxy returns the reverse proxy for this instance, creating it if needed

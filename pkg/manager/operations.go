@@ -27,10 +27,6 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
 
-	if len(im.instances) >= im.instancesConfig.MaxInstances && im.instancesConfig.MaxInstances != -1 {
-		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances)
-	}
-
 	name, err := validation.ValidateInstanceName(name)
 	if err != nil {
 		return nil, err
@@ -43,6 +39,11 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 
 	im.mu.Lock()
 	defer im.mu.Unlock()
+
+	// Check max instances limit after acquiring the lock
+	if len(im.instances) >= im.instancesConfig.MaxInstances && im.instancesConfig.MaxInstances != -1 {
+		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances)
+	}
 
 	// Check if instance with this name already exists
 	if im.instances[name] != nil {

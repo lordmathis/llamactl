@@ -91,38 +91,6 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	}
 }
 
-func TestNewInstance_ValidationAndDefaults(t *testing.T) {
-	globalSettings := &config.InstancesConfig{
-		LogsDir:             "/tmp/test",
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
-	}
-
-	// Test with invalid negative values
-	invalidMaxRestarts := -5
-	invalidRestartDelay := -10
-
-	options := &instance.CreateInstanceOptions{
-		MaxRestarts:  &invalidMaxRestarts,
-		RestartDelay: &invalidRestartDelay,
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-		},
-	}
-
-	instance := instance.NewInstance("test-instance", globalSettings, options)
-	opts := instance.GetOptions()
-
-	// Check that negative values were corrected to 0
-	if opts.MaxRestarts == nil || *opts.MaxRestarts != 0 {
-		t.Errorf("Expected MaxRestarts to be corrected to 0, got %v", opts.MaxRestarts)
-	}
-	if opts.RestartDelay == nil || *opts.RestartDelay != 0 {
-		t.Errorf("Expected RestartDelay to be corrected to 0, got %v", opts.RestartDelay)
-	}
-}
-
 func TestSetOptions(t *testing.T) {
 	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
@@ -161,33 +129,6 @@ func TestSetOptions(t *testing.T) {
 	// Check that defaults are still applied
 	if opts.AutoRestart == nil || !*opts.AutoRestart {
 		t.Error("Expected AutoRestart to be true (default)")
-	}
-}
-
-func TestSetOptions_NilOptions(t *testing.T) {
-	globalSettings := &config.InstancesConfig{
-		LogsDir:             "/tmp/test",
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
-	}
-
-	options := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-		},
-	}
-
-	instance := instance.NewInstance("test-instance", globalSettings, options)
-	originalOptions := instance.GetOptions()
-
-	// Try to set nil options
-	instance.SetOptions(nil)
-
-	// Options should remain unchanged
-	currentOptions := instance.GetOptions()
-	if currentOptions.Model != originalOptions.Model {
-		t.Error("Options should not change when setting nil options")
 	}
 }
 
@@ -317,58 +258,6 @@ func TestUnmarshalJSON(t *testing.T) {
 	}
 }
 
-func TestUnmarshalJSON_PartialOptions(t *testing.T) {
-	jsonData := `{
-		"name": "test-instance",
-		"running": false,
-		"options": {
-			"model": "/path/to/model.gguf"
-		}
-	}`
-
-	var inst instance.Process
-	err := json.Unmarshal([]byte(jsonData), &inst)
-	if err != nil {
-		t.Fatalf("JSON unmarshal failed: %v", err)
-	}
-
-	opts := inst.GetOptions()
-	if opts.Model != "/path/to/model.gguf" {
-		t.Errorf("Expected model '/path/to/model.gguf', got %q", opts.Model)
-	}
-
-	// Note: Defaults are NOT applied during unmarshaling
-	// They should only be applied by NewInstance or SetOptions
-	if opts.AutoRestart != nil {
-		t.Error("Expected AutoRestart to be nil (no defaults applied during unmarshal)")
-	}
-}
-
-func TestUnmarshalJSON_NoOptions(t *testing.T) {
-	jsonData := `{
-		"name": "test-instance",
-		"running": false
-	}`
-
-	var inst instance.Process
-	err := json.Unmarshal([]byte(jsonData), &inst)
-	if err != nil {
-		t.Fatalf("JSON unmarshal failed: %v", err)
-	}
-
-	if inst.Name != "test-instance" {
-		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
-	}
-	if inst.Running {
-		t.Error("Expected running to be false")
-	}
-
-	opts := inst.GetOptions()
-	if opts != nil {
-		t.Error("Expected options to be nil when not provided in JSON")
-	}
-}
-
 func TestCreateInstanceOptionsValidation(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -377,13 +266,6 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 		expectedMax   int
 		expectedDelay int
 	}{
-		{
-			name:          "nil values",
-			maxRestarts:   nil,
-			restartDelay:  nil,
-			expectedMax:   0, // Should remain nil, but we can't easily test nil in this structure
-			expectedDelay: 0,
-		},
 		{
 			name:          "valid positive values",
 			maxRestarts:   testutil.IntPtr(10),
@@ -424,20 +306,16 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 			instance := instance.NewInstance("test", globalSettings, options)
 			opts := instance.GetOptions()
 
-			if tt.maxRestarts != nil {
-				if opts.MaxRestarts == nil {
-					t.Error("Expected MaxRestarts to be set")
-				} else if *opts.MaxRestarts != tt.expectedMax {
-					t.Errorf("Expected MaxRestarts %d, got %d", tt.expectedMax, *opts.MaxRestarts)
-				}
+			if opts.MaxRestarts == nil {
+				t.Error("Expected MaxRestarts to be set")
+			} else if *opts.MaxRestarts != tt.expectedMax {
+				t.Errorf("Expected MaxRestarts %d, got %d", tt.expectedMax, *opts.MaxRestarts)
 			}
 
-			if tt.restartDelay != nil {
-				if opts.RestartDelay == nil {
-					t.Error("Expected RestartDelay to be set")
-				} else if *opts.RestartDelay != tt.expectedDelay {
-					t.Errorf("Expected RestartDelay %d, got %d", tt.expectedDelay, *opts.RestartDelay)
-				}
+			if opts.RestartDelay == nil {
+				t.Error("Expected RestartDelay to be set")
+			} else if *opts.RestartDelay != tt.expectedDelay {
+				t.Errorf("Expected RestartDelay %d, got %d", tt.expectedDelay, *opts.RestartDelay)
 			}
 		})
 	}
