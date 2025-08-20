@@ -152,37 +152,42 @@ func (i *Process) WaitForHealthy(timeout int) error {
 	if timeout <= 0 {
 		timeout = 30 // Default to 30 seconds if no timeout is specified
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	// Get the reverse proxy for this instance
-	proxy, err := i.GetProxy()
-	if err != nil {
-		return fmt.Errorf("failed to get proxy for instance %s: %w", i.Name, err)
+	// Get instance options to build the health check URL
+	opts := i.GetOptions()
+	if opts == nil {
+		return fmt.Errorf("instance %s has no options set", i.Name)
 	}
 
-	// Polling interval
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
+	// Build the health check URL directly
+	host := opts.Host
+	if host == "" {
+		host = "localhost"
+	}
+	healthURL := fmt.Sprintf("http://%s:%d/health", host, opts.Port)
 
-	// Helper function to check health using the proxy
+	// Create a dedicated HTTP client for health checks
+	client := &http.Client{
+		Timeout: 5 * time.Second, // 5 second timeout per request
+	}
+
+	// Helper function to check health directly
 	checkHealth := func() bool {
-		// Create a request to /health
-		req, err := http.NewRequestWithContext(ctx, "GET", "/health", nil)
+		req, err := http.NewRequestWithContext(ctx, "GET", healthURL, nil)
 		if err != nil {
 			return false
 		}
 
-		// Create a custom ResponseRecorder to capture the proxy response
-		recorder := &healthResponseRecorder{
-			statusCode: 0,
-			headers:    make(http.Header),
+		resp, err := client.Do(req)
+		if err != nil {
+			return false
 		}
+		defer resp.Body.Close()
 
-		// Use the proxy to forward the request
-		proxy.ServeHTTP(recorder, req)
-
-		return recorder.statusCode == http.StatusOK
+		return resp.StatusCode == http.StatusOK
 	}
 
 	// Try immediate check first
@@ -191,6 +196,9 @@ func (i *Process) WaitForHealthy(timeout int) error {
 	}
 
 	// If immediate check failed, start polling
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -202,25 +210,6 @@ func (i *Process) WaitForHealthy(timeout int) error {
 			// Continue polling
 		}
 	}
-}
-
-// healthResponseRecorder implements http.ResponseWriter to capture proxy responses
-type healthResponseRecorder struct {
-	statusCode int
-	headers    http.Header
-}
-
-func (r *healthResponseRecorder) Header() http.Header {
-	return r.headers
-}
-
-func (r *healthResponseRecorder) Write([]byte) (int, error) {
-	// We don't need to capture the body for health checks
-	return 0, nil
-}
-
-func (r *healthResponseRecorder) WriteHeader(statusCode int) {
-	r.statusCode = statusCode
 }
 
 func (i *Process) monitorProcess() {
