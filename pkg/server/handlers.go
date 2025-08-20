@@ -583,7 +583,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 				}
 
 				// Wait for the instance to become healthy before proceeding
-				if err := inst.WaitForHealthy(120); err != nil { // 2 minutes timeout
+				if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil { // 2 minutes timeout
 					http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
 					return
 				}
