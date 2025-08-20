@@ -12,6 +12,7 @@
 🔐 **API Key Authentication**: Separate keys for management vs inference access  
 📊 **Instance Monitoring**: Health checks, auto-restart, log management  
 ⏳ **Idle Timeout Management**: Automatically stop idle instances after a configurable period  
+💡 **On-Demand Instance Start**: Automatically launch instances upon receiving OpenAI-compatible API requests  
 💾 **State Persistence**: Ensure instances remain intact across server restarts  
 
 ![Dashboard Screenshot](docs/images/screenshot.png)
