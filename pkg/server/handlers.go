@@ -575,8 +575,23 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		}
 
 		if !inst.Running {
-			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
-			return
+			if inst.GetOptions().OnDemandStart != nil && *inst.GetOptions().OnDemandStart {
+				// If on-demand start is enabled, start the instance
+				if _, err := h.InstanceManager.StartInstance(modelName); err != nil {
+					http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				// Wait for the instance to become healthy before proceeding
+				if err := inst.WaitForHealthy(120); err != nil { // 2 minutes timeout
+					http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
+					return
+				}
+
+			} else {
+				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
+				return
+			}
 		}
 
 		proxy, err := inst.GetProxy()
