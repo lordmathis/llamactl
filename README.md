@@ -11,7 +11,8 @@
 🌐 **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)  
 🔐 **API Key Authentication**: Separate keys for management vs inference access  
 📊 **Instance Monitoring**: Health checks, auto-restart, log management  
-⚡ **Persistent State**: Instances survive server restarts
+⏳ **Idle Timeout Management**: Automatically stop idle instances after a configurable period  
+💾 **State Persistence**: Ensure instances remain intact across server restarts  
 
 ![Dashboard Screenshot](docs/images/screenshot.png)
 
