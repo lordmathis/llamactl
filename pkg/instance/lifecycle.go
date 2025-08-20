@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os/exec"
 	"runtime"
 	"syscall"
@@ -141,6 +142,74 @@ func (i *Process) Stop() error {
 	i.logger.Close()
 
 	return nil
+}
+
+func (i *Process) WaitForHealthy(timeout int) error {
+	if !i.Running {
+		return fmt.Errorf("instance %s is not running", i.Name)
+	}
+
+	if timeout <= 0 {
+		timeout = 30 // Default to 30 seconds if no timeout is specified
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+
+	// Get instance options to build the health check URL
+	opts := i.GetOptions()
+	if opts == nil {
+		return fmt.Errorf("instance %s has no options set", i.Name)
+	}
+
+	// Build the health check URL directly
+	host := opts.Host
+	if host == "" {
+		host = "localhost"
+	}
+	healthURL := fmt.Sprintf("http://%s:%d/health", host, opts.Port)
+
+	// Create a dedicated HTTP client for health checks
+	client := &http.Client{
+		Timeout: 5 * time.Second, // 5 second timeout per request
+	}
+
+	// Helper function to check health directly
+	checkHealth := func() bool {
+		req, err := http.NewRequestWithContext(ctx, "GET", healthURL, nil)
+		if err != nil {
+			return false
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return false
+		}
+		defer resp.Body.Close()
+
+		return resp.StatusCode == http.StatusOK
+	}
+
+	// Try immediate check first
+	if checkHealth() {
+		return nil // Instance is healthy
+	}
+
+	// If immediate check failed, start polling
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for instance %s to become healthy after %d seconds", i.Name, timeout)
+		case <-ticker.C:
+			if checkHealth() {
+				return nil // Instance is healthy
+			}
+			// Continue polling
+		}
+	}
 }
 
 func (i *Process) monitorProcess() {

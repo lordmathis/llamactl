@@ -26,6 +26,10 @@ export const basicFieldsConfig: Record<string, {
     placeholder: '60',
     description: 'Time in minutes before instance is considered idle and stopped'
   },
+  on_demand_start: {
+    label: 'On-Demand Start',
+    description: 'Start instance upon receiving OpenAI-compatible API request'
+  },
   model: {
     label: 'Model Path',
     placeholder: '/path/to/model.gguf',

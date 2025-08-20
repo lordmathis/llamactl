@@ -12,6 +12,7 @@
 🔐 **API Key Authentication**: Separate keys for management vs inference access  
 📊 **Instance Monitoring**: Health checks, auto-restart, log management  
 ⏳ **Idle Timeout Management**: Automatically stop idle instances after a configurable period  
+💡 **On-Demand Instance Start**: Automatically launch instances upon receiving OpenAI-compatible API requests  
 💾 **State Persistence**: Ensure instances remain intact across server restarts  
 
 ![Dashboard Screenshot](docs/images/screenshot.png)
@@ -116,6 +117,10 @@ instances:
   default_auto_restart: true     # Auto-restart new instances by default
   default_max_restarts: 3        # Max restarts for new instances
   default_restart_delay: 5       # Restart delay (seconds) for new instances
+  default_on_demand_start: true  # Default on-demand start setting
+  on_demand_start_timeout: 120   # Default on-demand start timeout in seconds
+  timeout_check_interval: 5      # Idle instance timeout check in minutes
+
 
 auth:
   require_inference_auth: true   # Require auth for inference endpoints
@@ -183,6 +188,8 @@ instances:
   default_auto_restart: true                        # Default auto-restart setting
   default_max_restarts: 3                           # Default maximum restart attempts
   default_restart_delay: 5                          # Default restart delay in seconds
+  default_on_demand_start: true                     # Default on-demand start setting
+  on_demand_start_timeout: 120                      # Default on-demand start timeout in seconds
   timeout_check_interval: 5                         # Default instance timeout check interval in minutes
 ```
 
@@ -197,7 +204,10 @@ instances:
 - `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)
 - `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts
 - `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds
+- `LLAMACTL_DEFAULT_ON_DEMAND_START` - Default on-demand start setting (true/false)
+- `LLAMACTL_ON_DEMAND_START_TIMEOUT` - Default on-demand start timeout in seconds
 - `LLAMACTL_TIMEOUT_CHECK_INTERVAL` - Default instance timeout check interval in minutes
+
 
 #### Authentication Configuration
 
