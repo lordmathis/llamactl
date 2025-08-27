@@ -65,7 +65,11 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		im.ports[options.Port] = true
 	}
 
-	inst := instance.NewInstance(name, &im.instancesConfig, options)
+	statusCallback := func(oldStatus, newStatus instance.InstanceStatus) {
+		im.onStatusChange(name, oldStatus, newStatus)
+	}
+
+	inst := instance.NewInstance(name, &im.instancesConfig, options, statusCallback)
 	im.instances[inst.Name] = inst
 	im.ports[options.Port] = true
 

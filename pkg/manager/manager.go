@@ -30,7 +30,7 @@ type InstanceManager interface {
 type instanceManager struct {
 	mu               sync.RWMutex
 	instances        map[string]*instance.Process
-	runningInstances map[*instance.Process]struct{}
+	runningInstances map[string]struct{}
 	ports            map[int]bool
 	instancesConfig  config.InstancesConfig
 
@@ -48,7 +48,7 @@ func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager 
 	}
 	im := &instanceManager{
 		instances:        make(map[string]*instance.Process),
-		runningInstances: make(map[*instance.Process]struct{}),
+		runningInstances: make(map[string]struct{}),
 		ports:            make(map[int]bool),
 		instancesConfig:  instancesConfig,
 
@@ -229,8 +229,12 @@ func (im *instanceManager) loadInstance(name, path string) error {
 		return fmt.Errorf("instance name mismatch: file=%s, instance.Name=%s", name, persistedInstance.Name)
 	}
 
+	statusCallback := func(oldStatus, newStatus instance.InstanceStatus) {
+		im.onStatusChange(persistedInstance.Name, oldStatus, newStatus)
+	}
+
 	// Create new inst using NewInstance (handles validation, defaults, setup)
-	inst := instance.NewInstance(name, &im.instancesConfig, persistedInstance.GetOptions())
+	inst := instance.NewInstance(name, &im.instancesConfig, persistedInstance.GetOptions(), statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
 	inst.Created = persistedInstance.Created
@@ -270,5 +274,16 @@ func (im *instanceManager) autoStartInstances() {
 		if err := inst.Start(); err != nil {
 			log.Printf("Failed to auto-start instance %s: %v", inst.Name, err)
 		}
+	}
+}
+
+func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus instance.InstanceStatus) {
+	im.mu.Lock()
+	defer im.mu.Unlock()
+
+	if newStatus == instance.Running {
+		im.runningInstances[name] = struct{}{}
+	} else {
+		delete(im.runningInstances, name)
 	}
 }

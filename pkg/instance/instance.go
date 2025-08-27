@@ -82,7 +82,8 @@ type Process struct {
 	globalSettings *config.InstancesConfig
 
 	// Status
-	Status InstanceStatus `json:"status"`
+	Status         InstanceStatus `json:"status"`
+	onStatusChange func(oldStatus, newStatus InstanceStatus)
 
 	// Creation time
 	Created int64 `json:"created,omitempty"` // Unix timestamp when the instance was created
@@ -193,7 +194,7 @@ func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *config.
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalSettings *config.InstancesConfig, options *CreateInstanceOptions) *Process {
+func NewInstance(name string, globalSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus InstanceStatus)) *Process {
 	// Validate and copy options
 	optionsCopy := validateAndCopyOptions(name, options)
 	// Apply defaults
@@ -208,6 +209,8 @@ func NewInstance(name string, globalSettings *config.InstancesConfig, options *C
 		logger:         logger,
 		timeProvider:   realTimeProvider{},
 		Created:        time.Now().Unix(),
+		Status:         Stopped,
+		onStatusChange: onStatusChange,
 	}
 }
 

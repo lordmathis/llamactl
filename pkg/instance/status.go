@@ -28,9 +28,13 @@ var statusToName = map[InstanceStatus]string{
 
 func (p *Process) SetStatus(status InstanceStatus) {
 	p.mu.Lock()
-	defer p.mu.Unlock()
-
+	oldStatus := p.Status
 	p.Status = status
+	p.mu.Unlock()
+
+	if p.onStatusChange != nil {
+		p.onStatusChange(oldStatus, status)
+	}
 }
 
 func (p *Process) GetStatus() InstanceStatus {
