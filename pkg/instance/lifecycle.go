@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+func (i *Process) IsRunning() bool {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+	return i.Running
+}
+
 // Start starts the llama server instance and returns an error if it fails.
 func (i *Process) Start() error {
 	i.mu.Lock()

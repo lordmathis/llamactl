@@ -28,10 +28,11 @@ type InstanceManager interface {
 }
 
 type instanceManager struct {
-	mu              sync.RWMutex
-	instances       map[string]*instance.Process
-	ports           map[int]bool
-	instancesConfig config.InstancesConfig
+	mu               sync.RWMutex
+	instances        map[string]*instance.Process
+	runningInstances map[*instance.Process]struct{}
+	ports            map[int]bool
+	instancesConfig  config.InstancesConfig
 
 	// Timeout checker
 	timeoutChecker *time.Ticker
@@ -46,9 +47,10 @@ func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager 
 		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
 	}
 	im := &instanceManager{
-		instances:       make(map[string]*instance.Process),
-		ports:           make(map[int]bool),
-		instancesConfig: instancesConfig,
+		instances:        make(map[string]*instance.Process),
+		runningInstances: make(map[*instance.Process]struct{}),
+		ports:            make(map[int]bool),
+		instancesConfig:  instancesConfig,
 
 		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
 		shutdownChan:   make(chan struct{}),
