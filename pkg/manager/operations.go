@@ -181,6 +181,10 @@ func (im *instanceManager) StartInstance(name string) (*instance.Process, error)
 		return instance, fmt.Errorf("instance with name %s is already running", name)
 	}
 
+	if len(im.runningInstances) >= im.instancesConfig.MaxRunningInstances && im.instancesConfig.MaxRunningInstances != -1 {
+		return nil, fmt.Errorf("maximum number of running instances (%d) reached", im.instancesConfig.MaxRunningInstances)
+	}
+
 	if err := instance.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start instance %s: %w", name, err)
 	}
