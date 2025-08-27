@@ -257,6 +257,7 @@ func (i *Process) handleRestart() {
 	// Validate restart conditions and get safe parameters
 	shouldRestart, maxRestarts, restartDelay := i.validateRestartConditions()
 	if !shouldRestart {
+		i.SetStatus(Failed)
 		i.mu.Unlock()
 		return
 	}
