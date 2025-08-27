@@ -94,7 +94,7 @@ func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
 
 			inst := instance.NewInstance("test-instance", globalSettings, options)
 			// Simulate running state
-			inst.Running = true
+			inst.SetStatus(instance.Running)
 
 			if inst.ShouldTimeout() {
 				t.Errorf("Instance with %s should not timeout", tt.name)
@@ -117,7 +117,7 @@ func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
 	}
 
 	inst := instance.NewInstance("test-instance", globalSettings, options)
-	inst.Running = true
+	inst.SetStatus(instance.Running)
 
 	// Update last request time to now
 	inst.UpdateLastRequestTime()
@@ -142,7 +142,7 @@ func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
 	}
 
 	inst := instance.NewInstance("test-instance", globalSettings, options)
-	inst.Running = true
+	inst.SetStatus(instance.Running)
 
 	// Use MockTimeProvider to simulate old last request time
 	mockTime := NewMockTimeProvider(time.Now())

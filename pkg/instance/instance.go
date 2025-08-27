@@ -82,7 +82,7 @@ type Process struct {
 	globalSettings *config.InstancesConfig
 
 	// Status
-	Running bool `json:"running"`
+	Status InstanceStatus `json:"status"`
 
 	// Creation time
 	Created int64 `json:"created,omitempty"` // Unix timestamp when the instance was created
@@ -287,12 +287,12 @@ func (i *Process) MarshalJSON() ([]byte, error) {
 	temp := struct {
 		Name    string                 `json:"name"`
 		Options *CreateInstanceOptions `json:"options,omitempty"`
-		Running bool                   `json:"running"`
+		Status  InstanceStatus         `json:"status"`
 		Created int64                  `json:"created,omitempty"`
 	}{
 		Name:    i.Name,
 		Options: i.options,
-		Running: i.Running,
+		Status:  i.Status,
 		Created: i.Created,
 	}
 
@@ -305,7 +305,7 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 	temp := struct {
 		Name    string                 `json:"name"`
 		Options *CreateInstanceOptions `json:"options,omitempty"`
-		Running bool                   `json:"running"`
+		Status  InstanceStatus         `json:"status"`
 		Created int64                  `json:"created,omitempty"`
 	}{}
 
@@ -315,7 +315,7 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 
 	// Set the fields
 	i.Name = temp.Name
-	i.Running = temp.Running
+	i.Status = temp.Status
 	i.Created = temp.Created
 
 	// Handle options with validation but no defaults

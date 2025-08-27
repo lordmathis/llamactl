@@ -150,7 +150,7 @@ func (im *instanceManager) Shutdown() {
 	wg.Add(len(im.instances))
 
 	for name, inst := range im.instances {
-		if !inst.Running {
+		if !inst.IsRunning() {
 			wg.Done() // If instance is not running, just mark it as done
 			continue
 		}
@@ -234,7 +234,7 @@ func (im *instanceManager) loadInstance(name, path string) error {
 
 	// Restore persisted fields that NewInstance doesn't set
 	inst.Created = persistedInstance.Created
-	inst.Running = persistedInstance.Running
+	inst.SetStatus(persistedInstance.Status)
 
 	// Check for port conflicts and add to maps
 	if inst.GetOptions() != nil && inst.GetOptions().Port > 0 {
@@ -254,7 +254,7 @@ func (im *instanceManager) autoStartInstances() {
 	im.mu.RLock()
 	var instancesToStart []*instance.Process
 	for _, inst := range im.instances {
-		if inst.Running && // Was running when persisted
+		if inst.IsRunning() && // Was running when persisted
 			inst.GetOptions() != nil &&
 			inst.GetOptions().AutoRestart != nil &&
 			*inst.GetOptions().AutoRestart {
@@ -266,7 +266,7 @@ func (im *instanceManager) autoStartInstances() {
 	for _, inst := range instancesToStart {
 		log.Printf("Auto-starting instance %s", inst.Name)
 		// Reset running state before starting (since Start() expects stopped instance)
-		inst.Running = false
+		inst.SetStatus(instance.Stopped)
 		if err := inst.Start(); err != nil {
 			log.Printf("Failed to auto-start instance %s: %v", inst.Name, err)
 		}

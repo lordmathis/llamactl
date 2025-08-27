@@ -29,7 +29,7 @@ func TestNewInstance(t *testing.T) {
 	if instance.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", instance.Name)
 	}
-	if instance.Running {
+	if instance.IsRunning() {
 		t.Error("New instance should not be running")
 	}
 
@@ -188,7 +188,7 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	// Check that JSON contains expected fields
-	var result map[string]interface{}
+	var result map[string]any
 	err = json.Unmarshal(data, &result)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
@@ -197,8 +197,8 @@ func TestMarshalJSON(t *testing.T) {
 	if result["name"] != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %v", result["name"])
 	}
-	if result["running"] != false {
-		t.Errorf("Expected running false, got %v", result["running"])
+	if result["status"] != "stopped" {
+		t.Errorf("Expected status 'stopped', got %v", result["status"])
 	}
 
 	// Check that options are included
@@ -218,7 +218,7 @@ func TestMarshalJSON(t *testing.T) {
 func TestUnmarshalJSON(t *testing.T) {
 	jsonData := `{
 		"name": "test-instance",
-		"running": true,
+		"status": "running",
 		"options": {
 			"model": "/path/to/model.gguf",
 			"port": 8080,
@@ -236,8 +236,8 @@ func TestUnmarshalJSON(t *testing.T) {
 	if inst.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
 	}
-	if !inst.Running {
-		t.Error("Expected running to be true")
+	if !inst.IsRunning() {
+		t.Error("Expected status to be running")
 	}
 
 	opts := inst.GetOptions()

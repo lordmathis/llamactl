@@ -11,18 +11,12 @@ import (
 	"time"
 )
 
-func (i *Process) IsRunning() bool {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-	return i.Running
-}
-
 // Start starts the llama server instance and returns an error if it fails.
 func (i *Process) Start() error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	if i.Running {
+	if i.IsRunning() {
 		return fmt.Errorf("instance %s is already running", i.Name)
 	}
 
@@ -71,7 +65,7 @@ func (i *Process) Start() error {
 		return fmt.Errorf("failed to start instance %s: %w", i.Name, err)
 	}
 
-	i.Running = true
+	i.SetStatus(Running)
 
 	// Create channel for monitor completion signaling
 	i.monitorDone = make(chan struct{})
@@ -88,7 +82,7 @@ func (i *Process) Start() error {
 func (i *Process) Stop() error {
 	i.mu.Lock()
 
-	if !i.Running {
+	if !i.IsRunning() {
 		// Even if not running, cancel any pending restart
 		if i.restartCancel != nil {
 			i.restartCancel()
@@ -105,8 +99,8 @@ func (i *Process) Stop() error {
 		i.restartCancel = nil
 	}
 
-	// Set running to false first to signal intentional stop
-	i.Running = false
+	// Set status to stopped first to signal intentional stop
+	i.SetStatus(Stopped)
 
 	// Clean up the proxy
 	i.proxy = nil
@@ -151,7 +145,7 @@ func (i *Process) Stop() error {
 }
 
 func (i *Process) WaitForHealthy(timeout int) error {
-	if !i.Running {
+	if !i.IsRunning() {
 		return fmt.Errorf("instance %s is not running", i.Name)
 	}
 
@@ -233,12 +227,12 @@ func (i *Process) monitorProcess() {
 	i.mu.Lock()
 
 	// Check if the instance was intentionally stopped
-	if !i.Running {
+	if !i.IsRunning() {
 		i.mu.Unlock()
 		return
 	}
 
-	i.Running = false
+	i.SetStatus(Stopped)
 	i.logger.Close()
 
 	// Cancel any existing restart context since we're handling a new exit

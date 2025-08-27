@@ -451,7 +451,7 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 			return
 		}
 
-		if !inst.Running {
+		if !inst.IsRunning() {
 			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
 			return
 		}
@@ -574,7 +574,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
-		if !inst.Running {
+		if !inst.IsRunning() {
 			if inst.GetOptions().OnDemandStart != nil && *inst.GetOptions().OnDemandStart {
 				// If on-demand start is enabled, start the instance
 				if _, err := h.InstanceManager.StartInstance(modelName); err != nil {

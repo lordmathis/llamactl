@@ -109,7 +109,7 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.CreateI
 	}
 
 	// Check if instance is running before updating options
-	wasRunning := instance.Running
+	wasRunning := instance.IsRunning()
 
 	// If the instance is running, stop it first
 	if wasRunning {
@@ -147,7 +147,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 		return fmt.Errorf("instance with name %s not found", name)
 	}
 
-	if instance.Running {
+	if instance.IsRunning() {
 		return fmt.Errorf("instance with name %s is still running, stop it before deleting", name)
 	}
 
@@ -173,7 +173,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Process, error)
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
-	if instance.Running {
+	if instance.IsRunning() {
 		return instance, fmt.Errorf("instance with name %s is already running", name)
 	}
 
@@ -200,7 +200,7 @@ func (im *instanceManager) StopInstance(name string) (*instance.Process, error) 
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
-	if !instance.Running {
+	if !instance.IsRunning() {
 		return instance, fmt.Errorf("instance with name %s is already stopped", name)
 	}
 
