@@ -44,9 +44,9 @@ describe('InstanceList - State Management and UI Logic', () => {
   const mockEditInstance = vi.fn()
 
   const mockInstances: Instance[] = [
-    { name: 'instance-1', running: false, options: { model: 'model1.gguf' } },
-    { name: 'instance-2', running: true, options: { model: 'model2.gguf' } },
-    { name: 'instance-3', running: false, options: { model: 'model3.gguf' } }
+    { name: 'instance-1', status: 'stopped', options: { model: 'model1.gguf' } },
+    { name: 'instance-2', status: 'running', options: { model: 'model2.gguf' } },
+    { name: 'instance-3', status: 'stopped', options: { model: 'model3.gguf' } }
   ]
 
   const DUMMY_API_KEY = 'test-api-key-123'

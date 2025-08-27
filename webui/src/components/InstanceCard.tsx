@@ -24,7 +24,7 @@ function InstanceCard({
   editInstance,
 }: InstanceCardProps) {
   const [isLogsOpen, setIsLogsOpen] = useState(false);
-  const health = useInstanceHealth(instance.name, instance.running);
+  const health = useInstanceHealth(instance.name, instance.status);
 
   const handleStart = () => {
     startInstance(instance.name);
@@ -50,13 +50,15 @@ function InstanceCard({
     setIsLogsOpen(true);
   };
 
+  const running = instance.status === "running";
+
   return (
     <>
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">{instance.name}</CardTitle>
-            {instance.running && <HealthBadge health={health} />}
+            {running && <HealthBadge health={health} />}
           </div>
         </CardHeader>
 
@@ -66,7 +68,7 @@ function InstanceCard({
               size="sm"
               variant="outline"
               onClick={handleStart}
-              disabled={instance.running}
+              disabled={running}
               title="Start instance"
               data-testid="start-instance-button"
             >
@@ -77,7 +79,7 @@ function InstanceCard({
               size="sm"
               variant="outline"
               onClick={handleStop}
-              disabled={!instance.running}
+              disabled={!running}
               title="Stop instance"
               data-testid="stop-instance-button"
             >
@@ -108,7 +110,7 @@ function InstanceCard({
               size="sm"
               variant="destructive"
               onClick={handleDelete}
-              disabled={instance.running}
+              disabled={running}
               title="Delete instance"
               data-testid="delete-instance-button"
             >
@@ -122,7 +124,7 @@ function InstanceCard({
         open={isLogsOpen}
         onOpenChange={setIsLogsOpen}
         instanceName={instance.name}
-        isRunning={instance.running}
+        isRunning={running}
       />
     </>
   );

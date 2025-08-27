@@ -27,6 +27,8 @@ const HealthBadge: React.FC<HealthBadgeProps> = ({ health }) => {
         return <XCircle className="h-3 w-3" />;
       case "unknown":
         return <Loader2 className="h-3 w-3 animate-spin" />;
+      case "failed":
+        return <XCircle className="h-3 w-3" />;
     }
   };
 
@@ -40,6 +42,8 @@ const HealthBadge: React.FC<HealthBadgeProps> = ({ health }) => {
         return "destructive";
       case "unknown":
         return "secondary";
+      case "failed":
+        return "destructive";
     }
   };
 
@@ -53,6 +57,8 @@ const HealthBadge: React.FC<HealthBadgeProps> = ({ health }) => {
         return "Error";
       case "unknown":
         return "Unknown";
+      case "failed":
+        return "Failed";
     }
   };
 

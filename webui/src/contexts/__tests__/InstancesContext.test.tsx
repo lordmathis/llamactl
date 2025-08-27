@@ -41,7 +41,7 @@ function TestComponent() {
       <div data-testid="instances-count">{instances.length}</div>
       {instances.map((instance) => (
         <div key={instance.name} data-testid={`instance-${instance.name}`}>
-          {instance.name}:{instance.running.toString()}
+          {instance.name}:{instance.status}
         </div>
       ))}
 
@@ -99,8 +99,8 @@ function renderWithProvider(children: ReactNode) {
 
 describe("InstancesContext", () => {
   const mockInstances: Instance[] = [
-    { name: "instance1", running: true, options: { model: "model1.gguf" } },
-    { name: "instance2", running: false, options: { model: "model2.gguf" } },
+    { name: "instance1", status: "running", options: { model: "model1.gguf" } },
+    { name: "instance2", status: "stopped", options: { model: "model2.gguf" } },
   ];
 
   beforeEach(() => {
@@ -132,10 +132,10 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("loading")).toHaveTextContent("false");
         expect(screen.getByTestId("instances-count")).toHaveTextContent("2");
         expect(screen.getByTestId("instance-instance1")).toHaveTextContent(
-          "instance1:true"
+          "instance1:running"
         );
         expect(screen.getByTestId("instance-instance2")).toHaveTextContent(
-          "instance2:false"
+          "instance2:stopped"
         );
       });
     });
@@ -158,7 +158,7 @@ describe("InstancesContext", () => {
     it("creates instance and adds it to state", async () => {
       const newInstance: Instance = {
         name: "new-instance",
-        running: false,
+        status: "stopped",
         options: { model: "test.gguf" },
       };
       vi.mocked(instancesApi.create).mockResolvedValue(newInstance);
@@ -181,7 +181,7 @@ describe("InstancesContext", () => {
       await waitFor(() => {
         expect(screen.getByTestId("instances-count")).toHaveTextContent("3");
         expect(screen.getByTestId("instance-new-instance")).toHaveTextContent(
-          "new-instance:false"
+          "new-instance:stopped"
         );
       });
     });
@@ -214,7 +214,7 @@ describe("InstancesContext", () => {
     it("updates instance and maintains it in state", async () => {
       const updatedInstance: Instance = {
         name: "instance1",
-        running: true,
+        status: "running",
         options: { model: "updated.gguf" },
       };
       vi.mocked(instancesApi.update).mockResolvedValue(updatedInstance);
@@ -251,7 +251,7 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("loading")).toHaveTextContent("false");
         // instance2 starts as not running
         expect(screen.getByTestId("instance-instance2")).toHaveTextContent(
-          "instance2:false"
+          "instance2:stopped"
         );
       });
 
@@ -262,7 +262,7 @@ describe("InstancesContext", () => {
         expect(instancesApi.start).toHaveBeenCalledWith("instance2");
         // The running state should be updated to true
         expect(screen.getByTestId("instance-instance2")).toHaveTextContent(
-          "instance2:true"
+          "instance2:running"
         );
       });
     });
@@ -276,7 +276,7 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("loading")).toHaveTextContent("false");
         // instance1 starts as running
         expect(screen.getByTestId("instance-instance1")).toHaveTextContent(
-          "instance1:true"
+          "instance1:running"
         );
       });
 
@@ -287,7 +287,7 @@ describe("InstancesContext", () => {
         expect(instancesApi.stop).toHaveBeenCalledWith("instance1");
         // The running state should be updated to false
         expect(screen.getByTestId("instance-instance1")).toHaveTextContent(
-          "instance1:false"
+          "instance1:stopped"
         );
       });
     });
@@ -383,7 +383,7 @@ describe("InstancesContext", () => {
       // Test that operations don't interfere with each other
       const newInstance: Instance = {
         name: "new-instance",
-        running: false,
+        status: "stopped",
         options: {},
       };
       vi.mocked(instancesApi.create).mockResolvedValue(newInstance);
@@ -411,7 +411,7 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("instances-count")).toHaveTextContent("3"); // Still 3
         // But the running state should change
         expect(screen.getByTestId("instance-instance2")).toHaveTextContent(
-          "instance2:true"
+          "instance2:running"
         );
       });
     });

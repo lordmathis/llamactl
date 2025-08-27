@@ -46,8 +46,8 @@ function renderApp() {
 
 describe('App Component - Critical Business Logic Only', () => {
   const mockInstances: Instance[] = [
-    { name: 'test-instance-1', running: false, options: { model: 'model1.gguf' } },
-    { name: 'test-instance-2', running: true, options: { model: 'model2.gguf' } }
+    { name: 'test-instance-1', status: 'stopped', options: { model: 'model1.gguf' } },
+    { name: 'test-instance-2', status: 'running', options: { model: 'model2.gguf' } }
   ]
 
   beforeEach(() => {
@@ -81,7 +81,7 @@ describe('App Component - Critical Business Logic Only', () => {
       const user = userEvent.setup()
       const newInstance: Instance = {
         name: 'new-test-instance',
-        running: false,
+        status: 'stopped',
         options: { model: 'new-model.gguf' }
       }
       vi.mocked(instancesApi.create).mockResolvedValue(newInstance)
@@ -118,7 +118,7 @@ describe('App Component - Critical Business Logic Only', () => {
       const user = userEvent.setup()
       const updatedInstance: Instance = {
         name: 'test-instance-1',
-        running: false,
+        status: 'stopped',
         options: { model: 'updated-model.gguf' }
       }
       vi.mocked(instancesApi.update).mockResolvedValue(updatedInstance)

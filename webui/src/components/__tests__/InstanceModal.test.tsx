@@ -134,7 +134,7 @@ afterEach(() => {
   describe('Edit Mode', () => {
     const mockInstance: Instance = {
       name: 'existing-instance',
-      running: false,
+      status: 'stopped',
       options: {
         model: 'test-model.gguf',
         gpu_layers: 10,
@@ -184,8 +184,8 @@ afterEach(() => {
     })
 
     it('shows correct button text for running vs stopped instances', () => {
-      const runningInstance: Instance = { ...mockInstance, running: true }
-      
+      const runningInstance: Instance = { ...mockInstance, status: 'running' }
+
       const { rerender } = render(
         <InstanceDialog
           open={true}
