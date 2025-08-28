@@ -30,10 +30,12 @@ func (p *Process) SetStatus(status InstanceStatus) {
 	p.mu.Lock()
 	oldStatus := p.Status
 	p.Status = status
+	callback := p.onStatusChange // Capture callback reference
 	p.mu.Unlock()
 
-	if p.onStatusChange != nil {
-		p.onStatusChange(oldStatus, status)
+	// Call callback outside the lock to prevent deadlocks
+	if callback != nil {
+		callback(oldStatus, status)
 	}
 }
 
