@@ -44,7 +44,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 
 	// Check max instances limit after acquiring the lock
 	if len(im.instances) >= im.instancesConfig.MaxInstances && im.instancesConfig.MaxInstances != -1 {
-		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances))
+		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances)
 	}
 
 	// Check if instance with this name already exists
