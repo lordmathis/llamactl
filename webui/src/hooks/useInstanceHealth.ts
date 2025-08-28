@@ -7,12 +7,12 @@ export function useInstanceHealth(instanceName: string, instanceStatus: Instance
   const [health, setHealth] = useState<HealthStatus | undefined>()
 
   useEffect(() => {
-    if (instanceStatus == "stopped") {
+    if (instanceStatus === "stopped") {
       setHealth({ status: "unknown", lastChecked: new Date() })
       return
     }
-      
-    if  (instanceStatus == "failed") {
+
+    if (instanceStatus === "failed") {
       setHealth({ status: instanceStatus, lastChecked: new Date() })
       return
     }
