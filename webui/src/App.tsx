@@ -30,9 +30,9 @@ function App() {
 
   const handleSaveInstance = (name: string, options: CreateInstanceOptions) => {
     if (editingInstance) {
-      updateInstance(editingInstance.name, options);
+      void updateInstance(editingInstance.name, options);
     } else {
-      createInstance(name, options);
+      void createInstance(name, options);
     }
   };
 

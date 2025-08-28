@@ -29,7 +29,6 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   instance,
 }) => {
   const isEditing = !!instance;
-  const isRunning = instance?.running || true; // Assume running if instance exists
 
   const [instanceName, setInstanceName] = useState("");
   const [formData, setFormData] = useState<CreateInstanceOptions>({});
@@ -113,6 +112,16 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
 
   // Check if auto_restart is enabled
   const isAutoRestartEnabled = formData.auto_restart === true;
+
+  // Save button label logic
+  let saveButtonLabel = "Create Instance";
+  if (isEditing) {
+    if (instance?.status === "running") {
+      saveButtonLabel = "Update & Restart Instance";
+    } else {
+      saveButtonLabel = "Update Instance";
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -264,11 +273,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
             disabled={!instanceName.trim() || !!nameError}
             data-testid="dialog-save-button"
           >
-            {isEditing
-              ? isRunning
-                ? "Update & Restart Instance"
-                : "Update Instance"
-              : "Create Instance"}
+            {saveButtonLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

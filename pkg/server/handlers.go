@@ -272,6 +272,12 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.StartInstance(name)
 		if err != nil {
+			// Check if error is due to maximum running instances limit
+			if _, ok := err.(manager.MaxRunningInstancesError); ok {
+				http.Error(w, err.Error(), http.StatusConflict)
+				return
+			}
+
 			http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -451,7 +457,7 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 			return
 		}
 
-		if !inst.Running {
+		if !inst.IsRunning() {
 			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
 			return
 		}
@@ -574,7 +580,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
-		if !inst.Running {
+		if !inst.IsRunning() {
 			if inst.GetOptions().OnDemandStart != nil && *inst.GetOptions().OnDemandStart {
 				// If on-demand start is enabled, start the instance
 				if _, err := h.InstanceManager.StartInstance(modelName); err != nil {

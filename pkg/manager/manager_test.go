@@ -59,7 +59,7 @@ func TestCreateInstance_Success(t *testing.T) {
 	if inst.Name != "test-instance" {
 		t.Errorf("Expected instance name 'test-instance', got %q", inst.Name)
 	}
-	if inst.Running {
+	if inst.GetStatus() != instance.Stopped {
 		t.Error("New instance should not be running")
 	}
 	if inst.GetOptions().Port != 8080 {
@@ -357,7 +357,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 	inst.SetTimeProvider(mockTime)
 
 	// Set instance to running state so timeout logic can work
-	inst.Running = true
+	inst.SetStatus(instance.Running)
 
 	// Simulate instance being "running" for timeout check (without actual process)
 	// We'll test the ShouldTimeout logic directly
@@ -377,7 +377,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 	}
 
 	// Reset running state to avoid shutdown issues
-	inst.Running = false
+	inst.SetStatus(instance.Stopped)
 
 	// Test that instance without timeout doesn't timeout
 	noTimeoutOptions := &instance.CreateInstanceOptions{
@@ -393,7 +393,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 	}
 
 	noTimeoutInst.SetTimeProvider(mockTime)
-	noTimeoutInst.Running = true // Set to running for timeout check
+	noTimeoutInst.SetStatus(instance.Running) // Set to running for timeout check
 	noTimeoutInst.UpdateLastRequestTime()
 
 	// Even with time advanced, should not timeout
@@ -402,7 +402,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 	}
 
 	// Reset running state to avoid shutdown issues
-	noTimeoutInst.Running = false
+	noTimeoutInst.SetStatus(instance.Stopped)
 }
 
 func TestConcurrentAccess(t *testing.T) {

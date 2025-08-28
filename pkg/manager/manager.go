@@ -28,10 +28,11 @@ type InstanceManager interface {
 }
 
 type instanceManager struct {
-	mu              sync.RWMutex
-	instances       map[string]*instance.Process
-	ports           map[int]bool
-	instancesConfig config.InstancesConfig
+	mu               sync.RWMutex
+	instances        map[string]*instance.Process
+	runningInstances map[string]struct{}
+	ports            map[int]bool
+	instancesConfig  config.InstancesConfig
 
 	// Timeout checker
 	timeoutChecker *time.Ticker
@@ -46,9 +47,10 @@ func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager 
 		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
 	}
 	im := &instanceManager{
-		instances:       make(map[string]*instance.Process),
-		ports:           make(map[int]bool),
-		instancesConfig: instancesConfig,
+		instances:        make(map[string]*instance.Process),
+		runningInstances: make(map[string]struct{}),
+		ports:            make(map[int]bool),
+		instancesConfig:  instancesConfig,
 
 		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
 		shutdownChan:   make(chan struct{}),
@@ -148,7 +150,7 @@ func (im *instanceManager) Shutdown() {
 	wg.Add(len(im.instances))
 
 	for name, inst := range im.instances {
-		if !inst.Running {
+		if !inst.IsRunning() {
 			wg.Done() // If instance is not running, just mark it as done
 			continue
 		}
@@ -227,12 +229,16 @@ func (im *instanceManager) loadInstance(name, path string) error {
 		return fmt.Errorf("instance name mismatch: file=%s, instance.Name=%s", name, persistedInstance.Name)
 	}
 
+	statusCallback := func(oldStatus, newStatus instance.InstanceStatus) {
+		im.onStatusChange(persistedInstance.Name, oldStatus, newStatus)
+	}
+
 	// Create new inst using NewInstance (handles validation, defaults, setup)
-	inst := instance.NewInstance(name, &im.instancesConfig, persistedInstance.GetOptions())
+	inst := instance.NewInstance(name, &im.instancesConfig, persistedInstance.GetOptions(), statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
 	inst.Created = persistedInstance.Created
-	inst.Running = persistedInstance.Running
+	inst.SetStatus(persistedInstance.Status)
 
 	// Check for port conflicts and add to maps
 	if inst.GetOptions() != nil && inst.GetOptions().Port > 0 {
@@ -252,7 +258,7 @@ func (im *instanceManager) autoStartInstances() {
 	im.mu.RLock()
 	var instancesToStart []*instance.Process
 	for _, inst := range im.instances {
-		if inst.Running && // Was running when persisted
+		if inst.IsRunning() && // Was running when persisted
 			inst.GetOptions() != nil &&
 			inst.GetOptions().AutoRestart != nil &&
 			*inst.GetOptions().AutoRestart {
@@ -264,9 +270,20 @@ func (im *instanceManager) autoStartInstances() {
 	for _, inst := range instancesToStart {
 		log.Printf("Auto-starting instance %s", inst.Name)
 		// Reset running state before starting (since Start() expects stopped instance)
-		inst.Running = false
+		inst.SetStatus(instance.Stopped)
 		if err := inst.Start(); err != nil {
 			log.Printf("Failed to auto-start instance %s: %v", inst.Name, err)
 		}
+	}
+}
+
+func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus instance.InstanceStatus) {
+	im.mu.Lock()
+	defer im.mu.Unlock()
+
+	if newStatus == instance.Running {
+		im.runningInstances[name] = struct{}{}
+	} else {
+		delete(im.runningInstances, name)
 	}
 }

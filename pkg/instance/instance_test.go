@@ -24,12 +24,15 @@ func TestNewInstance(t *testing.T) {
 		},
 	}
 
-	instance := instance.NewInstance("test-instance", globalSettings, options)
+	// Mock onStatusChange function
+	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+
+	instance := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
 
 	if instance.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", instance.Name)
 	}
-	if instance.Running {
+	if instance.IsRunning() {
 		t.Error("New instance should not be running")
 	}
 
@@ -76,7 +79,10 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 		},
 	}
 
-	instance := instance.NewInstance("test-instance", globalSettings, options)
+	// Mock onStatusChange function
+	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+
+	instance := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
 	opts := instance.GetOptions()
 
 	// Check that explicit values override defaults
@@ -106,7 +112,10 @@ func TestSetOptions(t *testing.T) {
 		},
 	}
 
-	inst := instance.NewInstance("test-instance", globalSettings, initialOptions)
+	// Mock onStatusChange function
+	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+
+	inst := instance.NewInstance("test-instance", globalSettings, initialOptions, mockOnStatusChange)
 
 	// Update options
 	newOptions := &instance.CreateInstanceOptions{
@@ -144,7 +153,10 @@ func TestGetProxy(t *testing.T) {
 		},
 	}
 
-	inst := instance.NewInstance("test-instance", globalSettings, options)
+	// Mock onStatusChange function
+	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+
+	inst := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
 
 	// Get proxy for the first time
 	proxy1, err := inst.GetProxy()
@@ -180,7 +192,10 @@ func TestMarshalJSON(t *testing.T) {
 		},
 	}
 
-	instance := instance.NewInstance("test-instance", globalSettings, options)
+	// Mock onStatusChange function
+	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+
+	instance := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
 
 	data, err := json.Marshal(instance)
 	if err != nil {
@@ -188,7 +203,7 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	// Check that JSON contains expected fields
-	var result map[string]interface{}
+	var result map[string]any
 	err = json.Unmarshal(data, &result)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
@@ -197,8 +212,8 @@ func TestMarshalJSON(t *testing.T) {
 	if result["name"] != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %v", result["name"])
 	}
-	if result["running"] != false {
-		t.Errorf("Expected running false, got %v", result["running"])
+	if result["status"] != "stopped" {
+		t.Errorf("Expected status 'stopped', got %v", result["status"])
 	}
 
 	// Check that options are included
@@ -218,7 +233,7 @@ func TestMarshalJSON(t *testing.T) {
 func TestUnmarshalJSON(t *testing.T) {
 	jsonData := `{
 		"name": "test-instance",
-		"running": true,
+		"status": "running",
 		"options": {
 			"model": "/path/to/model.gguf",
 			"port": 8080,
@@ -236,8 +251,8 @@ func TestUnmarshalJSON(t *testing.T) {
 	if inst.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
 	}
-	if !inst.Running {
-		t.Error("Expected running to be true")
+	if !inst.IsRunning() {
+		t.Error("Expected status to be running")
 	}
 
 	opts := inst.GetOptions()
@@ -303,7 +318,10 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 				},
 			}
 
-			instance := instance.NewInstance("test", globalSettings, options)
+			// Mock onStatusChange function
+			mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+
+			instance := instance.NewInstance("test", globalSettings, options, mockOnStatusChange)
 			opts := instance.GetOptions()
 
 			if opts.MaxRestarts == nil {

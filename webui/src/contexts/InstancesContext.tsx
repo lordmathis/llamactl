@@ -112,9 +112,9 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     try {
       setError(null)
       await instancesApi.start(name)
-      
-      // Update only this instance's running status
-      updateInstanceInMap(name, { running: true })
+
+      // Update only this instance's status
+      updateInstanceInMap(name, { status: "running" })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start instance')
     }
@@ -124,9 +124,9 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     try {
       setError(null)
       await instancesApi.stop(name)
-      
-      // Update only this instance's running status
-      updateInstanceInMap(name, { running: false })
+
+      // Update only this instance's status
+      updateInstanceInMap(name, { status: "stopped" })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to stop instance')
     }
@@ -136,9 +136,9 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
     try {
       setError(null)
       await instancesApi.restart(name)
-      
-      // Update only this instance's running status
-      updateInstanceInMap(name, { running: true })
+
+      // Update only this instance's status
+      updateInstanceInMap(name, { status: "running" })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to restart instance')
     }

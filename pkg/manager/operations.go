@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 )
 
+type MaxRunningInstancesError error
+
 // ListInstances returns a list of all instances managed by the instance manager.
 func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
 	im.mu.RLock()
@@ -65,7 +67,11 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		im.ports[options.Port] = true
 	}
 
-	inst := instance.NewInstance(name, &im.instancesConfig, options)
+	statusCallback := func(oldStatus, newStatus instance.InstanceStatus) {
+		im.onStatusChange(name, oldStatus, newStatus)
+	}
+
+	inst := instance.NewInstance(name, &im.instancesConfig, options, statusCallback)
 	im.instances[inst.Name] = inst
 	im.ports[options.Port] = true
 
@@ -109,7 +115,7 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.CreateI
 	}
 
 	// Check if instance is running before updating options
-	wasRunning := instance.Running
+	wasRunning := instance.IsRunning()
 
 	// If the instance is running, stop it first
 	if wasRunning {
@@ -147,7 +153,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 		return fmt.Errorf("instance with name %s not found", name)
 	}
 
-	if instance.Running {
+	if instance.IsRunning() {
 		return fmt.Errorf("instance with name %s is still running, stop it before deleting", name)
 	}
 
@@ -173,8 +179,12 @@ func (im *instanceManager) StartInstance(name string) (*instance.Process, error)
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
-	if instance.Running {
+	if instance.IsRunning() {
 		return instance, fmt.Errorf("instance with name %s is already running", name)
+	}
+
+	if len(im.runningInstances) >= im.instancesConfig.MaxRunningInstances && im.instancesConfig.MaxRunningInstances != -1 {
+		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.instancesConfig.MaxRunningInstances))
 	}
 
 	if err := instance.Start(); err != nil {
@@ -200,7 +210,7 @@ func (im *instanceManager) StopInstance(name string) (*instance.Process, error) 
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
-	if !instance.Running {
+	if !instance.IsRunning() {
 		return instance, fmt.Errorf("instance with name %s is already stopped", name)
 	}
 

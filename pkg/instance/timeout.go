@@ -13,7 +13,7 @@ func (i *Process) ShouldTimeout() bool {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
-	if !i.Running || i.options.IdleTimeout == nil || *i.options.IdleTimeout <= 0 {
+	if !i.IsRunning() || i.options.IdleTimeout == nil || *i.options.IdleTimeout <= 0 {
 		return false
 	}
 

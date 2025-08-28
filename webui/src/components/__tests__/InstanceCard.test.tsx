@@ -17,13 +17,13 @@ describe('InstanceCard - Instance Actions and State', () => {
 
   const stoppedInstance: Instance = {
     name: 'test-instance',
-    running: false,
+    status: 'stopped',
     options: { model: 'test-model.gguf' }
   }
 
   const runningInstance: Instance = {
     name: 'running-instance',
-    running: true,
+    status: 'running',
     options: { model: 'running-model.gguf' }
   }
 
@@ -301,7 +301,7 @@ afterEach(() => {
     it('handles instance with minimal data', () => {
       const minimalInstance: Instance = {
         name: 'minimal',
-        running: false,
+        status: 'stopped',
         options: {}
       }
 
@@ -323,7 +323,7 @@ afterEach(() => {
     it('handles instance with undefined options', () => {
       const instanceWithoutOptions: Instance = {
         name: 'no-options',
-        running: true,
+        status: 'running',
         options: undefined
       }
 
