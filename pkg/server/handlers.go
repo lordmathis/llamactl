@@ -272,6 +272,12 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.StartInstance(name)
 		if err != nil {
+			// Check if error is due to maximum running instances limit
+			if _, ok := err.(manager.MaxRunningInstancesError); ok {
+				http.Error(w, err.Error(), http.StatusConflict)
+				return
+			}
+
 			http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}

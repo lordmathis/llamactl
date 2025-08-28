@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 )
 
+type MaxRunningInstancesError error
+
 // ListInstances returns a list of all instances managed by the instance manager.
 func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
 	im.mu.RLock()
@@ -42,7 +44,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 
 	// Check max instances limit after acquiring the lock
 	if len(im.instances) >= im.instancesConfig.MaxInstances && im.instancesConfig.MaxInstances != -1 {
-		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances)
+		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances))
 	}
 
 	// Check if instance with this name already exists
@@ -182,7 +184,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Process, error)
 	}
 
 	if len(im.runningInstances) >= im.instancesConfig.MaxRunningInstances && im.instancesConfig.MaxRunningInstances != -1 {
-		return nil, fmt.Errorf("maximum number of running instances (%d) reached", im.instancesConfig.MaxRunningInstances)
+		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.instancesConfig.MaxRunningInstances))
 	}
 
 	if err := instance.Start(); err != nil {
