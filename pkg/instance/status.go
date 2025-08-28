@@ -36,15 +36,11 @@ func (p *Process) SetStatus(status InstanceStatus) {
 }
 
 func (p *Process) GetStatus() InstanceStatus {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
 	return p.Status
 }
 
 // IsRunning returns true if the status is Running
 func (p *Process) IsRunning() bool {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
 	return p.Status == Running
 }
 
