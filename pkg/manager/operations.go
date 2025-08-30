@@ -174,6 +174,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 func (im *instanceManager) StartInstance(name string) (*instance.Process, error) {
 	im.mu.RLock()
 	instance, exists := im.instances[name]
+	maxRunningExceeded := len(im.runningInstances) >= im.instancesConfig.MaxRunningInstances && im.instancesConfig.MaxRunningInstances != -1
 	im.mu.RUnlock()
 
 	if !exists {
@@ -183,7 +184,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Process, error)
 		return instance, fmt.Errorf("instance with name %s is already running", name)
 	}
 
-	if len(im.runningInstances) >= im.instancesConfig.MaxRunningInstances && im.instancesConfig.MaxRunningInstances != -1 {
+	if maxRunningExceeded {
 		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.instancesConfig.MaxRunningInstances))
 	}
 
