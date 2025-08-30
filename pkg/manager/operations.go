@@ -239,6 +239,36 @@ func (im *instanceManager) StopInstance(name string) (*instance.Process, error) 
 	return instance, nil
 }
 
+// EvictLRUInstance finds and stops the least recently used running instance.
+func (im *instanceManager) EvictLRUInstance() error {
+	im.mu.RLock()
+	var lruInstance *instance.Process
+
+	for name, _ := range im.runningInstances {
+		inst := im.instances[name]
+		if inst == nil {
+			continue
+		}
+
+		if lruInstance == nil {
+			lruInstance = inst
+		}
+
+		if inst.LastRequestTime() < lruInstance.LastRequestTime() {
+			lruInstance = inst
+		}
+	}
+	im.mu.RUnlock()
+
+	if lruInstance == nil {
+		return fmt.Errorf("failed to find lru instance")
+	}
+
+	// Evict Instance
+	_, err := im.StopInstance(lruInstance.Name)
+	return err
+}
+
 // RestartInstance stops and then starts an instance, returning the updated instance.
 func (im *instanceManager) RestartInstance(name string) (*instance.Process, error) {
 	instance, err := im.StopInstance(name)

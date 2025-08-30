@@ -23,6 +23,7 @@ type InstanceManager interface {
 	StartInstance(name string) (*instance.Process, error)
 	IsMaxRunningInstancesReached() bool
 	StopInstance(name string) (*instance.Process, error)
+	EvictLRUInstance() error
 	RestartInstance(name string) (*instance.Process, error)
 	GetInstanceLogs(name string) (string, error)
 	Shutdown()

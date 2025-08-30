@@ -144,6 +144,10 @@ func (i *Process) Stop() error {
 	return nil
 }
 
+func (i *Process) LastRequestTime() int64 {
+	return i.lastRequestTime.Load()
+}
+
 func (i *Process) WaitForHealthy(timeout int) error {
 	if !i.IsRunning() {
 		return fmt.Errorf("instance %s is not running", i.Name)
