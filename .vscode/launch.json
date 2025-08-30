@@ -10,6 +10,10 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/server/main.go",
+            "env": {
+                "GO_ENV": "development",
+                "LLAMACTL_REQUIRE_MANAGEMENT_AUTH": "false"
+            },
         }
     ]
 }
