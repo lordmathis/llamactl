@@ -201,30 +201,15 @@ func (im *instanceManager) StartInstance(name string) (*instance.Process, error)
 	return instance, nil
 }
 
-// CanStartInstance checks if an instance can be started.
-// An instance can be started if:
-//  1. It is not already running, AND
-//  2. Either:
-//     a) There is capacity (MaxRunningInstances is unlimited or not reached), OR
-//     b) The instance has on-demand start enabled AND LRU eviction is enabled
-//     (allowing older instances to be evicted to make room)
-func (im *instanceManager) CanStartInstance(inst *instance.Process) (bool, error) {
+func (im *instanceManager) IsMaxRunningInstancesReached() bool {
 	im.mu.RLock()
 	defer im.mu.RUnlock()
 
-	if inst == nil {
-		return false, fmt.Errorf("instance is nil")
+	if im.instancesConfig.MaxRunningInstances != -1 && len(im.runningInstances) >= im.instancesConfig.MaxRunningInstances {
+		return true
 	}
 
-	if inst.IsRunning() {
-		return false, fmt.Errorf("instance with name %s is already running", inst.Name)
-	}
-
-	allowMaxRunning := im.instancesConfig.MaxRunningInstances == -1 || len(im.runningInstances) < im.instancesConfig.MaxRunningInstances
-	allowOnDemand := inst.GetOptions() != nil && inst.GetOptions().OnDemandStart != nil && *inst.GetOptions().OnDemandStart
-	allowLRUEviction := im.instancesConfig.EnableLRUEviction
-
-	return allowMaxRunning || (allowOnDemand && allowLRUEviction), nil
+	return false
 }
 
 // StopInstance stops a running instance and returns it.
