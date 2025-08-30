@@ -251,6 +251,10 @@ func (im *instanceManager) EvictLRUInstance() error {
 			continue
 		}
 
+		if inst.GetOptions() != nil && inst.GetOptions().IdleTimeout != nil && *inst.GetOptions().IdleTimeout <= 0 {
+			continue // Skip instances without idle timeout
+		}
+
 		if lruInstance == nil {
 			lruInstance = inst
 		}
