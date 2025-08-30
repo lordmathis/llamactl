@@ -58,6 +58,9 @@ type InstancesConfig struct {
 	// Maximum number of instances that can be running at the same time
 	MaxRunningInstances int `yaml:"max_running_instances,omitempty"`
 
+	// Enable LRU eviction for instance logs
+	EnableLRUEviction bool `yaml:"enable_lru_eviction"`
+
 	// Path to llama-server executable
 	LlamaExecutable string `yaml:"llama_executable"`
 
@@ -117,6 +120,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			AutoCreateDirs:       true,
 			MaxInstances:         -1, // -1 means unlimited
 			MaxRunningInstances:  -1, // -1 means unlimited
+			EnableLRUEviction:    true,
 			LlamaExecutable:      "llama-server",
 			DefaultAutoRestart:   true,
 			DefaultMaxRestarts:   3,
@@ -218,6 +222,11 @@ func loadEnvVars(cfg *AppConfig) {
 	if maxRunning := os.Getenv("LLAMACTL_MAX_RUNNING_INSTANCES"); maxRunning != "" {
 		if m, err := strconv.Atoi(maxRunning); err == nil {
 			cfg.Instances.MaxRunningInstances = m
+		}
+	}
+	if enableLRUEviction := os.Getenv("LLAMACTL_ENABLE_LRU_EVICTION"); enableLRUEviction != "" {
+		if b, err := strconv.ParseBool(enableLRUEviction); err == nil {
+			cfg.Instances.EnableLRUEviction = b
 		}
 	}
 	if llamaExec := os.Getenv("LLAMACTL_LLAMA_EXECUTABLE"); llamaExec != "" {
