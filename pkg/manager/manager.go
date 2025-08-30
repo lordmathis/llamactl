@@ -123,10 +123,10 @@ func (im *instanceManager) persistInstance(instance *instance.Process) error {
 
 func (im *instanceManager) Shutdown() {
 	im.mu.Lock()
-	defer im.mu.Unlock()
 
 	// Check if already shutdown
 	if im.isShutdown {
+		im.mu.Unlock()
 		return
 	}
 	im.isShutdown = true
@@ -134,27 +134,32 @@ func (im *instanceManager) Shutdown() {
 	// Signal the timeout checker to stop
 	close(im.shutdownChan)
 
-	// Release lock temporarily to wait for goroutine
+	// Create a list of running instances to stop
+	var runningInstances []*instance.Process
+	var runningNames []string
+	for name, inst := range im.instances {
+		if inst.IsRunning() {
+			runningInstances = append(runningInstances, inst)
+			runningNames = append(runningNames, name)
+		}
+	}
+
+	// Release lock before stopping instances to avoid deadlock
 	im.mu.Unlock()
+
 	// Wait for the timeout checker goroutine to actually stop
 	<-im.shutdownDone
-	// Reacquire lock
-	im.mu.Lock()
 
 	// Now stop the ticker
 	if im.timeoutChecker != nil {
 		im.timeoutChecker.Stop()
 	}
 
+	// Stop instances without holding the manager lock
 	var wg sync.WaitGroup
-	wg.Add(len(im.instances))
+	wg.Add(len(runningInstances))
 
-	for name, inst := range im.instances {
-		if !inst.IsRunning() {
-			wg.Done() // If instance is not running, just mark it as done
-			continue
-		}
-
+	for i, inst := range runningInstances {
 		go func(name string, inst *instance.Process) {
 			defer wg.Done()
 			fmt.Printf("Stopping instance %s...\n", name)
@@ -162,7 +167,7 @@ func (im *instanceManager) Shutdown() {
 			if err := inst.Stop(); err != nil {
 				fmt.Printf("Error stopping instance %s: %v\n", name, err)
 			}
-		}(name, inst)
+		}(runningNames[i], inst)
 	}
 
 	wg.Wait()
