@@ -21,6 +21,7 @@ type InstanceManager interface {
 	UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
 	DeleteInstance(name string) error
 	StartInstance(name string) (*instance.Process, error)
+	CanStartInstance(inst *instance.Process) (bool, error)
 	StopInstance(name string) (*instance.Process, error)
 	RestartInstance(name string) (*instance.Process, error)
 	GetInstanceLogs(name string) (string, error)
