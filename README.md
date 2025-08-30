@@ -11,7 +11,7 @@
 🌐 **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)  
 🔐 **API Key Authentication**: Separate keys for management vs inference access  
 📊 **Instance Monitoring**: Health checks, auto-restart, log management  
-⏳ **Idle Timeout Management**: Automatically stop idle instances after a configurable period  
+⚡ **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits  
 💡 **On-Demand Instance Start**: Automatically launch instances upon receiving OpenAI-compatible API requests  
 💾 **State Persistence**: Ensure instances remain intact across server restarts  
 
@@ -113,6 +113,8 @@ instances:
   logs_dir: ~/.local/share/llamactl/logs    # Logs directory
   auto_create_dirs: true         # Auto-create data/config/logs dirs if missing
   max_instances: -1              # Max instances (-1 = unlimited)
+  max_running_instances: -1      # Max running instances (-1 = unlimited)
+  enable_lru_eviction: true      # Enable LRU eviction for idle instances
   llama_executable: llama-server # Path to llama-server executable
   default_auto_restart: true     # Auto-restart new instances by default
   default_max_restarts: 3        # Max restarts for new instances
@@ -184,6 +186,8 @@ instances:
   logs_dir: "~/.local/share/llamactl/logs"          # Directory for instance logs (default: data_dir/logs)
   auto_create_dirs: true                            # Automatically create data/config/logs directories (default: true)
   max_instances: -1                                 # Maximum instances (-1 = unlimited)
+  max_running_instances: -1                         # Maximum running instances (-1 = unlimited)
+  enable_lru_eviction: true                         # Enable LRU eviction for idle instances
   llama_executable: "llama-server"                  # Path to llama-server executable
   default_auto_restart: true                        # Default auto-restart setting
   default_max_restarts: 3                           # Default maximum restart attempts
@@ -200,6 +204,8 @@ instances:
 - `LLAMACTL_LOGS_DIR` - Log directory path
 - `LLAMACTL_AUTO_CREATE_DATA_DIR` - Auto-create data/config/logs directories (true/false)
 - `LLAMACTL_MAX_INSTANCES` - Maximum number of instances
+- `LLAMACTL_MAX_RUNNING_INSTANCES` - Maximum number of running instances
+- `LLAMACTL_ENABLE_LRU_EVICTION` - Enable LRU eviction for idle instances
 - `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable
 - `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)
 - `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts
