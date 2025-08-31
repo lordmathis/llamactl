@@ -185,149 +185,117 @@ func TestEvictLRUInstance_Success(t *testing.T) {
 }
 
 func TestEvictLRUInstance_NoEligibleInstances(t *testing.T) {
-	manager := createTestManager()
-	defer manager.Shutdown()
-
-	// Test 1: No running instances
-	err := manager.EvictLRUInstance()
-	if err == nil {
-		t.Error("Expected error when no running instances exist")
-	}
-	if err.Error() != "failed to find lru instance" {
-		t.Errorf("Expected 'failed to find lru instance' error, got: %v", err)
-	}
-
-	// Test 2: Only instances with IdleTimeout <= 0
-	options1 := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model1.gguf",
-		},
-		IdleTimeout: func() *int { timeout := 0; return &timeout }(), // 0 = no timeout
-	}
-	options2 := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model2.gguf",
-		},
-		IdleTimeout: func() *int { timeout := -1; return &timeout }(), // negative = no timeout
-	}
-	options3 := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model3.gguf",
-		},
-		// No IdleTimeout set (nil)
+	// Helper function to create instances with different timeout configurations
+	createInstanceWithTimeout := func(manager manager.InstanceManager, name, model string, timeout *int) *instance.Process {
+		options := &instance.CreateInstanceOptions{
+			LlamaServerOptions: llamacpp.LlamaServerOptions{
+				Model: model,
+			},
+			IdleTimeout: timeout,
+		}
+		inst, err := manager.CreateInstance(name, options)
+		if err != nil {
+			t.Fatalf("CreateInstance failed: %v", err)
+		}
+		return inst
 	}
 
-	inst1, err := manager.CreateInstance("no-timeout-1", options1)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-	inst2, err := manager.CreateInstance("no-timeout-2", options2)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-	inst3, err := manager.CreateInstance("no-timeout-3", options3)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
+	t.Run("no running instances", func(t *testing.T) {
+		manager := createTestManager()
+		defer manager.Shutdown()
 
-	// Set instances to running
-	inst1.SetStatus(instance.Running)
-	inst2.SetStatus(instance.Running)
-	inst3.SetStatus(instance.Running)
+		err := manager.EvictLRUInstance()
+		if err == nil {
+			t.Error("Expected error when no running instances exist")
+		}
+		if err.Error() != "failed to find lru instance" {
+			t.Errorf("Expected 'failed to find lru instance' error, got: %v", err)
+		}
+	})
 
-	// Try to evict - should fail because no eligible instances
-	err = manager.EvictLRUInstance()
-	if err == nil {
-		t.Error("Expected error when no eligible instances exist")
-	}
-	if err.Error() != "failed to find lru instance" {
-		t.Errorf("Expected 'failed to find lru instance' error, got: %v", err)
-	}
+	t.Run("only instances without timeout", func(t *testing.T) {
+		manager := createTestManager()
+		defer manager.Shutdown()
 
-	// Verify all instances are still running
-	if !inst1.IsRunning() {
-		t.Error("Expected no-timeout-1 to still be running")
-	}
-	if !inst2.IsRunning() {
-		t.Error("Expected no-timeout-2 to still be running")
-	}
-	if !inst3.IsRunning() {
-		t.Error("Expected no-timeout-3 to still be running")
-	}
+		// Create instances with various non-eligible timeout configurations
+		zeroTimeout := 0
+		negativeTimeout := -1
+		inst1 := createInstanceWithTimeout(manager, "no-timeout-1", "/path/to/model1.gguf", &zeroTimeout)
+		inst2 := createInstanceWithTimeout(manager, "no-timeout-2", "/path/to/model2.gguf", &negativeTimeout)
+		inst3 := createInstanceWithTimeout(manager, "no-timeout-3", "/path/to/model3.gguf", nil)
 
-	// Reset instances to stopped to avoid shutdown panics
-	inst1.SetStatus(instance.Stopped)
-	inst2.SetStatus(instance.Stopped)
-	inst3.SetStatus(instance.Stopped)
-}
+		// Set instances to running
+		instances := []*instance.Process{inst1, inst2, inst3}
+		for _, inst := range instances {
+			inst.SetStatus(instance.Running)
+		}
+		defer func() {
+			// Reset instances to stopped to avoid shutdown panics
+			for _, inst := range instances {
+				inst.SetStatus(instance.Stopped)
+			}
+		}()
 
-func TestEvictLRUInstance_SkipsInstancesWithoutTimeout(t *testing.T) {
-	manager := createTestManager()
-	defer manager.Shutdown()
+		// Try to evict - should fail because no eligible instances
+		err := manager.EvictLRUInstance()
+		if err == nil {
+			t.Error("Expected error when no eligible instances exist")
+		}
+		if err.Error() != "failed to find lru instance" {
+			t.Errorf("Expected 'failed to find lru instance' error, got: %v", err)
+		}
 
-	// Create mix of instances: some with timeout enabled, some disabled
-	optionsWithTimeout := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model-with-timeout.gguf",
-		},
-		IdleTimeout: func() *int { timeout := 1; return &timeout }(), // Any value > 0
-	}
-	optionsWithoutTimeout1 := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model-no-timeout1.gguf",
-		},
-		IdleTimeout: func() *int { timeout := 0; return &timeout }(), // 0 = no timeout
-	}
-	optionsWithoutTimeout2 := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model-no-timeout2.gguf",
-		},
-		// No IdleTimeout set (nil)
-	}
+		// Verify all instances are still running
+		for i, inst := range instances {
+			if !inst.IsRunning() {
+				t.Errorf("Expected instance %d to still be running", i+1)
+			}
+		}
+	})
 
-	instWithTimeout, err := manager.CreateInstance("with-timeout", optionsWithTimeout)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-	instNoTimeout1, err := manager.CreateInstance("no-timeout-1", optionsWithoutTimeout1)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-	instNoTimeout2, err := manager.CreateInstance("no-timeout-2", optionsWithoutTimeout2)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
+	t.Run("mixed instances - evicts only eligible ones", func(t *testing.T) {
+		manager := createTestManager()
+		defer manager.Shutdown()
 
-	// Set all instances to running
-	instWithTimeout.SetStatus(instance.Running)
-	instNoTimeout1.SetStatus(instance.Running)
-	instNoTimeout2.SetStatus(instance.Running)
+		// Create mix of instances: some with timeout enabled, some disabled
+		validTimeout := 1
+		zeroTimeout := 0
+		instWithTimeout := createInstanceWithTimeout(manager, "with-timeout", "/path/to/model-with-timeout.gguf", &validTimeout)
+		instNoTimeout1 := createInstanceWithTimeout(manager, "no-timeout-1", "/path/to/model-no-timeout1.gguf", &zeroTimeout)
+		instNoTimeout2 := createInstanceWithTimeout(manager, "no-timeout-2", "/path/to/model-no-timeout2.gguf", nil)
 
-	// Update request times
-	instWithTimeout.UpdateLastRequestTime()
-	instNoTimeout1.UpdateLastRequestTime()
-	instNoTimeout2.UpdateLastRequestTime()
+		// Set all instances to running
+		instances := []*instance.Process{instWithTimeout, instNoTimeout1, instNoTimeout2}
+		for _, inst := range instances {
+			inst.SetStatus(instance.Running)
+			inst.UpdateLastRequestTime()
+		}
+		defer func() {
+			// Reset instances to stopped to avoid shutdown panics
+			for _, inst := range instances {
+				if inst.IsRunning() {
+					inst.SetStatus(instance.Stopped)
+				}
+			}
+		}()
 
-	// Evict LRU instance - should only consider the one with timeout
-	err = manager.EvictLRUInstance()
-	if err != nil {
-		t.Fatalf("EvictLRUInstance failed: %v", err)
-	}
+		// Evict LRU instance - should only consider the one with timeout
+		err := manager.EvictLRUInstance()
+		if err != nil {
+			t.Fatalf("EvictLRUInstance failed: %v", err)
+		}
 
-	// Verify only the instance with timeout was evicted
-	if instWithTimeout.IsRunning() {
-		t.Error("Expected with-timeout instance to be stopped after eviction")
-	}
-	if !instNoTimeout1.IsRunning() {
-		t.Error("Expected no-timeout-1 instance to still be running")
-	}
-	if !instNoTimeout2.IsRunning() {
-		t.Error("Expected no-timeout-2 instance to still be running")
-	}
-
-	// Reset instances to stopped to avoid shutdown panics
-	instNoTimeout1.SetStatus(instance.Stopped)
-	instNoTimeout2.SetStatus(instance.Stopped)
+		// Verify only the instance with timeout was evicted
+		if instWithTimeout.IsRunning() {
+			t.Error("Expected with-timeout instance to be stopped after eviction")
+		}
+		if !instNoTimeout1.IsRunning() {
+			t.Error("Expected no-timeout-1 instance to still be running")
+		}
+		if !instNoTimeout2.IsRunning() {
+			t.Error("Expected no-timeout-2 instance to still be running")
+		}
+	})
 }
 
 // Helper for timeout tests
