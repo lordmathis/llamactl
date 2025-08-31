@@ -129,6 +129,50 @@ Use this format for pull request titles:
 - Use meaningful component and variable names
 - Prefer functional components over class components
 
+## Documentation Development
+
+This project uses MkDocs for documentation. When working on documentation:
+
+### Setup Documentation Environment
+
+```bash
+# Install documentation dependencies
+pip install -r docs-requirements.txt
+```
+
+### Development Workflow
+
+```bash
+# Serve documentation locally for development
+mkdocs serve
+```
+The documentation will be available at http://localhost:8000
+
+```bash
+# Build static documentation site
+mkdocs build
+```
+The built site will be in the `site/` directory.
+
+### Documentation Structure
+
+- `docs/` - Documentation content (Markdown files)
+- `mkdocs.yml` - MkDocs configuration
+- `docs-requirements.txt` - Python dependencies for documentation
+
+### Adding New Documentation
+
+When adding new documentation:
+
+1. Create Markdown files in the appropriate `docs/` subdirectory
+2. Update the navigation in `mkdocs.yml`
+3. Test locally with `mkdocs serve`
+4. Submit a pull request
+
+### Documentation Deployment
+
+Documentation is automatically built and deployed to GitHub Pages when changes are pushed to the main branch.
+
 ## Getting Help
 
 - Check existing [issues](https://github.com/lordmathis/llamactl/issues)
