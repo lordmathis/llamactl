@@ -110,11 +110,17 @@ func (i *Process) Stop() error {
 
 	i.mu.Unlock()
 
-	// Stop the process with SIGINT
-	if i.cmd.Process != nil {
+	// Stop the process with SIGINT if cmd exists
+	if i.cmd != nil && i.cmd.Process != nil {
 		if err := i.cmd.Process.Signal(syscall.SIGINT); err != nil {
 			log.Printf("Failed to send SIGINT to instance %s: %v", i.Name, err)
 		}
+	}
+
+	// If no process exists, we can return immediately
+	if i.cmd == nil || monitorDone == nil {
+		i.logger.Close()
+		return nil
 	}
 
 	select {
@@ -122,7 +128,7 @@ func (i *Process) Stop() error {
 		// Process exited normally
 	case <-time.After(30 * time.Second):
 		// Force kill if it doesn't exit within 30 seconds
-		if i.cmd.Process != nil {
+		if i.cmd != nil && i.cmd.Process != nil {
 			killErr := i.cmd.Process.Kill()
 			if killErr != nil {
 				log.Printf("Failed to force kill instance %s: %v", i.Name, killErr)
