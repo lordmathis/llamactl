@@ -1,6 +1,6 @@
 # Web UI Guide
 
-The LlamaCtl Web UI provides an intuitive interface for managing your Llama.cpp instances.
+The Llamactl Web UI provides an intuitive interface for managing your Llama.cpp instances.
 
 ## Overview
 
@@ -169,7 +169,7 @@ If authentication is enabled:
 ### Common UI Issues
 
 **Page won't load:**
-- Check if LlamaCtl server is running
+- Check if Llamactl server is running
 - Verify the correct URL and port
 - Check browser console for errors
 

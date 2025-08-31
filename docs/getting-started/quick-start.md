@@ -1,16 +1,16 @@
 # Quick Start
 
-This guide will help you get LlamaCtl up and running in just a few minutes.
+This guide will help you get Llamactl up and running in just a few minutes.
 
-## Step 1: Start LlamaCtl
+## Step 1: Start Llamactl
 
-Start the LlamaCtl server:
+Start the Llamactl server:
 
 ```bash
 llamactl
 ```
 
-By default, LlamaCtl will start on `http://localhost:8080`.
+By default, Llamactl will start on `http://localhost:8080`.
 
 ## Step 2: Access the Web UI
 
@@ -20,7 +20,7 @@ Open your web browser and navigate to:
 http://localhost:8080
 ```
 
-You should see the LlamaCtl web interface.
+You should see the Llamactl web interface.
 
 ## Step 3: Create Your First Instance
 

@@ -1,6 +1,6 @@
 # Building from Source
 
-This guide covers building LlamaCtl from source code for development and production deployment.
+This guide covers building Llamactl from source code for development and production deployment.
 
 ## Prerequisites
 
@@ -261,7 +261,7 @@ LDFLAGS := -s -w -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)
 .PHONY: build clean test install
 
 build:
-	@echo "Building LlamaCtl..."
+	@echo "Building Llamactl..."
 	@cd webui && npm run build
 	@go build -ldflags="$(LDFLAGS)" -o llamactl cmd/server/main.go
 
@@ -423,7 +423,7 @@ Create a systemd service:
 ```ini
 # /etc/systemd/system/llamactl.service
 [Unit]
-Description=LlamaCtl Server
+Description=Llamactl Server
 After=network.target
 
 [Service]

@@ -1,10 +1,10 @@
 # Installation
 
-This guide will walk you through installing LlamaCtl on your system.
+This guide will walk you through installing Llamactl on your system.
 
 ## Prerequisites
 
-Before installing LlamaCtl, ensure you have:
+Before installing Llamactl, ensure you have:
 
 - Go 1.19 or later
 - Git
@@ -52,4 +52,4 @@ llamactl --version
 
 ## Next Steps
 
-Now that LlamaCtl is installed, continue to the [Quick Start](quick-start.md) guide to get your first instance running!
+Now that Llamactl is installed, continue to the [Quick Start](quick-start.md) guide to get your first instance running!

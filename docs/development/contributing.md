@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to LlamaCtl! This guide will help you get started with development and contribution.
+Thank you for your interest in contributing to Llamactl! This guide will help you get started with development and contribution.
 
 ## Development Setup
 
@@ -370,4 +370,4 @@ Contributors are recognized in:
 - Documentation credits
 - Annual contributor highlights
 
-Thank you for contributing to LlamaCtl!
+Thank you for contributing to Llamactl!

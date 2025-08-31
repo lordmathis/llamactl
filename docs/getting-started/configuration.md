@@ -1,6 +1,6 @@
 # Configuration
 
-LlamaCtl can be configured through various methods to suit your needs.
+Llamactl can be configured through various methods to suit your needs.
 
 ## Configuration File
 
@@ -39,7 +39,7 @@ limits:
 
 ## Environment Variables
 
-You can also configure LlamaCtl using environment variables:
+You can also configure Llamactl using environment variables:
 
 ```bash
 # Server settings

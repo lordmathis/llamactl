@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Common issues and solutions for LlamaCtl deployment and operation.
+Common issues and solutions for Llamactl deployment and operation.
 
 ## Installation Issues
 
@@ -29,7 +29,7 @@ Common issues and solutions for LlamaCtl deployment and operation.
 
 ### Permission Denied
 
-**Problem:** Permission errors when starting LlamaCtl
+**Problem:** Permission errors when starting Llamactl
 
 **Solutions:**
 1. Check file permissions:
@@ -269,7 +269,7 @@ Common issues and solutions for LlamaCtl deployment and operation.
 
 ### High CPU Usage
 
-**Problem:** LlamaCtl consuming excessive CPU
+**Problem:** Llamactl consuming excessive CPU
 
 **Diagnostic Steps:**
 1. Identify CPU-intensive processes:
@@ -302,7 +302,7 @@ Common issues and solutions for LlamaCtl deployment and operation.
 
 ### Connection Refused
 
-**Problem:** Cannot connect to LlamaCtl web interface
+**Problem:** Cannot connect to Llamactl web interface
 
 **Diagnostic Steps:**
 1. Check if service is running:

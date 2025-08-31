@@ -1,10 +1,10 @@
 # Monitoring
 
-Comprehensive monitoring setup for LlamaCtl in production environments.
+Comprehensive monitoring setup for Llamactl in production environments.
 
 ## Overview
 
-Effective monitoring of LlamaCtl involves tracking:
+Effective monitoring of Llamactl involves tracking:
 
 - Instance health and performance
 - System resource usage
@@ -15,7 +15,7 @@ Effective monitoring of LlamaCtl involves tracking:
 
 ### Health Checks
 
-LlamaCtl provides built-in health monitoring:
+Llamactl provides built-in health monitoring:
 
 ```bash
 # Check overall system health
@@ -45,7 +45,7 @@ curl http://localhost:8080/metrics
 
 ### Configuration
 
-Add LlamaCtl as a Prometheus target:
+Add Llamactl as a Prometheus target:
 
 ```yaml
 # prometheus.yml
@@ -59,7 +59,7 @@ scrape_configs:
 
 ### Custom Metrics
 
-Enable additional metrics in LlamaCtl:
+Enable additional metrics in Llamactl:
 
 ```yaml
 # config.yaml
@@ -76,7 +76,7 @@ monitoring:
 
 ## Grafana Dashboards
 
-### LlamaCtl Dashboard
+### Llamactl Dashboard
 
 Import the official Grafana dashboard:
 
@@ -135,7 +135,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "LlamaCtl instance {{ $labels.instance_name }} is down"
+          summary: "Llamactl instance {{ $labels.instance_name }} is down"
           
       - alert: HighMemoryUsage
         expr: llamactl_instance_memory_percent > 90
@@ -170,7 +170,7 @@ receivers:
     slack_configs:
       - api_url: 'https://hooks.slack.com/services/...'
         channel: '#alerts'
-        title: 'LlamaCtl Alert'
+        title: 'Llamactl Alert'
         text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
 ```
 
@@ -373,7 +373,7 @@ curl http://localhost:8080/metrics | grep rate_limit
 **Metrics not appearing:**
 1. Check Prometheus configuration
 2. Verify network connectivity
-3. Review LlamaCtl logs for errors
+3. Review Llamactl logs for errors
 
 **High memory usage:**
 1. Check for memory leaks in profiles

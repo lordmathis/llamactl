@@ -1,10 +1,10 @@
-# LlamaCtl Documentation
+# Llamactl Documentation
 
-Welcome to the LlamaCtl documentation! LlamaCtl is a powerful management tool for Llama.cpp instances that provides both a web interface and REST API for managing large language models.
+Welcome to the Llamactl documentation! Llamactl is a powerful management tool for Llama.cpp instances that provides both a web interface and REST API for managing large language models.
 
-## What is LlamaCtl?
+## What is Llamactl?
 
-LlamaCtl is designed to simplify the deployment and management of Llama.cpp instances. It provides:
+Llamactl is designed to simplify the deployment and management of Llama.cpp instances. It provides:
 
 - **Instance Management**: Start, stop, and monitor multiple Llama.cpp instances
 - **Web UI**: User-friendly interface for managing your models
@@ -23,8 +23,8 @@ LlamaCtl is designed to simplify the deployment and management of Llama.cpp inst
 
 ## Quick Links
 
-- [Installation Guide](getting-started/installation.md) - Get LlamaCtl up and running
-- [Quick Start](getting-started/quick-start.md) - Your first steps with LlamaCtl
+- [Installation Guide](getting-started/installation.md) - Get Llamactl up and running
+- [Quick Start](getting-started/quick-start.md) - Your first steps with Llamactl
 - [Web UI Guide](user-guide/web-ui.md) - Learn to use the web interface
 - [API Reference](user-guide/api-reference.md) - Complete API documentation
 
@@ -34,7 +34,7 @@ If you need help or have questions:
 
 - Check the [Troubleshooting](advanced/troubleshooting.md) guide
 - Visit our [GitHub repository](https://github.com/lordmathis/llamactl)
-- Read the [Contributing guide](development/contributing.md) to help improve LlamaCtl
+- Read the [Contributing guide](development/contributing.md) to help improve Llamactl
 
 ---
 

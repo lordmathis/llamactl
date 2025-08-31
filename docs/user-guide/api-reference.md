@@ -1,6 +1,6 @@
 # API Reference
 
-Complete reference for the LlamaCtl REST API.
+Complete reference for the Llamactl REST API.
 
 ## Base URL
 
@@ -314,7 +314,7 @@ GET /api/system/info
 
 ### Get Configuration
 
-Get current LlamaCtl configuration.
+Get current Llamactl configuration.
 
 ```http
 GET /api/config
@@ -322,7 +322,7 @@ GET /api/config
 
 ### Update Configuration
 
-Update LlamaCtl configuration (requires restart).
+Update Llamactl configuration (requires restart).
 
 ```http
 PUT /api/config

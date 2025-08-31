@@ -1,6 +1,6 @@
 # Managing Instances
 
-Learn how to effectively manage your Llama.cpp instances with LlamaCtl.
+Learn how to effectively manage your Llama.cpp instances with Llamactl.
 
 ## Instance Lifecycle
 

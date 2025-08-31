@@ -1,10 +1,10 @@
 # Backends
 
-LlamaCtl supports multiple backends for running large language models. This guide covers the available backends and their configuration.
+Llamactl supports multiple backends for running large language models. This guide covers the available backends and their configuration.
 
 ## Llama.cpp Backend
 
-The primary backend for LlamaCtl, providing robust support for GGUF models.
+The primary backend for Llamactl, providing robust support for GGUF models.
 
 ### Features
 
@@ -107,7 +107,7 @@ options:
 
 ## Future Backends
 
-LlamaCtl is designed to support multiple backends. Planned additions:
+Llamactl is designed to support multiple backends. Planned additions:
 
 ### vLLM Backend
 
@@ -137,7 +137,7 @@ Integration with Ollama for easy model management:
 
 ### Automatic Detection
 
-LlamaCtl can automatically detect the best backend:
+Llamactl can automatically detect the best backend:
 
 ```yaml
 backends:
