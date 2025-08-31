@@ -7,17 +7,68 @@ Complete reference for the Llamactl REST API.
 All API endpoints are relative to the base URL:
 
 ```
-http://localhost:8080/api
+http://localhost:8080/api/v1
 ```
 
 ## Authentication
 
-If authentication is enabled, include the JWT token in the Authorization header:
+Llamactl supports API key authentication. If authentication is enabled, include the API key in the Authorization header:
 
 ```bash
-curl -H "Authorization: Bearer <your-jwt-token>" \
-  http://localhost:8080/api/instances
+curl -H "Authorization: Bearer <your-api-key>" \
+  http://localhost:8080/api/v1/instances
 ```
+
+The server supports two types of API keys:
+- **Management API Keys**: Required for instance management operations (CRUD operations on instances)
+- **Inference API Keys**: Required for OpenAI-compatible inference endpoints
+
+## System Endpoints
+
+### Get Llamactl Version
+
+Get the version information of the llamactl server.
+
+```http
+GET /api/v1/version
+```
+
+**Response:**
+```
+Version: 1.0.0
+Commit: abc123
+Build Time: 2024-01-15T10:00:00Z
+```
+
+### Get Llama Server Help
+
+Get help text for the llama-server command.
+
+```http
+GET /api/v1/server/help
+```
+
+**Response:** Plain text help output from `llama-server --help`
+
+### Get Llama Server Version
+
+Get version information of the llama-server binary.
+
+```http
+GET /api/v1/server/version
+```
+
+**Response:** Plain text version output from `llama-server --version`
+
+### List Available Devices
+
+List available devices for llama-server.
+
+```http
+GET /api/v1/server/devices
+```
+
+**Response:** Plain text device list from `llama-server --list-devices`
 
 ## Instances
 
@@ -26,23 +77,18 @@ curl -H "Authorization: Bearer <your-jwt-token>" \
 Get a list of all instances.
 
 ```http
-GET /api/instances
+GET /api/v1/instances
 ```
 
 **Response:**
 ```json
-{
-  "instances": [
-    {
-      "name": "llama2-7b",
-      "status": "running",
-      "model_path": "/models/llama-2-7b.gguf",
-      "port": 8081,
-      "created_at": "2024-01-15T10:30:00Z",
-      "updated_at": "2024-01-15T12:45:00Z"
-    }
-  ]
-}
+[
+  {
+    "name": "llama2-7b",
+    "status": "running",
+    "created": 1705312200
+  }
+]
 ```
 
 ### Get Instance Details
@@ -50,7 +96,7 @@ GET /api/instances
 Get detailed information about a specific instance.
 
 ```http
-GET /api/instances/{name}
+GET /api/v1/instances/{name}
 ```
 
 **Response:**
@@ -58,92 +104,57 @@ GET /api/instances/{name}
 {
   "name": "llama2-7b",
   "status": "running",
-  "model_path": "/models/llama-2-7b.gguf",
-  "port": 8081,
-  "pid": 12345,
-  "options": {
-    "threads": 4,
-    "context_size": 2048,
-    "gpu_layers": 0
-  },
-  "stats": {
-    "memory_usage": 4294967296,
-    "cpu_usage": 25.5,
-    "uptime": 3600
-  },
-  "created_at": "2024-01-15T10:30:00Z",
-  "updated_at": "2024-01-15T12:45:00Z"
+  "created": 1705312200
 }
 ```
 
 ### Create Instance
 
-Create a new instance.
+Create and start a new instance.
 
 ```http
-POST /api/instances
+POST /api/v1/instances/{name}
 ```
 
-**Request Body:**
-```json
-{
-  "name": "my-instance",
-  "model_path": "/path/to/model.gguf",
-  "port": 8081,
-  "options": {
-    "threads": 4,
-    "context_size": 2048,
-    "gpu_layers": 0
-  }
-}
-```
+**Request Body:** JSON object with instance configuration. See [Managing Instances](managing-instances.md) for available configuration options.
 
 **Response:**
 ```json
 {
-  "message": "Instance created successfully",
-  "instance": {
-    "name": "my-instance",
-    "status": "stopped",
-    "model_path": "/path/to/model.gguf",
-    "port": 8081,
-    "created_at": "2024-01-15T14:30:00Z"
-  }
+  "name": "llama2-7b",
+  "status": "running",
+  "created": 1705312200
 }
 ```
 
 ### Update Instance
 
-Update an existing instance configuration.
+Update an existing instance configuration. See [Managing Instances](managing-instances.md) for available configuration options.
 
 ```http
-PUT /api/instances/{name}
+PUT /api/v1/instances/{name}
 ```
 
-**Request Body:**
+**Request Body:** JSON object with configuration fields to update.
+
+**Response:**
 ```json
 {
-  "options": {
-    "threads": 8,
-    "context_size": 4096
-  }
+  "name": "llama2-7b",
+  "status": "running",
+  "created": 1705312200
 }
 ```
 
 ### Delete Instance
 
-Delete an instance (must be stopped first).
+Stop and remove an instance.
 
 ```http
-DELETE /api/instances/{name}
+DELETE /api/v1/instances/{name}
 ```
 
-**Response:**
-```json
-{
-  "message": "Instance deleted successfully"
-}
-```
+**Response:** `204 No Content`
 
 ## Instance Operations
 
@@ -152,38 +163,36 @@ DELETE /api/instances/{name}
 Start a stopped instance.
 
 ```http
-POST /api/instances/{name}/start
+POST /api/v1/instances/{name}/start
 ```
 
 **Response:**
 ```json
 {
-  "message": "Instance start initiated",
-  "status": "starting"
+  "name": "llama2-7b",
+  "status": "starting",
+  "created": 1705312200
 }
 ```
+
+**Error Responses:**
+- `409 Conflict`: Maximum number of running instances reached
+- `500 Internal Server Error`: Failed to start instance
 
 ### Stop Instance
 
 Stop a running instance.
 
 ```http
-POST /api/instances/{name}/stop
-```
-
-**Request Body (Optional):**
-```json
-{
-  "force": false,
-  "timeout": 30
-}
+POST /api/v1/instances/{name}/stop
 ```
 
 **Response:**
 ```json
 {
-  "message": "Instance stop initiated",
-  "status": "stopping"
+  "name": "llama2-7b",
+  "status": "stopping",
+  "created": 1705312200
 }
 ```
 
@@ -192,27 +201,15 @@ POST /api/instances/{name}/stop
 Restart an instance (stop then start).
 
 ```http
-POST /api/instances/{name}/restart
-```
-
-### Get Instance Health
-
-Check instance health status.
-
-```http
-GET /api/instances/{name}/health
+POST /api/v1/instances/{name}/restart
 ```
 
 **Response:**
 ```json
 {
-  "status": "healthy",
-  "checks": {
-    "process": "running",
-    "port": "open",
-    "response": "ok"
-  },
-  "last_check": "2024-01-15T14:30:00Z"
+  "name": "llama2-7b",
+  "status": "restarting",
+  "created": 1705312200
 }
 ```
 
@@ -221,146 +218,108 @@ GET /api/instances/{name}/health
 Retrieve instance logs.
 
 ```http
-GET /api/instances/{name}/logs
+GET /api/v1/instances/{name}/logs
 ```
 
 **Query Parameters:**
-- `lines`: Number of lines to return (default: 100)
-- `follow`: Stream logs (boolean)
-- `level`: Filter by log level (debug, info, warn, error)
+- `lines`: Number of lines to return (default: all lines, use -1 for all)
+
+**Response:** Plain text log output
+
+**Example:**
+```bash
+curl "http://localhost:8080/api/v1/instances/my-instance/logs?lines=100"
+```
+
+### Proxy to Instance
+
+Proxy HTTP requests directly to the llama-server instance.
+
+```http
+GET /api/v1/instances/{name}/proxy/*
+POST /api/v1/instances/{name}/proxy/*
+```
+
+This endpoint forwards all requests to the underlying llama-server instance running on its configured port. The proxy strips the `/api/v1/instances/{name}/proxy` prefix and forwards the remaining path to the instance.
+
+**Example - Check Instance Health:**
+```bash
+curl -H "Authorization: Bearer your-api-key" \
+  http://localhost:8080/api/v1/instances/my-model/proxy/health
+```
+
+This forwards the request to `http://instance-host:instance-port/health` on the actual llama-server instance.
+
+**Error Responses:**
+- `503 Service Unavailable`: Instance is not running
+
+## OpenAI-Compatible API
+
+Llamactl provides OpenAI-compatible endpoints for inference operations.
+
+### List Models
+
+List all instances in OpenAI-compatible format.
+
+```http
+GET /v1/models
+```
 
 **Response:**
 ```json
 {
-  "logs": [
+  "object": "list",
+  "data": [
     {
-      "timestamp": "2024-01-15T14:30:00Z",
-      "level": "info",
-      "message": "Model loaded successfully"
+      "id": "llama2-7b",
+      "object": "model",
+      "created": 1705312200,
+      "owned_by": "llamactl"
     }
   ]
 }
 ```
 
-## Batch Operations
+### Chat Completions, Completions, Embeddings
 
-### Start All Instances
-
-Start all stopped instances.
+All OpenAI-compatible inference endpoints are available:
 
 ```http
-POST /api/instances/start-all
+POST /v1/chat/completions
+POST /v1/completions
+POST /v1/embeddings
+POST /v1/rerank
+POST /v1/reranking
 ```
 
-### Stop All Instances
+**Request Body:** Standard OpenAI format with `model` field specifying the instance name
 
-Stop all running instances.
-
-```http
-POST /api/instances/stop-all
-```
-
-## System Information
-
-### Get System Status
-
-Get overall system status and metrics.
-
-```http
-GET /api/system/status
-```
-
-**Response:**
+**Example:**
 ```json
 {
-  "version": "1.0.0",
-  "uptime": 86400,
-  "instances": {
-    "total": 5,
-    "running": 3,
-    "stopped": 2
-  },
-  "resources": {
-    "cpu_usage": 45.2,
-    "memory_usage": 8589934592,
-    "memory_total": 17179869184,
-    "disk_usage": 75.5
-  }
+  "model": "llama2-7b",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello, how are you?"
+    }
+  ]
 }
 ```
 
-### Get System Information
+The server routes requests to the appropriate instance based on the `model` field in the request body. Instances with on-demand starting enabled will be automatically started if not running. For configuration details, see [Managing Instances](managing-instances.md).
 
-Get detailed system information.
+**Error Responses:**
+- `400 Bad Request`: Invalid request body or missing model name
+- `503 Service Unavailable`: Instance is not running and on-demand start is disabled
+- `409 Conflict`: Cannot start instance due to maximum instances limit
 
-```http
-GET /api/system/info
-```
+## Instance Status Values
 
-**Response:**
-```json
-{
-  "hostname": "server-01",
-  "os": "linux",
-  "arch": "amd64",
-  "cpu_count": 8,
-  "memory_total": 17179869184,
-  "version": "1.0.0",
-  "build_time": "2024-01-15T10:00:00Z"
-}
-```
-
-## Configuration
-
-### Get Configuration
-
-Get current Llamactl configuration.
-
-```http
-GET /api/config
-```
-
-### Update Configuration
-
-Update Llamactl configuration (requires restart).
-
-```http
-PUT /api/config
-```
-
-## Authentication
-
-### Login
-
-Authenticate and receive a JWT token.
-
-```http
-POST /api/auth/login
-```
-
-**Request Body:**
-```json
-{
-  "username": "admin",
-  "password": "password"
-}
-```
-
-**Response:**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expires_at": "2024-01-16T14:30:00Z"
-}
-```
-
-### Refresh Token
-
-Refresh an existing JWT token.
-
-```http
-POST /api/auth/refresh
-```
+Instances can have the following status values:
+- `stopped`: Instance is not running
+- `running`: Instance is running and ready to accept requests
+- `failed`: Instance failed to start or crashed
 
 ## Error Responses
 
@@ -368,9 +327,7 @@ All endpoints may return error responses in the following format:
 
 ```json
 {
-  "error": "Error message",
-  "code": "ERROR_CODE",
-  "details": "Additional error details"
+  "error": "Error message description"
 }
 ```
 
@@ -378,87 +335,78 @@ All endpoints may return error responses in the following format:
 
 - `200`: Success
 - `201`: Created
-- `400`: Bad Request
-- `401`: Unauthorized
-- `403`: Forbidden
-- `404`: Not Found
-- `409`: Conflict (e.g., instance already exists)
+- `204`: No Content (successful deletion)
+- `400`: Bad Request (invalid parameters or request body)
+- `401`: Unauthorized (missing or invalid API key)
+- `403`: Forbidden (insufficient permissions)
+- `404`: Not Found (instance not found)
+- `409`: Conflict (instance already exists, max instances reached)
 - `500`: Internal Server Error
-
-## WebSocket API
-
-### Real-time Updates
-
-Connect to WebSocket for real-time updates:
-
-```javascript
-const ws = new WebSocket('ws://localhost:8080/api/ws');
-
-ws.onmessage = function(event) {
-  const data = JSON.parse(event.data);
-  console.log('Update:', data);
-};
-```
-
-**Message Types:**
-- `instance_status_changed`: Instance status updates
-- `instance_stats_updated`: Resource usage updates
-- `system_alert`: System-level alerts
-
-## Rate Limiting
-
-API requests are rate limited to:
-- **100 requests per minute** for regular endpoints
-- **10 requests per minute** for resource-intensive operations
-
-Rate limit headers are included in responses:
-- `X-RateLimit-Limit`: Request limit
-- `X-RateLimit-Remaining`: Remaining requests
-- `X-RateLimit-Reset`: Reset time (Unix timestamp)
-
-## SDKs and Libraries
-
-### Go Client
-
-```go
-import "github.com/lordmathis/llamactl-go-client"
-
-client := llamactl.NewClient("http://localhost:8080")
-instances, err := client.ListInstances()
-```
-
-### Python Client
-
-```python
-from llamactl import Client
-
-client = Client("http://localhost:8080")
-instances = client.list_instances()
-```
+- `503`: Service Unavailable (instance not running)
 
 ## Examples
 
 ### Complete Instance Lifecycle
 
 ```bash
-# Create instance
-curl -X POST http://localhost:8080/api/instances \
+# Create and start instance
+curl -X POST http://localhost:8080/api/v1/instances/my-model \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
   -d '{
-    "name": "example",
-    "model_path": "/models/example.gguf",
-    "port": 8081
+    "model": "/models/llama-2-7b.gguf"
   }'
 
-# Start instance
-curl -X POST http://localhost:8080/api/instances/example/start
+# Check instance status
+curl -H "Authorization: Bearer your-api-key" \
+  http://localhost:8080/api/v1/instances/my-model
 
-# Check status
-curl http://localhost:8080/api/instances/example
+# Get instance logs
+curl -H "Authorization: Bearer your-api-key" \
+  "http://localhost:8080/api/v1/instances/my-model/logs?lines=50"
+
+# Use OpenAI-compatible chat completions
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-inference-api-key" \
+  -d '{
+    "model": "my-model",
+    "messages": [
+      {"role": "user", "content": "Hello!"}
+    ],
+    "max_tokens": 100
+  }'
 
 # Stop instance
-curl -X POST http://localhost:8080/api/instances/example/stop
+curl -X POST -H "Authorization: Bearer your-api-key" \
+  http://localhost:8080/api/v1/instances/my-model/stop
 
 # Delete instance
-curl -X DELETE http://localhost:8080/api/instances/example
+curl -X DELETE -H "Authorization: Bearer your-api-key" \
+  http://localhost:8080/api/v1/instances/my-model
 ```
+
+### Using the Proxy Endpoint
+
+You can also directly proxy requests to the llama-server instance:
+
+```bash
+# Direct proxy to instance (bypasses OpenAI compatibility layer)
+curl -X POST http://localhost:8080/api/v1/instances/my-model/proxy/completion \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "prompt": "Hello, world!",
+    "n_predict": 50
+  }'
+```
+
+## Swagger Documentation
+
+If swagger documentation is enabled in the server configuration, you can access the interactive API documentation at:
+
+```
+http://localhost:8080/swagger/
+```
+
+This provides a complete interactive interface for testing all API endpoints.
