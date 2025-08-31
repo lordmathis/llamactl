@@ -1,6 +1,10 @@
 package manager
 
-import "log"
+import (
+	"fmt"
+	"llamactl/pkg/instance"
+	"log"
+)
 
 func (im *instanceManager) checkAllTimeouts() {
 	im.mu.RLock()
@@ -23,4 +27,38 @@ func (im *instanceManager) checkAllTimeouts() {
 			log.Printf("Instance %s stopped successfully", name)
 		}
 	}
+}
+
+// EvictLRUInstance finds and stops the least recently used running instance.
+func (im *instanceManager) EvictLRUInstance() error {
+	im.mu.RLock()
+	var lruInstance *instance.Process
+
+	for name, _ := range im.runningInstances {
+		inst := im.instances[name]
+		if inst == nil {
+			continue
+		}
+
+		if inst.GetOptions() != nil && inst.GetOptions().IdleTimeout != nil && *inst.GetOptions().IdleTimeout <= 0 {
+			continue // Skip instances without idle timeout
+		}
+
+		if lruInstance == nil {
+			lruInstance = inst
+		}
+
+		if inst.LastRequestTime() < lruInstance.LastRequestTime() {
+			lruInstance = inst
+		}
+	}
+	im.mu.RUnlock()
+
+	if lruInstance == nil {
+		return fmt.Errorf("failed to find lru instance")
+	}
+
+	// Evict Instance
+	_, err := im.StopInstance(lruInstance.Name)
+	return err
 }
