@@ -462,9 +462,3 @@ curl -X POST http://localhost:8080/api/instances/example/stop
 # Delete instance
 curl -X DELETE http://localhost:8080/api/instances/example
 ```
-
-## Next Steps
-
-- Learn about [Managing Instances](managing-instances.md) in detail
-- Explore [Advanced Configuration](../advanced/backends.md)
-- Set up [Monitoring](../advanced/monitoring.md) for production use

@@ -57,10 +57,7 @@ nav:
     - Managing Instances: user-guide/managing-instances.md
     - Web UI: user-guide/web-ui.md
     - API Reference: user-guide/api-reference.md
-  - Advanced:
-    - Backends: advanced/backends.md
-    - Monitoring: advanced/monitoring.md
-    - Troubleshooting: advanced/troubleshooting.md
+    - Troubleshooting: user-guide/troubleshooting.md
 
 plugins:
   - search

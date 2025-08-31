@@ -552,9 +552,3 @@ cp ~/.llamactl/config.yaml ~/.llamactl/config.yaml.backup
 # Backup instance configurations
 curl http://localhost:8080/api/instances > instances-backup.json
 ```
-
-## Next Steps
-
-- Set up [Monitoring](monitoring.md) to prevent issues
-- Learn about [Advanced Configuration](backends.md)
-- Review [Best Practices](../development/contributing.md)

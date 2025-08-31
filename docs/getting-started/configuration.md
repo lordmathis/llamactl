@@ -148,15 +148,3 @@ llamactl --help
 ```
 
 You can also override configuration using command line flags when starting llamactl.
-
-## Next Steps
-
-- Learn about [Managing Instances](../user-guide/managing-instances.md)
-- Explore [Advanced Configuration](../advanced/monitoring.md)
-- Set up [Monitoring](../advanced/monitoring.md)
-
-## Next Steps
-
-- Learn about [Managing Instances](../user-guide/managing-instances.md)
-- Explore [Advanced Configuration](../advanced/monitoring.md)
-- Set up [Monitoring](../advanced/monitoring.md)

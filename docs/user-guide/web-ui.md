@@ -208,9 +208,3 @@ Some features may be limited on mobile:
 - Log viewing (use horizontal scrolling)
 - Complex configuration forms
 - File browser functionality
-
-## Next Steps
-
-- Learn about [API Reference](api-reference.md) for programmatic access
-- Set up [Monitoring](../advanced/monitoring.md) for production use
-- Explore [Advanced Configuration](../advanced/backends.md) options

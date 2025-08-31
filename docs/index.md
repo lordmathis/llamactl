@@ -40,14 +40,13 @@ Llamactl is designed to simplify the deployment and management of llama-server i
 - [Web UI Guide](user-guide/web-ui.md) - Learn to use the web interface
 - [Managing Instances](user-guide/managing-instances.md) - Instance lifecycle management
 - [API Reference](user-guide/api-reference.md) - Complete API documentation
-- [Monitoring](advanced/monitoring.md) - Health checks and monitoring
-- [Backends](advanced/backends.md) - Backend configuration options
+
 
 ## Getting Help
 
 If you need help or have questions:
 
-- Check the [Troubleshooting](advanced/troubleshooting.md) guide
+- Check the [Troubleshooting](user-guide/troubleshooting.md) guide
 - Visit the [GitHub repository](https://github.com/lordmathis/llamactl)
 - Review the [Configuration Guide](getting-started/configuration.md) for advanced settings
 

@@ -163,9 +163,3 @@ curl -X POST http://localhost:8080/api/instances/stop-all
 # Get status of all instances
 curl http://localhost:8080/api/instances
 ```
-
-## Next Steps
-
-- Learn about the [Web UI](web-ui.md) interface
-- Explore the complete [API Reference](api-reference.md)
-- Set up [Monitoring](../advanced/monitoring.md) for production use
