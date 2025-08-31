@@ -28,7 +28,6 @@ You should see the Llamactl web interface.
 2. Fill in the instance configuration:
    - **Name**: Give your instance a descriptive name
    - **Model Path**: Path to your Llama.cpp model file
-   - **Port**: Port for the instance to run on
    - **Additional Options**: Any extra Llama.cpp parameters
 
 3. Click "Create Instance"
@@ -50,7 +49,6 @@ Here's a basic example configuration for a Llama 2 model:
 {
   "name": "llama2-7b",
   "model_path": "/path/to/llama-2-7b-chat.gguf",
-  "port": 8081,
   "options": {
     "threads": 4,
     "context_size": 2048
@@ -72,11 +70,68 @@ curl -X POST http://localhost:8080/api/instances \
   -d '{
     "name": "my-model",
     "model_path": "/path/to/model.gguf",
-    "port": 8081
   }'
 
 # Start an instance
 curl -X POST http://localhost:8080/api/instances/my-model/start
+```
+
+## OpenAI Compatible API
+
+Llamactl provides OpenAI-compatible endpoints, making it easy to integrate with existing OpenAI client libraries and tools.
+
+### Chat Completions
+
+Once you have an instance running, you can use it with the OpenAI-compatible chat completions endpoint:
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "my-model",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hello! Can you help me write a Python function?"
+      }
+    ],
+    "max_tokens": 150,
+    "temperature": 0.7
+  }'
+```
+
+### Using with Python OpenAI Client
+
+You can also use the official OpenAI Python client:
+
+```python
+from openai import OpenAI
+
+# Point the client to your Llamactl server
+client = OpenAI(
+    base_url="http://localhost:8080/v1",
+    api_key="not-needed"  # Llamactl doesn't require API keys by default
+)
+
+# Create a chat completion
+response = client.chat.completions.create(
+    model="my-model",  # Use the name of your instance
+    messages=[
+        {"role": "user", "content": "Explain quantum computing in simple terms"}
+    ],
+    max_tokens=200,
+    temperature=0.7
+)
+
+print(response.choices[0].message.content)
+```
+
+### List Available Models
+
+Get a list of running instances (models) in OpenAI-compatible format:
+
+```bash
+curl http://localhost:8080/v1/models
 ```
 
 ## Next Steps

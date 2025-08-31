@@ -1,58 +1,143 @@
 # Configuration
 
-Llamactl can be configured through various methods to suit your needs.
+llamactl can be configured via configuration files or environment variables. Configuration is loaded in the following order of precedence:
 
-## Configuration File
+```
+Defaults < Configuration file < Environment variables
+```
 
-Create a configuration file at `~/.llamactl/config.yaml`:
+llamactl works out of the box with sensible defaults, but you can customize the behavior to suit your needs.
+
+## Default Configuration
+
+Here's the default configuration with all available options:
 
 ```yaml
-# Server configuration
 server:
-  host: "0.0.0.0"
-  port: 8080
-  cors_enabled: true
+  host: "0.0.0.0"                # Server host to bind to
+  port: 8080                     # Server port to bind to
+  allowed_origins: ["*"]         # Allowed CORS origins (default: all)
+  enable_swagger: false          # Enable Swagger UI for API docs
 
-# Authentication (optional)
+instances:
+  port_range: [8000, 9000]       # Port range for instances
+  data_dir: ~/.local/share/llamactl         # Data directory (platform-specific, see below)
+  configs_dir: ~/.local/share/llamactl/instances  # Instance configs directory
+  logs_dir: ~/.local/share/llamactl/logs    # Logs directory
+  auto_create_dirs: true         # Auto-create data/config/logs dirs if missing
+  max_instances: -1              # Max instances (-1 = unlimited)
+  max_running_instances: -1      # Max running instances (-1 = unlimited)
+  enable_lru_eviction: true      # Enable LRU eviction for idle instances
+  llama_executable: llama-server # Path to llama-server executable
+  default_auto_restart: true     # Auto-restart new instances by default
+  default_max_restarts: 3        # Max restarts for new instances
+  default_restart_delay: 5       # Restart delay (seconds) for new instances
+  default_on_demand_start: true  # Default on-demand start setting
+  on_demand_start_timeout: 120   # Default on-demand start timeout in seconds
+  timeout_check_interval: 5      # Idle instance timeout check in minutes
+
 auth:
-  enabled: false
-  # When enabled, configure your authentication method
-  # jwt_secret: "your-secret-key"
-
-# Default instance settings
-defaults:
-  backend: "llamacpp"
-  timeout: 300
-  log_level: "info"
-
-# Paths
-paths:
-  models_dir: "/path/to/your/models"
-  logs_dir: "/var/log/llamactl"
-  data_dir: "/var/lib/llamactl"
-
-# Instance limits
-limits:
-  max_instances: 10
-  max_memory_per_instance: "8GB"
+  require_inference_auth: true   # Require auth for inference endpoints
+  inference_keys: []             # Keys for inference endpoints
+  require_management_auth: true  # Require auth for management endpoints
+  management_keys: []            # Keys for management endpoints
 ```
 
-## Environment Variables
+## Configuration Files
 
-You can also configure Llamactl using environment variables:
+### Configuration File Locations
 
-```bash
-# Server settings
-export LLAMACTL_HOST=0.0.0.0
-export LLAMACTL_PORT=8080
+Configuration files are searched in the following locations (in order of precedence):
 
-# Paths
-export LLAMACTL_MODELS_DIR=/path/to/models
-export LLAMACTL_LOGS_DIR=/var/log/llamactl
+**Linux:**
+- `./llamactl.yaml` or `./config.yaml` (current directory)
+- `$HOME/.config/llamactl/config.yaml`
+- `/etc/llamactl/config.yaml`
 
-# Limits
-export LLAMACTL_MAX_INSTANCES=5
+**macOS:**
+- `./llamactl.yaml` or `./config.yaml` (current directory)
+- `$HOME/Library/Application Support/llamactl/config.yaml`
+- `/Library/Application Support/llamactl/config.yaml`
+
+**Windows:**
+- `./llamactl.yaml` or `./config.yaml` (current directory)
+- `%APPDATA%\llamactl\config.yaml`
+- `%USERPROFILE%\llamactl\config.yaml`
+- `%PROGRAMDATA%\llamactl\config.yaml`
+
+You can specify the path to config file with `LLAMACTL_CONFIG_PATH` environment variable.
+
+## Configuration Options
+
+### Server Configuration
+
+```yaml
+server:
+  host: "0.0.0.0"         # Server host to bind to (default: "0.0.0.0")
+  port: 8080              # Server port to bind to (default: 8080)
+  allowed_origins: ["*"]  # CORS allowed origins (default: ["*"])
+  enable_swagger: false   # Enable Swagger UI (default: false)
 ```
+
+**Environment Variables:**
+- `LLAMACTL_HOST` - Server host
+- `LLAMACTL_PORT` - Server port
+- `LLAMACTL_ALLOWED_ORIGINS` - Comma-separated CORS origins
+- `LLAMACTL_ENABLE_SWAGGER` - Enable Swagger UI (true/false)
+
+### Instance Configuration
+
+```yaml
+instances:
+  port_range: [8000, 9000]                          # Port range for instances (default: [8000, 9000])
+  data_dir: "~/.local/share/llamactl"               # Directory for all llamactl data (default varies by OS)
+  configs_dir: "~/.local/share/llamactl/instances"  # Directory for instance configs (default: data_dir/instances)
+  logs_dir: "~/.local/share/llamactl/logs"          # Directory for instance logs (default: data_dir/logs)
+  auto_create_dirs: true                            # Automatically create data/config/logs directories (default: true)
+  max_instances: -1                                 # Maximum instances (-1 = unlimited)
+  max_running_instances: -1                         # Maximum running instances (-1 = unlimited)
+  enable_lru_eviction: true                         # Enable LRU eviction for idle instances
+  llama_executable: "llama-server"                  # Path to llama-server executable
+  default_auto_restart: true                        # Default auto-restart setting
+  default_max_restarts: 3                           # Default maximum restart attempts
+  default_restart_delay: 5                          # Default restart delay in seconds
+  default_on_demand_start: true                     # Default on-demand start setting
+  on_demand_start_timeout: 120                      # Default on-demand start timeout in seconds
+  timeout_check_interval: 5                         # Default instance timeout check interval in minutes
+```
+
+**Environment Variables:**
+- `LLAMACTL_INSTANCE_PORT_RANGE` - Port range (format: "8000-9000" or "8000,9000")
+- `LLAMACTL_DATA_DIRECTORY` - Data directory path
+- `LLAMACTL_INSTANCES_DIR` - Instance configs directory path
+- `LLAMACTL_LOGS_DIR` - Log directory path
+- `LLAMACTL_AUTO_CREATE_DATA_DIR` - Auto-create data/config/logs directories (true/false)
+- `LLAMACTL_MAX_INSTANCES` - Maximum number of instances
+- `LLAMACTL_MAX_RUNNING_INSTANCES` - Maximum number of running instances
+- `LLAMACTL_ENABLE_LRU_EVICTION` - Enable LRU eviction for idle instances
+- `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable
+- `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)
+- `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts
+- `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds
+- `LLAMACTL_DEFAULT_ON_DEMAND_START` - Default on-demand start setting (true/false)
+- `LLAMACTL_ON_DEMAND_START_TIMEOUT` - Default on-demand start timeout in seconds
+- `LLAMACTL_TIMEOUT_CHECK_INTERVAL` - Default instance timeout check interval in minutes
+
+### Authentication Configuration
+
+```yaml
+auth:
+  require_inference_auth: true           # Require API key for OpenAI endpoints (default: true)
+  inference_keys: []                     # List of valid inference API keys
+  require_management_auth: true          # Require API key for management endpoints (default: true)
+  management_keys: []                    # List of valid management API keys
+```
+
+**Environment Variables:**
+- `LLAMACTL_REQUIRE_INFERENCE_AUTH` - Require auth for OpenAI endpoints (true/false)
+- `LLAMACTL_INFERENCE_KEYS` - Comma-separated inference API keys
+- `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)
+- `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys
 
 ## Command Line Options
 
@@ -62,90 +147,13 @@ View all available command line options:
 llamactl --help
 ```
 
-Common options:
+You can also override configuration using command line flags when starting llamactl.
 
-```bash
-# Specify config file
-llamactl --config /path/to/config.yaml
+## Next Steps
 
-# Set log level
-llamactl --log-level debug
-
-# Run on different port
-llamactl --port 9090
-```
-
-## Instance Configuration
-
-When creating instances, you can specify various options:
-
-### Basic Options
-
-- `name`: Unique identifier for the instance
-- `model_path`: Path to the GGUF model file
-- `port`: Port for the instance to listen on
-
-### Advanced Options
-
-- `threads`: Number of CPU threads to use
-- `context_size`: Context window size
-- `batch_size`: Batch size for processing
-- `gpu_layers`: Number of layers to offload to GPU
-- `memory_lock`: Lock model in memory
-- `no_mmap`: Disable memory mapping
-
-### Example Instance Configuration
-
-```json
-{
-  "name": "production-model",
-  "model_path": "/models/llama-2-13b-chat.gguf",
-  "port": 8081,
-  "options": {
-    "threads": 8,
-    "context_size": 4096,
-    "batch_size": 512,
-    "gpu_layers": 35,
-    "memory_lock": true
-  }
-}
-```
-
-## Security Configuration
-
-### Enable Authentication
-
-To enable authentication, update your config file:
-
-```yaml
-auth:
-  enabled: true
-  jwt_secret: "your-very-secure-secret-key"
-  token_expiry: "24h"
-```
-
-### HTTPS Configuration
-
-For production deployments, configure HTTPS:
-
-```yaml
-server:
-  tls:
-    enabled: true
-    cert_file: "/path/to/cert.pem"
-    key_file: "/path/to/key.pem"
-```
-
-## Logging Configuration
-
-Configure logging levels and outputs:
-
-```yaml
-logging:
-  level: "info"  # debug, info, warn, error
-  format: "json"  # json or text
-  output: "/var/log/llamactl/app.log"
-```
+- Learn about [Managing Instances](../user-guide/managing-instances.md)
+- Explore [Advanced Configuration](../advanced/monitoring.md)
+- Set up [Monitoring](../advanced/monitoring.md)
 
 ## Next Steps
 

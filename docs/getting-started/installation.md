@@ -4,9 +4,19 @@ This guide will walk you through installing Llamactl on your system.
 
 ## Prerequisites
 
-Before installing Llamactl, ensure you have:
+You need `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp) installed:
 
-- Go 1.19 or later
+```bash
+# Quick install methods:
+# Homebrew (macOS)
+brew install llama.cpp
+
+# Or build from source - see llama.cpp docs
+```
+
+Additional requirements for building from source:
+- Go 1.24 or later
+- Node.js 22 or later
 - Git
 - Sufficient disk space for your models
 
@@ -14,17 +24,18 @@ Before installing Llamactl, ensure you have:
 
 ### Option 1: Download Binary (Recommended)
 
-Download the latest release from our [GitHub releases page](https://github.com/lordmathis/llamactl/releases):
+Download the latest release from the [GitHub releases page](https://github.com/lordmathis/llamactl/releases):
 
 ```bash
-# Download for Linux
-curl -L https://github.com/lordmathis/llamactl/releases/latest/download/llamactl-linux-amd64 -o llamactl
-
-# Make executable
-chmod +x llamactl
-
-# Move to PATH (optional)
+# Linux/macOS - Get latest version and download
+LATEST_VERSION=$(curl -s https://api.github.com/repos/lordmathis/llamactl/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+curl -L https://github.com/lordmathis/llamactl/releases/download/${LATEST_VERSION}/llamactl-${LATEST_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz | tar -xz
 sudo mv llamactl /usr/local/bin/
+
+# Or download manually from:
+# https://github.com/lordmathis/llamactl/releases/latest
+
+# Windows - Download from releases page
 ```
 
 ### Option 2: Build from Source
@@ -36,11 +47,12 @@ If you prefer to build from source:
 git clone https://github.com/lordmathis/llamactl.git
 cd llamactl
 
-# Build the application
-go build -o llamactl cmd/server/main.go
-```
+# Build the web UI
+cd webui && npm ci && npm run build && cd ..
 
-For detailed build instructions, see the [Building from Source](../development/building.md) guide.
+# Build the application
+go build -o llamactl ./cmd/server
+```
 
 ## Verification
 

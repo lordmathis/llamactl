@@ -1,6 +1,6 @@
-site_name: LlamaCtl Documentation
-site_description: User documentation for LlamaCtl - A management tool for Llama.cpp instances
-site_author: LlamaCtl Team
+site_name: Llamatl Documentation
+site_description: User documentation for Llamatl - A management tool for Llama.cpp instances
+site_author: Llamatl Team
 site_url: https://llamactl.org
 
 repo_name: lordmathis/llamactl
@@ -61,9 +61,6 @@ nav:
     - Backends: advanced/backends.md
     - Monitoring: advanced/monitoring.md
     - Troubleshooting: advanced/troubleshooting.md
-  - Development:
-    - Contributing: development/contributing.md
-    - Building from Source: development/building.md
 
 plugins:
   - search
