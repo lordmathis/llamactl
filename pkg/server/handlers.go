@@ -581,21 +581,34 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		}
 
 		if !inst.IsRunning() {
-			if inst.GetOptions().OnDemandStart != nil && *inst.GetOptions().OnDemandStart {
-				// If on-demand start is enabled, start the instance
-				if _, err := h.InstanceManager.StartInstance(modelName); err != nil {
-					http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				// Wait for the instance to become healthy before proceeding
-				if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil { // 2 minutes timeout
-					http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
-					return
-				}
-
-			} else {
+			allowOnDemand := inst.GetOptions() != nil && inst.GetOptions().OnDemandStart != nil && *inst.GetOptions().OnDemandStart
+			if !allowOnDemand {
 				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
+				return
+			}
+
+			if h.InstanceManager.IsMaxRunningInstancesReached() {
+				if h.cfg.Instances.EnableLRUEviction {
+					err := h.InstanceManager.EvictLRUInstance()
+					if err != nil {
+						http.Error(w, "Cannot start Instance, failed to evict instance "+err.Error(), http.StatusInternalServerError)
+						return
+					}
+				} else {
+					http.Error(w, "Cannot start Instance, maximum number of instances reached", http.StatusConflict)
+					return
+				}
+			}
+
+			// If on-demand start is enabled, start the instance
+			if _, err := h.InstanceManager.StartInstance(modelName); err != nil {
+				http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// Wait for the instance to become healthy before proceeding
+			if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil { // 2 minutes timeout
+				http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
 				return
 			}
 		}

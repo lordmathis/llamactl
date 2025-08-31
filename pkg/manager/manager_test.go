@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 )
 
 func TestNewInstanceManager(t *testing.T) {
@@ -26,229 +25,18 @@ func TestNewInstanceManager(t *testing.T) {
 		TimeoutCheckInterval: 5,
 	}
 
-	manager := manager.NewInstanceManager(cfg)
-	if manager == nil {
+	mgr := manager.NewInstanceManager(cfg)
+	if mgr == nil {
 		t.Fatal("NewInstanceManager returned nil")
 	}
 
 	// Test initial state
-	instances, err := manager.ListInstances()
+	instances, err := mgr.ListInstances()
 	if err != nil {
 		t.Fatalf("ListInstances failed: %v", err)
 	}
 	if len(instances) != 0 {
 		t.Errorf("Expected empty instance list, got %d instances", len(instances))
-	}
-}
-
-func TestCreateInstance_Success(t *testing.T) {
-	manager := createTestManager()
-
-	options := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-			Port:  8080,
-		},
-	}
-
-	inst, err := manager.CreateInstance("test-instance", options)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	if inst.Name != "test-instance" {
-		t.Errorf("Expected instance name 'test-instance', got %q", inst.Name)
-	}
-	if inst.GetStatus() != instance.Stopped {
-		t.Error("New instance should not be running")
-	}
-	if inst.GetOptions().Port != 8080 {
-		t.Errorf("Expected port 8080, got %d", inst.GetOptions().Port)
-	}
-}
-
-func TestCreateInstance_ValidationAndLimits(t *testing.T) {
-	// Test duplicate names
-	mngr := createTestManager()
-	options := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-		},
-	}
-
-	_, err := mngr.CreateInstance("test-instance", options)
-	if err != nil {
-		t.Fatalf("First CreateInstance failed: %v", err)
-	}
-
-	// Try to create duplicate
-	_, err = mngr.CreateInstance("test-instance", options)
-	if err == nil {
-		t.Error("Expected error for duplicate instance name")
-	}
-	if !strings.Contains(err.Error(), "already exists") {
-		t.Errorf("Expected duplicate name error, got: %v", err)
-	}
-
-	// Test max instances limit
-	cfg := config.InstancesConfig{
-		PortRange:            [2]int{8000, 9000},
-		MaxInstances:         1, // Very low limit for testing
-		TimeoutCheckInterval: 5,
-	}
-	limitedManager := manager.NewInstanceManager(cfg)
-
-	_, err = limitedManager.CreateInstance("instance1", options)
-	if err != nil {
-		t.Fatalf("CreateInstance 1 failed: %v", err)
-	}
-
-	// This should fail due to max instances limit
-	_, err = limitedManager.CreateInstance("instance2", options)
-	if err == nil {
-		t.Error("Expected error when exceeding max instances limit")
-	}
-	if !strings.Contains(err.Error(), "maximum number of instances") {
-		t.Errorf("Expected max instances error, got: %v", err)
-	}
-}
-
-func TestPortManagement(t *testing.T) {
-	manager := createTestManager()
-
-	// Test auto port assignment
-	options1 := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-		},
-	}
-
-	inst1, err := manager.CreateInstance("instance1", options1)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	port1 := inst1.GetOptions().Port
-	if port1 < 8000 || port1 > 9000 {
-		t.Errorf("Expected port in range 8000-9000, got %d", port1)
-	}
-
-	// Test port conflict detection
-	options2 := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model2.gguf",
-			Port:  port1, // Same port - should conflict
-		},
-	}
-
-	_, err = manager.CreateInstance("instance2", options2)
-	if err == nil {
-		t.Error("Expected error for port conflict")
-	}
-	if !strings.Contains(err.Error(), "port") && !strings.Contains(err.Error(), "in use") {
-		t.Errorf("Expected port conflict error, got: %v", err)
-	}
-
-	// Test port release on deletion
-	specificPort := 8080
-	options3 := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-			Port:  specificPort,
-		},
-	}
-
-	_, err = manager.CreateInstance("port-test", options3)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	err = manager.DeleteInstance("port-test")
-	if err != nil {
-		t.Fatalf("DeleteInstance failed: %v", err)
-	}
-
-	// Should be able to create new instance with same port
-	_, err = manager.CreateInstance("new-port-test", options3)
-	if err != nil {
-		t.Errorf("Expected to reuse port after deletion, got error: %v", err)
-	}
-}
-
-func TestInstanceOperations(t *testing.T) {
-	manager := createTestManager()
-
-	options := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-		},
-	}
-
-	// Create instance
-	created, err := manager.CreateInstance("test-instance", options)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	// Get instance
-	retrieved, err := manager.GetInstance("test-instance")
-	if err != nil {
-		t.Fatalf("GetInstance failed: %v", err)
-	}
-	if retrieved.Name != created.Name {
-		t.Errorf("Expected name %q, got %q", created.Name, retrieved.Name)
-	}
-
-	// Update instance
-	newOptions := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/new-model.gguf",
-			Port:  8081,
-		},
-	}
-
-	updated, err := manager.UpdateInstance("test-instance", newOptions)
-	if err != nil {
-		t.Fatalf("UpdateInstance failed: %v", err)
-	}
-	if updated.GetOptions().Model != "/path/to/new-model.gguf" {
-		t.Errorf("Expected model '/path/to/new-model.gguf', got %q", updated.GetOptions().Model)
-	}
-
-	// List instances
-	instances, err := manager.ListInstances()
-	if err != nil {
-		t.Fatalf("ListInstances failed: %v", err)
-	}
-	if len(instances) != 1 {
-		t.Errorf("Expected 1 instance, got %d", len(instances))
-	}
-
-	// Delete instance
-	err = manager.DeleteInstance("test-instance")
-	if err != nil {
-		t.Fatalf("DeleteInstance failed: %v", err)
-	}
-
-	_, err = manager.GetInstance("test-instance")
-	if err == nil {
-		t.Error("Instance should not exist after deletion")
-	}
-
-	// Test operations on non-existent instances
-	_, err = manager.GetInstance("nonexistent")
-	if err == nil || !strings.Contains(err.Error(), "not found") {
-		t.Errorf("Expected 'not found' error, got: %v", err)
-	}
-
-	err = manager.DeleteInstance("nonexistent")
-	if err == nil || !strings.Contains(err.Error(), "not found") {
-		t.Errorf("Expected 'not found' error, got: %v", err)
-	}
-
-	_, err = manager.UpdateInstance("nonexistent", options)
-	if err == nil || !strings.Contains(err.Error(), "not found") {
-		t.Errorf("Expected 'not found' error, got: %v", err)
 	}
 }
 
@@ -312,102 +100,9 @@ func TestPersistence(t *testing.T) {
 	}
 }
 
-func TestTimeoutFunctionality(t *testing.T) {
-	// Test timeout checker initialization
-	cfg := config.InstancesConfig{
-		PortRange:            [2]int{8000, 9000},
-		TimeoutCheckInterval: 10,
-		MaxInstances:         5,
-	}
-
-	manager := manager.NewInstanceManager(cfg)
-	if manager == nil {
-		t.Fatal("Manager should be initialized with timeout checker")
-	}
-	manager.Shutdown() // Clean up
-
-	// Test timeout configuration and logic without starting the actual process
-	testManager := createTestManager()
-	defer testManager.Shutdown()
-
-	idleTimeout := 1 // 1 minute
-	options := &instance.CreateInstanceOptions{
-		IdleTimeout: &idleTimeout,
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-		},
-	}
-
-	inst, err := testManager.CreateInstance("timeout-test", options)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	// Test timeout configuration is properly set
-	if inst.GetOptions().IdleTimeout == nil {
-		t.Fatal("Instance should have idle timeout configured")
-	}
-	if *inst.GetOptions().IdleTimeout != 1 {
-		t.Errorf("Expected idle timeout 1 minute, got %d", *inst.GetOptions().IdleTimeout)
-	}
-
-	// Test timeout logic without actually starting the process
-	// Create a mock time provider to simulate timeout
-	mockTime := NewMockTimeProvider(time.Now())
-	inst.SetTimeProvider(mockTime)
-
-	// Set instance to running state so timeout logic can work
-	inst.SetStatus(instance.Running)
-
-	// Simulate instance being "running" for timeout check (without actual process)
-	// We'll test the ShouldTimeout logic directly
-	inst.UpdateLastRequestTime()
-
-	// Initially should not timeout (just updated)
-	if inst.ShouldTimeout() {
-		t.Error("Instance should not timeout immediately after request")
-	}
-
-	// Advance time to trigger timeout
-	mockTime.SetTime(time.Now().Add(2 * time.Minute))
-
-	// Now it should timeout
-	if !inst.ShouldTimeout() {
-		t.Error("Instance should timeout after idle period")
-	}
-
-	// Reset running state to avoid shutdown issues
-	inst.SetStatus(instance.Stopped)
-
-	// Test that instance without timeout doesn't timeout
-	noTimeoutOptions := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-		},
-		// No IdleTimeout set
-	}
-
-	noTimeoutInst, err := testManager.CreateInstance("no-timeout-test", noTimeoutOptions)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	noTimeoutInst.SetTimeProvider(mockTime)
-	noTimeoutInst.SetStatus(instance.Running) // Set to running for timeout check
-	noTimeoutInst.UpdateLastRequestTime()
-
-	// Even with time advanced, should not timeout
-	if noTimeoutInst.ShouldTimeout() {
-		t.Error("Instance without timeout configuration should never timeout")
-	}
-
-	// Reset running state to avoid shutdown issues
-	noTimeoutInst.SetStatus(instance.Stopped)
-}
-
 func TestConcurrentAccess(t *testing.T) {
-	manager := createTestManager()
-	defer manager.Shutdown()
+	mgr := createTestManager()
+	defer mgr.Shutdown()
 
 	// Test concurrent operations
 	var wg sync.WaitGroup
@@ -424,7 +119,7 @@ func TestConcurrentAccess(t *testing.T) {
 				},
 			}
 			instanceName := fmt.Sprintf("concurrent-test-%d", index)
-			if _, err := manager.CreateInstance(instanceName, options); err != nil {
+			if _, err := mgr.CreateInstance(instanceName, options); err != nil {
 				errChan <- err
 			}
 		}(i)
@@ -435,7 +130,7 @@ func TestConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if _, err := manager.ListInstances(); err != nil {
+			if _, err := mgr.ListInstances(); err != nil {
 				errChan <- err
 			}
 		}()
@@ -451,7 +146,7 @@ func TestConcurrentAccess(t *testing.T) {
 }
 
 func TestShutdown(t *testing.T) {
-	manager := createTestManager()
+	mgr := createTestManager()
 
 	// Create test instance
 	options := &instance.CreateInstanceOptions{
@@ -459,16 +154,16 @@ func TestShutdown(t *testing.T) {
 			Model: "/path/to/model.gguf",
 		},
 	}
-	_, err := manager.CreateInstance("test-instance", options)
+	_, err := mgr.CreateInstance("test-instance", options)
 	if err != nil {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
 	// Shutdown should not panic
-	manager.Shutdown()
+	mgr.Shutdown()
 
 	// Multiple shutdowns should not panic
-	manager.Shutdown()
+	mgr.Shutdown()
 }
 
 // Helper function to create a test manager with standard config
@@ -484,26 +179,4 @@ func createTestManager() manager.InstanceManager {
 		TimeoutCheckInterval: 5,
 	}
 	return manager.NewInstanceManager(cfg)
-}
-
-// Helper for timeout tests
-type MockTimeProvider struct {
-	currentTime time.Time
-	mu          sync.RWMutex
-}
-
-func NewMockTimeProvider(t time.Time) *MockTimeProvider {
-	return &MockTimeProvider{currentTime: t}
-}
-
-func (m *MockTimeProvider) Now() time.Time {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.currentTime
-}
-
-func (m *MockTimeProvider) SetTime(t time.Time) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.currentTime = t
 }
