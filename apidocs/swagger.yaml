@@ -136,6 +136,9 @@ definitions:
         type: string
       host:
         type: string
+      idle_timeout:
+        description: Idle timeout
+        type: integer
       ignore_eos:
         type: boolean
       jinja:
@@ -226,6 +229,9 @@ definitions:
         type: boolean
       numa:
         type: string
+      on_demand_start:
+        description: On demand start
+        type: boolean
       override_kv:
         items:
           type: string
@@ -266,8 +272,7 @@ definitions:
         type: number
       reranking:
         type: boolean
-      restart_delay_seconds:
-        description: RestartDelay duration in seconds
+      restart_delay:
         type: integer
       rope_freq_base:
         type: number
@@ -344,6 +349,16 @@ definitions:
       yarn_orig_ctx:
         type: integer
     type: object
+  instance.InstanceStatus:
+    enum:
+    - 0
+    - 1
+    - 2
+    type: integer
+    x-enum-varnames:
+    - Stopped
+    - Running
+    - Failed
   instance.Process:
     properties:
       created:
@@ -351,9 +366,10 @@ definitions:
         type: integer
       name:
         type: string
-      running:
+      status:
+        allOf:
+        - $ref: '#/definitions/instance.InstanceStatus'
         description: Status
-        type: boolean
     type: object
   server.OpenAIInstance:
     properties:
