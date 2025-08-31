@@ -49,21 +49,21 @@ auth:
 
 Configuration files are searched in the following locations (in order of precedence):
 
-**Linux:**
-- `./llamactl.yaml` or `./config.yaml` (current directory)
-- `$HOME/.config/llamactl/config.yaml`
-- `/etc/llamactl/config.yaml`
+**Linux:**  
+- `./llamactl.yaml` or `./config.yaml` (current directory)  
+- `$HOME/.config/llamactl/config.yaml`  
+- `/etc/llamactl/config.yaml`  
 
-**macOS:**
-- `./llamactl.yaml` or `./config.yaml` (current directory)
-- `$HOME/Library/Application Support/llamactl/config.yaml`
-- `/Library/Application Support/llamactl/config.yaml`
+**macOS:**  
+- `./llamactl.yaml` or `./config.yaml` (current directory)  
+- `$HOME/Library/Application Support/llamactl/config.yaml`  
+- `/Library/Application Support/llamactl/config.yaml`  
 
-**Windows:**
-- `./llamactl.yaml` or `./config.yaml` (current directory)
-- `%APPDATA%\llamactl\config.yaml`
-- `%USERPROFILE%\llamactl\config.yaml`
-- `%PROGRAMDATA%\llamactl\config.yaml`
+**Windows:**  
+- `./llamactl.yaml` or `./config.yaml` (current directory)  
+- `%APPDATA%\llamactl\config.yaml`  
+- `%USERPROFILE%\llamactl\config.yaml`  
+- `%PROGRAMDATA%\llamactl\config.yaml`  
 
 You can specify the path to config file with `LLAMACTL_CONFIG_PATH` environment variable.
 
@@ -79,11 +79,11 @@ server:
   enable_swagger: false   # Enable Swagger UI (default: false)
 ```
 
-**Environment Variables:**
-- `LLAMACTL_HOST` - Server host
-- `LLAMACTL_PORT` - Server port
-- `LLAMACTL_ALLOWED_ORIGINS` - Comma-separated CORS origins
-- `LLAMACTL_ENABLE_SWAGGER` - Enable Swagger UI (true/false)
+**Environment Variables:**  
+- `LLAMACTL_HOST` - Server host  
+- `LLAMACTL_PORT` - Server port  
+- `LLAMACTL_ALLOWED_ORIGINS` - Comma-separated CORS origins  
+- `LLAMACTL_ENABLE_SWAGGER` - Enable Swagger UI (true/false)  
 
 ### Instance Configuration
 
@@ -106,22 +106,22 @@ instances:
   timeout_check_interval: 5                         # Default instance timeout check interval in minutes
 ```
 
-**Environment Variables:**
-- `LLAMACTL_INSTANCE_PORT_RANGE` - Port range (format: "8000-9000" or "8000,9000")
-- `LLAMACTL_DATA_DIRECTORY` - Data directory path
-- `LLAMACTL_INSTANCES_DIR` - Instance configs directory path
-- `LLAMACTL_LOGS_DIR` - Log directory path
-- `LLAMACTL_AUTO_CREATE_DATA_DIR` - Auto-create data/config/logs directories (true/false)
-- `LLAMACTL_MAX_INSTANCES` - Maximum number of instances
-- `LLAMACTL_MAX_RUNNING_INSTANCES` - Maximum number of running instances
-- `LLAMACTL_ENABLE_LRU_EVICTION` - Enable LRU eviction for idle instances
-- `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable
-- `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)
-- `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts
-- `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds
-- `LLAMACTL_DEFAULT_ON_DEMAND_START` - Default on-demand start setting (true/false)
-- `LLAMACTL_ON_DEMAND_START_TIMEOUT` - Default on-demand start timeout in seconds
-- `LLAMACTL_TIMEOUT_CHECK_INTERVAL` - Default instance timeout check interval in minutes
+**Environment Variables:**  
+- `LLAMACTL_INSTANCE_PORT_RANGE` - Port range (format: "8000-9000" or "8000,9000")  
+- `LLAMACTL_DATA_DIRECTORY` - Data directory path  
+- `LLAMACTL_INSTANCES_DIR` - Instance configs directory path  
+- `LLAMACTL_LOGS_DIR` - Log directory path  
+- `LLAMACTL_AUTO_CREATE_DATA_DIR` - Auto-create data/config/logs directories (true/false)  
+- `LLAMACTL_MAX_INSTANCES` - Maximum number of instances  
+- `LLAMACTL_MAX_RUNNING_INSTANCES` - Maximum number of running instances  
+- `LLAMACTL_ENABLE_LRU_EVICTION` - Enable LRU eviction for idle instances  
+- `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable  
+- `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)  
+- `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts  
+- `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds  
+- `LLAMACTL_DEFAULT_ON_DEMAND_START` - Default on-demand start setting (true/false)  
+- `LLAMACTL_ON_DEMAND_START_TIMEOUT` - Default on-demand start timeout in seconds  
+- `LLAMACTL_TIMEOUT_CHECK_INTERVAL` - Default instance timeout check interval in minutes  
 
 ### Authentication Configuration
 
@@ -133,11 +133,11 @@ auth:
   management_keys: []                    # List of valid management API keys
 ```
 
-**Environment Variables:**
-- `LLAMACTL_REQUIRE_INFERENCE_AUTH` - Require auth for OpenAI endpoints (true/false)
-- `LLAMACTL_INFERENCE_KEYS` - Comma-separated inference API keys
-- `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)
-- `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys
+**Environment Variables:**  
+- `LLAMACTL_REQUIRE_INFERENCE_AUTH` - Require auth for OpenAI endpoints (true/false)  
+- `LLAMACTL_INFERENCE_KEYS` - Comma-separated inference API keys  
+- `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)  
+- `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys  
 
 ## Command Line Options
 
