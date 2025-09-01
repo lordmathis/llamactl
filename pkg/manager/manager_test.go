@@ -2,6 +2,7 @@ package manager_test
 
 import (
 	"fmt"
+	"llamactl/pkg/backends"
 	"llamactl/pkg/backends/llamacpp"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
@@ -53,7 +54,8 @@ func TestPersistence(t *testing.T) {
 	// Test instance persistence on creation
 	manager1 := manager.NewInstanceManager(cfg)
 	options := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
@@ -109,12 +111,13 @@ func TestConcurrentAccess(t *testing.T) {
 	errChan := make(chan error, 10)
 
 	// Concurrent instance creation
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
 			options := &instance.CreateInstanceOptions{
-				LlamaServerOptions: llamacpp.LlamaServerOptions{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model: "/path/to/model.gguf",
 				},
 			}
@@ -150,7 +153,8 @@ func TestShutdown(t *testing.T) {
 
 	// Create test instance
 	options := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}

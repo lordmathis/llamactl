@@ -2,6 +2,7 @@ package manager
 
 import (
 	"fmt"
+	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
 	"os"
@@ -52,19 +53,9 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		return nil, fmt.Errorf("instance with name %s already exists", name)
 	}
 
-	// Assign a port if not specified
-	if options.Port == 0 {
-		port, err := im.getNextAvailablePort()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get next available port: %w", err)
-		}
-		options.Port = port
-	} else {
-		// Validate the specified port
-		if _, exists := im.ports[options.Port]; exists {
-			return nil, fmt.Errorf("port %d is already in use", options.Port)
-		}
-		im.ports[options.Port] = true
+	// Assign and validate port for backend-specific options
+	if err := im.assignAndValidatePort(options); err != nil {
+		return nil, err
 	}
 
 	statusCallback := func(oldStatus, newStatus instance.InstanceStatus) {
@@ -73,7 +64,12 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 
 	inst := instance.NewInstance(name, &im.instancesConfig, options, statusCallback)
 	im.instances[inst.Name] = inst
-	im.ports[options.Port] = true
+
+	// Mark the port as used after successful instance creation
+	port := im.getPortFromOptions(options)
+	if port > 0 {
+		im.ports[port] = true
+	}
 
 	if err := im.persistInstance(inst); err != nil {
 		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
@@ -157,7 +153,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 		return fmt.Errorf("instance with name %s is still running, stop it before deleting", name)
 	}
 
-	delete(im.ports, instance.GetOptions().Port)
+	delete(im.ports, instance.GetPort())
 	delete(im.instances, name)
 
 	// Delete the instance's config file if persistence is enabled
@@ -261,4 +257,50 @@ func (im *instanceManager) GetInstanceLogs(name string) (string, error) {
 
 	// TODO: Implement actual log retrieval logic
 	return fmt.Sprintf("Logs for instance %s", name), nil
+}
+
+// getPortFromOptions extracts the port from backend-specific options
+func (im *instanceManager) getPortFromOptions(options *instance.CreateInstanceOptions) int {
+	switch options.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		if options.LlamaServerOptions != nil {
+			return options.LlamaServerOptions.Port
+		}
+	}
+	return 0
+}
+
+// setPortInOptions sets the port in backend-specific options
+func (im *instanceManager) setPortInOptions(options *instance.CreateInstanceOptions, port int) {
+	switch options.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		if options.LlamaServerOptions != nil {
+			options.LlamaServerOptions.Port = port
+		}
+	}
+}
+
+// assignAndValidatePort assigns a port if not specified and validates it's not in use
+func (im *instanceManager) assignAndValidatePort(options *instance.CreateInstanceOptions) error {
+	currentPort := im.getPortFromOptions(options)
+
+	if currentPort == 0 {
+		// Assign a port if not specified
+		port, err := im.getNextAvailablePort()
+		if err != nil {
+			return fmt.Errorf("failed to get next available port: %w", err)
+		}
+		im.setPortInOptions(options, port)
+		// Mark the port as used
+		im.ports[port] = true
+	} else {
+		// Validate the specified port
+		if _, exists := im.ports[currentPort]; exists {
+			return fmt.Errorf("port %d is already in use", currentPort)
+		}
+		// Mark the port as used
+		im.ports[currentPort] = true
+	}
+
+	return nil
 }

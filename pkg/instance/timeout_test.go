@@ -1,6 +1,7 @@
 package instance_test
 
 import (
+	"llamactl/pkg/backends"
 	"llamactl/pkg/backends/llamacpp"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
@@ -37,7 +38,8 @@ func TestUpdateLastRequestTime(t *testing.T) {
 	}
 
 	options := &instance.CreateInstanceOptions{
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -59,7 +61,8 @@ func TestShouldTimeout_NotRunning(t *testing.T) {
 	idleTimeout := 1 // 1 minute
 	options := &instance.CreateInstanceOptions{
 		IdleTimeout: &idleTimeout,
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -96,7 +99,8 @@ func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
 
 			options := &instance.CreateInstanceOptions{
 				IdleTimeout: tt.idleTimeout,
-				LlamaServerOptions: llamacpp.LlamaServerOptions{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model: "/path/to/model.gguf",
 				},
 			}
@@ -120,7 +124,8 @@ func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
 	idleTimeout := 5 // 5 minutes
 	options := &instance.CreateInstanceOptions{
 		IdleTimeout: &idleTimeout,
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -148,7 +153,8 @@ func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
 	idleTimeout := 1 // 1 minute
 	options := &instance.CreateInstanceOptions{
 		IdleTimeout: &idleTimeout,
-		LlamaServerOptions: llamacpp.LlamaServerOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -194,7 +200,8 @@ func TestTimeoutConfiguration_Validation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			options := &instance.CreateInstanceOptions{
 				IdleTimeout: tt.inputTimeout,
-				LlamaServerOptions: llamacpp.LlamaServerOptions{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model: "/path/to/model.gguf",
 				},
 			}

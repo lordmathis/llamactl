@@ -40,7 +40,6 @@ func (i *Process) Start() error {
 	}
 
 	args := i.options.BuildCommandArgs()
-
 	i.ctx, i.cancel = context.WithCancel(context.Background())
 	i.cmd = exec.CommandContext(i.ctx, "llama-server", args...)
 
@@ -173,11 +172,17 @@ func (i *Process) WaitForHealthy(timeout int) error {
 	}
 
 	// Build the health check URL directly
-	host := opts.Host
+	var host string
+	var port int
+	switch opts.BackendType {
+	case "llama-cpp":
+		host = opts.LlamaServerOptions.Host
+		port = opts.LlamaServerOptions.Port
+	}
 	if host == "" {
 		host = "localhost"
 	}
-	healthURL := fmt.Sprintf("http://%s:%d/health", host, opts.Port)
+	healthURL := fmt.Sprintf("http://%s:%d/health", host, port)
 
 	// Create a dedicated HTTP client for health checks
 	client := &http.Client{
