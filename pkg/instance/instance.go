@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"llamactl/pkg/backends/llamacpp"
+	"llamactl/pkg/backends"
 	"llamactl/pkg/config"
 	"log"
 	"net/http"
@@ -27,52 +27,6 @@ type realTimeProvider struct{}
 
 func (realTimeProvider) Now() time.Time {
 	return time.Now()
-}
-
-type CreateInstanceOptions struct {
-	// Auto restart
-	AutoRestart  *bool `json:"auto_restart,omitempty"`
-	MaxRestarts  *int  `json:"max_restarts,omitempty"`
-	RestartDelay *int  `json:"restart_delay,omitempty"`
-	// On demand start
-	OnDemandStart *bool `json:"on_demand_start,omitempty"`
-	// Idle timeout
-	IdleTimeout *int `json:"idle_timeout,omitempty"`
-	// LlamaServerOptions contains the options for the llama server
-	llamacpp.LlamaServerOptions `json:",inline"`
-}
-
-// UnmarshalJSON implements custom JSON unmarshaling for CreateInstanceOptions
-// This is needed because the embedded LlamaServerOptions has its own UnmarshalJSON
-// which can interfere with proper unmarshaling of the pointer fields
-func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
-	// First, unmarshal into a temporary struct without the embedded type
-	type tempCreateOptions struct {
-		AutoRestart   *bool `json:"auto_restart,omitempty"`
-		MaxRestarts   *int  `json:"max_restarts,omitempty"`
-		RestartDelay  *int  `json:"restart_delay,omitempty"`
-		OnDemandStart *bool `json:"on_demand_start,omitempty"`
-		IdleTimeout   *int  `json:"idle_timeout,omitempty"`
-	}
-
-	var temp tempCreateOptions
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-
-	// Copy the pointer fields
-	c.AutoRestart = temp.AutoRestart
-	c.MaxRestarts = temp.MaxRestarts
-	c.RestartDelay = temp.RestartDelay
-	c.OnDemandStart = temp.OnDemandStart
-	c.IdleTimeout = temp.IdleTimeout
-
-	// Now unmarshal the embedded LlamaServerOptions
-	if err := json.Unmarshal(data, &c.LlamaServerOptions); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Process represents a running instance of the llama server
@@ -110,101 +64,17 @@ type Process struct {
 	timeProvider    TimeProvider `json:"-"` // Time provider for testing
 }
 
-// validateAndCopyOptions validates and creates a deep copy of the provided options
-// It applies validation rules and returns a safe copy
-func validateAndCopyOptions(name string, options *CreateInstanceOptions) *CreateInstanceOptions {
-	optionsCopy := &CreateInstanceOptions{}
-
-	if options != nil {
-		// Copy the embedded LlamaServerOptions
-		optionsCopy.LlamaServerOptions = options.LlamaServerOptions
-
-		// Copy and validate pointer fields
-		if options.AutoRestart != nil {
-			autoRestart := *options.AutoRestart
-			optionsCopy.AutoRestart = &autoRestart
-		}
-
-		if options.MaxRestarts != nil {
-			maxRestarts := *options.MaxRestarts
-			if maxRestarts < 0 {
-				log.Printf("Instance %s MaxRestarts value (%d) cannot be negative, setting to 0", name, maxRestarts)
-				maxRestarts = 0
-			}
-			optionsCopy.MaxRestarts = &maxRestarts
-		}
-
-		if options.RestartDelay != nil {
-			restartDelay := *options.RestartDelay
-			if restartDelay < 0 {
-				log.Printf("Instance %s RestartDelay value (%d) cannot be negative, setting to 0 seconds", name, restartDelay)
-				restartDelay = 0
-			}
-			optionsCopy.RestartDelay = &restartDelay
-		}
-
-		if options.OnDemandStart != nil {
-			onDemandStart := *options.OnDemandStart
-			optionsCopy.OnDemandStart = &onDemandStart
-		}
-
-		if options.IdleTimeout != nil {
-			idleTimeout := *options.IdleTimeout
-			if idleTimeout < 0 {
-				log.Printf("Instance %s IdleTimeout value (%d) cannot be negative, setting to 0 minutes", name, idleTimeout)
-				idleTimeout = 0
-			}
-			optionsCopy.IdleTimeout = &idleTimeout
-		}
-	}
-
-	return optionsCopy
-}
-
-// applyDefaultOptions applies default values from global settings to any nil options
-func applyDefaultOptions(options *CreateInstanceOptions, globalSettings *config.InstancesConfig) {
-	if globalSettings == nil {
-		return
-	}
-
-	if options.AutoRestart == nil {
-		defaultAutoRestart := globalSettings.DefaultAutoRestart
-		options.AutoRestart = &defaultAutoRestart
-	}
-
-	if options.MaxRestarts == nil {
-		defaultMaxRestarts := globalSettings.DefaultMaxRestarts
-		options.MaxRestarts = &defaultMaxRestarts
-	}
-
-	if options.RestartDelay == nil {
-		defaultRestartDelay := globalSettings.DefaultRestartDelay
-		options.RestartDelay = &defaultRestartDelay
-	}
-
-	if options.OnDemandStart == nil {
-		defaultOnDemandStart := globalSettings.DefaultOnDemandStart
-		options.OnDemandStart = &defaultOnDemandStart
-	}
-
-	if options.IdleTimeout == nil {
-		defaultIdleTimeout := 0
-		options.IdleTimeout = &defaultIdleTimeout
-	}
-}
-
 // NewInstance creates a new instance with the given name, log path, and options
 func NewInstance(name string, globalSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus InstanceStatus)) *Process {
 	// Validate and copy options
-	optionsCopy := validateAndCopyOptions(name, options)
-	// Apply defaults
-	applyDefaultOptions(optionsCopy, globalSettings)
+	options.ValidateAndApplyDefaults(name, globalSettings)
+
 	// Create the instance logger
 	logger := NewInstanceLogger(name, globalSettings.LogsDir)
 
 	return &Process{
 		Name:           name,
-		options:        optionsCopy,
+		options:        options,
 		globalSettings: globalSettings,
 		logger:         logger,
 		timeProvider:   realTimeProvider{},
@@ -220,6 +90,30 @@ func (i *Process) GetOptions() *CreateInstanceOptions {
 	return i.options
 }
 
+func (i *Process) GetPort() int {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+	if i.options != nil {
+		switch i.options.BackendType {
+		case backends.BackendTypeLlamaCpp:
+			return i.options.LlamaServerOptions.Port
+		}
+	}
+	return 0
+}
+
+func (i *Process) GetHost() string {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+	if i.options != nil {
+		switch i.options.BackendType {
+		case backends.BackendTypeLlamaCpp:
+			return i.options.LlamaServerOptions.Host
+		}
+	}
+	return ""
+}
+
 func (i *Process) SetOptions(options *CreateInstanceOptions) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -229,11 +123,10 @@ func (i *Process) SetOptions(options *CreateInstanceOptions) {
 		return
 	}
 
-	// Validate and copy options and apply defaults
-	optionsCopy := validateAndCopyOptions(i.Name, options)
-	applyDefaultOptions(optionsCopy, i.globalSettings)
+	// Validate and copy options
+	options.ValidateAndApplyDefaults(i.Name, i.globalSettings)
 
-	i.options = optionsCopy
+	i.options = options
 	// Clear the proxy so it gets recreated with new options
 	i.proxy = nil
 }
@@ -256,7 +149,15 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 		return nil, fmt.Errorf("instance %s has no options set", i.Name)
 	}
 
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", i.options.Host, i.options.Port))
+	var host string
+	var port int
+	switch i.options.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		host = i.options.LlamaServerOptions.Host
+		port = i.options.LlamaServerOptions.Port
+	}
+
+	targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", host, port))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", i.Name, err)
 	}
@@ -286,44 +187,36 @@ func (i *Process) MarshalJSON() ([]byte, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
-	// Create a temporary struct with exported fields for JSON marshalling
-	temp := struct {
-		Name    string                 `json:"name"`
+	// Use anonymous struct to avoid recursion
+	type Alias Process
+	return json.Marshal(&struct {
+		*Alias
 		Options *CreateInstanceOptions `json:"options,omitempty"`
-		Status  InstanceStatus         `json:"status"`
-		Created int64                  `json:"created,omitempty"`
 	}{
-		Name:    i.Name,
+		Alias:   (*Alias)(i),
 		Options: i.options,
-		Status:  i.Status,
-		Created: i.Created,
-	}
-
-	return json.Marshal(temp)
+	})
 }
 
 // UnmarshalJSON implements json.Unmarshaler for Instance
 func (i *Process) UnmarshalJSON(data []byte) error {
-	// Create a temporary struct for unmarshalling
-	temp := struct {
-		Name    string                 `json:"name"`
+	// Use anonymous struct to avoid recursion
+	type Alias Process
+	aux := &struct {
+		*Alias
 		Options *CreateInstanceOptions `json:"options,omitempty"`
-		Status  InstanceStatus         `json:"status"`
-		Created int64                  `json:"created,omitempty"`
-	}{}
+	}{
+		Alias: (*Alias)(i),
+	}
 
-	if err := json.Unmarshal(data, &temp); err != nil {
+	if err := json.Unmarshal(data, aux); err != nil {
 		return err
 	}
 
-	// Set the fields
-	i.Name = temp.Name
-	i.Status = temp.Status
-	i.Created = temp.Created
-
-	// Handle options with validation but no defaults
-	if temp.Options != nil {
-		i.options = validateAndCopyOptions(i.Name, temp.Options)
+	// Handle options with validation and defaults
+	if aux.Options != nil {
+		aux.Options.ValidateAndApplyDefaults(i.Name, i.globalSettings)
+		i.options = aux.Options
 	}
 
 	return nil

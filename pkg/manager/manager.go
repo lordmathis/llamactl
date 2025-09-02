@@ -248,8 +248,8 @@ func (im *instanceManager) loadInstance(name, path string) error {
 	inst.SetStatus(persistedInstance.Status)
 
 	// Check for port conflicts and add to maps
-	if inst.GetOptions() != nil && inst.GetOptions().Port > 0 {
-		port := inst.GetOptions().Port
+	if inst.GetPort() > 0 {
+		port := inst.GetPort()
 		if im.ports[port] {
 			return fmt.Errorf("port conflict: instance %s wants port %d which is already in use", name, port)
 		}

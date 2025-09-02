@@ -5,6 +5,7 @@ import App from '@/App'
 import { InstancesProvider } from '@/contexts/InstancesContext'
 import { instancesApi } from '@/lib/api'
 import type { Instance } from '@/types/instance'
+import { BackendType } from '@/types/instance'
 import { AuthProvider } from '@/contexts/AuthContext'
 
 // Mock the API
@@ -46,8 +47,8 @@ function renderApp() {
 
 describe('App Component - Critical Business Logic Only', () => {
   const mockInstances: Instance[] = [
-    { name: 'test-instance-1', status: 'stopped', options: { model: 'model1.gguf' } },
-    { name: 'test-instance-2', status: 'running', options: { model: 'model2.gguf' } }
+    { name: 'test-instance-1', status: 'stopped', options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'model1.gguf' } } },
+    { name: 'test-instance-2', status: 'running', options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'model2.gguf' } } }
   ]
 
   beforeEach(() => {
@@ -82,7 +83,7 @@ describe('App Component - Critical Business Logic Only', () => {
       const newInstance: Instance = {
         name: 'new-test-instance',
         status: 'stopped',
-        options: { model: 'new-model.gguf' }
+        options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'new-model.gguf' } }
       }
       vi.mocked(instancesApi.create).mockResolvedValue(newInstance)
 
@@ -105,6 +106,7 @@ describe('App Component - Critical Business Logic Only', () => {
       await waitFor(() => {
         expect(instancesApi.create).toHaveBeenCalledWith('new-test-instance', {
           auto_restart: true, // Default value
+          backend_type: BackendType.LLAMA_CPP
         })
       })
 
@@ -119,7 +121,7 @@ describe('App Component - Critical Business Logic Only', () => {
       const updatedInstance: Instance = {
         name: 'test-instance-1',
         status: 'stopped',
-        options: { model: 'updated-model.gguf' }
+        options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'updated-model.gguf' } }
       }
       vi.mocked(instancesApi.update).mockResolvedValue(updatedInstance)
 
@@ -138,7 +140,8 @@ describe('App Component - Critical Business Logic Only', () => {
       // Verify correct API call with existing instance data
       await waitFor(() => {
         expect(instancesApi.update).toHaveBeenCalledWith('test-instance-1', {
-          model: "model1.gguf", // Pre-filled from existing instance
+          backend_type: BackendType.LLAMA_CPP,
+          backend_options: { model: "model1.gguf" } // Pre-filled from existing instance
         })
       })
     })

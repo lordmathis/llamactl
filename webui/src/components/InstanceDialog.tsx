@@ -10,10 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { CreateInstanceOptions, Instance } from "@/types/instance";
-import { getBasicFields, getAdvancedFields } from "@/lib/zodFormUtils";
+import { BackendType, type CreateInstanceOptions, type Instance } from "@/types/instance";
+import { getBasicFields, getAdvancedFields, getBasicBackendFields, getAdvancedBackendFields } from "@/lib/zodFormUtils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import ZodFormField from "@/components/ZodFormField";
+import BackendFormField from "@/components/BackendFormField";
 
 interface InstanceDialogProps {
   open: boolean;
@@ -38,6 +39,8 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   // Get field lists dynamically from the type
   const basicFields = getBasicFields();
   const advancedFields = getAdvancedFields();
+  const basicBackendFields = getBasicBackendFields();
+  const advancedBackendFields = getAdvancedBackendFields();
 
   // Reset form when dialog opens/closes or when instance changes
   useEffect(() => {
@@ -51,6 +54,8 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
         setInstanceName("");
         setFormData({
           auto_restart: true, // Default value
+          backend_type: BackendType.LLAMA_CPP, // Default backend type
+          backend_options: {},
         });
       }
       setShowAdvanced(false); // Always start with basic view
@@ -62,6 +67,16 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
     setFormData((prev) => ({
       ...prev,
       [key]: value,
+    }));
+  };
+
+  const handleBackendFieldChange = (key: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      backend_options: {
+        ...prev.backend_options,
+        [key]: value,
+      },
     }));
   };
 
@@ -89,7 +104,24 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
     // Clean up undefined values to avoid sending empty fields
     const cleanOptions: CreateInstanceOptions = {};
     Object.entries(formData).forEach(([key, value]) => {
-      if (value !== undefined && value !== "" && value !== null) {
+      if (key === 'backend_options' && value && typeof value === 'object') {
+        // Handle backend_options specially - clean nested object
+        const cleanBackendOptions: any = {};
+        Object.entries(value).forEach(([backendKey, backendValue]) => {
+          if (backendValue !== undefined && backendValue !== null && (typeof backendValue !== 'string' || backendValue.trim() !== "")) {
+            // Handle arrays - don't include empty arrays
+            if (Array.isArray(backendValue) && backendValue.length === 0) {
+              return;
+            }
+            cleanBackendOptions[backendKey] = backendValue;
+          }
+        });
+        
+        // Only include backend_options if it has content
+        if (Object.keys(cleanBackendOptions).length > 0) {
+          (cleanOptions as any)[key] = cleanBackendOptions;
+        }
+      } else if (value !== undefined && value !== null && (typeof value !== 'string' || value.trim() !== "")) {
         // Handle arrays - don't include empty arrays
         if (Array.isArray(value) && value.length === 0) {
           return;
@@ -196,8 +228,9 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
                   (fieldKey) =>
                     fieldKey !== "auto_restart" &&
                     fieldKey !== "max_restarts" &&
-                    fieldKey !== "restart_delay"
-                ) // Exclude auto_restart, max_restarts, and restart_delay as they're handled above
+                    fieldKey !== "restart_delay" &&
+                    fieldKey !== "backend_options" // backend_options is handled separately
+                ) 
                 .map((fieldKey) => (
                   <ZodFormField
                     key={fieldKey}
@@ -206,6 +239,21 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
                     onChange={handleFieldChange}
                   />
                 ))}
+            </div>
+
+            {/* Backend Configuration Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Backend Configuration</h3>
+              
+              {/* Basic backend fields */}
+              {basicBackendFields.map((fieldKey) => (
+                <BackendFormField
+                  key={fieldKey}
+                  fieldKey={fieldKey}
+                  value={formData.backend_options?.[fieldKey]}
+                  onChange={handleBackendFieldChange}
+                />
+              ))}
             </div>
 
             {/* Advanced Fields Toggle */}
@@ -226,8 +274,8 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
                   {
                     advancedFields.filter(
                       (f) =>
-                        !["max_restarts", "restart_delay"].includes(f as string)
-                    ).length
+                        !["max_restarts", "restart_delay", "backend_options"].includes(f as string)
+                    ).length + advancedBackendFields.length
                   }{" "}
                   options)
                 </span>
@@ -237,24 +285,51 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
             {/* Advanced Fields - Automatically generated from type (excluding restart options) */}
             {showAdvanced && (
               <div className="space-y-4 pl-6 border-l-2 border-muted">
-                <div className="space-y-4">
-                  {advancedFields
-                    .filter(
-                      (fieldKey) =>
-                        !["max_restarts", "restart_delay"].includes(
-                          fieldKey as string
-                        )
-                    ) // Exclude restart options as they're handled above
-                    .sort()
-                    .map((fieldKey) => (
-                      <ZodFormField
-                        key={fieldKey}
-                        fieldKey={fieldKey}
-                        value={formData[fieldKey]}
-                        onChange={handleFieldChange}
-                      />
-                    ))}
-                </div>
+                {/* Advanced instance fields */}
+                {advancedFields
+                  .filter(
+                    (fieldKey) =>
+                      !["max_restarts", "restart_delay", "backend_options"].includes(
+                        fieldKey as string
+                      )
+                  ).length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="text-md font-medium">Advanced Instance Configuration</h4>
+                    {advancedFields
+                      .filter(
+                        (fieldKey) =>
+                          !["max_restarts", "restart_delay", "backend_options"].includes(
+                            fieldKey as string
+                          )
+                      )
+                      .sort()
+                      .map((fieldKey) => (
+                        <ZodFormField
+                          key={fieldKey}
+                          fieldKey={fieldKey}
+                          value={fieldKey === 'backend_options' ? undefined : formData[fieldKey]}
+                          onChange={handleFieldChange}
+                        />
+                      ))}
+                  </div>
+                )}
+
+                {/* Advanced backend fields */}
+                {advancedBackendFields.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="text-md font-medium">Advanced Backend Configuration</h4>
+                    {advancedBackendFields
+                      .sort()
+                      .map((fieldKey) => (
+                        <BackendFormField
+                          key={fieldKey}
+                          fieldKey={fieldKey}
+                          value={formData.backend_options?.[fieldKey]}
+                          onChange={handleBackendFieldChange}
+                        />
+                      ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

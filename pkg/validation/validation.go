@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
 	"reflect"
 	"regexp"
@@ -33,20 +34,35 @@ func validateStringForInjection(value string) error {
 	return nil
 }
 
-// ValidateInstanceOptions performs minimal security validation
+// ValidateInstanceOptions performs validation based on backend type
 func ValidateInstanceOptions(options *instance.CreateInstanceOptions) error {
 	if options == nil {
 		return ValidationError(fmt.Errorf("options cannot be nil"))
 	}
 
+	// Validate based on backend type
+	switch options.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		return validateLlamaCppOptions(options)
+	default:
+		return ValidationError(fmt.Errorf("unsupported backend type: %s", options.BackendType))
+	}
+}
+
+// validateLlamaCppOptions validates llama.cpp specific options
+func validateLlamaCppOptions(options *instance.CreateInstanceOptions) error {
+	if options.LlamaServerOptions == nil {
+		return ValidationError(fmt.Errorf("llama server options cannot be nil for llama.cpp backend"))
+	}
+
 	// Use reflection to check all string fields for injection patterns
-	if err := validateStructStrings(&options.LlamaServerOptions, ""); err != nil {
+	if err := validateStructStrings(options.LlamaServerOptions, ""); err != nil {
 		return err
 	}
 
-	// Basic network validation - only check for reasonable ranges
-	if options.Port < 0 || options.Port > 65535 {
-		return ValidationError(fmt.Errorf("invalid port range"))
+	// Basic network validation for port
+	if options.LlamaServerOptions.Port < 0 || options.LlamaServerOptions.Port > 65535 {
+		return ValidationError(fmt.Errorf("invalid port range: %d", options.LlamaServerOptions.Port))
 	}
 
 	return nil

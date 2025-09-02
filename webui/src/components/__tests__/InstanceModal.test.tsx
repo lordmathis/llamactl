@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceDialog from '@/components/InstanceDialog'
 import type { Instance } from '@/types/instance'
+import { BackendType } from '@/types/instance'
 
 describe('InstanceModal - Form Logic and Validation', () => {
   const mockOnSave = vi.fn()
@@ -91,6 +92,7 @@ afterEach(() => {
 
       expect(mockOnSave).toHaveBeenCalledWith('my-instance', {
         auto_restart: true, // Default value
+        backend_type: BackendType.LLAMA_CPP
       })
     })
 
@@ -136,8 +138,8 @@ afterEach(() => {
       name: 'existing-instance',
       status: 'stopped',
       options: {
-        model: 'test-model.gguf',
-        gpu_layers: 10,
+        backend_type: BackendType.LLAMA_CPP,
+        backend_options: { model: 'test-model.gguf', gpu_layers: 10 },
         auto_restart: false
       }
     }
@@ -177,8 +179,8 @@ afterEach(() => {
       await user.click(screen.getByTestId('dialog-save-button'))
 
       expect(mockOnSave).toHaveBeenCalledWith('existing-instance', {
-        model: 'test-model.gguf',
-        gpu_layers: 10,
+        backend_type: BackendType.LLAMA_CPP,
+        backend_options: { model: 'test-model.gguf', gpu_layers: 10 },
         auto_restart: false
       })
     })
@@ -271,6 +273,7 @@ afterEach(() => {
 
       expect(mockOnSave).toHaveBeenCalledWith('test-instance', {
         auto_restart: true,
+        backend_type: BackendType.LLAMA_CPP,
         max_restarts: 5,
         restart_delay: 10
       })
@@ -321,6 +324,7 @@ afterEach(() => {
       // Should only include non-empty values
       expect(mockOnSave).toHaveBeenCalledWith('clean-instance', {
         auto_restart: true, // Only this default value should be included
+        backend_type: BackendType.LLAMA_CPP
       })
     })
 
@@ -345,7 +349,8 @@ afterEach(() => {
 
       expect(mockOnSave).toHaveBeenCalledWith('numeric-test', {
         auto_restart: true,
-        gpu_layers: 15, // Should be number, not string
+        backend_type: BackendType.LLAMA_CPP,
+        backend_options: { gpu_layers: 15 }, // Should be number, not string
       })
     })
   })
