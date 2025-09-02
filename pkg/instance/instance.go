@@ -152,7 +152,7 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 	var host string
 	var port int
 	switch i.options.BackendType {
-	case "llama-cpp":
+	case backends.BackendTypeLlamaCpp:
 		host = i.options.LlamaServerOptions.Host
 		port = i.options.LlamaServerOptions.Port
 	}
