@@ -19,13 +19,13 @@ describe('InstanceCard - Instance Actions and State', () => {
   const stoppedInstance: Instance = {
     name: 'test-instance',
     status: 'stopped',
-    options: { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: 'test-model.gguf' } }
+    options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'test-model.gguf' } }
   }
 
   const runningInstance: Instance = {
     name: 'running-instance',
     status: 'running',
-    options: { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: 'running-model.gguf' } }
+    options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'running-model.gguf' } }
   }
 
 beforeEach(() => {

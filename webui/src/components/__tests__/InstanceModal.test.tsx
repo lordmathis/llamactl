@@ -92,7 +92,7 @@ afterEach(() => {
 
       expect(mockOnSave).toHaveBeenCalledWith('my-instance', {
         auto_restart: true, // Default value
-        backend_type: BackendType.LLAMA_SERVER
+        backend_type: BackendType.LLAMA_CPP
       })
     })
 
@@ -138,7 +138,7 @@ afterEach(() => {
       name: 'existing-instance',
       status: 'stopped',
       options: {
-        backend_type: BackendType.LLAMA_SERVER,
+        backend_type: BackendType.LLAMA_CPP,
         backend_options: { model: 'test-model.gguf', gpu_layers: 10 },
         auto_restart: false
       }
@@ -179,7 +179,7 @@ afterEach(() => {
       await user.click(screen.getByTestId('dialog-save-button'))
 
       expect(mockOnSave).toHaveBeenCalledWith('existing-instance', {
-        backend_type: BackendType.LLAMA_SERVER,
+        backend_type: BackendType.LLAMA_CPP,
         backend_options: { model: 'test-model.gguf', gpu_layers: 10 },
         auto_restart: false
       })
@@ -273,7 +273,7 @@ afterEach(() => {
 
       expect(mockOnSave).toHaveBeenCalledWith('test-instance', {
         auto_restart: true,
-        backend_type: BackendType.LLAMA_SERVER,
+        backend_type: BackendType.LLAMA_CPP,
         max_restarts: 5,
         restart_delay: 10
       })
@@ -324,7 +324,7 @@ afterEach(() => {
       // Should only include non-empty values
       expect(mockOnSave).toHaveBeenCalledWith('clean-instance', {
         auto_restart: true, // Only this default value should be included
-        backend_type: BackendType.LLAMA_SERVER
+        backend_type: BackendType.LLAMA_CPP
       })
     })
 
@@ -349,7 +349,7 @@ afterEach(() => {
 
       expect(mockOnSave).toHaveBeenCalledWith('numeric-test', {
         auto_restart: true,
-        backend_type: BackendType.LLAMA_SERVER,
+        backend_type: BackendType.LLAMA_CPP,
         backend_options: { gpu_layers: 15 }, // Should be number, not string
       })
     })

@@ -1,3 +1,4 @@
+import { BackendType } from '@/types/instance'
 import { z } from 'zod'
 
 // Define the backend options schema (previously embedded in CreateInstanceOptionsSchema)
@@ -179,7 +180,7 @@ export const CreateInstanceOptionsSchema = z.object({
   on_demand_start: z.boolean().optional(),
 
   // Backend configuration
-  backend_type: z.enum(['llama_server']).optional(),
+  backend_type: z.enum([BackendType.LLAMA_CPP]).optional(),
   backend_options: BackendOptionsSchema.optional(),
 })
 

@@ -48,13 +48,13 @@ function TestComponent() {
 
       {/* Action buttons for testing with specific instances */}
       <button
-        onClick={() => createInstance("new-instance", { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: "test.gguf" } })}
+        onClick={() => createInstance("new-instance", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "test.gguf" } })}
         data-testid="create-instance"
       >
         Create Instance
       </button>
       <button
-        onClick={() => updateInstance("instance1", { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: "updated.gguf" } })}
+        onClick={() => updateInstance("instance1", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "updated.gguf" } })}
         data-testid="update-instance"
       >
         Update Instance
@@ -100,8 +100,8 @@ function renderWithProvider(children: ReactNode) {
 
 describe("InstancesContext", () => {
   const mockInstances: Instance[] = [
-    { name: "instance1", status: "running", options: { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: "model1.gguf" } } },
-    { name: "instance2", status: "stopped", options: { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: "model2.gguf" } } },
+    { name: "instance1", status: "running", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model1.gguf" } } },
+    { name: "instance2", status: "stopped", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model2.gguf" } } },
   ];
 
   beforeEach(() => {
@@ -160,7 +160,7 @@ describe("InstancesContext", () => {
       const newInstance: Instance = {
         name: "new-instance",
         status: "stopped",
-        options: { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: "test.gguf" } },
+        options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "test.gguf" } },
       };
       vi.mocked(instancesApi.create).mockResolvedValue(newInstance);
 
@@ -175,7 +175,7 @@ describe("InstancesContext", () => {
 
       await waitFor(() => {
         expect(instancesApi.create).toHaveBeenCalledWith("new-instance", {
-          backend_type: BackendType.LLAMA_SERVER,
+          backend_type: BackendType.LLAMA_CPP,
           backend_options: { model: "test.gguf" }
         });
       });
@@ -217,7 +217,7 @@ describe("InstancesContext", () => {
       const updatedInstance: Instance = {
         name: "instance1",
         status: "running",
-        options: { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: "updated.gguf" } },
+        options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "updated.gguf" } },
       };
       vi.mocked(instancesApi.update).mockResolvedValue(updatedInstance);
 
@@ -232,7 +232,7 @@ describe("InstancesContext", () => {
 
       await waitFor(() => {
         expect(instancesApi.update).toHaveBeenCalledWith("instance1", {
-          backend_type: BackendType.LLAMA_SERVER,
+          backend_type: BackendType.LLAMA_CPP,
           backend_options: { model: "updated.gguf" }
         });
       });

@@ -10,8 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { CreateInstanceOptions, Instance } from "@/types/instance";
-import { BackendType } from "@/types/instance";
+import { BackendType, type CreateInstanceOptions, type Instance } from "@/types/instance";
 import { getBasicFields, getAdvancedFields, getBasicBackendFields, getAdvancedBackendFields } from "@/lib/zodFormUtils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import ZodFormField from "@/components/ZodFormField";
@@ -55,7 +54,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
         setInstanceName("");
         setFormData({
           auto_restart: true, // Default value
-          backend_type: BackendType.LLAMA_SERVER, // Default backend type
+          backend_type: BackendType.LLAMA_CPP, // Default backend type
           backend_options: {},
         });
       }
