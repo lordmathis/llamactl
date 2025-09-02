@@ -2,6 +2,12 @@ import type { CreateInstanceOptions } from '@/schemas/instanceOptions'
 
 export { type CreateInstanceOptions } from '@/schemas/instanceOptions'
 
+export const BackendType = {
+  LLAMA_SERVER: 'llama_server'
+} as const
+
+export type BackendTypeValue = typeof BackendType[keyof typeof BackendType]
+
 export type InstanceStatus = 'running' | 'stopped' | 'failed'
 
 export interface HealthStatus {

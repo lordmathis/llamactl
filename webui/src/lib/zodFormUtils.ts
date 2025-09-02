@@ -1,6 +1,6 @@
-import { type CreateInstanceOptions, getAllFieldKeys } from '@/schemas/instanceOptions'
+import { type CreateInstanceOptions, type BackendOptions, getAllFieldKeys, getAllBackendFieldKeys } from '@/schemas/instanceOptions'
 
-// Only define the basic fields we want to show by default
+// Instance-level basic fields (not backend-specific)
 export const basicFieldsConfig: Record<string, {
   label: string
   description?: string
@@ -30,6 +30,19 @@ export const basicFieldsConfig: Record<string, {
     label: 'On-Demand Start',
     description: 'Start instance upon receiving OpenAI-compatible API request'
   },
+  backend_type: {
+    label: 'Backend Type',
+    description: 'Type of backend to use for this instance'
+  }
+}
+
+// Backend-specific basic fields (these go in backend_options)
+export const basicBackendFieldsConfig: Record<string, {
+  label: string
+  description?: string
+  placeholder?: string
+  required?: boolean
+}> = {
   model: {
     label: 'Model Path',
     placeholder: '/path/to/model.gguf',
@@ -56,6 +69,10 @@ export function isBasicField(key: keyof CreateInstanceOptions): boolean {
   return key in basicFieldsConfig
 }
 
+export function isBasicBackendField(key: keyof BackendOptions): boolean {
+  return key in basicBackendFieldsConfig
+}
+
 export function getBasicFields(): (keyof CreateInstanceOptions)[] {
   return Object.keys(basicFieldsConfig) as (keyof CreateInstanceOptions)[]
 }
@@ -64,5 +81,13 @@ export function getAdvancedFields(): (keyof CreateInstanceOptions)[] {
   return getAllFieldKeys().filter(key => !isBasicField(key))
 }
 
+export function getBasicBackendFields(): (keyof BackendOptions)[] {
+  return Object.keys(basicBackendFieldsConfig) as (keyof BackendOptions)[]
+}
+
+export function getAdvancedBackendFields(): (keyof BackendOptions)[] {
+  return getAllBackendFieldKeys().filter(key => !isBasicBackendField(key))
+}
+
 // Re-export the Zod-based functions
-export { getFieldType } from '@/schemas/instanceOptions'
+export { getFieldType, getBackendFieldType } from '@/schemas/instanceOptions'

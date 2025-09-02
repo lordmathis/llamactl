@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceCard from '@/components/InstanceCard'
 import type { Instance } from '@/types/instance'
+import { BackendType } from '@/types/instance'
 
 // Mock the health hook since we're not testing health logic here
 vi.mock('@/hooks/useInstanceHealth', () => ({
@@ -18,13 +19,13 @@ describe('InstanceCard - Instance Actions and State', () => {
   const stoppedInstance: Instance = {
     name: 'test-instance',
     status: 'stopped',
-    options: { model: 'test-model.gguf' }
+    options: { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: 'test-model.gguf' } }
   }
 
   const runningInstance: Instance = {
     name: 'running-instance',
     status: 'running',
-    options: { model: 'running-model.gguf' }
+    options: { backend_type: BackendType.LLAMA_SERVER, backend_options: { model: 'running-model.gguf' } }
   }
 
 beforeEach(() => {

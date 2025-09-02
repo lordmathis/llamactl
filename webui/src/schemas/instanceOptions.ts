@@ -1,14 +1,7 @@
 import { z } from 'zod'
 
-// Define the Zod schema
-export const CreateInstanceOptionsSchema = z.object({
-  // Restart options
-  auto_restart: z.boolean().optional(),
-  max_restarts: z.number().optional(),
-  restart_delay: z.number().optional(),
-  idle_timeout: z.number().optional(),
-  on_demand_start: z.boolean().optional(),
-
+// Define the backend options schema (previously embedded in CreateInstanceOptionsSchema)
+export const BackendOptionsSchema = z.object({
   // Common params
   verbose_prompt: z.boolean().optional(),
   threads: z.number().optional(),
@@ -176,17 +169,52 @@ export const CreateInstanceOptionsSchema = z.object({
   fim_qwen_14b_spec: z.boolean().optional(),
 })
 
-// Infer the TypeScript type from the schema
+// Define the main create instance options schema
+export const CreateInstanceOptionsSchema = z.object({
+  // Restart options
+  auto_restart: z.boolean().optional(),
+  max_restarts: z.number().optional(),
+  restart_delay: z.number().optional(),
+  idle_timeout: z.number().optional(),
+  on_demand_start: z.boolean().optional(),
+
+  // Backend configuration
+  backend_type: z.enum(['llama_server']).optional(),
+  backend_options: BackendOptionsSchema.optional(),
+})
+
+// Infer the TypeScript types from the schemas
+export type BackendOptions = z.infer<typeof BackendOptionsSchema>
 export type CreateInstanceOptions = z.infer<typeof CreateInstanceOptionsSchema>
 
-// Helper to get all field keys
+// Helper to get all field keys for CreateInstanceOptions
 export function getAllFieldKeys(): (keyof CreateInstanceOptions)[] {
   return Object.keys(CreateInstanceOptionsSchema.shape) as (keyof CreateInstanceOptions)[]
 }
 
+// Helper to get all backend option field keys
+export function getAllBackendFieldKeys(): (keyof BackendOptions)[] {
+  return Object.keys(BackendOptionsSchema.shape) as (keyof BackendOptions)[]
+}
+
 // Get field type from Zod schema
-export function getFieldType(key: keyof CreateInstanceOptions): 'text' | 'number' | 'boolean' | 'array' {
+export function getFieldType(key: keyof CreateInstanceOptions): 'text' | 'number' | 'boolean' | 'array' | 'object' {
   const fieldSchema = CreateInstanceOptionsSchema.shape[key]
+  if (!fieldSchema) return 'text'
+  
+  // Handle ZodOptional wrapper
+  const innerSchema = fieldSchema instanceof z.ZodOptional ? fieldSchema.unwrap() : fieldSchema
+  
+  if (innerSchema instanceof z.ZodBoolean) return 'boolean'
+  if (innerSchema instanceof z.ZodNumber) return 'number'
+  if (innerSchema instanceof z.ZodArray) return 'array'
+  if (innerSchema instanceof z.ZodObject) return 'object'
+  return 'text' // ZodString and others default to text
+}
+
+// Get field type for backend options
+export function getBackendFieldType(key: keyof BackendOptions): 'text' | 'number' | 'boolean' | 'array' {
+  const fieldSchema = BackendOptionsSchema.shape[key]
   if (!fieldSchema) return 'text'
   
   // Handle ZodOptional wrapper

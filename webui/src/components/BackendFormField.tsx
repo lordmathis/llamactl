@@ -2,52 +2,27 @@ import React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import type { CreateInstanceOptions } from '@/types/instance'
-import { BackendType } from '@/types/instance'
-import { getFieldType, basicFieldsConfig } from '@/lib/zodFormUtils'
+import type { BackendOptions } from '@/schemas/instanceOptions'
+import { getBackendFieldType, basicBackendFieldsConfig } from '@/lib/zodFormUtils'
 
-interface ZodFormFieldProps {
-  fieldKey: keyof CreateInstanceOptions
+interface BackendFormFieldProps {
+  fieldKey: keyof BackendOptions
   value: string | number | boolean | string[] | undefined
-  onChange: (key: keyof CreateInstanceOptions, value: string | number | boolean | string[] | undefined) => void
+  onChange: (key: string, value: string | number | boolean | string[] | undefined) => void
 }
 
-const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }) => {
+const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, onChange }) => {
   // Get configuration for basic fields, or use field name for advanced fields
-  const config = basicFieldsConfig[fieldKey as string] || { label: fieldKey }
+  const config = basicBackendFieldsConfig[fieldKey as string] || { label: fieldKey }
   
   // Get type from Zod schema
-  const fieldType = getFieldType(fieldKey)
+  const fieldType = getBackendFieldType(fieldKey)
 
   const handleChange = (newValue: string | number | boolean | string[] | undefined) => {
-    onChange(fieldKey, newValue)
+    onChange(fieldKey as string, newValue)
   }
 
   const renderField = () => {
-    // Special handling for backend_type field - render as dropdown
-    if (fieldKey === 'backend_type') {
-      return (
-        <div className="grid gap-2">
-          <Label htmlFor={fieldKey}>
-            {config.label}
-            {config.required && <span className="text-red-500 ml-1">*</span>}
-          </Label>
-          <select
-            id={fieldKey}
-            value={typeof value === 'string' ? value : BackendType.LLAMA_SERVER}
-            onChange={(e) => handleChange(e.target.value || undefined)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value={BackendType.LLAMA_SERVER}>Llama Server</option>
-            {/* Add more backend types here as they become available */}
-          </select>
-          {config.description && (
-            <p className="text-sm text-muted-foreground">{config.description}</p>
-          )}
-        </div>
-      )
-    }
-
     switch (fieldType) {
       case 'boolean':
         return (
@@ -145,4 +120,4 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
   return <div className="space-y-2">{renderField()}</div>
 }
 
-export default ZodFormField
+export default BackendFormField
