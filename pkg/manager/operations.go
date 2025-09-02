@@ -65,12 +65,6 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 	inst := instance.NewInstance(name, &im.instancesConfig, options, statusCallback)
 	im.instances[inst.Name] = inst
 
-	// Mark the port as used after successful instance creation
-	port := im.getPortFromOptions(options)
-	if port > 0 {
-		im.ports[port] = true
-	}
-
 	if err := im.persistInstance(inst); err != nil {
 		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
 	}
