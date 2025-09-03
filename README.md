@@ -15,7 +15,7 @@
 💡 **On-Demand Instance Start**: Automatically launch instances upon receiving OpenAI-compatible API requests  
 💾 **State Persistence**: Ensure instances remain intact across server restarts  
 
-![Dashboard Screenshot](docs/images/screenshot.png)
+![Dashboard Screenshot](docs/images/dashboard.png)
 
 **Choose llamactl if**: You need authentication, health monitoring, auto-restart, and centralized management of multiple llama-server instances  
 **Choose Ollama if**: You want the simplest setup with strong community ecosystem and third-party integrations  
