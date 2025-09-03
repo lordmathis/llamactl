@@ -1,73 +1,121 @@
 # Managing Instances
 
-Learn how to effectively manage your Llama.cpp instances with Llamactl.
+Learn how to effectively manage your Llama.cpp instances with Llamactl through both the Web UI and API.
 
-## Instance Lifecycle
+## Overview
 
-### Creating Instances
+Llamactl provides two ways to manage instances:
 
-Instances can be created through the Web UI or API:
+- **Web UI**: Accessible at `http://localhost:8080` with an intuitive dashboard
+- **REST API**: Programmatic access for automation and integration
 
-#### Via Web UI
-1. Click "Add Instance" button
-2. Fill in the configuration form
-3. Click "Create"
+### Authentication
 
-#### Via API
+If authentication is enabled:
+1. Navigate to the web UI
+2. Enter your credentials
+3. Bearer token is stored for the session
+
+### Theme Support
+
+- Switch between light and dark themes
+- Setting is remembered across sessions
+
+## Instance Cards
+
+Each instance is displayed as a card showing:
+
+- **Instance name**
+- **Health status badge** (unknown, ready, error, failed)
+- **Action buttons** (start, stop, edit, logs, delete)
+
+## Create Instance
+
+### Via Web UI
+
+1. Click the **"Add Instance"** button on the dashboard
+2. Enter a unique **Name** for your instance (only required field)
+3. Configure model source (choose one):
+    - **Model Path**: Full path to your downloaded GGUF model file
+    - **HuggingFace Repo**: Repository name (e.g., `microsoft/Phi-3-mini-4k-instruct-gguf`)
+    - **HuggingFace File**: Specific file within the repo (optional, uses default if not specified)
+4. Configure optional instance management settings:
+    - **Auto Restart**: Automatically restart instance on failure
+    - **Max Restarts**: Maximum number of restart attempts
+    - **Restart Delay**: Delay in seconds between restart attempts
+    - **On Demand Start**: Start instance when receiving a request to the OpenAI compatible endpoint
+    - **Idle Timeout**: Minutes before stopping idle instance (set to 0 to disable)
+5. Configure optional llama-server backend options:
+    - **Threads**: Number of CPU threads to use
+    - **Context Size**: Context window size (ctx_size)
+    - **GPU Layers**: Number of layers to offload to GPU
+    - **Port**: Network port (auto-assigned by llamactl if not specified)
+    - **Additional Parameters**: Any other llama-server command line options (see [llama-server documentation](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md))
+6. Click **"Create"** to save the instance  
+
+### Via API
+
 ```bash
-curl -X POST http://localhost:8080/api/instances \
+# Create instance with local model file
+curl -X POST http://localhost:8080/api/instances/my-instance \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "my-instance",
-    "model_path": "/path/to/model.gguf",
-    "port": 8081
+    "backend_type": "llama_cpp",
+    "backend_options": {
+      "model": "/path/to/model.gguf",
+      "threads": 8,
+      "ctx_size": 4096
+    }
+  }'
+
+# Create instance with HuggingFace model
+curl -X POST http://localhost:8080/api/instances/phi3-mini \
+  -H "Content-Type: application/json" \
+  -d '{
+    "backend_type": "llama_cpp",
+    "backend_options": {
+      "hf_repo": "microsoft/Phi-3-mini-4k-instruct-gguf",
+      "hf_file": "Phi-3-mini-4k-instruct-q4.gguf",
+      "gpu_layers": 32
+    },
+    "auto_restart": true,
+    "max_restarts": 3
   }'
 ```
 
-### Starting and Stopping
+## Start Instance
 
-#### Start an Instance
+### Via Web UI
+1. Click the **"Start"** button on an instance card
+2. Watch the status change to "Unknown"
+3. Monitor progress in the logs
+4. Instance status changes to "Ready" when ready
+
+### Via API
 ```bash
-# Via API
 curl -X POST http://localhost:8080/api/instances/{name}/start
-
-# The instance will begin loading the model
 ```
 
-#### Stop an Instance
+## Stop Instance
+
+### Via Web UI
+1. Click the **"Stop"** button on an instance card
+2. Instance gracefully shuts down
+
+### Via API
 ```bash
-# Via API
 curl -X POST http://localhost:8080/api/instances/{name}/stop
-
-# Graceful shutdown with configurable timeout
 ```
 
-### Monitoring Status
+## Edit Instance
 
-Check instance status in real-time:
+### Via Web UI
+1. Click the **"Edit"** button on an instance card
+2. Modify settings in the configuration dialog
+3. Changes require instance restart to take effect
+4. Click **"Update & Restart"** to apply changes
 
-```bash
-# Get instance details
-curl http://localhost:8080/api/instances/{name}
-
-# Get health status
-curl http://localhost:8080/api/instances/{name}/health
-```
-
-## Instance States
-
-Instances can be in one of several states:
-
-- **Stopped**: Instance is not running
-- **Starting**: Instance is initializing and loading the model
-- **Running**: Instance is active and ready to serve requests
-- **Stopping**: Instance is shutting down gracefully
-- **Error**: Instance encountered an error
-
-## Configuration Management
-
-### Updating Instance Configuration
-
+### Via API
 Modify instance settings:
 
 ```bash
@@ -84,82 +132,55 @@ curl -X PUT http://localhost:8080/api/instances/{name} \
 !!! note
     Configuration changes require restarting the instance to take effect.
 
-### Viewing Configuration
+
+## View Logs
+
+### Via Web UI
+
+1. Click the **"Logs"** button on any instance card
+2. Real-time log viewer opens
+
+### Via API
+Check instance status in real-time:
 
 ```bash
-# Get current configuration
-curl http://localhost:8080/api/instances/{name}/config
+# Get instance details
+curl http://localhost:8080/api/instances/{name}/logs
 ```
 
-## Resource Management
+## Delete Instance
 
-### Memory Usage
+### Via Web UI
+1. Click the **"Delete"** button on an instance card
+2. Only stopped instances can be deleted
+3. Confirm deletion in the dialog
 
-Monitor memory consumption:
-
+### Via API
 ```bash
-# Get resource usage
-curl http://localhost:8080/api/instances/{name}/stats
+curl -X DELETE http://localhost:8080/api/instances/{name}
 ```
 
-### CPU and GPU Usage
+## Instance Proxy
 
-Track performance metrics:
-
-- CPU thread utilization
-- GPU memory usage (if applicable)
-- Request processing times
-
-## Troubleshooting Common Issues
-
-### Instance Won't Start
-
-1. **Check model path**: Ensure the model file exists and is readable
-2. **Port conflicts**: Verify the port isn't already in use
-3. **Resource limits**: Check available memory and CPU
-4. **Permissions**: Ensure proper file system permissions
-
-### Performance Issues
-
-1. **Adjust thread count**: Match to your CPU cores
-2. **Optimize context size**: Balance memory usage and capability
-3. **GPU offloading**: Use `gpu_layers` for GPU acceleration
-4. **Batch size tuning**: Optimize for your workload
-
-### Memory Problems
-
-1. **Reduce context size**: Lower memory requirements
-2. **Disable memory mapping**: Use `no_mmap` option
-3. **Enable memory locking**: Use `memory_lock` for performance
-4. **Monitor system resources**: Check available RAM
-
-## Best Practices
-
-### Production Deployments
-
-1. **Resource allocation**: Plan memory and CPU requirements
-2. **Health monitoring**: Set up regular health checks
-3. **Graceful shutdowns**: Use proper stop procedures
-4. **Backup configurations**: Save instance configurations
-5. **Log management**: Configure appropriate logging levels
-
-### Development Environments
-
-1. **Resource sharing**: Use smaller models for development
-2. **Quick iterations**: Optimize for fast startup times
-3. **Debug logging**: Enable detailed logging for troubleshooting
-
-## Batch Operations
-
-### Managing Multiple Instances
+Llamactl proxies all requests to the underlying llama-server instances.
 
 ```bash
-# Start all instances
-curl -X POST http://localhost:8080/api/instances/start-all
+# Get instance details
+curl http://localhost:8080/api/instances/{name}/proxy/
+```
 
-# Stop all instances
-curl -X POST http://localhost:8080/api/instances/stop-all
+Check llama-server [docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) for more information.
 
-# Get status of all instances
-curl http://localhost:8080/api/instances
+### Instance Health
+
+#### Via Web UI
+
+1. The health status badge is displayed on each instance card
+
+#### Via API
+
+Check the health status of your instances:
+
+```bash
+curl http://localhost:8080/api/instances/{name}/proxy/health
 ```

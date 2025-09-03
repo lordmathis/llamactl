@@ -55,7 +55,6 @@ nav:
     - Configuration: getting-started/configuration.md
   - User Guide:
     - Managing Instances: user-guide/managing-instances.md
-    - Web UI: user-guide/web-ui.md
     - API Reference: user-guide/api-reference.md
     - Troubleshooting: user-guide/troubleshooting.md
 

@@ -37,7 +37,6 @@ Llamactl is designed to simplify the deployment and management of llama-server i
 - [Installation Guide](getting-started/installation.md) - Get Llamactl up and running
 - [Configuration Guide](getting-started/configuration.md) - Detailed configuration options
 - [Quick Start](getting-started/quick-start.md) - Your first steps with Llamactl
-- [Web UI Guide](user-guide/web-ui.md) - Learn to use the web interface
 - [Managing Instances](user-guide/managing-instances.md) - Instance lifecycle management
 - [API Reference](user-guide/api-reference.md) - Complete API documentation
 

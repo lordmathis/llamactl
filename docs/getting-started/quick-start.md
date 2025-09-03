@@ -138,6 +138,6 @@ curl http://localhost:8080/v1/models
 
 ## Next Steps
 
-- Learn more about the [Web UI](../user-guide/web-ui.md)
+- Manage instances [Managing Instances](../user-guide/managing-instances.md)
 - Explore the [API Reference](../user-guide/api-reference.md)
 - Configure advanced settings in the [Configuration](configuration.md) guide
