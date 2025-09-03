@@ -884,6 +884,10 @@ const docTemplate = `{
                 "host": {
                     "type": "string"
                 },
+                "idle_timeout": {
+                    "description": "Idle timeout",
+                    "type": "integer"
+                },
                 "ignore_eos": {
                     "type": "boolean"
                 },
@@ -1018,6 +1022,10 @@ const docTemplate = `{
                 "numa": {
                     "type": "string"
                 },
+                "on_demand_start": {
+                    "description": "On demand start",
+                    "type": "boolean"
+                },
                 "override_kv": {
                     "type": "array",
                     "items": {
@@ -1078,8 +1086,7 @@ const docTemplate = `{
                 "reranking": {
                     "type": "boolean"
                 },
-                "restart_delay_seconds": {
-                    "description": "RestartDelay duration in seconds",
+                "restart_delay": {
                     "type": "integer"
                 },
                 "rope_freq_base": {
@@ -1194,6 +1201,19 @@ const docTemplate = `{
                 }
             }
         },
+        "instance.InstanceStatus": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "Stopped",
+                "Running",
+                "Failed"
+            ]
+        },
         "instance.Process": {
             "type": "object",
             "properties": {
@@ -1204,9 +1224,13 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "running": {
+                "status": {
                     "description": "Status",
-                    "type": "boolean"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/instance.InstanceStatus"
+                        }
+                    ]
                 }
             }
         },
