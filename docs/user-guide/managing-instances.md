@@ -9,6 +9,8 @@ Llamactl provides two ways to manage instances:
 - **Web UI**: Accessible at `http://localhost:8080` with an intuitive dashboard
 - **REST API**: Programmatic access for automation and integration
 
+![Dashboard Screenshot](../images/dashboard.png)
+
 ### Authentication
 
 If authentication is enabled:
@@ -33,7 +35,9 @@ Each instance is displayed as a card showing:
 
 ### Via Web UI
 
-1. Click the **"Add Instance"** button on the dashboard
+![Create Instance Screenshot](../images/create_instance.png)
+
+1. Click the **"Create Instance"** button on the dashboard
 2. Enter a unique **Name** for your instance (only required field)
 3. Configure model source (choose one):
     - **Model Path**: Full path to your downloaded GGUF model file
