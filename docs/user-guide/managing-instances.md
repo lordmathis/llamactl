@@ -37,7 +37,7 @@ Each instance is displayed as a card showing:
 2. Enter a unique **Name** for your instance (only required field)
 3. Configure model source (choose one):
     - **Model Path**: Full path to your downloaded GGUF model file
-    - **HuggingFace Repo**: Repository name (e.g., `microsoft/Phi-3-mini-4k-instruct-gguf`)
+    - **HuggingFace Repo**: Repository name (e.g., `unsloth/gemma-3-27b-it-GGUF`)
     - **HuggingFace File**: Specific file within the repo (optional, uses default if not specified)
 4. Configure optional instance management settings:
     - **Auto Restart**: Automatically restart instance on failure
@@ -69,13 +69,13 @@ curl -X POST http://localhost:8080/api/instances/my-instance \
   }'
 
 # Create instance with HuggingFace model
-curl -X POST http://localhost:8080/api/instances/phi3-mini \
+curl -X POST http://localhost:8080/api/instances/gemma-3-27b \
   -H "Content-Type: application/json" \
   -d '{
     "backend_type": "llama_cpp",
     "backend_options": {
-      "hf_repo": "microsoft/Phi-3-mini-4k-instruct-gguf",
-      "hf_file": "Phi-3-mini-4k-instruct-q4.gguf",
+      "hf_repo": "unsloth/gemma-3-27b-it-GGUF",
+      "hf_file": "gemma-3-27b-it-GGUF.gguf",
       "gpu_layers": 32
     },
     "auto_restart": true,
@@ -122,7 +122,7 @@ Modify instance settings:
 curl -X PUT http://localhost:8080/api/instances/{name} \
   -H "Content-Type: application/json" \
   -d '{
-    "options": {
+    "backend_options": {
       "threads": 8,
       "context_size": 4096
     }
