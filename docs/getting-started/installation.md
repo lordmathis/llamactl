@@ -6,19 +6,17 @@ This guide will walk you through installing Llamactl on your system.
 
 You need `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp) installed:
 
-```bash
-# Quick install methods:
-# Homebrew (macOS)
-brew install llama.cpp
 
-# Or build from source - see llama.cpp docs
+**Quick install methods:**
+
+```bash
+# Homebrew (macOS/Linux)
+brew install llama.cpp
+# Winget (Windows)
+winget install llama.cpp
 ```
 
-Additional requirements for building from source:
-- Go 1.24 or later
-- Node.js 22 or later
-- Git
-- Sufficient disk space for your models
+Or build from source - see llama.cpp docs
 
 ## Installation Methods
 
@@ -39,6 +37,11 @@ sudo mv llamactl /usr/local/bin/
 ```
 
 ### Option 2: Build from Source
+
+Requirements:
+- Go 1.24 or later
+- Node.js 22 or later
+- Git
 
 If you prefer to build from source:
 

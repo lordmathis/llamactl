@@ -20,6 +20,8 @@ Open your web browser and navigate to:
 http://localhost:8080
 ```
 
+Login with the management API key. By default it is generated during server startup. Copy it from the terminal output.
+
 You should see the Llamactl web interface.
 
 ## Step 3: Create Your First Instance

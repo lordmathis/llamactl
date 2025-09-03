@@ -316,10 +316,10 @@ The server routes requests to the appropriate instance based on the `model` fiel
 
 ## Instance Status Values
 
-Instances can have the following status values:
-- `stopped`: Instance is not running
-- `running`: Instance is running and ready to accept requests
-- `failed`: Instance failed to start or crashed
+Instances can have the following status values:  
+- `stopped`: Instance is not running  
+- `running`: Instance is running and ready to accept requests  
+- `failed`: Instance failed to start or crashed  
 
 ## Error Responses
 
