@@ -646,38 +646,41 @@ type ParseCommandRequest struct {
 // @Produce json
 // @Param request body ParseCommandRequest true "Command to parse"
 // @Success 200 {object} instance.CreateInstanceOptions "Parsed options"
-// @Failure 400 {string} string "Invalid request or command"
-// @Failure 500 {string} string "Internal Server Error"
+// @Failure 400 {object} map[string]string "Invalid request or command"
+// @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /backends/llama-cpp/parse-command [post]
 func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
+	type errorResponse struct {
+		Error   string `json:"error"`
+		Details string `json:"details,omitempty"`
+	}
+	writeError := func(w http.ResponseWriter, status int, code, details string) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req ParseCommandRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
 			return
 		}
-
-		if req.Command == "" {
-			http.Error(w, "Command cannot be empty", http.StatusBadRequest)
+		if strings.TrimSpace(req.Command) == "" {
+			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
 			return
 		}
-
-		// Parse the command using llamacpp parser
 		llamaOptions, err := llamacpp.ParseLlamaCommand(req.Command)
 		if err != nil {
-			http.Error(w, "Failed to parse command: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
 			return
 		}
-
-		// Create the full CreateInstanceOptions
 		options := &instance.CreateInstanceOptions{
 			BackendType:        backends.BackendTypeLlamaCpp,
 			LlamaServerOptions: llamaOptions,
 		}
-
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(options); err != nil {
-			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())
 		}
 	}
 }

@@ -258,7 +258,7 @@ func TestParseLlamaCommandMultiline(t *testing.T) {
   --ctx-size 4096 \
   --batch-size 512 \
   --gpu-layers 32`
-	
+
 	result, err := ParseLlamaCommand(command)
 
 	if err != nil {
@@ -318,7 +318,7 @@ func TestParseLlamaCommandUnslothExample(t *testing.T) {
   --host 0.0.0.0 \
   --port 8000 \
   --api-key "sk-1234567890abcdef"`
-	
+
 	result, err := ParseLlamaCommand(command)
 
 	if err != nil {
@@ -368,5 +368,46 @@ func TestParseLlamaCommandUnslothExample(t *testing.T) {
 
 	if result.APIKey != "sk-1234567890abcdef" {
 		t.Errorf("expected api_key 'sk-1234567890abcdef', got '%s'", result.APIKey)
+	}
+}
+
+// Focused additional edge case tests (kept minimal per guidance)
+func TestParseLlamaCommandSingleQuotedValue(t *testing.T) {
+	cmd := "llama-server --model 'my model.gguf' --alias 'Test Alias'"
+	result, err := ParseLlamaCommand(cmd)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Model != "my model.gguf" {
+		t.Errorf("expected model 'my model.gguf', got '%s'", result.Model)
+	}
+	if result.Alias != "Test Alias" {
+		t.Errorf("expected alias 'Test Alias', got '%s'", result.Alias)
+	}
+}
+
+func TestParseLlamaCommandMixedArrayForms(t *testing.T) {
+	// Same multi-value flag using --flag value and --flag=value forms
+	cmd := "llama-server --lora adapter1.bin --lora=adapter2.bin --lora adapter3.bin"
+	result, err := ParseLlamaCommand(cmd)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Lora) != 3 {
+		t.Fatalf("expected 3 lora values, got %d (%v)", len(result.Lora), result.Lora)
+	}
+	expected := []string{"adapter1.bin", "adapter2.bin", "adapter3.bin"}
+	for i, v := range expected {
+		if result.Lora[i] != v {
+			t.Errorf("expected lora[%d]=%s got %s", i, v, result.Lora[i])
+		}
+	}
+}
+
+func TestParseLlamaCommandMalformedFlag(t *testing.T) {
+	cmd := "llama-server ---model test.gguf"
+	_, err := ParseLlamaCommand(cmd)
+	if err == nil {
+		t.Fatalf("expected error for malformed flag but got none")
 	}
 }
