@@ -83,6 +83,18 @@ export const serverApi = {
   getDevices: () => apiCall<string>("/server/devices", {}, "text"),
 };
 
+// Backend API functions
+export const backendsApi = {
+  llamaCpp: {
+    // POST /backends/llama-cpp/parse-command
+    parseCommand: (command: string) =>
+      apiCall<CreateInstanceOptions>('/backends/llama-cpp/parse-command', {
+        method: 'POST',
+        body: JSON.stringify({ command }),
+      }),
+  },
+};
+
 // Instance API functions
 export const instancesApi = {
   // GET /instances

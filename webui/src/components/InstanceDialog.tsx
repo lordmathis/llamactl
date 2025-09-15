@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/dialog";
 import { BackendType, type CreateInstanceOptions, type Instance } from "@/types/instance";
 import { getBasicFields, getAdvancedFields, getBasicBackendFields, getAdvancedBackendFields } from "@/lib/zodFormUtils";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Terminal } from "lucide-react";
 import ZodFormField from "@/components/ZodFormField";
 import BackendFormField from "@/components/BackendFormField";
+import ParseCommandDialog from "@/components/ParseCommandDialog";
 
 interface InstanceDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   const [formData, setFormData] = useState<CreateInstanceOptions>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [nameError, setNameError] = useState("");
+  const [showParseDialog, setShowParseDialog] = useState(false);
 
   // Get field lists dynamically from the type
   const basicFields = getBasicFields();
@@ -140,6 +142,14 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
 
   const toggleAdvanced = () => {
     setShowAdvanced(!showAdvanced);
+  };
+
+  const handleCommandParsed = (parsedOptions: CreateInstanceOptions) => {
+    setFormData(prev => ({
+      ...prev,
+      ...parsedOptions,
+    }));
+    setShowParseDialog(false);
   };
 
   // Check if auto_restart is enabled
@@ -258,28 +268,39 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
 
             {/* Advanced Fields Toggle */}
             <div className="border-t pt-4">
-              <Button
-                variant="ghost"
-                onClick={toggleAdvanced}
-                className="flex items-center gap-2 p-0 h-auto font-medium"
-              >
-                {showAdvanced ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-                Advanced Configuration
-                <span className="text-muted-foreground text-sm font-normal">
-                  (
-                  {
-                    advancedFields.filter(
-                      (f) =>
-                        !["max_restarts", "restart_delay", "backend_options"].includes(f as string)
-                    ).length + advancedBackendFields.length
-                  }{" "}
-                  options)
-                </span>
-              </Button>
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowParseDialog(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Terminal className="h-4 w-4" />
+                  Parse Command
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  onClick={toggleAdvanced}
+                  className="flex items-center gap-2 p-0 h-auto font-medium"
+                >
+                  {showAdvanced ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  Advanced Configuration
+                  <span className="text-muted-foreground text-sm font-normal">
+                    (
+                    {
+                      advancedFields.filter(
+                        (f) =>
+                          !["max_restarts", "restart_delay", "backend_options"].includes(f as string)
+                      ).length + advancedBackendFields.length
+                    }{" "}
+                    options)
+                  </span>
+                </Button>
+              </div>
             </div>
 
             {/* Advanced Fields - Automatically generated from type (excluding restart options) */}
@@ -352,6 +373,12 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+      
+      <ParseCommandDialog
+        open={showParseDialog}
+        onOpenChange={setShowParseDialog}
+        onParsed={handleCommandParsed}
+      />
     </Dialog>
   );
 };

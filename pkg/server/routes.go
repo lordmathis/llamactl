@@ -50,6 +50,13 @@ func SetupRouter(handler *Handler) *chi.Mux {
 			r.Get("/devices", handler.LlamaServerListDevicesHandler())
 		})
 
+		// Backend-specific endpoints
+		r.Route("/backends", func(r chi.Router) {
+			r.Route("/llama-cpp", func(r chi.Router) {
+				r.Post("/parse-command", handler.ParseLlamaCommand())
+			})
+		})
+
 		// Instance management endpoints
 		r.Route("/instances", func(r chi.Router) {
 			r.Get("/", handler.ListInstances()) // List all instances

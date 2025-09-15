@@ -8,6 +8,7 @@ import { type CreateInstanceOptions, type Instance } from "@/types/instance";
 import { useInstances } from "@/contexts/InstancesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { Toaster } from "sonner";
 
 function App() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -85,6 +86,8 @@ function App() {
           open={isSystemInfoModalOpen}
           onOpenChange={setIsSystemInfoModalOpen}
         />
+        
+        <Toaster />
       </div>
     </ThemeProvider>
   );

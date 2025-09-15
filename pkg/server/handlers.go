@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"llamactl/pkg/backends"
+	"llamactl/pkg/backends/llamacpp"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
@@ -627,5 +629,55 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		r.ContentLength = int64(len(bodyBytes))
 
 		proxy.ServeHTTP(w, r)
+	}
+}
+
+// ParseCommandRequest represents the request body for command parsing
+type ParseCommandRequest struct {
+	Command string `json:"command"`
+}
+
+// ParseLlamaCommand godoc
+// @Summary Parse llama-server command
+// @Description Parses a llama-server command string into instance options
+// @Tags backends
+// @Security ApiKeyAuth
+// @Accept json
+// @Produce json
+// @Param request body ParseCommandRequest true "Command to parse"
+// @Success 200 {object} instance.CreateInstanceOptions "Parsed options"
+// @Failure 400 {string} string "Invalid request or command"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /backends/llama-cpp/parse-command [post]
+func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req ParseCommandRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if req.Command == "" {
+			http.Error(w, "Command cannot be empty", http.StatusBadRequest)
+			return
+		}
+
+		// Parse the command using llamacpp parser
+		llamaOptions, err := llamacpp.ParseLlamaCommand(req.Command)
+		if err != nil {
+			http.Error(w, "Failed to parse command: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Create the full CreateInstanceOptions
+		options := &instance.CreateInstanceOptions{
+			BackendType:        backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: llamaOptions,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(options); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		}
 	}
 }
