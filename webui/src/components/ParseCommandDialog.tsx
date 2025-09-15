@@ -85,7 +85,7 @@ const ParseCommandDialog: React.FC<ParseCommandDialogProps> = ({
               value={command}
               onChange={(e) => setCommand(e.target.value)}
               placeholder="llama-server --model /path/to/model.gguf --gpu-layers 32 --ctx-size 4096"
-              className="w-full h-32 p-3 border border-input rounded-md font-mono text-sm resize-vertical focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="w-full h-32 p-3 mt-2 border border-input rounded-md font-mono text-sm resize-vertical focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             />
           </div>
           
