@@ -41,14 +41,40 @@ func TestParseLlamaCommand(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name:      "invalid command without llama-server",
-			command:   "other-command --model /path/to/model.gguf",
-			expectErr: true,
-		},
-		{
 			name:      "case insensitive command",
 			command:   "LLAMA-SERVER --model /path/to/model.gguf",
 			expectErr: false,
+		},
+		// New test cases for improved functionality
+		{
+			name:      "args only without llama-server",
+			command:   "--model /path/to/model.gguf --gpu-layers 32",
+			expectErr: false,
+		},
+		{
+			name:      "full path to executable",
+			command:   "/usr/local/bin/llama-server --model /path/to/model.gguf",
+			expectErr: false,
+		},
+		{
+			name:      "negative number handling",
+			command:   "llama-server --gpu-layers -1 --model test.gguf",
+			expectErr: false,
+		},
+		{
+			name:      "multiline command with backslashes",
+			command:   "llama-server --model /path/to/model.gguf \\\n  --ctx-size 4096 \\\n  --batch-size 512",
+			expectErr: false,
+		},
+		{
+			name:      "quoted string with special characters",
+			command:   `llama-server --model test.gguf --chat-template "{% for message in messages %}{{ message.role }}: {{ message.content }}\n{% endfor %}"`,
+			expectErr: false,
+		},
+		{
+			name:      "unterminated quoted string",
+			command:   `llama-server --model test.gguf --chat-template "unterminated quote`,
+			expectErr: true,
 		},
 	}
 
@@ -165,5 +191,182 @@ func TestParseLlamaCommandTypeConversion(t *testing.T) {
 
 	if !result.NoMmap {
 		t.Errorf("expected no_mmap to be true, got %v", result.NoMmap)
+	}
+}
+
+func TestParseLlamaCommandArgsOnly(t *testing.T) {
+	// Test parsing arguments without llama-server command
+	command := "--model /path/to/model.gguf --gpu-layers 32 --ctx-size 4096"
+	result, err := ParseLlamaCommand(command)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Model != "/path/to/model.gguf" {
+		t.Errorf("expected model '/path/to/model.gguf', got '%s'", result.Model)
+	}
+
+	if result.GPULayers != 32 {
+		t.Errorf("expected gpu_layers 32, got %d", result.GPULayers)
+	}
+
+	if result.CtxSize != 4096 {
+		t.Errorf("expected ctx_size 4096, got %d", result.CtxSize)
+	}
+}
+
+func TestParseLlamaCommandFullPath(t *testing.T) {
+	// Test full path to executable
+	command := "/usr/local/bin/llama-server --model test.gguf --gpu-layers 16"
+	result, err := ParseLlamaCommand(command)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Model != "test.gguf" {
+		t.Errorf("expected model 'test.gguf', got '%s'", result.Model)
+	}
+
+	if result.GPULayers != 16 {
+		t.Errorf("expected gpu_layers 16, got %d", result.GPULayers)
+	}
+}
+
+func TestParseLlamaCommandNegativeNumbers(t *testing.T) {
+	// Test negative number parsing
+	command := "llama-server --model test.gguf --gpu-layers -1 --seed -12345"
+	result, err := ParseLlamaCommand(command)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.GPULayers != -1 {
+		t.Errorf("expected gpu_layers -1, got %d", result.GPULayers)
+	}
+
+	if result.Seed != -12345 {
+		t.Errorf("expected seed -12345, got %d", result.Seed)
+	}
+}
+
+func TestParseLlamaCommandMultiline(t *testing.T) {
+	// Test multiline command with backslashes
+	command := `llama-server --model /path/to/model.gguf \
+  --ctx-size 4096 \
+  --batch-size 512 \
+  --gpu-layers 32`
+	
+	result, err := ParseLlamaCommand(command)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Model != "/path/to/model.gguf" {
+		t.Errorf("expected model '/path/to/model.gguf', got '%s'", result.Model)
+	}
+
+	if result.CtxSize != 4096 {
+		t.Errorf("expected ctx_size 4096, got %d", result.CtxSize)
+	}
+
+	if result.BatchSize != 512 {
+		t.Errorf("expected batch_size 512, got %d", result.BatchSize)
+	}
+
+	if result.GPULayers != 32 {
+		t.Errorf("expected gpu_layers 32, got %d", result.GPULayers)
+	}
+}
+
+func TestParseLlamaCommandQuotedStrings(t *testing.T) {
+	// Test quoted strings with special characters
+	command := `llama-server --model test.gguf --api-key "sk-1234567890abcdef" --chat-template "User: {user}\nAssistant: "`
+	result, err := ParseLlamaCommand(command)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Model != "test.gguf" {
+		t.Errorf("expected model 'test.gguf', got '%s'", result.Model)
+	}
+
+	if result.APIKey != "sk-1234567890abcdef" {
+		t.Errorf("expected api_key 'sk-1234567890abcdef', got '%s'", result.APIKey)
+	}
+
+	expectedTemplate := "User: {user}\\nAssistant: "
+	if result.ChatTemplate != expectedTemplate {
+		t.Errorf("expected chat_template '%s', got '%s'", expectedTemplate, result.ChatTemplate)
+	}
+}
+
+func TestParseLlamaCommandUnslothExample(t *testing.T) {
+	// Test with realistic unsloth-style command
+	command := `llama-server --model /path/to/model.gguf \
+  --ctx-size 4096 \
+  --batch-size 512 \
+  --gpu-layers -1 \
+  --temp 0.7 \
+  --repeat-penalty 1.1 \
+  --top-k 40 \
+  --top-p 0.95 \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --api-key "sk-1234567890abcdef"`
+	
+	result, err := ParseLlamaCommand(command)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify key fields
+	if result.Model != "/path/to/model.gguf" {
+		t.Errorf("expected model '/path/to/model.gguf', got '%s'", result.Model)
+	}
+
+	if result.CtxSize != 4096 {
+		t.Errorf("expected ctx_size 4096, got %d", result.CtxSize)
+	}
+
+	if result.BatchSize != 512 {
+		t.Errorf("expected batch_size 512, got %d", result.BatchSize)
+	}
+
+	if result.GPULayers != -1 {
+		t.Errorf("expected gpu_layers -1, got %d", result.GPULayers)
+	}
+
+	if result.Temperature != 0.7 {
+		t.Errorf("expected temperature 0.7, got %f", result.Temperature)
+	}
+
+	if result.RepeatPenalty != 1.1 {
+		t.Errorf("expected repeat_penalty 1.1, got %f", result.RepeatPenalty)
+	}
+
+	if result.TopK != 40 {
+		t.Errorf("expected top_k 40, got %d", result.TopK)
+	}
+
+	if result.TopP != 0.95 {
+		t.Errorf("expected top_p 0.95, got %f", result.TopP)
+	}
+
+	if result.Host != "0.0.0.0" {
+		t.Errorf("expected host '0.0.0.0', got '%s'", result.Host)
+	}
+
+	if result.Port != 8000 {
+		t.Errorf("expected port 8000, got %d", result.Port)
+	}
+
+	if result.APIKey != "sk-1234567890abcdef" {
+		t.Errorf("expected api_key 'sk-1234567890abcdef', got '%s'", result.APIKey)
 	}
 }
