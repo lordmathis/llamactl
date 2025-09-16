@@ -62,12 +62,16 @@ func TestCreateInstance_ValidationAndLimits(t *testing.T) {
 	}
 
 	// Test max instances limit
+	backendConfig := config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
 	cfg := config.InstancesConfig{
 		PortRange:            [2]int{8000, 9000},
 		MaxInstances:         1, // Very low limit for testing
 		TimeoutCheckInterval: 5,
 	}
-	limitedManager := manager.NewInstanceManager(cfg)
+	limitedManager := manager.NewInstanceManager(backendConfig, cfg)
 
 	_, err = limitedManager.CreateInstance("instance1", options)
 	if err != nil {

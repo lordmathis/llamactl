@@ -11,6 +11,11 @@ import (
 )
 
 func TestNewInstance(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
@@ -29,7 +34,7 @@ func TestNewInstance(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
 	if inst.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
@@ -60,6 +65,11 @@ func TestNewInstance(t *testing.T) {
 }
 
 func TestNewInstance_WithRestartOptions(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
@@ -85,7 +95,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	instance := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 	opts := instance.GetOptions()
 
 	// Check that explicit values override defaults
@@ -101,6 +111,11 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 }
 
 func TestSetOptions(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
@@ -119,7 +134,7 @@ func TestSetOptions(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", globalSettings, initialOptions, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, mockOnStatusChange)
 
 	// Update options
 	newOptions := &instance.CreateInstanceOptions{
@@ -147,6 +162,11 @@ func TestSetOptions(t *testing.T) {
 }
 
 func TestGetProxy(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
@@ -162,7 +182,7 @@ func TestGetProxy(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
 	// Get proxy for the first time
 	proxy1, err := inst.GetProxy()
@@ -184,6 +204,11 @@ func TestGetProxy(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir:             "/tmp/test",
 		DefaultAutoRestart:  true,
@@ -202,7 +227,7 @@ func TestMarshalJSON(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	instance := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
 	data, err := json.Marshal(instance)
 	if err != nil {
@@ -338,6 +363,11 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 		},
 	}
 
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
@@ -356,7 +386,7 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 			// Mock onStatusChange function
 			mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-			instance := instance.NewInstance("test", globalSettings, options, mockOnStatusChange)
+			instance := instance.NewInstance("test", backendConfig, globalSettings, options, mockOnStatusChange)
 			opts := instance.GetOptions()
 
 			if opts.MaxRestarts == nil {

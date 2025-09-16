@@ -33,6 +33,11 @@ func (m *MockTimeProvider) SetTime(t time.Time) {
 // Timeout-related tests
 
 func TestUpdateLastRequestTime(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
@@ -47,13 +52,18 @@ func TestUpdateLastRequestTime(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
 	// Test that UpdateLastRequestTime doesn't panic
 	inst.UpdateLastRequestTime()
 }
 
 func TestShouldTimeout_NotRunning(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
@@ -70,7 +80,7 @@ func TestShouldTimeout_NotRunning(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
 	// Instance is not running, should not timeout regardless of configuration
 	if inst.ShouldTimeout() {
@@ -79,6 +89,11 @@ func TestShouldTimeout_NotRunning(t *testing.T) {
 }
 
 func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
@@ -105,7 +120,7 @@ func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
 				},
 			}
 
-			inst := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+			inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 			// Simulate running state
 			inst.SetStatus(instance.Running)
 
@@ -117,6 +132,11 @@ func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
 }
 
 func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
@@ -133,7 +153,7 @@ func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 	inst.SetStatus(instance.Running)
 
 	// Update last request time to now
@@ -146,6 +166,11 @@ func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
 }
 
 func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
@@ -162,7 +187,7 @@ func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 	inst.SetStatus(instance.Running)
 
 	// Use MockTimeProvider to simulate old last request time
@@ -181,6 +206,11 @@ func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
 }
 
 func TestTimeoutConfiguration_Validation(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	globalSettings := &config.InstancesConfig{
 		LogsDir: "/tmp/test",
 	}
@@ -209,7 +239,7 @@ func TestTimeoutConfiguration_Validation(t *testing.T) {
 			// Mock onStatusChange function
 			mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-			inst := instance.NewInstance("test-instance", globalSettings, options, mockOnStatusChange)
+			inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 			opts := inst.GetOptions()
 
 			if opts.IdleTimeout == nil || *opts.IdleTimeout != tt.expectedTimeout {

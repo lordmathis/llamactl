@@ -15,6 +15,11 @@ import (
 )
 
 func TestNewInstanceManager(t *testing.T) {
+	backendConfig := config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	cfg := config.InstancesConfig{
 		PortRange:            [2]int{8000, 9000},
 		LogsDir:              "/tmp/test",
@@ -26,7 +31,7 @@ func TestNewInstanceManager(t *testing.T) {
 		TimeoutCheckInterval: 5,
 	}
 
-	mgr := manager.NewInstanceManager(cfg)
+	mgr := manager.NewInstanceManager(backendConfig, cfg)
 	if mgr == nil {
 		t.Fatal("NewInstanceManager returned nil")
 	}
@@ -44,6 +49,11 @@ func TestNewInstanceManager(t *testing.T) {
 func TestPersistence(t *testing.T) {
 	tempDir := t.TempDir()
 
+	backendConfig := config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	cfg := config.InstancesConfig{
 		PortRange:            [2]int{8000, 9000},
 		InstancesDir:         tempDir,
@@ -52,7 +62,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	// Test instance persistence on creation
-	manager1 := manager.NewInstanceManager(cfg)
+	manager1 := manager.NewInstanceManager(backendConfig, cfg)
 	options := &instance.CreateInstanceOptions{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -73,7 +83,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	// Test loading instances from disk
-	manager2 := manager.NewInstanceManager(cfg)
+	manager2 := manager.NewInstanceManager(backendConfig, cfg)
 	instances, err := manager2.ListInstances()
 	if err != nil {
 		t.Fatalf("ListInstances failed: %v", err)
@@ -172,6 +182,11 @@ func TestShutdown(t *testing.T) {
 
 // Helper function to create a test manager with standard config
 func createTestManager() manager.InstanceManager {
+	backendConfig := config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
+
 	cfg := config.InstancesConfig{
 		PortRange:            [2]int{8000, 9000},
 		LogsDir:              "/tmp/test",
@@ -182,5 +197,5 @@ func createTestManager() manager.InstanceManager {
 		DefaultRestartDelay:  5,
 		TimeoutCheckInterval: 5,
 	}
-	return manager.NewInstanceManager(cfg)
+	return manager.NewInstanceManager(backendConfig, cfg)
 }

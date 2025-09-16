@@ -156,8 +156,8 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 	if cfg.Instances.MaxInstances != 20 {
 		t.Errorf("Expected max instances 20, got %d", cfg.Instances.MaxInstances)
 	}
-	if cfg.Instances.LlamaExecutable != "/env/llama-server" {
-		t.Errorf("Expected executable '/env/llama-server', got %q", cfg.Instances.LlamaExecutable)
+	if cfg.Backends.LlamaExecutable != "/env/llama-server" {
+		t.Errorf("Expected executable '/env/llama-server', got %q", cfg.Backends.LlamaExecutable)
 	}
 	if cfg.Instances.DefaultAutoRestart {
 		t.Error("Expected auto restart to be false")

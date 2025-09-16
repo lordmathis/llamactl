@@ -13,13 +13,17 @@ import (
 
 func TestTimeoutFunctionality(t *testing.T) {
 	// Test timeout checker initialization
+	backendConfig := config.BackendConfig{
+		LlamaExecutable: "llama-server",
+		MLXLMExecutable: "mlx_lm.server",
+	}
 	cfg := config.InstancesConfig{
 		PortRange:            [2]int{8000, 9000},
 		TimeoutCheckInterval: 10,
 		MaxInstances:         5,
 	}
 
-	manager := manager.NewInstanceManager(cfg)
+	manager := manager.NewInstanceManager(backendConfig, cfg)
 	if manager == nil {
 		t.Fatal("Manager should be initialized with timeout checker")
 	}
