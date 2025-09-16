@@ -35,6 +35,7 @@ type instanceManager struct {
 	runningInstances map[string]struct{}
 	ports            map[int]bool
 	instancesConfig  config.InstancesConfig
+	backendsConfig   config.BackendConfig
 
 	// Timeout checker
 	timeoutChecker *time.Ticker
@@ -44,7 +45,7 @@ type instanceManager struct {
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
-func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager {
+func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig) InstanceManager {
 	if instancesConfig.TimeoutCheckInterval <= 0 {
 		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
 	}
@@ -53,6 +54,7 @@ func NewInstanceManager(instancesConfig config.InstancesConfig) InstanceManager 
 		runningInstances: make(map[string]struct{}),
 		ports:            make(map[int]bool),
 		instancesConfig:  instancesConfig,
+		backendsConfig:   backendsConfig,
 
 		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
 		shutdownChan:   make(chan struct{}),
@@ -241,7 +243,7 @@ func (im *instanceManager) loadInstance(name, path string) error {
 	}
 
 	// Create new inst using NewInstance (handles validation, defaults, setup)
-	inst := instance.NewInstance(name, &im.instancesConfig, persistedInstance.GetOptions(), statusCallback)
+	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, persistedInstance.GetOptions(), statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
 	inst.Created = persistedInstance.Created

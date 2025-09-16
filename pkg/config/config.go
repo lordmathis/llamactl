@@ -17,9 +17,6 @@ type BackendConfig struct {
 
 	// Path to mlx_lm executable (MLX-LM backend)
 	MLXLMExecutable string `yaml:"mlx_lm_executable"`
-
-	// Optional: Default Python virtual environment path for MLX backends
-	MLXPythonPath string `yaml:"mlx_python_path,omitempty"`
 }
 
 // AppConfig represents the configuration for llamactl
@@ -128,7 +125,6 @@ func LoadConfig(configPath string) (AppConfig, error) {
 		Backends: BackendConfig{
 			LlamaExecutable: "llama-server",
 			MLXLMExecutable: "mlx_lm.server",
-			MLXPythonPath:   "", // Empty means use system Python
 		},
 		Instances: InstancesConfig{
 			PortRange:            [2]int{8000, 9000},
@@ -250,13 +246,9 @@ func loadEnvVars(cfg *AppConfig) {
 	// Backend config
 	if llamaExec := os.Getenv("LLAMACTL_LLAMA_EXECUTABLE"); llamaExec != "" {
 		cfg.Backends.LlamaExecutable = llamaExec
-		cfg.Instances.LlamaExecutable = llamaExec // Keep for backward compatibility
 	}
 	if mlxLMExec := os.Getenv("LLAMACTL_MLX_LM_EXECUTABLE"); mlxLMExec != "" {
 		cfg.Backends.MLXLMExecutable = mlxLMExec
-	}
-	if mlxPython := os.Getenv("LLAMACTL_MLX_PYTHON_PATH"); mlxPython != "" {
-		cfg.Backends.MLXPythonPath = mlxPython
 	}
 	if autoRestart := os.Getenv("LLAMACTL_DEFAULT_AUTO_RESTART"); autoRestart != "" {
 		if b, err := strconv.ParseBool(autoRestart); err == nil {

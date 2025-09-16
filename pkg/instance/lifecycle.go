@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"syscall"
 	"time"
+
+	"llamactl/pkg/backends"
 )
 
 // Start starts the llama server instance and returns an error if it fails.
@@ -41,7 +43,20 @@ func (i *Process) Start() error {
 
 	args := i.options.BuildCommandArgs()
 	i.ctx, i.cancel = context.WithCancel(context.Background())
-	i.cmd = exec.CommandContext(i.ctx, "llama-server", args...)
+
+	var executable string
+
+	// Get executable from global configuration
+	switch i.options.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		executable = i.globalBackendSettings.LlamaExecutable
+	case backends.BackendTypeMlxLm:
+		executable = i.globalBackendSettings.MLXLMExecutable
+	default:
+		return fmt.Errorf("unsupported backend type: %s", i.options.BackendType)
+	}
+
+	i.cmd = exec.CommandContext(i.ctx, executable, args...)
 
 	if runtime.GOOS != "windows" {
 		setProcAttrs(i.cmd)
@@ -175,9 +190,16 @@ func (i *Process) WaitForHealthy(timeout int) error {
 	var host string
 	var port int
 	switch opts.BackendType {
-	case "llama-cpp":
-		host = opts.LlamaServerOptions.Host
-		port = opts.LlamaServerOptions.Port
+	case backends.BackendTypeLlamaCpp:
+		if opts.LlamaServerOptions != nil {
+			host = opts.LlamaServerOptions.Host
+			port = opts.LlamaServerOptions.Port
+		}
+	case backends.BackendTypeMlxLm:
+		if opts.MlxServerOptions != nil {
+			host = opts.MlxServerOptions.Host
+			port = opts.MlxServerOptions.Port
+		}
 	}
 	if host == "" {
 		host = "localhost"
