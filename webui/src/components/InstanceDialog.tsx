@@ -41,8 +41,8 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   // Get field lists dynamically from the type
   const basicFields = getBasicFields();
   const advancedFields = getAdvancedFields();
-  const basicBackendFields = getBasicBackendFields();
-  const advancedBackendFields = getAdvancedBackendFields();
+  const basicBackendFields = getBasicBackendFields(formData.backend_type);
+  const advancedBackendFields = getAdvancedBackendFields(formData.backend_type);
 
   // Reset form when dialog opens/closes or when instance changes
   useEffect(() => {
@@ -66,10 +66,21 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   }, [open, instance]);
 
   const handleFieldChange = (key: keyof CreateInstanceOptions, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setFormData((prev) => {
+      // If backend_type is changing, clear backend_options
+      if (key === 'backend_type' && prev.backend_type !== value) {
+        return {
+          ...prev,
+          [key]: value,
+          backend_options: {}, // Clear backend options when backend type changes
+        };
+      }
+      
+      return {
+        ...prev,
+        [key]: value,
+      };
+    });
   };
 
   const handleBackendFieldChange = (key: string, value: any) => {
@@ -78,7 +89,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
       backend_options: {
         ...prev.backend_options,
         [key]: value,
-      },
+      } as any,
     }));
   };
 
@@ -260,7 +271,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
                 <BackendFormField
                   key={fieldKey}
                   fieldKey={fieldKey}
-                  value={formData.backend_options?.[fieldKey]}
+                  value={(formData.backend_options as any)?.[fieldKey]}
                   onChange={handleBackendFieldChange}
                 />
               ))}
@@ -345,7 +356,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
                         <BackendFormField
                           key={fieldKey}
                           fieldKey={fieldKey}
-                          value={formData.backend_options?.[fieldKey]}
+                          value={(formData.backend_options as any)?.[fieldKey]}
                           onChange={handleBackendFieldChange}
                         />
                       ))}
