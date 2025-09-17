@@ -71,9 +71,6 @@ type InstancesConfig struct {
 	// Enable LRU eviction for instance logs
 	EnableLRUEviction bool `yaml:"enable_lru_eviction"`
 
-	// Path to llama-server executable
-	LlamaExecutable string `yaml:"llama_executable"`
-
 	// Default auto-restart setting for new instances
 	DefaultAutoRestart bool `yaml:"default_auto_restart"`
 
@@ -135,7 +132,6 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			MaxInstances:         -1, // -1 means unlimited
 			MaxRunningInstances:  -1, // -1 means unlimited
 			EnableLRUEviction:    true,
-			LlamaExecutable:      "llama-server",
 			DefaultAutoRestart:   true,
 			DefaultMaxRestarts:   3,
 			DefaultRestartDelay:  5,

@@ -176,7 +176,6 @@ export const MlxBackendOptionsSchema = z.object({
   model: z.string().optional(),
   host: z.string().optional(),
   port: z.number().optional(),
-  python_path: z.string().optional(),
   
   // Model and adapter options
   adapter_path: z.string().optional(),

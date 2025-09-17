@@ -90,11 +90,6 @@ const basicMlxFieldsConfig: Record<string, {
     description: 'The path to the MLX model weights, tokenizer, and config',
     required: true
   },
-  python_path: {
-    label: 'Python Virtual Environment Path',
-    placeholder: '/path/to/venv',
-    description: 'Path to Python virtual environment (optional)'
-  },
   temp: {
     label: 'Temperature',
     placeholder: '0.0',

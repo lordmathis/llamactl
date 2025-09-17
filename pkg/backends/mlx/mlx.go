@@ -11,7 +11,6 @@ type MlxServerOptions struct {
 	Model       string `json:"model,omitempty"`
 	Host        string `json:"host,omitempty"`
 	Port        int    `json:"port,omitempty"`
-	PythonPath  string `json:"python_path,omitempty"`  // Custom: Python venv path
 	
 	// Model and adapter options
 	AdapterPath     string `json:"adapter_path,omitempty"`
@@ -59,7 +58,7 @@ func (o *MlxServerOptions) UnmarshalJSON(data []byte) error {
 		"m":            "model",
 		"host":         "host",
 		"port":         "port",
-		"python_path":  "python_path",
+//     "python_path":  "python_path", // removed
 		
 		// Model and adapter options
 		"adapter-path":      "adapter_path",
@@ -145,9 +144,7 @@ func NewMlxServerOptions() *MlxServerOptions {
 // BuildCommandArgs converts to command line arguments
 func (o *MlxServerOptions) BuildCommandArgs() []string {
 	var args []string
-	
-	// Note: PythonPath is handled in lifecycle.go execution logic
-	
+		
 	// Required and basic options
 	if o.Model != "" {
 		args = append(args, "--model", o.Model)
