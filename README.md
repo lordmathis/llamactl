@@ -2,7 +2,7 @@
 
 ![Build and Release](https://github.com/lordmathis/llamactl/actions/workflows/release.yaml/badge.svg) ![Go Tests](https://github.com/lordmathis/llamactl/actions/workflows/go_test.yaml/badge.svg) ![WebUI Tests](https://github.com/lordmathis/llamactl/actions/workflows/webui_test.yaml/badge.svg)
 
-**Management server and proxy for multiple llama.cpp and MLX instances with OpenAI-compatible API routing.**
+**Unified management and routing for llama.cpp and MLX models with web dashboard.**
 
 ## Features
 
