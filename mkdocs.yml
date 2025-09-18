@@ -61,8 +61,16 @@ nav:
 plugins:
   - search
   - git-revision-date-localized
+  - mike:
+      version_selector: true
+      css_dir: css
+      javascript_dir: js
+      canonical_version: null
 
 extra:
+  version:
+    provider: mike
+    default: stable
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/lordmathis/llamactl
