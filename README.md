@@ -2,30 +2,28 @@
 
 ![Build and Release](https://github.com/lordmathis/llamactl/actions/workflows/release.yaml/badge.svg) ![Go Tests](https://github.com/lordmathis/llamactl/actions/workflows/go_test.yaml/badge.svg) ![WebUI Tests](https://github.com/lordmathis/llamactl/actions/workflows/webui_test.yaml/badge.svg)
 
-**Management server and proxy for multiple llama.cpp instances with OpenAI-compatible API routing.**
+**Management server and proxy for multiple llama.cpp and MLX instances with OpenAI-compatible API routing.**
 
 ## Why llamactl?
 
-🚀 **Multiple Model Serving**: Run different models simultaneously (7B for speed, 70B for quality)  
-🔗 **OpenAI API Compatible**: Drop-in replacement - route requests by model name  
-🌐 **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)  
-🔐 **API Key Authentication**: Separate keys for management vs inference access  
-📊 **Instance Monitoring**: Health checks, auto-restart, log management  
-⚡ **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits  
-💡 **On-Demand Instance Start**: Automatically launch instances upon receiving OpenAI-compatible API requests  
+🚀 **Multiple Model Serving**: Run different models simultaneously (7B for speed, 70B for quality)
+🔗 **OpenAI API Compatible**: Drop-in replacement - route requests by model name
+🍎 **Multi-Backend Support**: Native support for both llama.cpp and MLX (Apple Silicon optimized)
+🌐 **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)
+🔐 **API Key Authentication**: Separate keys for management vs inference access
+📊 **Instance Monitoring**: Health checks, auto-restart, log management
+⚡ **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits
+💡 **On-Demand Instance Start**: Automatically launch instances upon receiving OpenAI-compatible API requests
 💾 **State Persistence**: Ensure instances remain intact across server restarts  
 
 ![Dashboard Screenshot](docs/images/dashboard.png)
 
-**Choose llamactl if**: You need authentication, health monitoring, auto-restart, and centralized management of multiple llama-server instances  
-**Choose Ollama if**: You want the simplest setup with strong community ecosystem and third-party integrations  
-**Choose LM Studio if**: You prefer a polished desktop GUI experience with easy model management
-
 ## Quick Start
 
 ```bash
-# 1. Install llama-server (one-time setup)
-# See: https://github.com/ggml-org/llama.cpp#quick-start
+# 1. Install backend (one-time setup)
+# For llama.cpp: https://github.com/ggml-org/llama.cpp#quick-start
+# For MLX on macOS: pip install mlx-lm
 
 # 2. Download and run llamactl
 LATEST_VERSION=$(curl -s https://api.github.com/repos/lordmathis/llamactl/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
@@ -42,15 +40,21 @@ llamactl
 ### Create and manage instances via web dashboard:
 1. Open http://localhost:8080
 2. Click "Create Instance"
-3. Set model path and GPU layers
-4. Start or stop the instance
+3. Choose backend type (llama.cpp or MLX)
+4. Set model path and backend-specific options
+5. Start or stop the instance
 
 ### Or use the REST API:
 ```bash
-# Create instance
+# Create llama.cpp instance
 curl -X POST localhost:8080/api/v1/instances/my-7b-model \
   -H "Authorization: Bearer your-key" \
-  -d '{"model": "/path/to/model.gguf", "gpu_layers": 32}'
+  -d '{"backend_type": "llama_cpp", "backend_options": {"model": "/path/to/model.gguf", "gpu_layers": 32}}'
+
+# Create MLX instance (macOS)
+curl -X POST localhost:8080/api/v1/instances/my-mlx-model \
+  -H "Authorization: Bearer your-key" \
+  -d '{"backend_type": "mlx_lm", "backend_options": {"model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit"}}'
 
 # Use with OpenAI SDK
 curl -X POST localhost:8080/v1/chat/completions \
@@ -85,14 +89,29 @@ go build -o llamactl ./cmd/server
 
 ## Prerequisites
 
+### Backend Dependencies
+
+**For llama.cpp backend:**
 You need `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp) installed:
 
 ```bash
-# Quick install methods:
 # Homebrew (macOS)
 brew install llama.cpp
 
 # Or build from source - see llama.cpp docs
+```
+
+**For MLX backend (macOS only):**
+You need MLX-LM installed:
+
+```bash
+# Install via pip (requires Python 3.8+)
+pip install mlx-lm
+
+# Or in a virtual environment (recommended)
+python -m venv mlx-env
+source mlx-env/bin/activate
+pip install mlx-lm
 ```
 
 ## Configuration
@@ -106,6 +125,10 @@ server:
   allowed_origins: ["*"]         # Allowed CORS origins (default: all)
   enable_swagger: false          # Enable Swagger UI for API docs
 
+backends:
+  llama_executable: llama-server # Path to llama-server executable
+  mlx_lm_executable: mlx_lm.server # Path to mlx_lm.server executable
+
 instances:
   port_range: [8000, 9000]       # Port range for instances
   data_dir: ~/.local/share/llamactl         # Data directory (platform-specific, see below)
@@ -115,7 +138,6 @@ instances:
   max_instances: -1              # Max instances (-1 = unlimited)
   max_running_instances: -1      # Max running instances (-1 = unlimited)
   enable_lru_eviction: true      # Enable LRU eviction for idle instances
-  llama_executable: llama-server # Path to llama-server executable
   default_auto_restart: true     # Auto-restart new instances by default
   default_max_restarts: 3        # Max restarts for new instances
   default_restart_delay: 5       # Restart delay (seconds) for new instances
