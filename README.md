@@ -4,17 +4,24 @@
 
 **Management server and proxy for multiple llama.cpp and MLX instances with OpenAI-compatible API routing.**
 
-## Why llamactl?
+## Features
 
-🚀 **Multiple Model Serving**: Run different models simultaneously (7B for speed, 70B for quality)  
-🔗 **OpenAI API Compatible**: Drop-in replacement - route requests by model name  
-🍎 **Multi-Backend Support**: Native support for both llama.cpp and MLX (Apple Silicon optimized)  
-🌐 **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)  
-🔐 **API Key Authentication**: Separate keys for management vs inference access  
-📊 **Instance Monitoring**: Health checks, auto-restart, log management  
-⚡ **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits  
-💡 **On-Demand Instance Start**: Automatically launch instances upon receiving OpenAI-compatible API requests  
-💾 **State Persistence**: Ensure instances remain intact across server restarts  
+### 🚀 Easy Model Management
+- **Multiple Model Serving**: Run different models simultaneously (7B for speed, 70B for quality)
+- **On-Demand Instance Start**: Automatically launch instances upon receiving API requests
+- **State Persistence**: Ensure instances remain intact across server restarts
+
+### 🔗 Universal Compatibility
+- **OpenAI API Compatible**: Drop-in replacement - route requests by model name
+- **Multi-Backend Support**: Native support for both llama.cpp and MLX (Apple Silicon optimized)
+
+### 🌐 User-Friendly Interface
+- **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)
+- **API Key Authentication**: Separate keys for management vs inference access
+
+### ⚡ Smart Operations
+- **Instance Monitoring**: Health checks, auto-restart, log management
+- **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits  
 
 ![Dashboard Screenshot](docs/images/dashboard.png)
 
