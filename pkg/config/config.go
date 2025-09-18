@@ -10,9 +10,19 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// BackendConfig contains backend executable configurations
+type BackendConfig struct {
+	// Path to llama-server executable (llama.cpp backend)
+	LlamaExecutable string `yaml:"llama_executable"`
+
+	// Path to mlx_lm executable (MLX-LM backend)
+	MLXLMExecutable string `yaml:"mlx_lm_executable"`
+}
+
 // AppConfig represents the configuration for llamactl
 type AppConfig struct {
 	Server     ServerConfig    `yaml:"server"`
+	Backends   BackendConfig   `yaml:"backends"`
 	Instances  InstancesConfig `yaml:"instances"`
 	Auth       AuthConfig      `yaml:"auth"`
 	Version    string          `yaml:"-"`
@@ -60,9 +70,6 @@ type InstancesConfig struct {
 
 	// Enable LRU eviction for instance logs
 	EnableLRUEviction bool `yaml:"enable_lru_eviction"`
-
-	// Path to llama-server executable
-	LlamaExecutable string `yaml:"llama_executable"`
 
 	// Default auto-restart setting for new instances
 	DefaultAutoRestart bool `yaml:"default_auto_restart"`
@@ -112,6 +119,10 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			AllowedOrigins: []string{"*"}, // Default to allow all origins
 			EnableSwagger:  false,
 		},
+		Backends: BackendConfig{
+			LlamaExecutable: "llama-server",
+			MLXLMExecutable: "mlx_lm.server",
+		},
 		Instances: InstancesConfig{
 			PortRange:            [2]int{8000, 9000},
 			DataDir:              getDefaultDataDirectory(),
@@ -121,7 +132,6 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			MaxInstances:         -1, // -1 means unlimited
 			MaxRunningInstances:  -1, // -1 means unlimited
 			EnableLRUEviction:    true,
-			LlamaExecutable:      "llama-server",
 			DefaultAutoRestart:   true,
 			DefaultMaxRestarts:   3,
 			DefaultRestartDelay:  5,
@@ -229,8 +239,12 @@ func loadEnvVars(cfg *AppConfig) {
 			cfg.Instances.EnableLRUEviction = b
 		}
 	}
+	// Backend config
 	if llamaExec := os.Getenv("LLAMACTL_LLAMA_EXECUTABLE"); llamaExec != "" {
-		cfg.Instances.LlamaExecutable = llamaExec
+		cfg.Backends.LlamaExecutable = llamaExec
+	}
+	if mlxLMExec := os.Getenv("LLAMACTL_MLX_LM_EXECUTABLE"); mlxLMExec != "" {
+		cfg.Backends.MLXLMExecutable = mlxLMExec
 	}
 	if autoRestart := os.Getenv("LLAMACTL_DEFAULT_AUTO_RESTART"); autoRestart != "" {
 		if b, err := strconv.ParseBool(autoRestart); err == nil {

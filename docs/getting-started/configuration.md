@@ -19,6 +19,10 @@ server:
   allowed_origins: ["*"]         # Allowed CORS origins (default: all)
   enable_swagger: false          # Enable Swagger UI for API docs
 
+backends:
+  llama_executable: llama-server # Path to llama-server executable
+  mlx_lm_executable: mlx_lm.server # Path to mlx_lm.server executable
+
 instances:
   port_range: [8000, 9000]       # Port range for instances
   data_dir: ~/.local/share/llamactl         # Data directory (platform-specific, see below)
@@ -28,7 +32,6 @@ instances:
   max_instances: -1              # Max instances (-1 = unlimited)
   max_running_instances: -1      # Max running instances (-1 = unlimited)
   enable_lru_eviction: true      # Enable LRU eviction for idle instances
-  llama_executable: llama-server # Path to llama-server executable
   default_auto_restart: true     # Auto-restart new instances by default
   default_max_restarts: 3        # Max restarts for new instances
   default_restart_delay: 5       # Restart delay (seconds) for new instances
@@ -79,11 +82,23 @@ server:
   enable_swagger: false   # Enable Swagger UI (default: false)
 ```
 
-**Environment Variables:**  
-- `LLAMACTL_HOST` - Server host  
-- `LLAMACTL_PORT` - Server port  
-- `LLAMACTL_ALLOWED_ORIGINS` - Comma-separated CORS origins  
-- `LLAMACTL_ENABLE_SWAGGER` - Enable Swagger UI (true/false)  
+**Environment Variables:**
+- `LLAMACTL_HOST` - Server host
+- `LLAMACTL_PORT` - Server port
+- `LLAMACTL_ALLOWED_ORIGINS` - Comma-separated CORS origins
+- `LLAMACTL_ENABLE_SWAGGER` - Enable Swagger UI (true/false)
+
+### Backend Configuration
+
+```yaml
+backends:
+  llama_executable: "llama-server"     # Path to llama-server executable (default: "llama-server")
+  mlx_lm_executable: "mlx_lm.server"   # Path to mlx_lm.server executable (default: "mlx_lm.server")
+```
+
+**Environment Variables:**
+- `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable
+- `LLAMACTL_MLX_LM_EXECUTABLE` - Path to mlx_lm.server executable
 
 ### Instance Configuration
 
@@ -97,7 +112,6 @@ instances:
   max_instances: -1                                 # Maximum instances (-1 = unlimited)
   max_running_instances: -1                         # Maximum running instances (-1 = unlimited)
   enable_lru_eviction: true                         # Enable LRU eviction for idle instances
-  llama_executable: "llama-server"                  # Path to llama-server executable
   default_auto_restart: true                        # Default auto-restart setting
   default_max_restarts: 3                           # Default maximum restart attempts
   default_restart_delay: 5                          # Default restart delay in seconds
@@ -113,9 +127,8 @@ instances:
 - `LLAMACTL_LOGS_DIR` - Log directory path  
 - `LLAMACTL_AUTO_CREATE_DATA_DIR` - Auto-create data/config/logs directories (true/false)  
 - `LLAMACTL_MAX_INSTANCES` - Maximum number of instances  
-- `LLAMACTL_MAX_RUNNING_INSTANCES` - Maximum number of running instances  
-- `LLAMACTL_ENABLE_LRU_EVICTION` - Enable LRU eviction for idle instances  
-- `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable  
+- `LLAMACTL_MAX_RUNNING_INSTANCES` - Maximum number of running instances
+- `LLAMACTL_ENABLE_LRU_EVICTION` - Enable LRU eviction for idle instances
 - `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)  
 - `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts  
 - `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds  

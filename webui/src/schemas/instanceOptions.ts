@@ -1,8 +1,8 @@
 import { BackendType } from '@/types/instance'
 import { z } from 'zod'
 
-// Define the backend options schema (previously embedded in CreateInstanceOptionsSchema)
-export const BackendOptionsSchema = z.object({
+// Define the LlamaCpp backend options schema
+export const LlamaCppBackendOptionsSchema = z.object({
   // Common params
   verbose_prompt: z.boolean().optional(),
   threads: z.number().optional(),
@@ -170,6 +170,39 @@ export const BackendOptionsSchema = z.object({
   fim_qwen_14b_spec: z.boolean().optional(),
 })
 
+// Define the MLX backend options schema
+export const MlxBackendOptionsSchema = z.object({
+  // Basic connection options
+  model: z.string().optional(),
+  host: z.string().optional(),
+  port: z.number().optional(),
+  
+  // Model and adapter options
+  adapter_path: z.string().optional(),
+  draft_model: z.string().optional(),
+  num_draft_tokens: z.number().optional(),
+  trust_remote_code: z.boolean().optional(),
+  
+  // Logging and templates
+  log_level: z.enum(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']).optional(),
+  chat_template: z.string().optional(),
+  use_default_chat_template: z.boolean().optional(),
+  chat_template_args: z.string().optional(), // JSON string
+  
+  // Sampling defaults
+  temp: z.number().optional(),     // Note: MLX uses "temp" not "temperature"
+  top_p: z.number().optional(),
+  top_k: z.number().optional(),
+  min_p: z.number().optional(),
+  max_tokens: z.number().optional(),
+})
+
+// Backend options union
+export const BackendOptionsSchema = z.union([
+  LlamaCppBackendOptionsSchema,
+  MlxBackendOptionsSchema,
+])
+
 // Define the main create instance options schema
 export const CreateInstanceOptionsSchema = z.object({
   // Restart options
@@ -180,11 +213,13 @@ export const CreateInstanceOptionsSchema = z.object({
   on_demand_start: z.boolean().optional(),
 
   // Backend configuration
-  backend_type: z.enum([BackendType.LLAMA_CPP]).optional(),
+  backend_type: z.enum([BackendType.LLAMA_CPP, BackendType.MLX_LM]).optional(),
   backend_options: BackendOptionsSchema.optional(),
 })
 
 // Infer the TypeScript types from the schemas
+export type LlamaCppBackendOptions = z.infer<typeof LlamaCppBackendOptionsSchema>
+export type MlxBackendOptions = z.infer<typeof MlxBackendOptionsSchema>
 export type BackendOptions = z.infer<typeof BackendOptionsSchema>
 export type CreateInstanceOptions = z.infer<typeof CreateInstanceOptionsSchema>
 
@@ -193,9 +228,14 @@ export function getAllFieldKeys(): (keyof CreateInstanceOptions)[] {
   return Object.keys(CreateInstanceOptionsSchema.shape) as (keyof CreateInstanceOptions)[]
 }
 
-// Helper to get all backend option field keys
-export function getAllBackendFieldKeys(): (keyof BackendOptions)[] {
-  return Object.keys(BackendOptionsSchema.shape) as (keyof BackendOptions)[]
+// Helper to get all LlamaCpp backend option field keys
+export function getAllLlamaCppFieldKeys(): (keyof LlamaCppBackendOptions)[] {
+  return Object.keys(LlamaCppBackendOptionsSchema.shape) as (keyof LlamaCppBackendOptions)[]
+}
+
+// Helper to get all MLX backend option field keys
+export function getAllMlxFieldKeys(): (keyof MlxBackendOptions)[] {
+  return Object.keys(MlxBackendOptionsSchema.shape) as (keyof MlxBackendOptions)[]
 }
 
 // Get field type from Zod schema
@@ -213,9 +253,9 @@ export function getFieldType(key: keyof CreateInstanceOptions): 'text' | 'number
   return 'text' // ZodString and others default to text
 }
 
-// Get field type for backend options
-export function getBackendFieldType(key: keyof BackendOptions): 'text' | 'number' | 'boolean' | 'array' {
-  const fieldSchema = BackendOptionsSchema.shape[key]
+// Get field type for LlamaCpp backend options
+export function getLlamaCppFieldType(key: keyof LlamaCppBackendOptions): 'text' | 'number' | 'boolean' | 'array' {
+  const fieldSchema = LlamaCppBackendOptionsSchema.shape[key]
   if (!fieldSchema) return 'text'
   
   // Handle ZodOptional wrapper
@@ -224,5 +264,20 @@ export function getBackendFieldType(key: keyof BackendOptions): 'text' | 'number
   if (innerSchema instanceof z.ZodBoolean) return 'boolean'
   if (innerSchema instanceof z.ZodNumber) return 'number'
   if (innerSchema instanceof z.ZodArray) return 'array'
+  return 'text' // ZodString and others default to text
+}
+
+// Get field type for MLX backend options
+export function getMlxFieldType(key: keyof MlxBackendOptions): 'text' | 'number' | 'boolean' | 'array' {
+  const fieldSchema = MlxBackendOptionsSchema.shape[key]
+  if (!fieldSchema) return 'text'
+  
+  // Handle ZodOptional wrapper
+  const innerSchema = fieldSchema instanceof z.ZodOptional ? fieldSchema.unwrap() : fieldSchema
+  
+  if (innerSchema instanceof z.ZodBoolean) return 'boolean'
+  if (innerSchema instanceof z.ZodNumber) return 'number'
+  if (innerSchema instanceof z.ZodArray) return 'array'
+  if (innerSchema instanceof z.ZodEnum) return 'text' // Enum treated as text/select
   return 'text' // ZodString and others default to text
 }

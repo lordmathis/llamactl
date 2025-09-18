@@ -7,6 +7,7 @@ import (
 	"io"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/backends/llamacpp"
+	"llamactl/pkg/backends/mlx"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
@@ -678,6 +679,60 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 			BackendType:        backends.BackendTypeLlamaCpp,
 			LlamaServerOptions: llamaOptions,
 		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(options); err != nil {
+			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())
+		}
+	}
+}
+
+// ParseMlxCommand godoc
+// @Summary Parse mlx_lm.server command
+// @Description Parses MLX-LM server command string into instance options
+// @Tags backends
+// @Security ApiKeyAuth
+// @Accept json
+// @Produce json
+// @Param request body ParseCommandRequest true "Command to parse"
+// @Success 200 {object} instance.CreateInstanceOptions "Parsed options"
+// @Failure 400 {object} map[string]string "Invalid request or command"
+// @Router /backends/mlx/parse-command [post]
+func (h *Handler) ParseMlxCommand() http.HandlerFunc {
+	type errorResponse struct {
+		Error   string `json:"error"`
+		Details string `json:"details,omitempty"`
+	}
+	writeError := func(w http.ResponseWriter, status int, code, details string) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req ParseCommandRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+			return
+		}
+		
+		if strings.TrimSpace(req.Command) == "" {
+			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
+			return
+		}
+		
+		mlxOptions, err := mlx.ParseMlxCommand(req.Command)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
+			return
+		}
+		
+		// Currently only support mlx_lm backend type
+		backendType := backends.BackendTypeMlxLm
+		
+		options := &instance.CreateInstanceOptions{
+			BackendType:      backendType,
+			MlxServerOptions: mlxOptions,
+		}
+		
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(options); err != nil {
 			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())

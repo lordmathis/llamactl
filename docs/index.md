@@ -1,22 +1,23 @@
 # Llamactl Documentation
 
-Welcome to the Llamactl documentation! **Management server and proxy for multiple llama.cpp instances with OpenAI-compatible API routing.**
+Welcome to the Llamactl documentation! **Management server and proxy for multiple llama.cpp and MLX instances with OpenAI-compatible API routing.**
 
 ![Dashboard Screenshot](images/dashboard.png)
 
 ## What is Llamactl?
 
-Llamactl is designed to simplify the deployment and management of llama-server instances. It provides a modern solution for running multiple large language models with centralized management.
+Llamactl is designed to simplify the deployment and management of llama-server and MLX instances. It provides a modern solution for running multiple large language models with centralized management and multi-backend support.
 
 ## Features
 
-🚀 **Multiple Model Serving**: Run different models simultaneously (7B for speed, 70B for quality)  
-🔗 **OpenAI API Compatible**: Drop-in replacement - route requests by model name  
-🌐 **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)  
-🔐 **API Key Authentication**: Separate keys for management vs inference access  
-📊 **Instance Monitoring**: Health checks, auto-restart, log management  
-⚡ **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits  
-💡 **On-Demand Instance Start**: Automatically launch instances upon receiving OpenAI-compatible API requests  
+🚀 **Multiple Model Serving**: Run different models simultaneously (7B for speed, 70B for quality)
+🔗 **OpenAI API Compatible**: Drop-in replacement - route requests by model name
+🍎 **Multi-Backend Support**: Native support for both llama.cpp and MLX (Apple Silicon optimized)
+🌐 **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)
+🔐 **API Key Authentication**: Separate keys for management vs inference access
+📊 **Instance Monitoring**: Health checks, auto-restart, log management
+⚡ **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits
+💡 **On-Demand Instance Start**: Automatically launch instances upon receiving OpenAI-compatible API requests
 💾 **State Persistence**: Ensure instances remain intact across server restarts  
 
 ## Quick Links

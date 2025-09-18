@@ -31,9 +31,10 @@ func (realTimeProvider) Now() time.Time {
 
 // Process represents a running instance of the llama server
 type Process struct {
-	Name           string                 `json:"name"`
-	options        *CreateInstanceOptions `json:"-"`
-	globalSettings *config.InstancesConfig
+	Name                   string                 `json:"name"`
+	options                *CreateInstanceOptions `json:"-"`
+	globalInstanceSettings *config.InstancesConfig
+	globalBackendSettings  *config.BackendConfig
 
 	// Status
 	Status         InstanceStatus `json:"status"`
@@ -65,22 +66,23 @@ type Process struct {
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus InstanceStatus)) *Process {
+func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus InstanceStatus)) *Process {
 	// Validate and copy options
-	options.ValidateAndApplyDefaults(name, globalSettings)
+	options.ValidateAndApplyDefaults(name, globalInstanceSettings)
 
 	// Create the instance logger
-	logger := NewInstanceLogger(name, globalSettings.LogsDir)
+	logger := NewInstanceLogger(name, globalInstanceSettings.LogsDir)
 
 	return &Process{
-		Name:           name,
-		options:        options,
-		globalSettings: globalSettings,
-		logger:         logger,
-		timeProvider:   realTimeProvider{},
-		Created:        time.Now().Unix(),
-		Status:         Stopped,
-		onStatusChange: onStatusChange,
+		Name:                   name,
+		options:                options,
+		globalInstanceSettings: globalInstanceSettings,
+		globalBackendSettings:  globalBackendSettings,
+		logger:                 logger,
+		timeProvider:           realTimeProvider{},
+		Created:                time.Now().Unix(),
+		Status:                 Stopped,
+		onStatusChange:         onStatusChange,
 	}
 }
 
@@ -96,7 +98,13 @@ func (i *Process) GetPort() int {
 	if i.options != nil {
 		switch i.options.BackendType {
 		case backends.BackendTypeLlamaCpp:
-			return i.options.LlamaServerOptions.Port
+			if i.options.LlamaServerOptions != nil {
+				return i.options.LlamaServerOptions.Port
+			}
+		case backends.BackendTypeMlxLm:
+			if i.options.MlxServerOptions != nil {
+				return i.options.MlxServerOptions.Port
+			}
 		}
 	}
 	return 0
@@ -108,7 +116,13 @@ func (i *Process) GetHost() string {
 	if i.options != nil {
 		switch i.options.BackendType {
 		case backends.BackendTypeLlamaCpp:
-			return i.options.LlamaServerOptions.Host
+			if i.options.LlamaServerOptions != nil {
+				return i.options.LlamaServerOptions.Host
+			}
+		case backends.BackendTypeMlxLm:
+			if i.options.MlxServerOptions != nil {
+				return i.options.MlxServerOptions.Host
+			}
 		}
 	}
 	return ""
@@ -124,7 +138,7 @@ func (i *Process) SetOptions(options *CreateInstanceOptions) {
 	}
 
 	// Validate and copy options
-	options.ValidateAndApplyDefaults(i.Name, i.globalSettings)
+	options.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
 
 	i.options = options
 	// Clear the proxy so it gets recreated with new options
@@ -153,8 +167,15 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 	var port int
 	switch i.options.BackendType {
 	case backends.BackendTypeLlamaCpp:
-		host = i.options.LlamaServerOptions.Host
-		port = i.options.LlamaServerOptions.Port
+		if i.options.LlamaServerOptions != nil {
+			host = i.options.LlamaServerOptions.Host
+			port = i.options.LlamaServerOptions.Port
+		}
+	case backends.BackendTypeMlxLm:
+		if i.options.MlxServerOptions != nil {
+			host = i.options.MlxServerOptions.Host
+			port = i.options.MlxServerOptions.Port
+		}
 	}
 
 	targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", host, port))
@@ -215,7 +236,7 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 
 	// Handle options with validation and defaults
 	if aux.Options != nil {
-		aux.Options.ValidateAndApplyDefaults(i.Name, i.globalSettings)
+		aux.Options.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
 		i.options = aux.Options
 	}
 

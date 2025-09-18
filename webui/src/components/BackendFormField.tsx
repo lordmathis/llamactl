@@ -2,11 +2,10 @@ import React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import type { BackendOptions } from '@/schemas/instanceOptions'
 import { getBackendFieldType, basicBackendFieldsConfig } from '@/lib/zodFormUtils'
 
 interface BackendFormFieldProps {
-  fieldKey: keyof BackendOptions
+  fieldKey: string
   value: string | number | boolean | string[] | undefined
   onChange: (key: string, value: string | number | boolean | string[] | undefined) => void
 }

@@ -62,7 +62,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		im.onStatusChange(name, oldStatus, newStatus)
 	}
 
-	inst := instance.NewInstance(name, &im.instancesConfig, options, statusCallback)
+	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, statusCallback)
 	im.instances[inst.Name] = inst
 
 	if err := im.persistInstance(inst); err != nil {
@@ -260,6 +260,10 @@ func (im *instanceManager) getPortFromOptions(options *instance.CreateInstanceOp
 		if options.LlamaServerOptions != nil {
 			return options.LlamaServerOptions.Port
 		}
+	case backends.BackendTypeMlxLm:
+		if options.MlxServerOptions != nil {
+			return options.MlxServerOptions.Port
+		}
 	}
 	return 0
 }
@@ -270,6 +274,10 @@ func (im *instanceManager) setPortInOptions(options *instance.CreateInstanceOpti
 	case backends.BackendTypeLlamaCpp:
 		if options.LlamaServerOptions != nil {
 			options.LlamaServerOptions.Port = port
+		}
+	case backends.BackendTypeMlxLm:
+		if options.MlxServerOptions != nil {
+			options.MlxServerOptions.Port = port
 		}
 	}
 }

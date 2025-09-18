@@ -1,6 +1,6 @@
 # Managing Instances
 
-Learn how to effectively manage your Llama.cpp instances with Llamactl through both the Web UI and API.
+Learn how to effectively manage your llama.cpp and MLX instances with Llamactl through both the Web UI and API.
 
 ## Overview
 
@@ -39,40 +39,55 @@ Each instance is displayed as a card showing:
 
 1. Click the **"Create Instance"** button on the dashboard
 2. Enter a unique **Name** for your instance (only required field)
-3. Configure model source (choose one):
-    - **Model Path**: Full path to your downloaded GGUF model file
-    - **HuggingFace Repo**: Repository name (e.g., `unsloth/gemma-3-27b-it-GGUF`)
-    - **HuggingFace File**: Specific file within the repo (optional, uses default if not specified)
-4. Configure optional instance management settings:
+3. **Choose Backend Type**:
+    - **llama.cpp**: For GGUF models using llama-server
+    - **MLX**: For MLX-optimized models (macOS only)
+4. Configure model source:
+    - **For llama.cpp**: GGUF model path or HuggingFace repo
+    - **For MLX**: MLX model path or identifier (e.g., `mlx-community/Mistral-7B-Instruct-v0.3-4bit`)
+5. Configure optional instance management settings:
     - **Auto Restart**: Automatically restart instance on failure
     - **Max Restarts**: Maximum number of restart attempts
     - **Restart Delay**: Delay in seconds between restart attempts
     - **On Demand Start**: Start instance when receiving a request to the OpenAI compatible endpoint
     - **Idle Timeout**: Minutes before stopping idle instance (set to 0 to disable)
-5. Configure optional llama-server backend options:
-    - **Threads**: Number of CPU threads to use
-    - **Context Size**: Context window size (ctx_size)
-    - **GPU Layers**: Number of layers to offload to GPU
-    - **Port**: Network port (auto-assigned by llamactl if not specified)
-    - **Additional Parameters**: Any other llama-server command line options (see [llama-server documentation](https://github.com/ggerganov/llama.cpp/blob/master/examples/server/README.md))
-6. Click **"Create"** to save the instance  
+6. Configure backend-specific options:
+    - **llama.cpp**: Threads, context size, GPU layers, port, etc.
+    - **MLX**: Temperature, top-p, adapter path, Python environment, etc.
+7. Click **"Create"** to save the instance  
 
 ### Via API
 
 ```bash
-# Create instance with local model file
-curl -X POST http://localhost:8080/api/instances/my-instance \
+# Create llama.cpp instance with local model file
+curl -X POST http://localhost:8080/api/instances/my-llama-instance \
   -H "Content-Type: application/json" \
   -d '{
     "backend_type": "llama_cpp",
     "backend_options": {
       "model": "/path/to/model.gguf",
       "threads": 8,
-      "ctx_size": 4096
+      "ctx_size": 4096,
+      "gpu_layers": 32
     }
   }'
 
-# Create instance with HuggingFace model
+# Create MLX instance (macOS only)
+curl -X POST http://localhost:8080/api/instances/my-mlx-instance \
+  -H "Content-Type: application/json" \
+  -d '{
+    "backend_type": "mlx_lm",
+    "backend_options": {
+      "model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+      "temp": 0.7,
+      "top_p": 0.9,
+      "max_tokens": 2048
+    },
+    "auto_restart": true,
+    "max_restarts": 3
+  }'
+
+# Create llama.cpp instance with HuggingFace model
 curl -X POST http://localhost:8080/api/instances/gemma-3-27b \
   -H "Content-Type: application/json" \
   -d '{
@@ -81,9 +96,7 @@ curl -X POST http://localhost:8080/api/instances/gemma-3-27b \
       "hf_repo": "unsloth/gemma-3-27b-it-GGUF",
       "hf_file": "gemma-3-27b-it-GGUF.gguf",
       "gpu_layers": 32
-    },
-    "auto_restart": true,
-    "max_restarts": 3
+    }
   }'
 ```
 
@@ -166,14 +179,16 @@ curl -X DELETE http://localhost:8080/api/instances/{name}
 
 ## Instance Proxy
 
-Llamactl proxies all requests to the underlying llama-server instances.
+Llamactl proxies all requests to the underlying backend instances (llama-server or MLX).
 
 ```bash
 # Get instance details
 curl http://localhost:8080/api/instances/{name}/proxy/
 ```
 
-Check llama-server [docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) for more information.
+Both backends provide OpenAI-compatible endpoints. Check the respective documentation:
+- [llama-server docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md)
+- [MLX-LM docs](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md)
 
 ### Instance Health
 

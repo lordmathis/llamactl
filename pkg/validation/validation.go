@@ -44,6 +44,8 @@ func ValidateInstanceOptions(options *instance.CreateInstanceOptions) error {
 	switch options.BackendType {
 	case backends.BackendTypeLlamaCpp:
 		return validateLlamaCppOptions(options)
+	case backends.BackendTypeMlxLm:
+		return validateMlxOptions(options)
 	default:
 		return ValidationError(fmt.Errorf("unsupported backend type: %s", options.BackendType))
 	}
@@ -63,6 +65,24 @@ func validateLlamaCppOptions(options *instance.CreateInstanceOptions) error {
 	// Basic network validation for port
 	if options.LlamaServerOptions.Port < 0 || options.LlamaServerOptions.Port > 65535 {
 		return ValidationError(fmt.Errorf("invalid port range: %d", options.LlamaServerOptions.Port))
+	}
+
+	return nil
+}
+
+// validateMlxOptions validates MLX backend specific options
+func validateMlxOptions(options *instance.CreateInstanceOptions) error {
+	if options.MlxServerOptions == nil {
+		return ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
+	}
+
+	if err := validateStructStrings(options.MlxServerOptions, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if options.MlxServerOptions.Port < 0 || options.MlxServerOptions.Port > 65535 {
+		return ValidationError(fmt.Errorf("invalid port range: %d", options.MlxServerOptions.Port))
 	}
 
 	return nil

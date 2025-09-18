@@ -93,6 +93,14 @@ export const backendsApi = {
         body: JSON.stringify({ command }),
       }),
   },
+  mlx: {
+    // POST /backends/mlx/parse-command
+    parseCommand: (command: string) =>
+      apiCall<CreateInstanceOptions>('/backends/mlx/parse-command', {
+        method: 'POST',
+        body: JSON.stringify({ command }),
+      }),
+  },
 };
 
 // Instance API functions
