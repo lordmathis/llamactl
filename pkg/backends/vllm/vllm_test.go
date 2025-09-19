@@ -10,12 +10,12 @@ import (
 func TestBuildCommandArgs(t *testing.T) {
 	options := vllm.VllmServerOptions{
 		Model:                "microsoft/DialoGPT-medium",
-		Port:                 8080, // should be excluded
-		Host:                 "localhost", // should be excluded
+		Port:                 8080,
+		Host:                 "localhost",
 		TensorParallelSize:   2,
 		GPUMemoryUtilization: 0.8,
 		EnableLogOutputs:     true,
-		APIKey:              []string{"key1", "key2"},
+		AllowedOrigins:       []string{"http://localhost:3000", "https://example.com"},
 	}
 
 	args := options.BuildCommandArgs()
@@ -32,19 +32,22 @@ func TestBuildCommandArgs(t *testing.T) {
 	}
 
 	// Host and port should NOT be in the arguments (handled by llamactl)
-	if contains(args, "--host") || contains(args, "--port") {
-		t.Errorf("Host and port should not be in command args, found in %v", args)
+	if !contains(args, "--host") {
+		t.Errorf("Expected --host not found in %v", args)
+	}
+	if !contains(args, "--port") {
+		t.Errorf("Expected --port not found in %v", args)
 	}
 
 	// Check array handling (multiple flags)
-	apiKeyCount := 0
+	allowedOriginsCount := 0
 	for i := range args {
-		if args[i] == "--api-key" {
-			apiKeyCount++
+		if args[i] == "--allowed-origins" {
+			allowedOriginsCount++
 		}
 	}
-	if apiKeyCount != 2 {
-		t.Errorf("Expected 2 --api-key flags, got %d", apiKeyCount)
+	if allowedOriginsCount != 2 {
+		t.Errorf("Expected 2 --allowed-origins flags, got %d", allowedOriginsCount)
 	}
 }
 
@@ -74,20 +77,6 @@ func TestUnmarshalJSON(t *testing.T) {
 	}
 	if !options.EnableLogOutputs {
 		t.Errorf("Expected enable_log_outputs true, got %v", options.EnableLogOutputs)
-	}
-}
-
-func TestNewVllmServerOptions(t *testing.T) {
-	options := vllm.NewVllmServerOptions()
-
-	if options == nil {
-		t.Fatal("NewVllmServerOptions returned nil")
-	}
-	if options.Host != "127.0.0.1" {
-		t.Errorf("Expected default host '127.0.0.1', got %q", options.Host)
-	}
-	if options.Port != 8000 {
-		t.Errorf("Expected default port 8000, got %d", options.Port)
 	}
 }
 

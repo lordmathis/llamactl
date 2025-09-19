@@ -1,6 +1,7 @@
-package vllm
+package vllm_test
 
 import (
+	"llamactl/pkg/backends/vllm"
 	"testing"
 )
 
@@ -39,7 +40,7 @@ func TestParseVllmCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := ParseVllmCommand(tt.command)
+			result, err := vllm.ParseVllmCommand(tt.command)
 
 			if tt.expectErr {
 				if err == nil {
@@ -62,7 +63,7 @@ func TestParseVllmCommand(t *testing.T) {
 
 func TestParseVllmCommandValues(t *testing.T) {
 	command := "vllm serve --model test-model --tensor-parallel-size 4 --gpu-memory-utilization 0.8 --enable-log-outputs"
-	result, err := ParseVllmCommand(command)
+	result, err := vllm.ParseVllmCommand(command)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
