@@ -1,9 +1,7 @@
 package vllm
 
 import (
-	"reflect"
-	"strconv"
-	"strings"
+	"llamactl/pkg/backends"
 )
 
 type VllmServerOptions struct {
@@ -132,77 +130,18 @@ type VllmServerOptions struct {
 	OverrideKVCacheALIGNSize  int    `json:"override_kv_cache_align_size,omitempty"`
 }
 
-// BuildCommandArgs converts VllmServerOptions to command line arguments
+// BuildCommandArgs converts VllmServerOptions to command line arguments using the common builder
 // Note: This does NOT include the "serve" subcommand, that's handled at the instance level
 func (o *VllmServerOptions) BuildCommandArgs() []string {
-	var args []string
-
-	v := reflect.ValueOf(o).Elem()
-	t := v.Type()
-
-	for i := 0; i < v.NumField(); i++ {
-		field := v.Field(i)
-		fieldType := t.Field(i)
-
-		// Skip unexported fields
-		if !field.CanInterface() {
-			continue
-		}
-
-		// Get the JSON tag to determine the flag name
-		jsonTag := fieldType.Tag.Get("json")
-		if jsonTag == "" || jsonTag == "-" {
-			continue
-		}
-
-		// Remove ",omitempty" from the tag
-		flagName := jsonTag
-		if commaIndex := strings.Index(jsonTag, ","); commaIndex != -1 {
-			flagName = jsonTag[:commaIndex]
-		}
-
-		// Convert snake_case to kebab-case for CLI flags
-		flagName = strings.ReplaceAll(flagName, "_", "-")
-
-		// Add the appropriate arguments based on field type and value
-		switch field.Kind() {
-		case reflect.Bool:
-			if field.Bool() {
-				args = append(args, "--"+flagName)
-			}
-		case reflect.Int:
-			if field.Int() != 0 {
-				args = append(args, "--"+flagName, strconv.FormatInt(field.Int(), 10))
-			}
-		case reflect.Float64:
-			if field.Float() != 0 {
-				args = append(args, "--"+flagName, strconv.FormatFloat(field.Float(), 'f', -1, 64))
-			}
-		case reflect.String:
-			if field.String() != "" {
-				args = append(args, "--"+flagName, field.String())
-			}
-		case reflect.Slice:
-			if field.Type().Elem().Kind() == reflect.String {
-				// Handle []string fields - some are comma-separated, some use multiple flags
-				if flagName == "api-key" || flagName == "allowed-origins" || flagName == "allowed-methods" || flagName == "allowed-headers" || flagName == "middleware" {
-					// Multiple flags for these
-					for j := 0; j < field.Len(); j++ {
-						args = append(args, "--"+flagName, field.Index(j).String())
-					}
-				} else {
-					// Comma-separated for others
-					if field.Len() > 0 {
-						var values []string
-						for j := 0; j < field.Len(); j++ {
-							values = append(values, field.Index(j).String())
-						}
-						args = append(args, "--"+flagName, strings.Join(values, ","))
-					}
-				}
-			}
-		}
+	config := backends.ArgsBuilderConfig{
+		SliceHandling: backends.SliceAsMixed,
+		MultipleFlags: map[string]struct{}{
+			"api-key":         {},
+			"allowed-origins": {},
+			"allowed-methods": {},
+			"allowed-headers": {},
+			"middleware":      {},
+		},
 	}
-
-	return args
+	return backends.BuildCommandArgs(o, config)
 }

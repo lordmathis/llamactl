@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -307,4 +308,124 @@ func isFlag(arg string) bool {
 	}
 
 	return true
+}
+
+// SliceHandling defines how []string fields should be handled when building command args
+type SliceHandling int
+
+const (
+	// SliceAsMultipleFlags creates multiple flags: --flag value1 --flag value2
+	SliceAsMultipleFlags SliceHandling = iota
+	// SliceAsCommaSeparated creates single flag with comma-separated values: --flag value1,value2
+	SliceAsCommaSeparated
+	// SliceAsMixed uses different strategies for different flags (requires configuration)
+	SliceAsMixed
+)
+
+// ArgsBuilderConfig holds configuration for building command line arguments
+type ArgsBuilderConfig struct {
+	// SliceHandling defines the default strategy for []string fields
+	SliceHandling SliceHandling
+	// MultipleFlags specifies which flags should use multiple instances when SliceHandling is SliceAsMixed
+	MultipleFlags map[string]struct{}
+}
+
+// BuildCommandArgs converts a struct to command line arguments using reflection
+func BuildCommandArgs(options any, config ArgsBuilderConfig) []string {
+	var args []string
+
+	v := reflect.ValueOf(options).Elem()
+	t := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+
+		// Skip unexported fields
+		if !field.CanInterface() {
+			continue
+		}
+
+		// Get the JSON tag to determine the flag name
+		jsonTag := fieldType.Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+
+		// Remove ",omitempty" from the tag
+		flagName := jsonTag
+		if commaIndex := strings.Index(jsonTag, ","); commaIndex != -1 {
+			flagName = jsonTag[:commaIndex]
+		}
+
+		// Convert snake_case to kebab-case for CLI flags
+		flagName = strings.ReplaceAll(flagName, "_", "-")
+
+		// Add the appropriate arguments based on field type and value
+		switch field.Kind() {
+		case reflect.Bool:
+			if field.Bool() {
+				args = append(args, "--"+flagName)
+			}
+		case reflect.Int:
+			if field.Int() != 0 {
+				args = append(args, "--"+flagName, strconv.FormatInt(field.Int(), 10))
+			}
+		case reflect.Float64:
+			if field.Float() != 0 {
+				args = append(args, "--"+flagName, strconv.FormatFloat(field.Float(), 'f', -1, 64))
+			}
+		case reflect.String:
+			if field.String() != "" {
+				args = append(args, "--"+flagName, field.String())
+			}
+		case reflect.Slice:
+			if field.Type().Elem().Kind() == reflect.String {
+				args = append(args, handleStringSlice(field, flagName, config)...)
+			}
+		}
+	}
+
+	return args
+}
+
+// handleStringSlice handles []string fields based on the configuration
+func handleStringSlice(field reflect.Value, flagName string, config ArgsBuilderConfig) []string {
+	if field.Len() == 0 {
+		return nil
+	}
+
+	var args []string
+
+	switch config.SliceHandling {
+	case SliceAsMultipleFlags:
+		// Multiple flags: --flag value1 --flag value2
+		for j := 0; j < field.Len(); j++ {
+			args = append(args, "--"+flagName, field.Index(j).String())
+		}
+	case SliceAsCommaSeparated:
+		// Comma-separated: --flag value1,value2
+		var values []string
+		for j := 0; j < field.Len(); j++ {
+			values = append(values, field.Index(j).String())
+		}
+		args = append(args, "--"+flagName, strings.Join(values, ","))
+	case SliceAsMixed:
+		// Check if this specific flag should use multiple instances
+		if _, useMultiple := config.MultipleFlags[flagName]; useMultiple {
+			// Multiple flags
+			for j := 0; j < field.Len(); j++ {
+				args = append(args, "--"+flagName, field.Index(j).String())
+			}
+		} else {
+			// Comma-separated
+			var values []string
+			for j := 0; j < field.Len(); j++ {
+				values = append(values, field.Index(j).String())
+			}
+			args = append(args, "--"+flagName, strings.Join(values, ","))
+		}
+	}
+
+	return args
 }
