@@ -58,6 +58,9 @@ func SetupRouter(handler *Handler) *chi.Mux {
 			r.Route("/mlx", func(r chi.Router) {
 				r.Post("/parse-command", handler.ParseMlxCommand())
 			})
+			r.Route("/vllm", func(r chi.Router) {
+				r.Post("/parse-command", handler.ParseVllmCommand())
+			})
 		})
 
 		// Instance management endpoints

@@ -52,6 +52,8 @@ func (i *Process) Start() error {
 		executable = i.globalBackendSettings.LlamaExecutable
 	case backends.BackendTypeMlxLm:
 		executable = i.globalBackendSettings.MLXLMExecutable
+	case backends.BackendTypeVllm:
+		executable = i.globalBackendSettings.VllmExecutable
 	default:
 		return fmt.Errorf("unsupported backend type: %s", i.options.BackendType)
 	}

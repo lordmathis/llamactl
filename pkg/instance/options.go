@@ -6,6 +6,7 @@ import (
 	"llamactl/pkg/backends"
 	"llamactl/pkg/backends/llamacpp"
 	"llamactl/pkg/backends/mlx"
+	"llamactl/pkg/backends/vllm"
 	"llamactl/pkg/config"
 	"log"
 )
@@ -26,6 +27,7 @@ type CreateInstanceOptions struct {
 	// Backend-specific options
 	LlamaServerOptions *llamacpp.LlamaServerOptions `json:"-"`
 	MlxServerOptions   *mlx.MlxServerOptions        `json:"-"`
+	VllmServerOptions  *vllm.VllmServerOptions      `json:"-"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for CreateInstanceOptions
@@ -63,10 +65,22 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 			if err != nil {
 				return fmt.Errorf("failed to marshal backend options: %w", err)
 			}
-			
+
 			c.MlxServerOptions = &mlx.MlxServerOptions{}
 			if err := json.Unmarshal(optionsData, c.MlxServerOptions); err != nil {
 				return fmt.Errorf("failed to unmarshal MLX options: %w", err)
+			}
+		}
+	case backends.BackendTypeVllm:
+		if c.BackendOptions != nil {
+			optionsData, err := json.Marshal(c.BackendOptions)
+			if err != nil {
+				return fmt.Errorf("failed to marshal backend options: %w", err)
+			}
+
+			c.VllmServerOptions = &vllm.VllmServerOptions{}
+			if err := json.Unmarshal(optionsData, c.VllmServerOptions); err != nil {
+				return fmt.Errorf("failed to unmarshal vLLM options: %w", err)
 			}
 		}
 	default:
@@ -107,6 +121,20 @@ func (c *CreateInstanceOptions) MarshalJSON() ([]byte, error) {
 			data, err := json.Marshal(c.MlxServerOptions)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal MLX server options: %w", err)
+			}
+
+			var backendOpts map[string]any
+			if err := json.Unmarshal(data, &backendOpts); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal to map: %w", err)
+			}
+
+			aux.BackendOptions = backendOpts
+		}
+	case backends.BackendTypeVllm:
+		if c.VllmServerOptions != nil {
+			data, err := json.Marshal(c.VllmServerOptions)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal vLLM server options: %w", err)
 			}
 
 			var backendOpts map[string]any
@@ -170,6 +198,13 @@ func (c *CreateInstanceOptions) BuildCommandArgs() []string {
 	case backends.BackendTypeMlxLm:
 		if c.MlxServerOptions != nil {
 			return c.MlxServerOptions.BuildCommandArgs()
+		}
+	case backends.BackendTypeVllm:
+		if c.VllmServerOptions != nil {
+			// Prepend "serve" as first argument
+			args := []string{"serve"}
+			args = append(args, c.VllmServerOptions.BuildCommandArgs()...)
+			return args
 		}
 	}
 	return []string{}
