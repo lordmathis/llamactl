@@ -130,18 +130,15 @@ type VllmServerOptions struct {
 	OverrideKVCacheALIGNSize  int    `json:"override_kv_cache_align_size,omitempty"`
 }
 
-// BuildCommandArgs converts VllmServerOptions to command line arguments using the common builder
+// BuildCommandArgs converts VllmServerOptions to command line arguments
 // Note: This does NOT include the "serve" subcommand, that's handled at the instance level
 func (o *VllmServerOptions) BuildCommandArgs() []string {
-	config := backends.ArgsBuilderConfig{
-		SliceHandling: backends.SliceAsMixed,
-		MultipleFlags: map[string]struct{}{
-			"api-key":         {},
-			"allowed-origins": {},
-			"allowed-methods": {},
-			"allowed-headers": {},
-			"middleware":      {},
-		},
+	multipleFlags := map[string]bool{
+		"api-key":         true,
+		"allowed-origins": true,
+		"allowed-methods": true,
+		"allowed-headers": true,
+		"middleware":      true,
 	}
-	return backends.BuildCommandArgs(o, config)
+	return backends.BuildCommandArgs(o, multipleFlags)
 }

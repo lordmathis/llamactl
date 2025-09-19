@@ -313,10 +313,18 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// BuildCommandArgs converts InstanceOptions to command line arguments using the common builder
+// BuildCommandArgs converts InstanceOptions to command line arguments
 func (o *LlamaServerOptions) BuildCommandArgs() []string {
-	config := backends.ArgsBuilderConfig{
-		SliceHandling: backends.SliceAsMultipleFlags, // Llama uses multiple flags for arrays
+	// Llama uses multiple flags for arrays by default (not comma-separated)
+	multipleFlags := map[string]bool{
+		"override-tensor":       true,
+		"override-kv":           true,
+		"lora":                  true,
+		"lora-scaled":           true,
+		"control-vector":        true,
+		"control-vector-scaled": true,
+		"dry-sequence-breaker":  true,
+		"logit-bias":            true,
 	}
-	return backends.BuildCommandArgs(o, config)
+	return backends.BuildCommandArgs(o, multipleFlags)
 }

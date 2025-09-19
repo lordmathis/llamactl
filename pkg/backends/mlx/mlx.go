@@ -106,10 +106,8 @@ func (o *MlxServerOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// BuildCommandArgs converts to command line arguments using the common builder
+// BuildCommandArgs converts to command line arguments
 func (o *MlxServerOptions) BuildCommandArgs() []string {
-	config := backends.ArgsBuilderConfig{
-		SliceHandling: backends.SliceAsMultipleFlags, // MLX doesn't currently have []string fields, but default to multiple flags
-	}
-	return backends.BuildCommandArgs(o, config)
+	multipleFlags := map[string]bool{} // MLX doesn't currently have []string fields
+	return backends.BuildCommandArgs(o, multipleFlags)
 }

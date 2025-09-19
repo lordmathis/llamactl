@@ -11,27 +11,14 @@ import (
 // 3. Args only: "--model model/path --host 0.0.0.0"
 // 4. Multiline commands with backslashes
 func ParseMlxCommand(command string) (*MlxServerOptions, error) {
-	config := backends.CommandParserConfig{
-		ExecutableNames:  []string{"mlx_lm.server"},
-		MultiValuedFlags: map[string]struct{}{}, // MLX has no multi-valued flags
-	}
+	executableNames := []string{"mlx_lm.server"}
+	var subcommandNames []string // MLX has no subcommands
+	multiValuedFlags := map[string]bool{} // MLX has no multi-valued flags
 
 	var mlxOptions MlxServerOptions
-	if err := backends.ParseCommand(command, config, &mlxOptions); err != nil {
+	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &mlxOptions); err != nil {
 		return nil, err
 	}
 
 	return &mlxOptions, nil
 }
-
-// isValidLogLevel validates MLX log levels
-func isValidLogLevel(level string) bool {
-	validLevels := []string{"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
-	for _, valid := range validLevels {
-		if level == valid {
-			return true
-		}
-	}
-	return false
-}
-

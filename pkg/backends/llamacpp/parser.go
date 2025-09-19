@@ -11,22 +11,21 @@ import (
 // 3. Args only: "--model file.gguf --gpu-layers 32"
 // 4. Multiline commands with backslashes
 func ParseLlamaCommand(command string) (*LlamaServerOptions, error) {
-	config := backends.CommandParserConfig{
-		ExecutableNames: []string{"llama-server"},
-		MultiValuedFlags: map[string]struct{}{
-			"override_tensor":       {},
-			"override_kv":           {},
-			"lora":                  {},
-			"lora_scaled":           {},
-			"control_vector":        {},
-			"control_vector_scaled": {},
-			"dry_sequence_breaker":  {},
-			"logit_bias":            {},
-		},
+	executableNames := []string{"llama-server"}
+	var subcommandNames []string // Llama has no subcommands
+	multiValuedFlags := map[string]bool{
+		"override_tensor":       true,
+		"override_kv":           true,
+		"lora":                  true,
+		"lora_scaled":           true,
+		"control_vector":        true,
+		"control_vector_scaled": true,
+		"dry_sequence_breaker":  true,
+		"logit_bias":            true,
 	}
 
 	var llamaOptions LlamaServerOptions
-	if err := backends.ParseCommand(command, config, &llamaOptions); err != nil {
+	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &llamaOptions); err != nil {
 		return nil, err
 	}
 

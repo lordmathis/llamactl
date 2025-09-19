@@ -12,22 +12,20 @@ import (
 // 4. Args only: "--model MODEL_NAME --other-args"
 // 5. Multiline commands with backslashes
 func ParseVllmCommand(command string) (*VllmServerOptions, error) {
-	config := backends.CommandParserConfig{
-		ExecutableNames: []string{"vllm"},
-		SubcommandNames: []string{"serve"},
-		MultiValuedFlags: map[string]struct{}{
-			"middleware":      {},
-			"api_key":         {},
-			"allowed_origins": {},
-			"allowed_methods": {},
-			"allowed_headers": {},
-			"lora_modules":    {},
-			"prompt_adapters": {},
-		},
+	executableNames := []string{"vllm"}
+	subcommandNames := []string{"serve"}
+	multiValuedFlags := map[string]bool{
+		"middleware":      true,
+		"api_key":         true,
+		"allowed_origins": true,
+		"allowed_methods": true,
+		"allowed_headers": true,
+		"lora_modules":    true,
+		"prompt_adapters": true,
 	}
 
 	var vllmOptions VllmServerOptions
-	if err := backends.ParseCommand(command, config, &vllmOptions); err != nil {
+	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &vllmOptions); err != nil {
 		return nil, err
 	}
 
