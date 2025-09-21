@@ -1,4 +1,5 @@
 import type { CreateInstanceOptions, Instance } from "@/types/instance";
+import { handleApiError } from "./errorUtils";
 
 const API_BASE = "/api/v1";
 
@@ -30,25 +31,8 @@ async function apiCall<T>(
       headers,
     });
 
-    // Handle authentication errors
-    if (response.status === 401) {
-      throw new Error('Authentication required');
-    }
-
-    if (!response.ok) {
-      // Try to get error message from response
-      let errorMessage = `HTTP ${response.status}`;
-      try {
-        const errorText = await response.text();
-        if (errorText) {
-          errorMessage += `: ${errorText}`;
-        }
-      } catch {
-        // If we can't read the error, just use status
-      }
-
-      throw new Error(errorMessage);
-    }
+    // Handle errors using centralized error handler
+    await handleApiError(response);
 
     // Handle empty responses (like DELETE)
     if (response.status === 204) {

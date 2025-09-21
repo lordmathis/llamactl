@@ -20,7 +20,6 @@ export const basicFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
-  required?: boolean
 }> = {
   auto_restart: {
     label: 'Auto Restart',
@@ -56,13 +55,11 @@ const basicLlamaCppFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
-  required?: boolean
 }> = {
   model: {
     label: 'Model Path',
     placeholder: '/path/to/model.gguf',
-    description: 'Path to the model file',
-    required: true
+    description: 'Path to the model file'
   },
   hf_repo: {
     label: 'Hugging Face Repository',
@@ -86,13 +83,11 @@ const basicMlxFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
-  required?: boolean
 }> = {
   model: {
     label: 'Model',
     placeholder: 'mlx-community/Mistral-7B-Instruct-v0.3-4bit',
-    description: 'The path to the MLX model weights, tokenizer, and config',
-    required: true
+    description: 'The path to the MLX model weights, tokenizer, and config'
   },
   temp: {
     label: 'Temperature',
@@ -126,13 +121,11 @@ const basicVllmFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
-  required?: boolean
 }> = {
   model: {
     label: 'Model',
     placeholder: 'microsoft/DialoGPT-medium',
-    description: 'The name or path of the Hugging Face model to use',
-    required: true
+    description: 'The name or path of the Hugging Face model to use'
   },
   tensor_parallel_size: {
     label: 'Tensor Parallel Size',
@@ -146,10 +139,22 @@ const basicVllmFieldsConfig: Record<string, {
   }
 }
 
+// Backend field configuration lookup
+const backendFieldConfigs = {
+  mlx_lm: basicMlxFieldsConfig,
+  vllm: basicVllmFieldsConfig,
+  llama_cpp: basicLlamaCppFieldsConfig,
+} as const
+
+const backendFieldGetters = {
+  mlx_lm: getAllMlxFieldKeys,
+  vllm: getAllVllmFieldKeys,
+  llama_cpp: getAllLlamaCppFieldKeys,
+} as const
+
 function isBasicField(key: keyof CreateInstanceOptions): boolean {
   return key in basicFieldsConfig
 }
-
 
 export function getBasicFields(): (keyof CreateInstanceOptions)[] {
   return Object.keys(basicFieldsConfig) as (keyof CreateInstanceOptions)[]
@@ -159,29 +164,18 @@ export function getAdvancedFields(): (keyof CreateInstanceOptions)[] {
   return getAllFieldKeys().filter(key => !isBasicField(key))
 }
 
-
 export function getBasicBackendFields(backendType?: string): string[] {
-  if (backendType === 'mlx_lm') {
-    return Object.keys(basicMlxFieldsConfig)
-  } else if (backendType === 'vllm') {
-    return Object.keys(basicVllmFieldsConfig)
-  } else if (backendType === 'llama_cpp') {
-    return Object.keys(basicLlamaCppFieldsConfig)
-  }
-  // Default to LlamaCpp for backward compatibility
-  return Object.keys(basicLlamaCppFieldsConfig)
+  const normalizedType = (backendType || 'llama_cpp') as keyof typeof backendFieldConfigs
+  const config = backendFieldConfigs[normalizedType] || basicLlamaCppFieldsConfig
+  return Object.keys(config)
 }
 
 export function getAdvancedBackendFields(backendType?: string): string[] {
-  if (backendType === 'mlx_lm') {
-    return getAllMlxFieldKeys().filter(key => !(key in basicMlxFieldsConfig))
-  } else if (backendType === 'vllm') {
-    return getAllVllmFieldKeys().filter(key => !(key in basicVllmFieldsConfig))
-  } else if (backendType === 'llama_cpp') {
-    return getAllLlamaCppFieldKeys().filter(key => !(key in basicLlamaCppFieldsConfig))
-  }
-  // Default to LlamaCpp for backward compatibility
-  return getAllLlamaCppFieldKeys().filter(key => !(key in basicLlamaCppFieldsConfig))
+  const normalizedType = (backendType || 'llama_cpp') as keyof typeof backendFieldGetters
+  const fieldGetter = backendFieldGetters[normalizedType] || getAllLlamaCppFieldKeys
+  const basicConfig = backendFieldConfigs[normalizedType] || basicLlamaCppFieldsConfig
+
+  return fieldGetter().filter(key => !(key in basicConfig))
 }
 
 // Combined backend fields config for use in BackendFormField
@@ -189,7 +183,6 @@ export const basicBackendFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
-  required?: boolean
 }> = {
   ...basicLlamaCppFieldsConfig,
   ...basicMlxFieldsConfig,

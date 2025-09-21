@@ -45,7 +45,6 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
           <div className="grid gap-2">
             <Label htmlFor={fieldKey}>
               {config.label}
-              {config.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
             <Input
               id={fieldKey}
@@ -72,7 +71,6 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
           <div className="grid gap-2">
             <Label htmlFor={fieldKey}>
               {config.label}
-              {config.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
             <Input
               id={fieldKey}
@@ -99,7 +97,6 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
           <div className="grid gap-2">
             <Label htmlFor={fieldKey}>
               {config.label}
-              {config.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
             <Input
               id={fieldKey}

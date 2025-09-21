@@ -29,7 +29,6 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
         <div className="grid gap-2">
           <Label htmlFor={fieldKey}>
             {config.label}
-            {config.required && <span className="text-red-500 ml-1">*</span>}
           </Label>
           <select
             id={fieldKey}
@@ -71,8 +70,7 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
           <div className="grid gap-2">
             <Label htmlFor={fieldKey}>
               {config.label}
-              {config.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+              </Label>
             <Input
               id={fieldKey}
               type="number"
@@ -98,8 +96,7 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
           <div className="grid gap-2">
             <Label htmlFor={fieldKey}>
               {config.label}
-              {config.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+              </Label>
             <Input
               id={fieldKey}
               type="text"
@@ -125,8 +122,7 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
           <div className="grid gap-2">
             <Label htmlFor={fieldKey}>
               {config.label}
-              {config.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
+              </Label>
             <Input
               id={fieldKey}
               type="text"

@@ -81,17 +81,14 @@ const ParseCommandDialog: React.FC<ParseCommandDialogProps> = ({
     onOpenChange(open);
   };
 
+  const backendPlaceholders: Record<BackendTypeValue, string> = {
+    [BackendType.LLAMA_CPP]: "llama-server --model /path/to/model.gguf --gpu-layers 32 --ctx-size 4096",
+    [BackendType.MLX_LM]: "mlx_lm.server --model mlx-community/Mistral-7B-Instruct-v0.3-4bit --host 0.0.0.0 --port 8080",
+    [BackendType.VLLM]: "vllm serve --model microsoft/DialoGPT-medium --tensor-parallel-size 2 --gpu-memory-utilization 0.9",
+  };
+
   const getPlaceholderForBackend = (backendType: BackendTypeValue): string => {
-    switch (backendType) {
-      case BackendType.LLAMA_CPP:
-        return "llama-server --model /path/to/model.gguf --gpu-layers 32 --ctx-size 4096";
-      case BackendType.MLX_LM:
-        return "mlx_lm.server --model mlx-community/Mistral-7B-Instruct-v0.3-4bit --host 0.0.0.0 --port 8080";
-      case BackendType.VLLM:
-        return "vllm serve --model microsoft/DialoGPT-medium --tensor-parallel-size 2 --gpu-memory-utilization 0.9";
-      default:
-        return "Enter your command here...";
-    }
+    return backendPlaceholders[backendType] || "Enter your command here...";
   };
 
   return (
