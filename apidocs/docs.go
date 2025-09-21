@@ -19,6 +19,159 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/backends/llama-cpp/parse-command": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Parses a llama-server command string into instance options",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Parse llama-server command",
+                "parameters": [
+                    {
+                        "description": "Command to parse",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.ParseCommandRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Parsed options",
+                        "schema": {
+                            "$ref": "#/definitions/instance.CreateInstanceOptions"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or command",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/backends/mlx/parse-command": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Parses MLX-LM server command string into instance options",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Parse mlx_lm.server command",
+                "parameters": [
+                    {
+                        "description": "Command to parse",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.ParseCommandRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Parsed options",
+                        "schema": {
+                            "$ref": "#/definitions/instance.CreateInstanceOptions"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or command",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/backends/vllm/parse-command": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Parses a vLLM serve command string into instance options",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Parse vllm serve command",
+                "parameters": [
+                    {
+                        "description": "Command to parse",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.ParseCommandRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Parsed options",
+                        "schema": {
+                            "$ref": "#/definitions/instance.CreateInstanceOptions"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or command",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/instances": {
             "get": {
                 "security": [
@@ -681,522 +834,46 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "backends.BackendType": {
+            "type": "string",
+            "enum": [
+                "llama_cpp",
+                "mlx_lm",
+                "vllm"
+            ],
+            "x-enum-varnames": [
+                "BackendTypeLlamaCpp",
+                "BackendTypeMlxLm",
+                "BackendTypeVllm"
+            ]
+        },
         "instance.CreateInstanceOptions": {
             "type": "object",
             "properties": {
-                "alias": {
-                    "type": "string"
-                },
-                "api_key": {
-                    "type": "string"
-                },
-                "api_key_file": {
-                    "type": "string"
-                },
                 "auto_restart": {
                     "description": "Auto restart",
                     "type": "boolean"
                 },
-                "batch_size": {
-                    "type": "integer"
+                "backend_options": {
+                    "type": "object",
+                    "additionalProperties": {}
                 },
-                "cache_reuse": {
-                    "type": "integer"
-                },
-                "cache_type_k": {
-                    "type": "string"
-                },
-                "cache_type_k_draft": {
-                    "type": "string"
-                },
-                "cache_type_v": {
-                    "type": "string"
-                },
-                "cache_type_v_draft": {
-                    "type": "string"
-                },
-                "chat_template": {
-                    "type": "string"
-                },
-                "chat_template_file": {
-                    "type": "string"
-                },
-                "chat_template_kwargs": {
-                    "type": "string"
-                },
-                "check_tensors": {
-                    "type": "boolean"
-                },
-                "cont_batching": {
-                    "type": "boolean"
-                },
-                "control_vector": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "control_vector_layer_range": {
-                    "type": "string"
-                },
-                "control_vector_scaled": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "cpu_mask": {
-                    "type": "string"
-                },
-                "cpu_mask_batch": {
-                    "type": "string"
-                },
-                "cpu_range": {
-                    "type": "string"
-                },
-                "cpu_range_batch": {
-                    "type": "string"
-                },
-                "cpu_strict": {
-                    "type": "integer"
-                },
-                "cpu_strict_batch": {
-                    "type": "integer"
-                },
-                "ctx_size": {
-                    "type": "integer"
-                },
-                "ctx_size_draft": {
-                    "type": "integer"
-                },
-                "defrag_thold": {
-                    "type": "number"
-                },
-                "device": {
-                    "type": "string"
-                },
-                "device_draft": {
-                    "type": "string"
-                },
-                "draft_max": {
-                    "type": "integer"
-                },
-                "draft_min": {
-                    "type": "integer"
-                },
-                "draft_p_min": {
-                    "type": "number"
-                },
-                "dry_allowed_length": {
-                    "type": "integer"
-                },
-                "dry_base": {
-                    "type": "number"
-                },
-                "dry_multiplier": {
-                    "type": "number"
-                },
-                "dry_penalty_last_n": {
-                    "type": "integer"
-                },
-                "dry_sequence_breaker": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "dump_kv_cache": {
-                    "type": "boolean"
-                },
-                "dynatemp_exp": {
-                    "type": "number"
-                },
-                "dynatemp_range": {
-                    "type": "number"
-                },
-                "embd_bge_small_en_default": {
-                    "description": "Default model params",
-                    "type": "boolean"
-                },
-                "embd_e5_small_en_default": {
-                    "type": "boolean"
-                },
-                "embd_gte_small_default": {
-                    "type": "boolean"
-                },
-                "embedding": {
-                    "type": "boolean"
-                },
-                "escape": {
-                    "type": "boolean"
-                },
-                "fim_qwen_14b_spec": {
-                    "type": "boolean"
-                },
-                "fim_qwen_1_5b_default": {
-                    "type": "boolean"
-                },
-                "fim_qwen_3b_default": {
-                    "type": "boolean"
-                },
-                "fim_qwen_7b_default": {
-                    "type": "boolean"
-                },
-                "fim_qwen_7b_spec": {
-                    "type": "boolean"
-                },
-                "flash_attn": {
-                    "type": "boolean"
-                },
-                "frequency_penalty": {
-                    "type": "number"
-                },
-                "gpu_layers": {
-                    "type": "integer"
-                },
-                "gpu_layers_draft": {
-                    "type": "integer"
-                },
-                "grammar": {
-                    "type": "string"
-                },
-                "grammar_file": {
-                    "type": "string"
-                },
-                "hf_file": {
-                    "type": "string"
-                },
-                "hf_file_v": {
-                    "type": "string"
-                },
-                "hf_repo": {
-                    "type": "string"
-                },
-                "hf_repo_draft": {
-                    "type": "string"
-                },
-                "hf_repo_v": {
-                    "type": "string"
-                },
-                "hf_token": {
-                    "type": "string"
-                },
-                "host": {
-                    "type": "string"
+                "backend_type": {
+                    "$ref": "#/definitions/backends.BackendType"
                 },
                 "idle_timeout": {
                     "description": "Idle timeout",
                     "type": "integer"
                 },
-                "ignore_eos": {
-                    "type": "boolean"
-                },
-                "jinja": {
-                    "type": "boolean"
-                },
-                "json_schema": {
-                    "type": "string"
-                },
-                "json_schema_file": {
-                    "type": "string"
-                },
-                "keep": {
-                    "type": "integer"
-                },
-                "log_colors": {
-                    "type": "boolean"
-                },
-                "log_disable": {
-                    "type": "boolean"
-                },
-                "log_file": {
-                    "type": "string"
-                },
-                "log_prefix": {
-                    "type": "boolean"
-                },
-                "log_timestamps": {
-                    "type": "boolean"
-                },
-                "logit_bias": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "lora": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "lora_init_without_apply": {
-                    "type": "boolean"
-                },
-                "lora_scaled": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "main_gpu": {
-                    "type": "integer"
-                },
                 "max_restarts": {
                     "type": "integer"
-                },
-                "metrics": {
-                    "type": "boolean"
-                },
-                "min_p": {
-                    "type": "number"
-                },
-                "mirostat": {
-                    "type": "integer"
-                },
-                "mirostat_ent": {
-                    "type": "number"
-                },
-                "mirostat_lr": {
-                    "type": "number"
-                },
-                "mlock": {
-                    "type": "boolean"
-                },
-                "mmproj": {
-                    "type": "string"
-                },
-                "mmproj_url": {
-                    "type": "string"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "model_draft": {
-                    "type": "string"
-                },
-                "model_url": {
-                    "type": "string"
-                },
-                "model_vocoder": {
-                    "description": "Audio/TTS params",
-                    "type": "string"
-                },
-                "no_cont_batching": {
-                    "type": "boolean"
-                },
-                "no_context_shift": {
-                    "description": "Example-specific params",
-                    "type": "boolean"
-                },
-                "no_escape": {
-                    "type": "boolean"
-                },
-                "no_kv_offload": {
-                    "type": "boolean"
-                },
-                "no_mmap": {
-                    "type": "boolean"
-                },
-                "no_mmproj": {
-                    "type": "boolean"
-                },
-                "no_mmproj_offload": {
-                    "type": "boolean"
-                },
-                "no_perf": {
-                    "type": "boolean"
-                },
-                "no_prefill_assistant": {
-                    "type": "boolean"
-                },
-                "no_slots": {
-                    "type": "boolean"
-                },
-                "no_warmup": {
-                    "type": "boolean"
-                },
-                "no_webui": {
-                    "type": "boolean"
-                },
-                "numa": {
-                    "type": "string"
                 },
                 "on_demand_start": {
                     "description": "On demand start",
                     "type": "boolean"
                 },
-                "override_kv": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "override_tensor": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "parallel": {
-                    "type": "integer"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "poll": {
-                    "type": "integer"
-                },
-                "poll_batch": {
-                    "type": "integer"
-                },
-                "pooling": {
-                    "type": "string"
-                },
-                "port": {
-                    "type": "integer"
-                },
-                "predict": {
-                    "type": "integer"
-                },
-                "presence_penalty": {
-                    "type": "number"
-                },
-                "prio": {
-                    "type": "integer"
-                },
-                "prio_batch": {
-                    "type": "integer"
-                },
-                "props": {
-                    "type": "boolean"
-                },
-                "reasoning_budget": {
-                    "type": "integer"
-                },
-                "reasoning_format": {
-                    "type": "string"
-                },
-                "repeat_last_n": {
-                    "type": "integer"
-                },
-                "repeat_penalty": {
-                    "type": "number"
-                },
-                "reranking": {
-                    "type": "boolean"
-                },
                 "restart_delay": {
-                    "type": "integer"
-                },
-                "rope_freq_base": {
-                    "type": "number"
-                },
-                "rope_freq_scale": {
-                    "type": "number"
-                },
-                "rope_scale": {
-                    "type": "number"
-                },
-                "rope_scaling": {
-                    "type": "string"
-                },
-                "samplers": {
-                    "description": "Sampling params",
-                    "type": "string"
-                },
-                "sampling_seq": {
-                    "type": "string"
-                },
-                "seed": {
-                    "type": "integer"
-                },
-                "slot_prompt_similarity": {
-                    "type": "number"
-                },
-                "slot_save_path": {
-                    "type": "string"
-                },
-                "slots": {
-                    "type": "boolean"
-                },
-                "special": {
-                    "type": "boolean"
-                },
-                "split_mode": {
-                    "type": "string"
-                },
-                "spm_infill": {
-                    "type": "boolean"
-                },
-                "ssl_cert_file": {
-                    "type": "string"
-                },
-                "ssl_key_file": {
-                    "type": "string"
-                },
-                "temp": {
-                    "type": "number"
-                },
-                "tensor_split": {
-                    "type": "string"
-                },
-                "threads": {
-                    "type": "integer"
-                },
-                "threads_batch": {
-                    "type": "integer"
-                },
-                "threads_http": {
-                    "type": "integer"
-                },
-                "timeout": {
-                    "type": "integer"
-                },
-                "top_k": {
-                    "type": "integer"
-                },
-                "top_p": {
-                    "type": "number"
-                },
-                "tts_use_guide_tokens": {
-                    "type": "boolean"
-                },
-                "typical": {
-                    "type": "number"
-                },
-                "ubatch_size": {
-                    "type": "integer"
-                },
-                "verbose": {
-                    "type": "boolean"
-                },
-                "verbose_prompt": {
-                    "description": "Common params",
-                    "type": "boolean"
-                },
-                "verbosity": {
-                    "type": "integer"
-                },
-                "xtc_probability": {
-                    "type": "number"
-                },
-                "xtc_threshold": {
-                    "type": "number"
-                },
-                "yarn_attn_factor": {
-                    "type": "number"
-                },
-                "yarn_beta_fast": {
-                    "type": "number"
-                },
-                "yarn_beta_slow": {
-                    "type": "number"
-                },
-                "yarn_ext_factor": {
-                    "type": "number"
-                },
-                "yarn_orig_ctx": {
+                    "description": "seconds",
                     "type": "integer"
                 }
             }
@@ -1261,6 +938,14 @@ const docTemplate = `{
                     }
                 },
                 "object": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.ParseCommandRequest": {
+            "type": "object",
+            "properties": {
+                "command": {
                     "type": "string"
                 }
             }
