@@ -1,14 +1,18 @@
-import { 
-  type CreateInstanceOptions, 
-  type LlamaCppBackendOptions, 
+import {
+  type CreateInstanceOptions,
+  type LlamaCppBackendOptions,
   type MlxBackendOptions,
+  type VllmBackendOptions,
   LlamaCppBackendOptionsSchema,
   MlxBackendOptionsSchema,
-  getAllFieldKeys, 
+  VllmBackendOptionsSchema,
+  getAllFieldKeys,
   getAllLlamaCppFieldKeys,
   getAllMlxFieldKeys,
+  getAllVllmFieldKeys,
   getLlamaCppFieldType,
-  getMlxFieldType
+  getMlxFieldType,
+  getVllmFieldType
 } from '@/schemas/instanceOptions'
 
 // Instance-level basic fields (not backend-specific)
@@ -117,6 +121,31 @@ const basicMlxFieldsConfig: Record<string, {
   }
 }
 
+// vLLM backend-specific basic fields
+const basicVllmFieldsConfig: Record<string, {
+  label: string
+  description?: string
+  placeholder?: string
+  required?: boolean
+}> = {
+  model: {
+    label: 'Model',
+    placeholder: 'microsoft/DialoGPT-medium',
+    description: 'The name or path of the Hugging Face model to use',
+    required: true
+  },
+  tensor_parallel_size: {
+    label: 'Tensor Parallel Size',
+    placeholder: '1',
+    description: 'Number of GPUs to use for distributed serving'
+  },
+  gpu_memory_utilization: {
+    label: 'GPU Memory Utilization',
+    placeholder: '0.9',
+    description: 'The fraction of GPU memory to be used for the model executor'
+  }
+}
+
 function isBasicField(key: keyof CreateInstanceOptions): boolean {
   return key in basicFieldsConfig
 }
@@ -134,6 +163,8 @@ export function getAdvancedFields(): (keyof CreateInstanceOptions)[] {
 export function getBasicBackendFields(backendType?: string): string[] {
   if (backendType === 'mlx_lm') {
     return Object.keys(basicMlxFieldsConfig)
+  } else if (backendType === 'vllm') {
+    return Object.keys(basicVllmFieldsConfig)
   } else if (backendType === 'llama_cpp') {
     return Object.keys(basicLlamaCppFieldsConfig)
   }
@@ -144,6 +175,8 @@ export function getBasicBackendFields(backendType?: string): string[] {
 export function getAdvancedBackendFields(backendType?: string): string[] {
   if (backendType === 'mlx_lm') {
     return getAllMlxFieldKeys().filter(key => !(key in basicMlxFieldsConfig))
+  } else if (backendType === 'vllm') {
+    return getAllVllmFieldKeys().filter(key => !(key in basicVllmFieldsConfig))
   } else if (backendType === 'llama_cpp') {
     return getAllLlamaCppFieldKeys().filter(key => !(key in basicLlamaCppFieldsConfig))
   }
@@ -159,7 +192,8 @@ export const basicBackendFieldsConfig: Record<string, {
   required?: boolean
 }> = {
   ...basicLlamaCppFieldsConfig,
-  ...basicMlxFieldsConfig
+  ...basicMlxFieldsConfig,
+  ...basicVllmFieldsConfig
 }
 
 // Get field type for any backend option (union type)
@@ -172,7 +206,7 @@ export function getBackendFieldType(key: string): 'text' | 'number' | 'boolean' 
   } catch {
     // Schema might not be available
   }
-  
+
   // Try MLX schema
   try {
     if (MlxBackendOptionsSchema.shape && key in MlxBackendOptionsSchema.shape) {
@@ -181,7 +215,16 @@ export function getBackendFieldType(key: string): 'text' | 'number' | 'boolean' 
   } catch {
     // Schema might not be available
   }
-  
+
+  // Try vLLM schema
+  try {
+    if (VllmBackendOptionsSchema.shape && key in VllmBackendOptionsSchema.shape) {
+      return getVllmFieldType(key as keyof VllmBackendOptions)
+    }
+  } catch {
+    // Schema might not be available
+  }
+
   // Default fallback
   return 'text'
 }

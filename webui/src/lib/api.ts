@@ -101,6 +101,14 @@ export const backendsApi = {
         body: JSON.stringify({ command }),
       }),
   },
+  vllm: {
+    // POST /backends/vllm/parse-command
+    parseCommand: (command: string) =>
+      apiCall<CreateInstanceOptions>('/backends/vllm/parse-command', {
+        method: 'POST',
+        body: JSON.stringify({ command }),
+      }),
+  },
 };
 
 // Instance API functions

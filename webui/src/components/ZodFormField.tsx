@@ -39,6 +39,7 @@ const ZodFormField: React.FC<ZodFormFieldProps> = ({ fieldKey, value, onChange }
           >
             <option value={BackendType.LLAMA_CPP}>Llama Server</option>
             <option value={BackendType.MLX_LM}>MLX LM</option>
+            <option value={BackendType.VLLM}>vLLM</option>
           </select>
           {config.description && (
             <p className="text-sm text-muted-foreground">{config.description}</p>
