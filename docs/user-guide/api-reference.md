@@ -170,7 +170,7 @@ POST /api/v1/instances/{name}/start
 ```json
 {
   "name": "llama2-7b",
-  "status": "starting",
+  "status": "running",
   "created": 1705312200
 }
 ```
@@ -191,7 +191,7 @@ POST /api/v1/instances/{name}/stop
 ```json
 {
   "name": "llama2-7b",
-  "status": "stopping",
+  "status": "stopped",
   "created": 1705312200
 }
 ```
@@ -208,7 +208,7 @@ POST /api/v1/instances/{name}/restart
 ```json
 {
   "name": "llama2-7b",
-  "status": "restarting",
+  "status": "running",
   "created": 1705312200
 }
 ```
@@ -316,9 +316,9 @@ The server routes requests to the appropriate instance based on the `model` fiel
 
 ## Instance Status Values
 
-Instances can have the following status values:  
-- `stopped`: Instance is not running  
-- `running`: Instance is running and ready to accept requests  
+Instances can have the following status values:
+- `stopped`: Instance is not running
+- `running`: Instance is running and ready to accept requests
 - `failed`: Instance failed to start or crashed  
 
 ## Error Responses
@@ -400,6 +400,102 @@ curl -X POST http://localhost:8080/api/v1/instances/my-model/proxy/completion \
     "n_predict": 50
   }'
 ```
+
+## Backend-Specific Endpoints
+
+### Parse Commands
+
+Llamactl provides endpoints to parse command strings from different backends into instance configuration options.
+
+#### Parse Llama.cpp Command
+
+Parse a llama-server command string into instance options.
+
+```http
+POST /api/v1/backends/llama-cpp/parse-command
+```
+
+**Request Body:**
+```json
+{
+  "command": "llama-server -m /path/to/model.gguf -c 2048 --port 8080"
+}
+```
+
+**Response:**
+```json
+{
+  "backend_type": "llama_cpp",
+  "llama_server_options": {
+    "model": "/path/to/model.gguf",
+    "ctx_size": 2048,
+    "port": 8080
+  }
+}
+```
+
+#### Parse MLX-LM Command
+
+Parse an MLX-LM server command string into instance options.
+
+```http
+POST /api/v1/backends/mlx/parse-command
+```
+
+**Request Body:**
+```json
+{
+  "command": "mlx_lm.server --model /path/to/model --port 8080"
+}
+```
+
+**Response:**
+```json
+{
+  "backend_type": "mlx_lm",
+  "mlx_server_options": {
+    "model": "/path/to/model",
+    "port": 8080
+  }
+}
+```
+
+#### Parse vLLM Command
+
+Parse a vLLM serve command string into instance options.
+
+```http
+POST /api/v1/backends/vllm/parse-command
+```
+
+**Request Body:**
+```json
+{
+  "command": "vllm serve /path/to/model --port 8080"
+}
+```
+
+**Response:**
+```json
+{
+  "backend_type": "vllm",
+  "vllm_server_options": {
+    "model": "/path/to/model",
+    "port": 8080
+  }
+}
+```
+
+**Error Responses for Parse Commands:**
+- `400 Bad Request`: Invalid request body, empty command, or parse error
+- `500 Internal Server Error`: Encoding error
+
+## Auto-Generated Documentation
+
+The API documentation is automatically generated from code annotations using Swagger/OpenAPI. To regenerate the documentation:
+
+1. Install the swag tool: `go install github.com/swaggo/swag/cmd/swag@latest`
+2. Generate docs: `swag init -g cmd/server/main.go -o apidocs`
 
 ## Swagger Documentation
 
