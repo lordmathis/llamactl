@@ -762,7 +762,7 @@ const docTemplate = `{
                         "description": "OpenAI response"
                     },
                     "400": {
-                        "description": "Invalid request body or model name",
+                        "description": "Invalid request body or instance name",
                         "schema": {
                             "type": "string"
                         }

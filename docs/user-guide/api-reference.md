@@ -310,7 +310,7 @@ POST /v1/reranking
 The server routes requests to the appropriate instance based on the `model` field in the request body. Instances with on-demand starting enabled will be automatically started if not running. For configuration details, see [Managing Instances](managing-instances.md).
 
 **Error Responses:**
-- `400 Bad Request`: Invalid request body or missing model name
+- `400 Bad Request`: Invalid request body or missing instance name
 - `503 Service Unavailable`: Instance is not running and on-demand start is disabled
 - `409 Conflict`: Cannot start instance due to maximum instances limit
 

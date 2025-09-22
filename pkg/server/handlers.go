@@ -551,7 +551,7 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 // @Accept json
 // @Produces json
 // @Success 200 "OpenAI response"
-// @Failure 400 {string} string "Invalid request body or model name"
+// @Failure 400 {string} string "Invalid request body or instance name"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /v1/ [post]
 func (h *Handler) OpenAIProxy() http.HandlerFunc {
@@ -564,7 +564,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		}
 		r.Body.Close()
 
-		// Parse the body to extract model name
+		// Parse the body to extract instance name
 		var requestBody map[string]any
 		if err := json.Unmarshal(bodyBytes, &requestBody); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -573,11 +573,11 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 
 		modelName, ok := requestBody["model"].(string)
 		if !ok || modelName == "" {
-			http.Error(w, "Model name is required", http.StatusBadRequest)
+			http.Error(w, "Instance name is required", http.StatusBadRequest)
 			return
 		}
 
-		// Route to the appropriate inst based on model name
+		// Route to the appropriate inst based on instance name
 		inst, err := h.InstanceManager.GetInstance(modelName)
 		if err != nil {
 			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
