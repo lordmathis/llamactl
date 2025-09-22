@@ -42,6 +42,9 @@ def on_page_markdown(markdown, page, config, **kwargs):
     markdown = markdown.replace('{{HEADLINE}}', headline)
     markdown = markdown.replace('{{FEATURES}}', features_with_breaks)
 
+    # Fix image paths: convert docs/images/ to images/ for MkDocs
+    markdown = re.sub(r'docs/images/', 'images/', markdown)
+
     return markdown
 
 
