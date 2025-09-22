@@ -202,6 +202,11 @@ func (i *Process) WaitForHealthy(timeout int) error {
 			host = opts.MlxServerOptions.Host
 			port = opts.MlxServerOptions.Port
 		}
+	case backends.BackendTypeVllm:
+		if opts.VllmServerOptions != nil {
+			host = opts.VllmServerOptions.Host
+			port = opts.VllmServerOptions.Port
+		}
 	}
 	if host == "" {
 		host = "localhost"

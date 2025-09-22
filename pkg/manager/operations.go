@@ -264,6 +264,10 @@ func (im *instanceManager) getPortFromOptions(options *instance.CreateInstanceOp
 		if options.MlxServerOptions != nil {
 			return options.MlxServerOptions.Port
 		}
+	case backends.BackendTypeVllm:
+		if options.VllmServerOptions != nil {
+			return options.VllmServerOptions.Port
+		}
 	}
 	return 0
 }
@@ -278,6 +282,10 @@ func (im *instanceManager) setPortInOptions(options *instance.CreateInstanceOpti
 	case backends.BackendTypeMlxLm:
 		if options.MlxServerOptions != nil {
 			options.MlxServerOptions.Port = port
+		}
+	case backends.BackendTypeVllm:
+		if options.VllmServerOptions != nil {
+			options.VllmServerOptions.Port = port
 		}
 	}
 }
