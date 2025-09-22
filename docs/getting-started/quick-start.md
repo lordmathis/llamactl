@@ -29,8 +29,9 @@ You should see the Llamactl web interface.
 1. Click the "Add Instance" button
 2. Fill in the instance configuration:
    - **Name**: Give your instance a descriptive name
-   - **Model Path**: Path to your Llama.cpp model file
-   - **Additional Options**: Any extra Llama.cpp parameters
+   - **Backend Type**: Choose from llama.cpp, MLX, or vLLM
+   - **Model**: Model path or identifier for your chosen backend
+   - **Additional Options**: Backend-specific parameters
 
 3. Click "Create Instance"
 
@@ -43,17 +44,46 @@ Once created, you can:
 - **View logs** by clicking the logs button
 - **Stop** the instance when needed
 
-## Example Configuration
+## Example Configurations
 
-Here's a basic example configuration for a Llama 2 model:
+Here are basic example configurations for each backend:
 
+**llama.cpp backend:**
 ```json
 {
   "name": "llama2-7b",
-  "model_path": "/path/to/llama-2-7b-chat.gguf",
-  "options": {
+  "backend_type": "llama_cpp",
+  "backend_options": {
+    "model": "/path/to/llama-2-7b-chat.gguf",
     "threads": 4,
-    "context_size": 2048
+    "ctx_size": 2048,
+    "gpu_layers": 32
+  }
+}
+```
+
+**MLX backend (macOS only):**
+```json
+{
+  "name": "mistral-mlx",
+  "backend_type": "mlx_lm",
+  "backend_options": {
+    "model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+    "temp": 0.7,
+    "max_tokens": 2048
+  }
+}
+```
+
+**vLLM backend:**
+```json
+{
+  "name": "dialogpt-vllm",
+  "backend_type": "vllm",
+  "backend_options": {
+    "model": "microsoft/DialoGPT-medium",
+    "tensor_parallel_size": 2,
+    "gpu_memory_utilization": 0.9
   }
 }
 ```
@@ -66,12 +96,14 @@ You can also manage instances via the REST API:
 # List all instances
 curl http://localhost:8080/api/instances
 
-# Create a new instance
-curl -X POST http://localhost:8080/api/instances \
+# Create a new llama.cpp instance
+curl -X POST http://localhost:8080/api/instances/my-model \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "my-model",
-    "model_path": "/path/to/model.gguf",
+    "backend_type": "llama_cpp",
+    "backend_options": {
+      "model": "/path/to/model.gguf"
+    }
   }'
 
 # Start an instance

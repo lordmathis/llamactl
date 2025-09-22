@@ -2,9 +2,9 @@ package llamacpp
 
 import (
 	"encoding/json"
+	"llamactl/pkg/backends"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
 type LlamaServerOptions struct {
@@ -315,62 +315,44 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 
 // BuildCommandArgs converts InstanceOptions to command line arguments
 func (o *LlamaServerOptions) BuildCommandArgs() []string {
-	var args []string
+	// Llama uses multiple flags for arrays by default (not comma-separated)
+	multipleFlags := map[string]bool{
+		"override-tensor":       true,
+		"override-kv":           true,
+		"lora":                  true,
+		"lora-scaled":           true,
+		"control-vector":        true,
+		"control-vector-scaled": true,
+		"dry-sequence-breaker":  true,
+		"logit-bias":            true,
+	}
+	return backends.BuildCommandArgs(o, multipleFlags)
+}
 
-	v := reflect.ValueOf(o).Elem()
-	t := v.Type()
-
-	for i := 0; i < v.NumField(); i++ {
-		field := v.Field(i)
-		fieldType := t.Field(i)
-
-		// Skip unexported fields
-		if !field.CanInterface() {
-			continue
-		}
-
-		// Get the JSON tag to determine the flag name
-		jsonTag := fieldType.Tag.Get("json")
-		if jsonTag == "" || jsonTag == "-" {
-			continue
-		}
-
-		// Remove ",omitempty" from the tag
-		flagName := jsonTag
-		if commaIndex := strings.Index(jsonTag, ","); commaIndex != -1 {
-			flagName = jsonTag[:commaIndex]
-		}
-
-		// Convert snake_case to kebab-case for CLI flags
-		flagName = strings.ReplaceAll(flagName, "_", "-")
-
-		// Add the appropriate arguments based on field type and value
-		switch field.Kind() {
-		case reflect.Bool:
-			if field.Bool() {
-				args = append(args, "--"+flagName)
-			}
-		case reflect.Int:
-			if field.Int() != 0 {
-				args = append(args, "--"+flagName, strconv.FormatInt(field.Int(), 10))
-			}
-		case reflect.Float64:
-			if field.Float() != 0 {
-				args = append(args, "--"+flagName, strconv.FormatFloat(field.Float(), 'f', -1, 64))
-			}
-		case reflect.String:
-			if field.String() != "" {
-				args = append(args, "--"+flagName, field.String())
-			}
-		case reflect.Slice:
-			if field.Type().Elem().Kind() == reflect.String {
-				// Handle []string fields
-				for j := 0; j < field.Len(); j++ {
-					args = append(args, "--"+flagName, field.Index(j).String())
-				}
-			}
-		}
+// ParseLlamaCommand parses a llama-server command string into LlamaServerOptions
+// Supports multiple formats:
+// 1. Full command: "llama-server --model file.gguf"
+// 2. Full path: "/usr/local/bin/llama-server --model file.gguf"
+// 3. Args only: "--model file.gguf --gpu-layers 32"
+// 4. Multiline commands with backslashes
+func ParseLlamaCommand(command string) (*LlamaServerOptions, error) {
+	executableNames := []string{"llama-server"}
+	var subcommandNames []string // Llama has no subcommands
+	multiValuedFlags := map[string]bool{
+		"override_tensor":       true,
+		"override_kv":           true,
+		"lora":                  true,
+		"lora_scaled":           true,
+		"control_vector":        true,
+		"control_vector_scaled": true,
+		"dry_sequence_breaker":  true,
+		"logit_bias":            true,
 	}
 
-	return args
+	var llamaOptions LlamaServerOptions
+	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &llamaOptions); err != nil {
+		return nil, err
+	}
+
+	return &llamaOptions, nil
 }

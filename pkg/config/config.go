@@ -17,6 +17,9 @@ type BackendConfig struct {
 
 	// Path to mlx_lm executable (MLX-LM backend)
 	MLXLMExecutable string `yaml:"mlx_lm_executable"`
+
+	// Path to vllm executable (vLLM backend)
+	VllmExecutable string `yaml:"vllm_executable"`
 }
 
 // AppConfig represents the configuration for llamactl
@@ -122,6 +125,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 		Backends: BackendConfig{
 			LlamaExecutable: "llama-server",
 			MLXLMExecutable: "mlx_lm.server",
+			VllmExecutable:  "vllm",
 		},
 		Instances: InstancesConfig{
 			PortRange:            [2]int{8000, 9000},
@@ -245,6 +249,9 @@ func loadEnvVars(cfg *AppConfig) {
 	}
 	if mlxLMExec := os.Getenv("LLAMACTL_MLX_LM_EXECUTABLE"); mlxLMExec != "" {
 		cfg.Backends.MLXLMExecutable = mlxLMExec
+	}
+	if vllmExec := os.Getenv("LLAMACTL_VLLM_EXECUTABLE"); vllmExec != "" {
+		cfg.Backends.VllmExecutable = vllmExec
 	}
 	if autoRestart := os.Getenv("LLAMACTL_DEFAULT_AUTO_RESTART"); autoRestart != "" {
 		if b, err := strconv.ParseBool(autoRestart); err == nil {

@@ -105,6 +105,10 @@ func (i *Process) GetPort() int {
 			if i.options.MlxServerOptions != nil {
 				return i.options.MlxServerOptions.Port
 			}
+		case backends.BackendTypeVllm:
+			if i.options.VllmServerOptions != nil {
+				return i.options.VllmServerOptions.Port
+			}
 		}
 	}
 	return 0
@@ -122,6 +126,10 @@ func (i *Process) GetHost() string {
 		case backends.BackendTypeMlxLm:
 			if i.options.MlxServerOptions != nil {
 				return i.options.MlxServerOptions.Host
+			}
+		case backends.BackendTypeVllm:
+			if i.options.VllmServerOptions != nil {
+				return i.options.VllmServerOptions.Host
 			}
 		}
 	}
@@ -175,6 +183,11 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 		if i.options.MlxServerOptions != nil {
 			host = i.options.MlxServerOptions.Host
 			port = i.options.MlxServerOptions.Port
+		}
+	case backends.BackendTypeVllm:
+		if i.options.VllmServerOptions != nil {
+			host = i.options.VllmServerOptions.Host
+			port = i.options.VllmServerOptions.Port
 		}
 	}
 

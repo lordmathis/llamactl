@@ -22,6 +22,7 @@ server:
 backends:
   llama_executable: llama-server # Path to llama-server executable
   mlx_lm_executable: mlx_lm.server # Path to mlx_lm.server executable
+  vllm_executable: vllm # Path to vllm executable
 
 instances:
   port_range: [8000, 9000]       # Port range for instances
@@ -94,11 +95,13 @@ server:
 backends:
   llama_executable: "llama-server"     # Path to llama-server executable (default: "llama-server")
   mlx_lm_executable: "mlx_lm.server"   # Path to mlx_lm.server executable (default: "mlx_lm.server")
+  vllm_executable: "vllm"              # Path to vllm executable (default: "vllm")
 ```
 
 **Environment Variables:**
 - `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable
 - `LLAMACTL_MLX_LM_EXECUTABLE` - Path to mlx_lm.server executable
+- `LLAMACTL_VLLM_EXECUTABLE` - Path to vllm executable
 
 ### Instance Configuration
 

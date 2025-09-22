@@ -37,6 +37,22 @@ pip install mlx-lm
 
 Note: MLX backend is only available on macOS with Apple Silicon (M1, M2, M3, etc.)
 
+**For vLLM backend:**
+
+vLLM provides high-throughput distributed serving for LLMs. Install vLLM:
+
+```bash
+# Install via pip (requires Python 3.8+, GPU required)
+pip install vllm
+
+# Or in a virtual environment (recommended)
+python -m venv vllm-env
+source vllm-env/bin/activate
+pip install vllm
+
+# For production deployments, consider container-based installation
+```
+
 ## Installation Methods
 
 ### Option 1: Download Binary (Recommended)

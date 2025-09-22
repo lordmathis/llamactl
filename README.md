@@ -13,7 +13,7 @@
 
 ### 🔗 Universal Compatibility
 - **OpenAI API Compatible**: Drop-in replacement - route requests by model name
-- **Multi-Backend Support**: Native support for both llama.cpp and MLX (Apple Silicon optimized)
+- **Multi-Backend Support**: Native support for llama.cpp, MLX (Apple Silicon optimized), and vLLM
 
 ### 🌐 User-Friendly Interface
 - **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)
@@ -31,6 +31,7 @@
 # 1. Install backend (one-time setup)
 # For llama.cpp: https://github.com/ggml-org/llama.cpp#quick-start
 # For MLX on macOS: pip install mlx-lm
+# For vLLM: pip install vllm
 
 # 2. Download and run llamactl
 LATEST_VERSION=$(curl -s https://api.github.com/repos/lordmathis/llamactl/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
@@ -47,7 +48,7 @@ llamactl
 ### Create and manage instances via web dashboard:
 1. Open http://localhost:8080
 2. Click "Create Instance"
-3. Choose backend type (llama.cpp or MLX)
+3. Choose backend type (llama.cpp, MLX, or vLLM)
 4. Set model path and backend-specific options
 5. Start or stop the instance
 
@@ -62,6 +63,11 @@ curl -X POST localhost:8080/api/v1/instances/my-7b-model \
 curl -X POST localhost:8080/api/v1/instances/my-mlx-model \
   -H "Authorization: Bearer your-key" \
   -d '{"backend_type": "mlx_lm", "backend_options": {"model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit"}}'
+
+# Create vLLM instance
+curl -X POST localhost:8080/api/v1/instances/my-vllm-model \
+  -H "Authorization: Bearer your-key" \
+  -d '{"backend_type": "vllm", "backend_options": {"model": "microsoft/DialoGPT-medium", "tensor_parallel_size": 2}}'
 
 # Use with OpenAI SDK
 curl -X POST localhost:8080/v1/chat/completions \
@@ -121,6 +127,21 @@ source mlx-env/bin/activate
 pip install mlx-lm
 ```
 
+**For vLLM backend:**
+You need vLLM installed:
+
+```bash
+# Install via pip (requires Python 3.8+, GPU required)
+pip install vllm
+
+# Or in a virtual environment (recommended)
+python -m venv vllm-env
+source vllm-env/bin/activate
+pip install vllm
+
+# For production deployments, consider container-based installation
+```
+
 ## Configuration
 
 llamactl works out of the box with sensible defaults.
@@ -135,6 +156,7 @@ server:
 backends:
   llama_executable: llama-server # Path to llama-server executable
   mlx_lm_executable: mlx_lm.server # Path to mlx_lm.server executable
+  vllm_executable: vllm # Path to vllm executable
 
 instances:
   port_range: [8000, 9000]       # Port range for instances

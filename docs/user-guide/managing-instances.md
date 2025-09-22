@@ -1,6 +1,6 @@
 # Managing Instances
 
-Learn how to effectively manage your llama.cpp and MLX instances with Llamactl through both the Web UI and API.
+Learn how to effectively manage your llama.cpp, MLX, and vLLM instances with Llamactl through both the Web UI and API.
 
 ## Overview
 
@@ -42,9 +42,11 @@ Each instance is displayed as a card showing:
 3. **Choose Backend Type**:
     - **llama.cpp**: For GGUF models using llama-server
     - **MLX**: For MLX-optimized models (macOS only)
+    - **vLLM**: For distributed serving and high-throughput inference
 4. Configure model source:
     - **For llama.cpp**: GGUF model path or HuggingFace repo
     - **For MLX**: MLX model path or identifier (e.g., `mlx-community/Mistral-7B-Instruct-v0.3-4bit`)
+    - **For vLLM**: HuggingFace model identifier (e.g., `microsoft/DialoGPT-medium`)
 5. Configure optional instance management settings:
     - **Auto Restart**: Automatically restart instance on failure
     - **Max Restarts**: Maximum number of restart attempts
@@ -54,6 +56,7 @@ Each instance is displayed as a card showing:
 6. Configure backend-specific options:
     - **llama.cpp**: Threads, context size, GPU layers, port, etc.
     - **MLX**: Temperature, top-p, adapter path, Python environment, etc.
+    - **vLLM**: Tensor parallel size, GPU memory utilization, quantization, etc.
 7. Click **"Create"** to save the instance  
 
 ### Via API
@@ -85,6 +88,20 @@ curl -X POST http://localhost:8080/api/instances/my-mlx-instance \
     },
     "auto_restart": true,
     "max_restarts": 3
+  }'
+
+# Create vLLM instance
+curl -X POST http://localhost:8080/api/instances/my-vllm-instance \
+  -H "Content-Type: application/json" \
+  -d '{
+    "backend_type": "vllm",
+    "backend_options": {
+      "model": "microsoft/DialoGPT-medium",
+      "tensor_parallel_size": 2,
+      "gpu_memory_utilization": 0.9
+    },
+    "auto_restart": true,
+    "on_demand_start": true
   }'
 
 # Create llama.cpp instance with HuggingFace model
@@ -179,16 +196,17 @@ curl -X DELETE http://localhost:8080/api/instances/{name}
 
 ## Instance Proxy
 
-Llamactl proxies all requests to the underlying backend instances (llama-server or MLX).
+Llamactl proxies all requests to the underlying backend instances (llama-server, MLX, or vLLM).
 
 ```bash
 # Get instance details
 curl http://localhost:8080/api/instances/{name}/proxy/
 ```
 
-Both backends provide OpenAI-compatible endpoints. Check the respective documentation:
+All backends provide OpenAI-compatible endpoints. Check the respective documentation:
 - [llama-server docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md)
 - [MLX-LM docs](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md)
+- [vLLM docs](https://docs.vllm.ai/en/latest/)
 
 ### Instance Health
 

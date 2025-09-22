@@ -52,6 +52,8 @@ func (i *Process) Start() error {
 		executable = i.globalBackendSettings.LlamaExecutable
 	case backends.BackendTypeMlxLm:
 		executable = i.globalBackendSettings.MLXLMExecutable
+	case backends.BackendTypeVllm:
+		executable = i.globalBackendSettings.VllmExecutable
 	default:
 		return fmt.Errorf("unsupported backend type: %s", i.options.BackendType)
 	}
@@ -199,6 +201,11 @@ func (i *Process) WaitForHealthy(timeout int) error {
 		if opts.MlxServerOptions != nil {
 			host = opts.MlxServerOptions.Host
 			port = opts.MlxServerOptions.Port
+		}
+	case backends.BackendTypeVllm:
+		if opts.VllmServerOptions != nil {
+			host = opts.VllmServerOptions.Host
+			port = opts.VllmServerOptions.Port
 		}
 	}
 	if host == "" {

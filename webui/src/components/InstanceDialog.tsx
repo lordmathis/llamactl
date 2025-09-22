@@ -11,11 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BackendType, type CreateInstanceOptions, type Instance } from "@/types/instance";
-import { getBasicFields, getAdvancedFields, getBasicBackendFields, getAdvancedBackendFields } from "@/lib/zodFormUtils";
+import { getAdvancedFields, getAdvancedBackendFields } from "@/lib/zodFormUtils";
 import { ChevronDown, ChevronRight, Terminal } from "lucide-react";
-import ZodFormField from "@/components/ZodFormField";
-import BackendFormField from "@/components/BackendFormField";
 import ParseCommandDialog from "@/components/ParseCommandDialog";
+import AutoRestartConfiguration from "@/components/instance/AutoRestartConfiguration";
+import BasicInstanceFields from "@/components/instance/BasicInstanceFields";
+import BackendConfiguration from "@/components/instance/BackendConfiguration";
+import AdvancedInstanceFields from "@/components/instance/AdvancedInstanceFields";
 
 interface InstanceDialogProps {
   open: boolean;
@@ -39,9 +41,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   const [showParseDialog, setShowParseDialog] = useState(false);
 
   // Get field lists dynamically from the type
-  const basicFields = getBasicFields();
   const advancedFields = getAdvancedFields();
-  const basicBackendFields = getBasicBackendFields(formData.backend_type);
   const advancedBackendFields = getAdvancedBackendFields(formData.backend_type);
 
   // Reset form when dialog opens/closes or when instance changes
@@ -163,8 +163,6 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
     setShowParseDialog(false);
   };
 
-  // Check if auto_restart is enabled
-  const isAutoRestartEnabled = formData.auto_restart === true;
 
   // Save button label logic
   let saveButtonLabel = "Create Instance";
@@ -212,70 +210,23 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
             </div>
 
             {/* Auto Restart Configuration Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">
-                Auto Restart Configuration
-              </h3>
+            <AutoRestartConfiguration
+              formData={formData}
+              onChange={handleFieldChange}
+            />
 
-              {/* Auto Restart Toggle */}
-              <ZodFormField
-                fieldKey="auto_restart"
-                value={formData.auto_restart}
-                onChange={handleFieldChange}
-              />
-
-              {/* Show restart options only when auto restart is enabled */}
-              {isAutoRestartEnabled && (
-                <div className="ml-6 space-y-4 border-l-2 border-muted pl-4">
-                  <ZodFormField
-                    fieldKey="max_restarts"
-                    value={formData.max_restarts}
-                    onChange={handleFieldChange}
-                  />
-                  <ZodFormField
-                    fieldKey="restart_delay"
-                    value={formData.restart_delay}
-                    onChange={handleFieldChange}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Basic Fields - Automatically generated from type (excluding auto restart options) */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Basic Configuration</h3>
-              {basicFields
-                .filter(
-                  (fieldKey) =>
-                    fieldKey !== "auto_restart" &&
-                    fieldKey !== "max_restarts" &&
-                    fieldKey !== "restart_delay" &&
-                    fieldKey !== "backend_options" // backend_options is handled separately
-                ) 
-                .map((fieldKey) => (
-                  <ZodFormField
-                    key={fieldKey}
-                    fieldKey={fieldKey}
-                    value={formData[fieldKey]}
-                    onChange={handleFieldChange}
-                  />
-                ))}
-            </div>
+            {/* Basic Fields */}
+            <BasicInstanceFields
+              formData={formData}
+              onChange={handleFieldChange}
+            />
 
             {/* Backend Configuration Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Backend Configuration</h3>
-              
-              {/* Basic backend fields */}
-              {basicBackendFields.map((fieldKey) => (
-                <BackendFormField
-                  key={fieldKey}
-                  fieldKey={fieldKey}
-                  value={(formData.backend_options as any)?.[fieldKey]}
-                  onChange={handleBackendFieldChange}
-                />
-              ))}
-            </div>
+            <BackendConfiguration
+              formData={formData}
+              onBackendFieldChange={handleBackendFieldChange}
+              showAdvanced={showAdvanced}
+            />
 
             {/* Advanced Fields Toggle */}
             <div className="border-t pt-4">
@@ -314,54 +265,13 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
               </div>
             </div>
 
-            {/* Advanced Fields - Automatically generated from type (excluding restart options) */}
+            {/* Advanced Fields */}
             {showAdvanced && (
               <div className="space-y-4 pl-6 border-l-2 border-muted">
-                {/* Advanced instance fields */}
-                {advancedFields
-                  .filter(
-                    (fieldKey) =>
-                      !["max_restarts", "restart_delay", "backend_options"].includes(
-                        fieldKey as string
-                      )
-                  ).length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="text-md font-medium">Advanced Instance Configuration</h4>
-                    {advancedFields
-                      .filter(
-                        (fieldKey) =>
-                          !["max_restarts", "restart_delay", "backend_options"].includes(
-                            fieldKey as string
-                          )
-                      )
-                      .sort()
-                      .map((fieldKey) => (
-                        <ZodFormField
-                          key={fieldKey}
-                          fieldKey={fieldKey}
-                          value={fieldKey === 'backend_options' ? undefined : formData[fieldKey]}
-                          onChange={handleFieldChange}
-                        />
-                      ))}
-                  </div>
-                )}
-
-                {/* Advanced backend fields */}
-                {advancedBackendFields.length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="text-md font-medium">Advanced Backend Configuration</h4>
-                    {advancedBackendFields
-                      .sort()
-                      .map((fieldKey) => (
-                        <BackendFormField
-                          key={fieldKey}
-                          fieldKey={fieldKey}
-                          value={(formData.backend_options as any)?.[fieldKey]}
-                          onChange={handleBackendFieldChange}
-                        />
-                      ))}
-                  </div>
-                )}
+                <AdvancedInstanceFields
+                  formData={formData}
+                  onChange={handleFieldChange}
+                />
               </div>
             )}
           </div>

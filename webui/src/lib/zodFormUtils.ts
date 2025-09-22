@@ -1,14 +1,18 @@
-import { 
-  type CreateInstanceOptions, 
-  type LlamaCppBackendOptions, 
+import {
+  type CreateInstanceOptions,
+  type LlamaCppBackendOptions,
   type MlxBackendOptions,
+  type VllmBackendOptions,
   LlamaCppBackendOptionsSchema,
   MlxBackendOptionsSchema,
-  getAllFieldKeys, 
+  VllmBackendOptionsSchema,
+  getAllFieldKeys,
   getAllLlamaCppFieldKeys,
   getAllMlxFieldKeys,
+  getAllVllmFieldKeys,
   getLlamaCppFieldType,
-  getMlxFieldType
+  getMlxFieldType,
+  getVllmFieldType
 } from '@/schemas/instanceOptions'
 
 // Instance-level basic fields (not backend-specific)
@@ -16,7 +20,6 @@ export const basicFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
-  required?: boolean
 }> = {
   auto_restart: {
     label: 'Auto Restart',
@@ -52,13 +55,11 @@ const basicLlamaCppFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
-  required?: boolean
 }> = {
   model: {
     label: 'Model Path',
     placeholder: '/path/to/model.gguf',
-    description: 'Path to the model file',
-    required: true
+    description: 'Path to the model file'
   },
   hf_repo: {
     label: 'Hugging Face Repository',
@@ -82,13 +83,11 @@ const basicMlxFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
-  required?: boolean
 }> = {
   model: {
     label: 'Model',
     placeholder: 'mlx-community/Mistral-7B-Instruct-v0.3-4bit',
-    description: 'The path to the MLX model weights, tokenizer, and config',
-    required: true
+    description: 'The path to the MLX model weights, tokenizer, and config'
   },
   temp: {
     label: 'Temperature',
@@ -117,10 +116,45 @@ const basicMlxFieldsConfig: Record<string, {
   }
 }
 
+// vLLM backend-specific basic fields
+const basicVllmFieldsConfig: Record<string, {
+  label: string
+  description?: string
+  placeholder?: string
+}> = {
+  model: {
+    label: 'Model',
+    placeholder: 'microsoft/DialoGPT-medium',
+    description: 'The name or path of the Hugging Face model to use'
+  },
+  tensor_parallel_size: {
+    label: 'Tensor Parallel Size',
+    placeholder: '1',
+    description: 'Number of GPUs to use for distributed serving'
+  },
+  gpu_memory_utilization: {
+    label: 'GPU Memory Utilization',
+    placeholder: '0.9',
+    description: 'The fraction of GPU memory to be used for the model executor'
+  }
+}
+
+// Backend field configuration lookup
+const backendFieldConfigs = {
+  mlx_lm: basicMlxFieldsConfig,
+  vllm: basicVllmFieldsConfig,
+  llama_cpp: basicLlamaCppFieldsConfig,
+} as const
+
+const backendFieldGetters = {
+  mlx_lm: getAllMlxFieldKeys,
+  vllm: getAllVllmFieldKeys,
+  llama_cpp: getAllLlamaCppFieldKeys,
+} as const
+
 function isBasicField(key: keyof CreateInstanceOptions): boolean {
   return key in basicFieldsConfig
 }
-
 
 export function getBasicFields(): (keyof CreateInstanceOptions)[] {
   return Object.keys(basicFieldsConfig) as (keyof CreateInstanceOptions)[]
@@ -130,25 +164,18 @@ export function getAdvancedFields(): (keyof CreateInstanceOptions)[] {
   return getAllFieldKeys().filter(key => !isBasicField(key))
 }
 
-
 export function getBasicBackendFields(backendType?: string): string[] {
-  if (backendType === 'mlx_lm') {
-    return Object.keys(basicMlxFieldsConfig)
-  } else if (backendType === 'llama_cpp') {
-    return Object.keys(basicLlamaCppFieldsConfig)
-  }
-  // Default to LlamaCpp for backward compatibility
-  return Object.keys(basicLlamaCppFieldsConfig)
+  const normalizedType = (backendType || 'llama_cpp') as keyof typeof backendFieldConfigs
+  const config = backendFieldConfigs[normalizedType] || basicLlamaCppFieldsConfig
+  return Object.keys(config)
 }
 
 export function getAdvancedBackendFields(backendType?: string): string[] {
-  if (backendType === 'mlx_lm') {
-    return getAllMlxFieldKeys().filter(key => !(key in basicMlxFieldsConfig))
-  } else if (backendType === 'llama_cpp') {
-    return getAllLlamaCppFieldKeys().filter(key => !(key in basicLlamaCppFieldsConfig))
-  }
-  // Default to LlamaCpp for backward compatibility
-  return getAllLlamaCppFieldKeys().filter(key => !(key in basicLlamaCppFieldsConfig))
+  const normalizedType = (backendType || 'llama_cpp') as keyof typeof backendFieldGetters
+  const fieldGetter = backendFieldGetters[normalizedType] || getAllLlamaCppFieldKeys
+  const basicConfig = backendFieldConfigs[normalizedType] || basicLlamaCppFieldsConfig
+
+  return fieldGetter().filter(key => !(key in basicConfig))
 }
 
 // Combined backend fields config for use in BackendFormField
@@ -156,10 +183,10 @@ export const basicBackendFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
-  required?: boolean
 }> = {
   ...basicLlamaCppFieldsConfig,
-  ...basicMlxFieldsConfig
+  ...basicMlxFieldsConfig,
+  ...basicVllmFieldsConfig
 }
 
 // Get field type for any backend option (union type)
@@ -172,7 +199,7 @@ export function getBackendFieldType(key: string): 'text' | 'number' | 'boolean' 
   } catch {
     // Schema might not be available
   }
-  
+
   // Try MLX schema
   try {
     if (MlxBackendOptionsSchema.shape && key in MlxBackendOptionsSchema.shape) {
@@ -181,7 +208,16 @@ export function getBackendFieldType(key: string): 'text' | 'number' | 'boolean' 
   } catch {
     // Schema might not be available
   }
-  
+
+  // Try vLLM schema
+  try {
+    if (VllmBackendOptionsSchema.shape && key in VllmBackendOptionsSchema.shape) {
+      return getVllmFieldType(key as keyof VllmBackendOptions)
+    }
+  } catch {
+    // Schema might not be available
+  }
+
   // Default fallback
   return 'text'
 }
