@@ -59,9 +59,9 @@ function InstanceCard({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">{instance.name}</CardTitle>
-            <div className="flex items-center gap-2">
-              <BackendBadge backend={instance.options?.backend_type} />
+            <div className="flex flex-col items-end gap-2">
               {running && <HealthBadge health={health} />}
+              <BackendBadge backend={instance.options?.backend_type} />
             </div>
           </div>
         </CardHeader>
