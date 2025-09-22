@@ -5,6 +5,7 @@ import type { Instance } from "@/types/instance";
 import { Edit, FileText, Play, Square, Trash2 } from "lucide-react";
 import LogsDialog from "@/components/LogDialog";
 import HealthBadge from "@/components/HealthBadge";
+import BackendBadge from "@/components/BackendBadge";
 import { useState } from "react";
 import { useInstanceHealth } from "@/hooks/useInstanceHealth";
 
@@ -58,7 +59,10 @@ function InstanceCard({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">{instance.name}</CardTitle>
-            {running && <HealthBadge health={health} />}
+            <div className="flex items-center gap-2">
+              <BackendBadge backend={instance.options?.backend_type} />
+              {running && <HealthBadge health={health} />}
+            </div>
           </div>
         </CardHeader>
 
