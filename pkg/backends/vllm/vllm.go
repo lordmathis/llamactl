@@ -132,7 +132,19 @@ type VllmServerOptions struct {
 
 // BuildCommandArgs converts VllmServerOptions to command line arguments
 // Note: This does NOT include the "serve" subcommand, that's handled at the instance level
+// For vLLM, the model parameter is passed as a positional argument, not a --model flag
 func (o *VllmServerOptions) BuildCommandArgs() []string {
+	var args []string
+
+	// Add model as positional argument if specified
+	if o.Model != "" {
+		args = append(args, o.Model)
+	}
+
+	// Create a copy of the options without the Model field to avoid including it as --model flag
+	optionsCopy := *o
+	optionsCopy.Model = "" // Clear model field so it won't be included as a flag
+
 	multipleFlags := map[string]bool{
 		"api-key":         true,
 		"allowed-origins": true,
@@ -140,7 +152,12 @@ func (o *VllmServerOptions) BuildCommandArgs() []string {
 		"allowed-headers": true,
 		"middleware":      true,
 	}
-	return backends.BuildCommandArgs(o, multipleFlags)
+
+	// Build the rest of the arguments as flags
+	flagArgs := backends.BuildCommandArgs(&optionsCopy, multipleFlags)
+	args = append(args, flagArgs...)
+
+	return args
 }
 
 // ParseVllmCommand parses a vLLM serve command string into VllmServerOptions

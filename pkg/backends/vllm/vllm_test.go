@@ -97,10 +97,17 @@ func TestBuildCommandArgs(t *testing.T) {
 
 	args := options.BuildCommandArgs()
 
-	// Check core functionality
-	if !containsFlagWithValue(args, "--model", "microsoft/DialoGPT-medium") {
-		t.Errorf("Expected --model microsoft/DialoGPT-medium not found in %v", args)
+	// Check that model is the first positional argument (not a --model flag)
+	if len(args) == 0 || args[0] != "microsoft/DialoGPT-medium" {
+		t.Errorf("Expected model 'microsoft/DialoGPT-medium' as first positional argument, got args: %v", args)
 	}
+
+	// Check that --model flag is NOT present (since model should be positional)
+	if contains(args, "--model") {
+		t.Errorf("Found --model flag, but model should be positional argument in args: %v", args)
+	}
+
+	// Check other flags
 	if !containsFlagWithValue(args, "--tensor-parallel-size", "2") {
 		t.Errorf("Expected --tensor-parallel-size 2 not found in %v", args)
 	}
