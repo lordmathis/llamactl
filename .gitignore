@@ -33,3 +33,5 @@ go.work.sum
 
 node_modules/
 dist/
+
+__pycache__/

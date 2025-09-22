@@ -67,6 +67,9 @@ plugins:
       javascript_dir: js
       canonical_version: null
 
+hooks:
+  - docs/readme_sync.py
+
 extra:
   version:
     provider: mike

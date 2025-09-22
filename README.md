@@ -2,7 +2,7 @@
 
 ![Build and Release](https://github.com/lordmathis/llamactl/actions/workflows/release.yaml/badge.svg) ![Go Tests](https://github.com/lordmathis/llamactl/actions/workflows/go_test.yaml/badge.svg) ![WebUI Tests](https://github.com/lordmathis/llamactl/actions/workflows/webui_test.yaml/badge.svg)
 
-**Unified management and routing for llama.cpp and MLX models with web dashboard.**
+**Unified management and routing for llama.cpp, MLX and vLLM models with web dashboard.**
 
 ## Features
 
@@ -12,7 +12,7 @@
 - **State Persistence**: Ensure instances remain intact across server restarts
 
 ### 🔗 Universal Compatibility
-- **OpenAI API Compatible**: Drop-in replacement - route requests by model name
+- **OpenAI API Compatible**: Drop-in replacement - route requests by instance name
 - **Multi-Backend Support**: Native support for llama.cpp, MLX (Apple Silicon optimized), and vLLM
 
 ### 🌐 User-Friendly Interface
