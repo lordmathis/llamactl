@@ -17,8 +17,8 @@ func ParseCommand(command string, executableNames []string, subcommandNames []st
 		return fmt.Errorf("command cannot be empty")
 	}
 
-	// Extract arguments
-	args, err := extractArgs(command, executableNames, subcommandNames)
+	// Extract arguments and positional model
+	args, modelFromPositional, err := extractArgs(command, executableNames, subcommandNames)
 	if err != nil {
 		return err
 	}
@@ -27,6 +27,13 @@ func ParseCommand(command string, executableNames []string, subcommandNames []st
 	options, err := parseFlags(args, multiValuedFlags)
 	if err != nil {
 		return err
+	}
+
+	// If we found a positional model and no --model flag was provided, set the model
+	if modelFromPositional != "" {
+		if _, hasModelFlag := options["model"]; !hasModelFlag {
+			options["model"] = modelFromPositional
+		}
 	}
 
 	// Convert to target struct via JSON
@@ -51,15 +58,16 @@ func normalizeCommand(command string) string {
 }
 
 // extractArgs extracts arguments from command, removing executable and subcommands
-func extractArgs(command string, executableNames []string, subcommandNames []string) ([]string, error) {
+// Returns: args, modelFromPositional, error
+func extractArgs(command string, executableNames []string, subcommandNames []string) ([]string, string, error) {
 	// Check for unterminated quotes
 	if strings.Count(command, `"`)%2 != 0 || strings.Count(command, `'`)%2 != 0 {
-		return nil, fmt.Errorf("unterminated quoted string")
+		return nil, "", fmt.Errorf("unterminated quoted string")
 	}
 
 	tokens := strings.Fields(command)
 	if len(tokens) == 0 {
-		return nil, fmt.Errorf("no tokens found")
+		return nil, "", fmt.Errorf("no tokens found")
 	}
 
 	// Skip executable
@@ -104,7 +112,16 @@ func extractArgs(command string, executableNames []string, subcommandNames []str
 		}
 	}
 
-	return tokens[start:], nil
+	args := tokens[start:]
+
+	// Extract first positional argument (model) if present and not a flag
+	var modelFromPositional string
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		modelFromPositional = args[0]
+		args = args[1:] // Remove the model from args to process remaining flags
+	}
+
+	return args, modelFromPositional, nil
 }
 
 // parseFlags parses command line flags into a map

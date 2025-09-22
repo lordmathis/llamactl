@@ -14,17 +14,22 @@ func TestParseVllmCommand(t *testing.T) {
 	}{
 		{
 			name:      "basic vllm serve command",
-			command:   "vllm serve --model microsoft/DialoGPT-medium",
+			command:   "vllm serve microsoft/DialoGPT-medium",
 			expectErr: false,
 		},
 		{
 			name:      "serve only command",
-			command:   "serve --model microsoft/DialoGPT-medium",
+			command:   "serve microsoft/DialoGPT-medium",
 			expectErr: false,
 		},
 		{
-			name:      "args only",
-			command:   "--model microsoft/DialoGPT-medium --tensor-parallel-size 2",
+			name:      "positional model with flags",
+			command:   "vllm serve microsoft/DialoGPT-medium --tensor-parallel-size 2",
+			expectErr: false,
+		},
+		{
+			name:      "model with path",
+			command:   "vllm serve /path/to/model --gpu-memory-utilization 0.8",
 			expectErr: false,
 		},
 		{
@@ -34,7 +39,7 @@ func TestParseVllmCommand(t *testing.T) {
 		},
 		{
 			name:      "unterminated quote",
-			command:   `vllm serve --model "unterminated`,
+			command:   `vllm serve "unterminated`,
 			expectErr: true,
 		},
 	}
@@ -63,7 +68,7 @@ func TestParseVllmCommand(t *testing.T) {
 }
 
 func TestParseVllmCommandValues(t *testing.T) {
-	command := "vllm serve --model test-model --tensor-parallel-size 4 --gpu-memory-utilization 0.8 --enable-log-outputs"
+	command := "vllm serve test-model --tensor-parallel-size 4 --gpu-memory-utilization 0.8 --enable-log-outputs"
 	result, err := vllm.ParseVllmCommand(command)
 
 	if err != nil {
