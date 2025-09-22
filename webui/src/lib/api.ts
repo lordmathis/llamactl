@@ -44,6 +44,14 @@ async function apiCall<T>(
       const text = await response.text();
       return text as T;
     } else {
+      // Handle empty responses for JSON endpoints
+      const contentLength = response.headers.get('content-length');
+      if (contentLength === '0' || contentLength === null) {
+        const text = await response.text();
+        if (text.trim() === '') {
+          return {} as T; // Return empty object for empty JSON responses
+        }
+      }
       const data = await response.json() as T;
       return data;
     }
