@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Instance } from "@/types/instance";
-import { Edit, FileText, Play, Square, Trash2 } from "lucide-react";
+import { Edit, FileText, Play, Square, Trash2, MoreHorizontal } from "lucide-react";
 import LogsDialog from "@/components/LogDialog";
 import HealthBadge from "@/components/HealthBadge";
 import BackendBadge from "@/components/BackendBadge";
@@ -25,6 +25,7 @@ function InstanceCard({
   editInstance,
 }: InstanceCardProps) {
   const [isLogsOpen, setIsLogsOpen] = useState(false);
+  const [showAllActions, setShowAllActions] = useState(false);
   const health = useInstanceHealth(instance.name, instance.status);
 
   const handleStart = () => {
@@ -55,39 +56,44 @@ function InstanceCard({
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">{instance.name}</CardTitle>
-            <div className="flex flex-col items-end gap-2">
-              {running && <HealthBadge health={health} />}
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="pb-4">
+          {/* Header with instance name and status badges */}
+          <div className="space-y-3">
+            <CardTitle className="text-lg font-semibold leading-tight break-words">
+              {instance.name}
+            </CardTitle>
+            
+            {/* Badges row */}
+            <div className="flex items-center gap-2 flex-wrap">
               <BackendBadge backend={instance.options?.backend_type} />
+              {running && <HealthBadge health={health} />}
             </div>
           </div>
         </CardHeader>
 
-        <CardContent>
-          <div className="flex gap-1">
+        <CardContent className="pt-0">
+          {/* Primary actions - always visible */}
+          <div className="flex items-center gap-2 mb-3">
             <Button
               size="sm"
-              variant="outline"
-              onClick={handleStart}
-              disabled={running}
-              title="Start instance"
-              data-testid="start-instance-button"
+              variant={running ? "outline" : "default"}
+              onClick={running ? handleStop : handleStart}
+              className="flex-1"
+              title={running ? "Stop instance" : "Start instance"}
+              data-testid={running ? "stop-instance-button" : "start-instance-button"}
             >
-              <Play className="h-4 w-4" />
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleStop}
-              disabled={!running}
-              title="Stop instance"
-              data-testid="stop-instance-button"
-            >
-              <Square className="h-4 w-4" />
+              {running ? (
+                <>
+                  <Square className="h-4 w-4 mr-1" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-1" />
+                  Start
+                </>
+              )}
             </Button>
 
             <Button
@@ -103,24 +109,40 @@ function InstanceCard({
             <Button
               size="sm"
               variant="outline"
-              onClick={handleLogs}
-              title="View logs"
-              data-testid="view-logs-button"
+              onClick={() => setShowAllActions(!showAllActions)}
+              title="More actions"
             >
-              <FileText className="h-4 w-4" />
-            </Button>
-
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={running}
-              title="Delete instance"
-              data-testid="delete-instance-button"
-            >
-              <Trash2 className="h-4 w-4" />
+              <MoreHorizontal className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* Secondary actions - collapsible */}
+          {showAllActions && (
+            <div className="flex items-center gap-2 pt-2 border-t border-border">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleLogs}
+                title="View logs"
+                data-testid="view-logs-button"
+                className="flex-1"
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                Logs
+              </Button>
+
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={running}
+                title="Delete instance"
+                data-testid="delete-instance-button"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
