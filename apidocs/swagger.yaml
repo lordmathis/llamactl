@@ -88,6 +88,40 @@ info:
   title: llamactl API
   version: "1.0"
 paths:
+  /backends/llama-cpp/devices:
+    get:
+      description: Returns a list of available devices for the llama server
+      responses:
+        "200":
+          description: List of devices
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List available devices for llama server
+      tags:
+      - backends
+  /backends/llama-cpp/help:
+    get:
+      description: Returns the help text for the llama server command
+      responses:
+        "200":
+          description: Help text
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get help for llama server
+      tags:
+      - backends
   /backends/llama-cpp/parse-command:
     post:
       consumes:
@@ -122,6 +156,23 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Parse llama-server command
+      tags:
+      - backends
+  /backends/llama-cpp/version:
+    get:
+      description: Returns the version of the llama server command
+      responses:
+        "200":
+          description: Version information
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get version of llama server
       tags:
       - backends
   /backends/mlx/parse-command:
@@ -494,57 +545,6 @@ paths:
       summary: Stop a running instance
       tags:
       - instances
-  /server/devices:
-    get:
-      description: Returns a list of available devices for the llama server
-      responses:
-        "200":
-          description: List of devices
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: List available devices for llama server
-      tags:
-      - server
-  /server/help:
-    get:
-      description: Returns the help text for the llama server command
-      responses:
-        "200":
-          description: Help text
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Get help for llama server
-      tags:
-      - server
-  /server/version:
-    get:
-      description: Returns the version of the llama server command
-      responses:
-        "200":
-          description: Version information
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Get version of llama server
-      tags:
-      - server
   /v1/:
     post:
       consumes:

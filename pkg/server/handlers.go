@@ -51,12 +51,12 @@ func (h *Handler) VersionHandler() http.HandlerFunc {
 // LlamaServerHelpHandler godoc
 // @Summary Get help for llama server
 // @Description Returns the help text for the llama server command
-// @Tags server
+// @Tags backends
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "Help text"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /server/help [get]
+// @Router /backends/llama-cpp/help [get]
 func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		helpCmd := exec.Command("llama-server", "--help")
@@ -73,12 +73,12 @@ func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 // LlamaServerVersionHandler godoc
 // @Summary Get version of llama server
 // @Description Returns the version of the llama server command
-// @Tags server
+// @Tags backends
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "Version information"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /server/version [get]
+// @Router /backends/llama-cpp/version [get]
 func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		versionCmd := exec.Command("llama-server", "--version")
@@ -95,12 +95,12 @@ func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 // LlamaServerListDevicesHandler godoc
 // @Summary List available devices for llama server
 // @Description Returns a list of available devices for the llama server
-// @Tags server
+// @Tags backends
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "List of devices"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /server/devices [get]
+// @Router /backends/llama-cpp/devices [get]
 func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		listCmd := exec.Command("llama-server", "--list-devices")

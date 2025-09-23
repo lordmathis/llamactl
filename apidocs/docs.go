@@ -19,6 +19,62 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/backends/llama-cpp/devices": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of available devices for the llama server",
+                "tags": [
+                    "backends"
+                ],
+                "summary": "List available devices for llama server",
+                "responses": {
+                    "200": {
+                        "description": "List of devices",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/backends/llama-cpp/help": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the help text for the llama server command",
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Get help for llama server",
+                "responses": {
+                    "200": {
+                        "description": "Help text",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/backends/llama-cpp/parse-command": {
             "post": {
                 "security": [
@@ -71,6 +127,34 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/backends/llama-cpp/version": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the version of the llama server command",
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Get version of llama server",
+                "responses": {
+                    "200": {
+                        "description": "Version information",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -645,90 +729,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid name format",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/server/devices": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns a list of available devices for the llama server",
-                "tags": [
-                    "server"
-                ],
-                "summary": "List available devices for llama server",
-                "responses": {
-                    "200": {
-                        "description": "List of devices",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/server/help": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns the help text for the llama server command",
-                "tags": [
-                    "server"
-                ],
-                "summary": "Get help for llama server",
-                "responses": {
-                    "200": {
-                        "description": "Help text",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/server/version": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns the version of the llama server command",
-                "tags": [
-                    "server"
-                ],
-                "summary": "Get version of llama server",
-                "responses": {
-                    "200": {
-                        "description": "Version information",
                         "schema": {
                             "type": "string"
                         }

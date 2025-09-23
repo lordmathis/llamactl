@@ -63,16 +63,16 @@ async function apiCall<T>(
   }
 }
 
-// Server API functions
+// Server API functions (moved to llama-cpp backend)
 export const serverApi = {
-  // GET /server/help
-  getHelp: () => apiCall<string>("/server/help", {}, "text"),
+  // GET /backends/llama-cpp/help
+  getHelp: () => apiCall<string>("/backends/llama-cpp/help", {}, "text"),
 
-  // GET /server/version
-  getVersion: () => apiCall<string>("/server/version", {}, "text"),
+  // GET /backends/llama-cpp/version
+  getVersion: () => apiCall<string>("/backends/llama-cpp/version", {}, "text"),
 
-  // GET /server/devices
-  getDevices: () => apiCall<string>("/server/devices", {}, "text"),
+  // GET /backends/llama-cpp/devices
+  getDevices: () => apiCall<string>("/backends/llama-cpp/devices", {}, "text"),
 };
 
 // Backend API functions
@@ -156,5 +156,5 @@ export const instancesApi = {
   },
 
   // GET /instances/{name}/proxy/health
-  getHealth: (name: string) => apiCall<any>(`/instances/${name}/proxy/health`),
+  getHealth: (name: string) => apiCall<Record<string, unknown>>(`/instances/${name}/proxy/health`),
 };
