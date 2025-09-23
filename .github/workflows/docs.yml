@@ -3,19 +3,13 @@ name: Build and Deploy Documentation
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'docs/**'
-      - 'mkdocs.yml'
-      - 'docs-requirements.txt'
-      - '.github/workflows/docs.yml'
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
       - 'docs-requirements.txt'
-  release:
-    types: [published]
 
 permissions:
   contents: write
@@ -81,7 +75,7 @@ jobs:
 
   deploy-release:
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
