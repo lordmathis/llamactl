@@ -156,5 +156,5 @@ export const instancesApi = {
   },
 
   // GET /instances/{name}/proxy/health
-  getHealth: (name: string) => apiCall<any>(`/instances/${name}/proxy/health`),
+  getHealth: (name: string) => apiCall<Record<string, unknown>>(`/instances/${name}/proxy/health`),
 };
