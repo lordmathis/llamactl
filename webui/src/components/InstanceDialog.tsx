@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BackendType, type CreateInstanceOptions, type Instance } from "@/types/instance";
-import { getAdvancedFields, getAdvancedBackendFields } from "@/lib/zodFormUtils";
-import { ChevronDown, ChevronRight, Terminal } from "lucide-react";
 import ParseCommandDialog from "@/components/ParseCommandDialog";
-import AutoRestartConfiguration from "@/components/instance/AutoRestartConfiguration";
-import BasicInstanceFields from "@/components/instance/BasicInstanceFields";
-import BackendConfiguration from "@/components/instance/BackendConfiguration";
-import AdvancedInstanceFields from "@/components/instance/AdvancedInstanceFields";
+import InstanceSettingsCard from "@/components/instance/InstanceSettingsCard";
+import BackendConfigurationCard from "@/components/instance/BackendConfigurationCard";
 
 interface InstanceDialogProps {
   open: boolean;
@@ -36,13 +30,9 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
 
   const [instanceName, setInstanceName] = useState("");
   const [formData, setFormData] = useState<CreateInstanceOptions>({});
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [nameError, setNameError] = useState("");
   const [showParseDialog, setShowParseDialog] = useState(false);
 
-  // Get field lists dynamically from the type
-  const advancedFields = getAdvancedFields();
-  const advancedBackendFields = getAdvancedBackendFields(formData.backend_type);
 
   // Reset form when dialog opens/closes or when instance changes
   useEffect(() => {
@@ -60,7 +50,6 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
           backend_options: {},
         });
       }
-      setShowAdvanced(false); // Always start with basic view
       setNameError(""); // Reset any name errors
     }
   }, [open, instance]);
@@ -151,9 +140,6 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
     onOpenChange(false);
   };
 
-  const toggleAdvanced = () => {
-    setShowAdvanced(!showAdvanced);
-  };
 
   const handleCommandParsed = (parsedOptions: CreateInstanceOptions) => {
     setFormData(prev => ({
@@ -189,91 +175,25 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="grid gap-6 py-4">
-            {/* Instance Name - Special handling since it's not in CreateInstanceOptions */}
-            <div className="grid gap-2">
-              <Label htmlFor="name">
-                Instance Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                value={instanceName}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="my-instance"
-                disabled={isEditing} // Don't allow name changes when editing
-                className={nameError ? "border-red-500" : ""}
-              />
-              {nameError && <p className="text-sm text-red-500">{nameError}</p>}
-              <p className="text-sm text-muted-foreground">
-                Unique identifier for the instance
-              </p>
-            </div>
-
-            {/* Auto Restart Configuration Section */}
-            <AutoRestartConfiguration
+          <div className="space-y-6 py-4">
+            {/* Instance Settings Card */}
+            <InstanceSettingsCard
+              instanceName={instanceName}
+              nameError={nameError}
+              isEditing={isEditing}
               formData={formData}
+              onNameChange={handleNameChange}
               onChange={handleFieldChange}
             />
 
-            {/* Basic Fields */}
-            <BasicInstanceFields
-              formData={formData}
-              onChange={handleFieldChange}
-            />
-
-            {/* Backend Configuration Section */}
-            <BackendConfiguration
+            {/* Backend Configuration Card */}
+            <BackendConfigurationCard
               formData={formData}
               onBackendFieldChange={handleBackendFieldChange}
-              showAdvanced={showAdvanced}
+              onChange={handleFieldChange}
+              onParseCommand={() => setShowParseDialog(true)}
             />
 
-            {/* Advanced Fields Toggle */}
-            <div className="border-t pt-4">
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowParseDialog(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Terminal className="h-4 w-4" />
-                  Parse Command
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  onClick={toggleAdvanced}
-                  className="flex items-center gap-2 p-0 h-auto font-medium"
-                >
-                  {showAdvanced ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                  Advanced Configuration
-                  <span className="text-muted-foreground text-sm font-normal">
-                    (
-                    {
-                      advancedFields.filter(
-                        (f) =>
-                          !["max_restarts", "restart_delay", "backend_options"].includes(f as string)
-                      ).length + advancedBackendFields.length
-                    }{" "}
-                    options)
-                  </span>
-                </Button>
-              </div>
-            </div>
-
-            {/* Advanced Fields */}
-            {showAdvanced && (
-              <div className="space-y-4 pl-6 border-l-2 border-muted">
-                <AdvancedInstanceFields
-                  formData={formData}
-                  onChange={handleFieldChange}
-                />
-              </div>
-            )}
           </div>
         </div>
 
@@ -299,6 +219,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
         open={showParseDialog}
         onOpenChange={setShowParseDialog}
         onParsed={handleCommandParsed}
+        backendType={formData.backend_type || BackendType.LLAMA_CPP}
       />
     </Dialog>
   );

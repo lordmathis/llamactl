@@ -17,15 +17,16 @@ interface ParseCommandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onParsed: (options: CreateInstanceOptions) => void;
+  backendType: BackendTypeValue;
 }
 
 const ParseCommandDialog: React.FC<ParseCommandDialogProps> = ({
   open,
   onOpenChange,
   onParsed,
+  backendType,
 }) => {
   const [command, setCommand] = useState('');
-  const [backendType, setBackendType] = useState<BackendTypeValue>(BackendType.LLAMA_CPP);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,7 +76,6 @@ const ParseCommandDialog: React.FC<ParseCommandDialogProps> = ({
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setCommand('');
-      setBackendType(BackendType.LLAMA_CPP);
       setError(null);
     }
     onOpenChange(open);
@@ -103,17 +103,13 @@ const ParseCommandDialog: React.FC<ParseCommandDialogProps> = ({
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="backend-type">Backend Type</Label>
-            <select
-              id="backend-type"
-              value={backendType}
-              onChange={(e) => setBackendType(e.target.value as BackendTypeValue)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <option value={BackendType.LLAMA_CPP}>Llama Server</option>
-              <option value={BackendType.MLX_LM}>MLX LM</option>
-              <option value={BackendType.VLLM}>vLLM</option>
-            </select>
+            <Label className="text-sm font-medium">Backend Type:
+              <span className="font-normal text-muted-foreground">
+                {backendType === BackendType.LLAMA_CPP && 'Llama Server (llama_cpp)'}
+                {backendType === BackendType.MLX_LM && 'MLX LM (mlx_lm)'}
+                {backendType === BackendType.VLLM && 'vLLM (vllm)'}
+              </span>
+            </Label>
           </div>
 
           <div>
