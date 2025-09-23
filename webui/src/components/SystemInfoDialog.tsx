@@ -20,6 +20,7 @@ import {
   Info
 } from 'lucide-react'
 import { serverApi } from '@/lib/api'
+import { BackendType, type BackendTypeValue } from '@/types/instance'
 
 // Helper to get version from environment
 const getAppVersion = (): string => {
@@ -30,7 +31,7 @@ const getAppVersion = (): string => {
   }
 }
 
-interface BackendInfoDialogProps {
+interface SystemInfoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -41,27 +42,25 @@ interface BackendInfo {
   help: string
 }
 
-type BackendType = 'llama-cpp' | 'mlx' | 'vllm'
-
 const BACKEND_OPTIONS = [
-  { value: 'llama-cpp', label: 'Llama.cpp' },
-  { value: 'mlx', label: 'MLX' },
-  { value: 'vllm', label: 'vLLM' },
-] as const
+  { value: BackendType.LLAMA_CPP, label: 'Llama Server' },
+  { value: BackendType.MLX_LM, label: 'MLX LM' },
+  { value: BackendType.VLLM, label: 'vLLM' },
+]
 
-const BackendInfoDialog: React.FC<BackendInfoDialogProps> = ({
+const SystemInfoDialog: React.FC<SystemInfoDialogProps> = ({
   open,
   onOpenChange
 }) => {
-  const [selectedBackend, setSelectedBackend] = useState<BackendType>('llama-cpp')
+  const [selectedBackend, setSelectedBackend] = useState<BackendTypeValue>(BackendType.LLAMA_CPP)
   const [backendInfo, setBackendInfo] = useState<BackendInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
 
   // Fetch backend info
-  const fetchBackendInfo = async (backend: BackendType) => {
-    if (backend !== 'llama-cpp') {
+  const fetchBackendInfo = async (backend: BackendTypeValue) => {
+    if (backend !== BackendType.LLAMA_CPP) {
       setBackendInfo(null)
       setError(null)
       return
@@ -88,21 +87,21 @@ const BackendInfoDialog: React.FC<BackendInfoDialogProps> = ({
   // Load data when dialog opens or backend changes
   useEffect(() => {
     if (open) {
-      fetchBackendInfo(selectedBackend)
+      void fetchBackendInfo(selectedBackend)
     }
   }, [open, selectedBackend])
 
   const handleBackendChange = (value: string) => {
-    setSelectedBackend(value as BackendType)
+    setSelectedBackend(value as BackendTypeValue)
     setShowHelp(false) // Reset help section when switching backends
   }
 
-  const renderBackendContent = () => {
-    if (selectedBackend !== 'llama-cpp') {
+  const renderBackendSpecificContent = () => {
+    if (selectedBackend !== BackendType.LLAMA_CPP) {
       return (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-8">
           <div className="text-center space-y-3">
-            <Info className="h-12 w-12 text-gray-400 mx-auto" />
+            <Info className="h-8 w-8 text-gray-400 mx-auto" />
             <div>
               <h3 className="font-semibold text-gray-700">Backend Info Not Available</h3>
               <p className="text-sm text-gray-500 mt-1">
@@ -116,7 +115,7 @@ const BackendInfoDialog: React.FC<BackendInfoDialogProps> = ({
 
     if (loading && !backendInfo) {
       return (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           <span className="ml-2 text-gray-400">Loading backend information...</span>
         </div>
@@ -138,17 +137,6 @@ const BackendInfoDialog: React.FC<BackendInfoDialogProps> = ({
 
     return (
       <div className="space-y-6">
-        {/* Llamactl Version Section */}
-        <div className="space-y-3">
-          <h3 className="font-semibold">Llamactl Version</h3>
-
-          <div className="bg-gray-900 rounded-lg p-4">
-            <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
-              {getAppVersion()}
-            </pre>
-          </div>
-        </div>
-
         {/* Backend Version Section */}
         <div className="space-y-3">
           <h3 className="font-semibold">
@@ -216,49 +204,61 @@ const BackendInfoDialog: React.FC<BackendInfoDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-w-[calc(100%-2rem)] max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="flex items-center gap-2">
-                <Monitor className="h-5 w-5" />
-                Backend Information
-              </DialogTitle>
-              <DialogDescription>
-                View backend-specific environment and capabilities
-              </DialogDescription>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="w-32">
-                <SelectInput
-                  id="backend-select"
-                  label=""
-                  value={selectedBackend}
-                  onChange={(value) => handleBackendChange(value || 'llama-cpp')}
-                  options={BACKEND_OPTIONS}
-                  className="text-sm"
-                />
-              </div>
-
-              {selectedBackend === 'llama-cpp' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fetchBackendInfo(selectedBackend)}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <Monitor className="h-5 w-5" />
+            System Information
+          </DialogTitle>
+          <DialogDescription>
+            View system and backend-specific environment and capabilities
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto">
-          {renderBackendContent()}
+          <div className="space-y-6">
+            {/* Llamactl Version Section - Always shown */}
+            <div className="space-y-3">
+              <h3 className="font-semibold">Llamactl Version</h3>
+              <div className="bg-gray-900 rounded-lg p-4">
+                <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
+                  {getAppVersion()}
+                </pre>
+              </div>
+            </div>
+
+            {/* Backend Selection Section */}
+            <div className="space-y-3">
+              <h3 className="font-semibold">Backend Information</h3>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <SelectInput
+                    id="backend-select"
+                    label=""
+                    value={selectedBackend}
+                    onChange={(value) => handleBackendChange(value || BackendType.LLAMA_CPP)}
+                    options={BACKEND_OPTIONS}
+                    className="text-sm"
+                  />
+                </div>
+                {selectedBackend === BackendType.LLAMA_CPP && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void fetchBackendInfo(selectedBackend)}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Backend-specific content */}
+            {renderBackendSpecificContent()}
+          </div>
         </div>
 
         <DialogFooter>
@@ -271,4 +271,4 @@ const BackendInfoDialog: React.FC<BackendInfoDialogProps> = ({
   )
 }
 
-export default BackendInfoDialog
+export default SystemInfoDialog

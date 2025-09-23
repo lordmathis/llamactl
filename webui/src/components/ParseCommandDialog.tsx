@@ -105,9 +105,9 @@ const ParseCommandDialog: React.FC<ParseCommandDialogProps> = ({
           <div>
             <Label className="text-sm font-medium">Backend Type:
               <span className="font-normal text-muted-foreground">
-                {backendType === BackendType.LLAMA_CPP && 'Llama Server (llama_cpp)'}
-                {backendType === BackendType.MLX_LM && 'MLX LM (mlx_lm)'}
-                {backendType === BackendType.VLLM && 'vLLM (vllm)'}
+                {backendType === BackendType.LLAMA_CPP && 'Llama Server'}
+                {backendType === BackendType.MLX_LM && 'MLX LM'}
+                {backendType === BackendType.VLLM && 'vLLM'}
               </span>
             </Label>
           </div>

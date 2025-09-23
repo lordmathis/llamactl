@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import InstanceList from "@/components/InstanceList";
 import InstanceDialog from "@/components/InstanceDialog";
 import LoginDialog from "@/components/LoginDialog";
-import BackendInfoDialog from "./components/BackendInfoDialog";
+import SystemInfoDialog from "./components/SystemInfoDialog";
 import { type CreateInstanceOptions, type Instance } from "@/types/instance";
 import { useInstances } from "@/contexts/InstancesContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,7 +13,7 @@ import { Toaster } from "sonner";
 function App() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
-  const [isBackendInfoModalOpen, setIsBackendInfoModalOpen] = useState(false);
+  const [isSystemInfoModalOpen, setIsSystemInfoModalOpen] = useState(false);
   const [editingInstance, setEditingInstance] = useState<Instance | undefined>(
     undefined
   );
@@ -37,8 +37,8 @@ function App() {
     }
   };
 
-  const handleShowBackendInfo = () => {
-    setIsBackendInfoModalOpen(true);
+  const handleShowSystemInfo = () => {
+    setIsSystemInfoModalOpen(true);
   };
 
   // Show loading spinner while checking auth
@@ -70,7 +70,7 @@ function App() {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background">
-        <Header onCreateInstance={handleCreateInstance} onShowSystemInfo={handleShowBackendInfo} />
+        <Header onCreateInstance={handleCreateInstance} onShowSystemInfo={handleShowSystemInfo} />
         <main className="container mx-auto max-w-4xl px-4 py-8">
           <InstanceList editInstance={handleEditInstance} />
         </main>
@@ -82,9 +82,9 @@ function App() {
           instance={editingInstance}
         />
 
-        <BackendInfoDialog
-          open={isBackendInfoModalOpen}
-          onOpenChange={setIsBackendInfoModalOpen}
+        <SystemInfoDialog
+          open={isSystemInfoModalOpen}
+          onOpenChange={setIsSystemInfoModalOpen}
         />
         
         <Toaster />

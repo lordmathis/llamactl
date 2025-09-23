@@ -37,9 +37,9 @@ const BackendConfigurationCard: React.FC<BackendConfigurationCardProps> = ({
           value={formData.backend_type || BackendType.LLAMA_CPP}
           onChange={(value) => onChange('backend_type', value)}
           options={[
-            { value: BackendType.LLAMA_CPP, label: 'Llama Server (llama_cpp)' },
-            { value: BackendType.MLX_LM, label: 'MLX LM (mlx_lm)' },
-            { value: BackendType.VLLM, label: 'vLLM (vllm)' }
+            { value: BackendType.LLAMA_CPP, label: 'Llama Server' },
+            { value: BackendType.MLX_LM, label: 'MLX LM' },
+            { value: BackendType.VLLM, label: 'vLLM' }
           ]}
           description="Select the backend server type"
         />
