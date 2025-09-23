@@ -74,6 +74,10 @@ jobs:
       - name: Deploy development version
         run: |
           mike deploy --push --update-aliases dev latest
+          # Set dev as default if no default exists
+          if ! mike list | grep -q "default"; then
+            mike set-default --push dev
+          fi
 
   deploy-release:
     runs-on: ubuntu-latest
