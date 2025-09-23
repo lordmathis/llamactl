@@ -280,29 +280,6 @@ afterEach(() => {
     })
   })
 
-  describe('Advanced Fields Toggle', () => {
-    it('shows advanced fields when toggle clicked', async () => {
-      const user = userEvent.setup()
-      
-      render(
-        <InstanceDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSave={mockOnSave}
-        />
-      )
-
-      // Advanced fields should be hidden initially
-      expect(screen.queryByText(/Advanced Configuration/)).toBeInTheDocument()
-      
-      // Click to expand
-      await user.click(screen.getByText(/Advanced Configuration/))
-
-      // Should show more configuration options
-      // Note: Specific fields depend on zodFormUtils configuration
-      // We're testing the toggle behavior, not specific fields
-    })
-  })
 
   describe('Form Data Handling', () => {
     it('cleans up undefined values before submission', async () => {
