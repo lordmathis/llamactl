@@ -102,7 +102,7 @@ afterEach(() => {
 
     it('opens logs dialog when logs button clicked', async () => {
       const user = userEvent.setup()
-      
+
       render(
         <InstanceCard
           instance={stoppedInstance}
@@ -113,9 +113,13 @@ afterEach(() => {
         />
       )
 
+      // First click "More actions" to reveal the logs button
+      const moreActionsButton = screen.getByTitle('More actions')
+      await user.click(moreActionsButton)
+
       const logsButton = screen.getByTitle('View logs')
       await user.click(logsButton)
-      
+
       // Should open logs dialog (we can verify this by checking if dialog title appears)
       expect(screen.getByText(`Logs: ${stoppedInstance.name}`)).toBeInTheDocument()
     })
@@ -125,7 +129,7 @@ afterEach(() => {
     it('shows confirmation dialog and calls deleteInstance when confirmed', async () => {
       const user = userEvent.setup()
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
-      
+
       render(
         <InstanceCard
           instance={stoppedInstance}
@@ -136,19 +140,23 @@ afterEach(() => {
         />
       )
 
+      // First click "More actions" to reveal the delete button
+      const moreActionsButton = screen.getByTitle('More actions')
+      await user.click(moreActionsButton)
+
       const deleteButton = screen.getByTitle('Delete instance')
       await user.click(deleteButton)
-      
+
       expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete instance "test-instance"?')
       expect(mockDeleteInstance).toHaveBeenCalledWith('test-instance')
-      
+
       confirmSpy.mockRestore()
     })
 
     it('does not call deleteInstance when confirmation cancelled', async () => {
       const user = userEvent.setup()
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
-      
+
       render(
         <InstanceCard
           instance={stoppedInstance}
@@ -159,18 +167,24 @@ afterEach(() => {
         />
       )
 
+      // First click "More actions" to reveal the delete button
+      const moreActionsButton = screen.getByTitle('More actions')
+      await user.click(moreActionsButton)
+
       const deleteButton = screen.getByTitle('Delete instance')
       await user.click(deleteButton)
-      
+
       expect(confirmSpy).toHaveBeenCalled()
       expect(mockDeleteInstance).not.toHaveBeenCalled()
-      
+
       confirmSpy.mockRestore()
     })
   })
 
   describe('Button State Based on Instance Status', () => {
-    it('disables start button and enables stop button for running instance', () => {
+    it('disables start button and enables stop button for running instance', async () => {
+      const user = userEvent.setup()
+
       render(
         <InstanceCard
           instance={runningInstance}
@@ -181,12 +195,19 @@ afterEach(() => {
         />
       )
 
-      expect(screen.getByTitle('Start instance')).toBeDisabled()
+      expect(screen.queryByTitle('Start instance')).not.toBeInTheDocument()
       expect(screen.getByTitle('Stop instance')).not.toBeDisabled()
+
+      // Expand more actions to access delete button
+      const moreActionsButton = screen.getByTitle('More actions')
+      await user.click(moreActionsButton)
+
       expect(screen.getByTitle('Delete instance')).toBeDisabled() // Can't delete running instance
     })
 
-    it('enables start button and disables stop button for stopped instance', () => {
+    it('enables start button and disables stop button for stopped instance', async () => {
+      const user = userEvent.setup()
+
       render(
         <InstanceCard
           instance={stoppedInstance}
@@ -198,11 +219,18 @@ afterEach(() => {
       )
 
       expect(screen.getByTitle('Start instance')).not.toBeDisabled()
-      expect(screen.getByTitle('Stop instance')).toBeDisabled()
+      expect(screen.queryByTitle('Stop instance')).not.toBeInTheDocument()
+
+      // Expand more actions to access delete button
+      const moreActionsButton = screen.getByTitle('More actions')
+      await user.click(moreActionsButton)
+
       expect(screen.getByTitle('Delete instance')).not.toBeDisabled() // Can delete stopped instance
     })
 
-    it('edit and logs buttons are always enabled', () => {
+    it('edit and logs buttons are always enabled', async () => {
+      const user = userEvent.setup()
+
       render(
         <InstanceCard
           instance={runningInstance}
@@ -214,6 +242,11 @@ afterEach(() => {
       )
 
       expect(screen.getByTitle('Edit instance')).not.toBeDisabled()
+
+      // Expand more actions to access logs button
+      const moreActionsButton = screen.getByTitle('More actions')
+      await user.click(moreActionsButton)
+
       expect(screen.getByTitle('View logs')).not.toBeDisabled()
     })
   })
@@ -268,7 +301,7 @@ afterEach(() => {
   describe('Integration with LogsModal', () => {
     it('passes correct props to LogsModal', async () => {
       const user = userEvent.setup()
-      
+
       render(
         <InstanceCard
           instance={runningInstance}
@@ -279,20 +312,24 @@ afterEach(() => {
         />
       )
 
+      // First click "More actions" to reveal the logs button
+      const moreActionsButton = screen.getByTitle('More actions')
+      await user.click(moreActionsButton)
+
       // Open logs dialog
       await user.click(screen.getByTitle('View logs'))
-      
+
       // Verify dialog opened with correct instance data
       expect(screen.getByText('Logs: running-instance')).toBeInTheDocument()
-      
+
       // Close dialog to test close functionality
       const closeButtons = screen.getAllByText('Close')
-      const dialogCloseButton = closeButtons.find(button => 
+      const dialogCloseButton = closeButtons.find(button =>
         button.closest('[data-slot="dialog-content"]')
       )
       expect(dialogCloseButton).toBeTruthy()
       await user.click(dialogCloseButton!)
-      
+
       // Modal should close
       expect(screen.queryByText('Logs: running-instance')).not.toBeInTheDocument()
     })

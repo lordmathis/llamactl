@@ -160,7 +160,7 @@ describe('App Component - Critical Business Logic Only', () => {
       expect(screen.getAllByTitle('Start instance').length).toBeGreaterThan(0)
       expect(screen.getAllByTitle('Stop instance').length).toBeGreaterThan(0)
       expect(screen.getAllByTitle('Edit instance').length).toBe(2)
-      expect(screen.getAllByTitle('Delete instance').length).toBeGreaterThan(0)
+      expect(screen.getAllByTitle('More actions').length).toBe(2)
     })
 
     it('delete confirmation calls correct API', async () => {
@@ -174,8 +174,17 @@ describe('App Component - Critical Business Logic Only', () => {
         expect(screen.getByText('test-instance-1')).toBeInTheDocument()
       })
 
-      const deleteButtons = screen.getAllByTitle('Delete instance')
-      await user.click(deleteButtons[0])
+      // First click the "More actions" button to reveal the delete button
+      const moreActionsButtons = screen.getAllByTitle('More actions')
+      await user.click(moreActionsButtons[0])
+
+      // Wait for the delete button to appear and click it
+      await waitFor(() => {
+        expect(screen.getByTitle('Delete instance')).toBeInTheDocument()
+      })
+
+      const deleteButton = screen.getByTitle('Delete instance')
+      await user.click(deleteButton)
 
       // Verify confirmation and API call
       expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete instance "test-instance-1"?')
