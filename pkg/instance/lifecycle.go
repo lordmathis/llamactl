@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"llamactl/pkg/backends"
+	"llamactl/pkg/config"
 )
 
 // Start starts the llama server instance and returns an error if it fails.
@@ -41,24 +42,14 @@ func (i *Process) Start() error {
 		return fmt.Errorf("failed to create log files: %w", err)
 	}
 
-	args := i.options.BuildCommandArgs()
-	i.ctx, i.cancel = context.WithCancel(context.Background())
-
-	var executable string
-
-	// Get executable from global configuration
-	switch i.options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		executable = i.globalBackendSettings.LlamaExecutable
-	case backends.BackendTypeMlxLm:
-		executable = i.globalBackendSettings.MLXLMExecutable
-	case backends.BackendTypeVllm:
-		executable = i.globalBackendSettings.VllmExecutable
-	default:
-		return fmt.Errorf("unsupported backend type: %s", i.options.BackendType)
+	// Build command using backend-specific methods
+	cmd, cmdErr := i.buildCommand()
+	if cmdErr != nil {
+		return fmt.Errorf("failed to build command: %w", cmdErr)
 	}
 
-	i.cmd = exec.CommandContext(i.ctx, executable, args...)
+	i.ctx, i.cancel = context.WithCancel(context.Background())
+	i.cmd = cmd
 
 	if runtime.GOOS != "windows" {
 		setProcAttrs(i.cmd)
@@ -372,3 +363,35 @@ func (i *Process) validateRestartConditions() (shouldRestart bool, maxRestarts i
 
 	return true, maxRestarts, restartDelay
 }
+
+// buildCommand builds the command to execute using backend-specific logic
+func (i *Process) buildCommand() (*exec.Cmd, error) {
+	// Get backend configuration
+	backendConfig, err := i.getBackendConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Delegate to the backend's BuildCommand method
+	return i.options.BuildCommand(i.ctx, backendConfig)
+}
+
+// getBackendConfig resolves the backend configuration for the current instance
+func (i *Process) getBackendConfig() (*config.BackendSettings, error) {
+	var backendTypeStr string
+
+	switch i.options.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		backendTypeStr = "llama-cpp"
+	case backends.BackendTypeMlxLm:
+		backendTypeStr = "mlx"
+	case backends.BackendTypeVllm:
+		backendTypeStr = "vllm"
+	default:
+		return nil, fmt.Errorf("unsupported backend type: %s", i.options.BackendType)
+	}
+
+	settings := i.globalBackendSettings.GetBackendSettings(backendTypeStr)
+	return &settings, nil
+}
+
