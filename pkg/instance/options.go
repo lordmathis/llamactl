@@ -1,6 +1,7 @@
 package instance
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/backends"
@@ -9,6 +10,7 @@ import (
 	"llamactl/pkg/backends/vllm"
 	"llamactl/pkg/config"
 	"log"
+	"os/exec"
 )
 
 type CreateInstanceOptions struct {
@@ -201,11 +203,48 @@ func (c *CreateInstanceOptions) BuildCommandArgs() []string {
 		}
 	case backends.BackendTypeVllm:
 		if c.VllmServerOptions != nil {
-			// Prepend "serve" as first argument
-			args := []string{"serve"}
-			args = append(args, c.VllmServerOptions.BuildCommandArgs()...)
-			return args
+			// No longer prepend "serve" - comes from backend config
+			return c.VllmServerOptions.BuildCommandArgs()
 		}
 	}
 	return []string{}
+}
+
+// BuildCommandArgsWithDocker builds command line arguments for the backend,
+// handling Docker transformations if needed
+func (c *CreateInstanceOptions) BuildCommandArgsWithDocker(dockerImage string) []string {
+	switch c.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		if c.LlamaServerOptions != nil {
+			return c.LlamaServerOptions.BuildCommandArgsWithDocker(dockerImage)
+		}
+	case backends.BackendTypeMlxLm:
+		if c.MlxServerOptions != nil {
+			return c.MlxServerOptions.BuildCommandArgsWithDocker(dockerImage)
+		}
+	case backends.BackendTypeVllm:
+		if c.VllmServerOptions != nil {
+			return c.VllmServerOptions.BuildCommandArgsWithDocker(dockerImage)
+		}
+	}
+	return []string{}
+}
+
+// BuildCommand builds the complete command for the backend, handling Docker vs native execution
+func (c *CreateInstanceOptions) BuildCommand(ctx context.Context, backendConfig *config.BackendSettings) (*exec.Cmd, error) {
+	switch c.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		if c.LlamaServerOptions != nil {
+			return c.LlamaServerOptions.BuildCommand(ctx, backendConfig)
+		}
+	case backends.BackendTypeMlxLm:
+		if c.MlxServerOptions != nil {
+			return c.MlxServerOptions.BuildCommand(ctx, backendConfig)
+		}
+	case backends.BackendTypeVllm:
+		if c.VllmServerOptions != nil {
+			return c.VllmServerOptions.BuildCommand(ctx, backendConfig)
+		}
+	}
+	return nil, fmt.Errorf("no backend options configured for type: %s", c.BackendType)
 }

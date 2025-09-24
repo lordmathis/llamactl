@@ -34,7 +34,7 @@ func (im *instanceManager) EvictLRUInstance() error {
 	im.mu.RLock()
 	var lruInstance *instance.Process
 
-	for name, _ := range im.runningInstances {
+	for name := range im.runningInstances {
 		inst := im.instances[name]
 		if inst == nil {
 			continue
