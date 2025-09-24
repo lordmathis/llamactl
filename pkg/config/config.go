@@ -10,16 +10,26 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// BackendSettings contains structured backend configuration
+type BackendSettings struct {
+	Command string          `yaml:"command"`
+	Args    []string        `yaml:"args"`
+	Docker  *DockerSettings `yaml:"docker,omitempty"`
+}
+
+// DockerSettings contains Docker-specific configuration
+type DockerSettings struct {
+	Enabled     bool              `yaml:"enabled"`
+	Image       string            `yaml:"image"`
+	Args        []string          `yaml:"args"`
+	Environment map[string]string `yaml:"environment,omitempty"`
+}
+
 // BackendConfig contains backend executable configurations
 type BackendConfig struct {
-	// Path to llama-server executable (llama.cpp backend)
-	LlamaExecutable string `yaml:"llama_executable"`
-
-	// Path to mlx_lm executable (MLX-LM backend)
-	MLXLMExecutable string `yaml:"mlx_lm_executable"`
-
-	// Path to vllm executable (vLLM backend)
-	VllmExecutable string `yaml:"vllm_executable"`
+	LlamaCpp BackendSettings `yaml:"llama-cpp"`
+	VLLM     BackendSettings `yaml:"vllm"`
+	MLX      BackendSettings `yaml:"mlx"`
 }
 
 // AppConfig represents the configuration for llamactl
@@ -123,9 +133,31 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			EnableSwagger:  false,
 		},
 		Backends: BackendConfig{
-			LlamaExecutable: "llama-server",
-			MLXLMExecutable: "mlx_lm.server",
-			VllmExecutable:  "vllm",
+			LlamaCpp: BackendSettings{
+				Command: "llama-server",
+				Args:    []string{},
+				Docker: &DockerSettings{
+					Enabled:     false,
+					Image:       "ghcr.io/ggml-org/llama.cpp:server",
+					Args:        []string{"--network", "host", "--gpus", "all"},
+					Environment: map[string]string{},
+				},
+			},
+			VLLM: BackendSettings{
+				Command: "vllm",
+				Args:    []string{"serve"},
+				Docker: &DockerSettings{
+					Enabled:     false,
+					Image:       "vllm/vllm-openai:latest",
+					Args:        []string{"--network", "host", "--gpus", "all", "--shm-size", "1g"},
+					Environment: map[string]string{},
+				},
+			},
+			MLX: BackendSettings{
+				Command: "mlx_lm.server",
+				Args:    []string{},
+				// No Docker section for MLX - not supported
+			},
 		},
 		Instances: InstancesConfig{
 			PortRange:            [2]int{8000, 9000},
@@ -244,15 +276,96 @@ func loadEnvVars(cfg *AppConfig) {
 		}
 	}
 	// Backend config
-	if llamaExec := os.Getenv("LLAMACTL_LLAMA_EXECUTABLE"); llamaExec != "" {
-		cfg.Backends.LlamaExecutable = llamaExec
+	// LlamaCpp backend
+	if llamaCmd := os.Getenv("LLAMACTL_LLAMACPP_COMMAND"); llamaCmd != "" {
+		cfg.Backends.LlamaCpp.Command = llamaCmd
 	}
-	if mlxLMExec := os.Getenv("LLAMACTL_MLX_LM_EXECUTABLE"); mlxLMExec != "" {
-		cfg.Backends.MLXLMExecutable = mlxLMExec
+	if llamaArgs := os.Getenv("LLAMACTL_LLAMACPP_ARGS"); llamaArgs != "" {
+		cfg.Backends.LlamaCpp.Args = strings.Split(llamaArgs, " ")
 	}
-	if vllmExec := os.Getenv("LLAMACTL_VLLM_EXECUTABLE"); vllmExec != "" {
-		cfg.Backends.VllmExecutable = vllmExec
+	if llamaDockerEnabled := os.Getenv("LLAMACTL_LLAMACPP_DOCKER_ENABLED"); llamaDockerEnabled != "" {
+		if b, err := strconv.ParseBool(llamaDockerEnabled); err == nil {
+			if cfg.Backends.LlamaCpp.Docker == nil {
+				cfg.Backends.LlamaCpp.Docker = &DockerSettings{}
+			}
+			cfg.Backends.LlamaCpp.Docker.Enabled = b
+		}
 	}
+	if llamaDockerImage := os.Getenv("LLAMACTL_LLAMACPP_DOCKER_IMAGE"); llamaDockerImage != "" {
+		if cfg.Backends.LlamaCpp.Docker == nil {
+			cfg.Backends.LlamaCpp.Docker = &DockerSettings{}
+		}
+		cfg.Backends.LlamaCpp.Docker.Image = llamaDockerImage
+	}
+	if llamaDockerArgs := os.Getenv("LLAMACTL_LLAMACPP_DOCKER_ARGS"); llamaDockerArgs != "" {
+		if cfg.Backends.LlamaCpp.Docker == nil {
+			cfg.Backends.LlamaCpp.Docker = &DockerSettings{}
+		}
+		cfg.Backends.LlamaCpp.Docker.Args = strings.Split(llamaDockerArgs, " ")
+	}
+	if llamaDockerEnv := os.Getenv("LLAMACTL_LLAMACPP_DOCKER_ENV"); llamaDockerEnv != "" {
+		if cfg.Backends.LlamaCpp.Docker == nil {
+			cfg.Backends.LlamaCpp.Docker = &DockerSettings{}
+		}
+		if cfg.Backends.LlamaCpp.Docker.Environment == nil {
+			cfg.Backends.LlamaCpp.Docker.Environment = make(map[string]string)
+		}
+		// Parse env vars in format "KEY1=value1,KEY2=value2"
+		for _, envPair := range strings.Split(llamaDockerEnv, ",") {
+			if parts := strings.SplitN(strings.TrimSpace(envPair), "=", 2); len(parts) == 2 {
+				cfg.Backends.LlamaCpp.Docker.Environment[parts[0]] = parts[1]
+			}
+		}
+	}
+
+	// vLLM backend
+	if vllmCmd := os.Getenv("LLAMACTL_VLLM_COMMAND"); vllmCmd != "" {
+		cfg.Backends.VLLM.Command = vllmCmd
+	}
+	if vllmDockerEnabled := os.Getenv("LLAMACTL_VLLM_DOCKER_ENABLED"); vllmDockerEnabled != "" {
+		if b, err := strconv.ParseBool(vllmDockerEnabled); err == nil {
+			if cfg.Backends.VLLM.Docker == nil {
+				cfg.Backends.VLLM.Docker = &DockerSettings{}
+			}
+			cfg.Backends.VLLM.Docker.Enabled = b
+		}
+	}
+	if vllmDockerImage := os.Getenv("LLAMACTL_VLLM_DOCKER_IMAGE"); vllmDockerImage != "" {
+		if cfg.Backends.VLLM.Docker == nil {
+			cfg.Backends.VLLM.Docker = &DockerSettings{}
+		}
+		cfg.Backends.VLLM.Docker.Image = vllmDockerImage
+	}
+	if vllmDockerArgs := os.Getenv("LLAMACTL_VLLM_DOCKER_ARGS"); vllmDockerArgs != "" {
+		if cfg.Backends.VLLM.Docker == nil {
+			cfg.Backends.VLLM.Docker = &DockerSettings{}
+		}
+		cfg.Backends.VLLM.Docker.Args = strings.Split(vllmDockerArgs, " ")
+	}
+	if vllmDockerEnv := os.Getenv("LLAMACTL_VLLM_DOCKER_ENV"); vllmDockerEnv != "" {
+		if cfg.Backends.VLLM.Docker == nil {
+			cfg.Backends.VLLM.Docker = &DockerSettings{}
+		}
+		if cfg.Backends.VLLM.Docker.Environment == nil {
+			cfg.Backends.VLLM.Docker.Environment = make(map[string]string)
+		}
+		// Parse env vars in format "KEY1=value1,KEY2=value2"
+		for _, envPair := range strings.Split(vllmDockerEnv, ",") {
+			if parts := strings.SplitN(strings.TrimSpace(envPair), "=", 2); len(parts) == 2 {
+				cfg.Backends.VLLM.Docker.Environment[parts[0]] = parts[1]
+			}
+		}
+	}
+
+	// MLX backend
+	if mlxCmd := os.Getenv("LLAMACTL_MLX_COMMAND"); mlxCmd != "" {
+		cfg.Backends.MLX.Command = mlxCmd
+	}
+	if mlxArgs := os.Getenv("LLAMACTL_MLX_ARGS"); mlxArgs != "" {
+		cfg.Backends.MLX.Args = strings.Split(mlxArgs, " ")
+	}
+
+	// Instance defaults
 	if autoRestart := os.Getenv("LLAMACTL_DEFAULT_AUTO_RESTART"); autoRestart != "" {
 		if b, err := strconv.ParseBool(autoRestart); err == nil {
 			cfg.Instances.DefaultAutoRestart = b
@@ -385,4 +498,18 @@ func getDefaultConfigLocations() []string {
 	}
 
 	return locations
+}
+
+// GetBackendSettings resolves backend settings
+func (bc *BackendConfig) GetBackendSettings(backendType string) BackendSettings {
+	switch backendType {
+	case "llama-cpp":
+		return bc.LlamaCpp
+	case "vllm":
+		return bc.VLLM
+	case "mlx":
+		return bc.MLX
+	default:
+		return BackendSettings{}
+	}
 }

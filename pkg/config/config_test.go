@@ -117,7 +117,6 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 		"LLAMACTL_INSTANCE_PORT_RANGE":   "5000-6000",
 		"LLAMACTL_LOGS_DIR":              "/env/logs",
 		"LLAMACTL_MAX_INSTANCES":         "20",
-		"LLAMACTL_LLAMA_EXECUTABLE":      "/env/llama-server",
 		"LLAMACTL_DEFAULT_AUTO_RESTART":  "false",
 		"LLAMACTL_DEFAULT_MAX_RESTARTS":  "7",
 		"LLAMACTL_DEFAULT_RESTART_DELAY": "15",
@@ -150,8 +149,8 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 	if cfg.Instances.MaxInstances != 20 {
 		t.Errorf("Expected max instances 20, got %d", cfg.Instances.MaxInstances)
 	}
-	if cfg.Backends.LlamaExecutable != "/env/llama-server" {
-		t.Errorf("Expected executable '/env/llama-server', got %q", cfg.Backends.LlamaExecutable)
+	if cfg.Backends.LlamaCpp.Command != "llama-server" {
+		t.Errorf("Expected default llama command 'llama-server', got %q", cfg.Backends.LlamaCpp.Command)
 	}
 	if cfg.Instances.DefaultAutoRestart {
 		t.Error("Expected auto restart to be false")
@@ -347,5 +346,167 @@ server:
 	}
 	if cfg.Instances.MaxInstances != -1 {
 		t.Errorf("Expected default max instances -1, got %d", cfg.Instances.MaxInstances)
+	}
+}
+
+func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
+	bc := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{
+			Command: "custom-llama",
+			Args:    []string{"--verbose"},
+			Docker: &config.DockerSettings{
+				Enabled:     true,
+				Image:       "custom-llama:latest",
+				Args:        []string{"--gpus", "all"},
+				Environment: map[string]string{"CUDA_VISIBLE_DEVICES": "1"},
+			},
+		},
+		VLLM: config.BackendSettings{
+			Command: "custom-vllm",
+			Args:    []string{"serve", "--debug"},
+		},
+		MLX: config.BackendSettings{
+			Command: "custom-mlx",
+			Args:    []string{},
+		},
+	}
+
+	// Test llama-cpp with Docker
+	settings := bc.GetBackendSettings("llama-cpp")
+	if settings.Command != "custom-llama" {
+		t.Errorf("Expected command 'custom-llama', got %q", settings.Command)
+	}
+	if len(settings.Args) != 1 || settings.Args[0] != "--verbose" {
+		t.Errorf("Expected args ['--verbose'], got %v", settings.Args)
+	}
+	if settings.Docker == nil || !settings.Docker.Enabled {
+		t.Error("Expected Docker to be enabled")
+	}
+	if settings.Docker.Image != "custom-llama:latest" {
+		t.Errorf("Expected Docker image 'custom-llama:latest', got %q", settings.Docker.Image)
+	}
+
+	// Test vLLM without Docker
+	settings = bc.GetBackendSettings("vllm")
+	if settings.Command != "custom-vllm" {
+		t.Errorf("Expected command 'custom-vllm', got %q", settings.Command)
+	}
+	if len(settings.Args) != 2 || settings.Args[0] != "serve" || settings.Args[1] != "--debug" {
+		t.Errorf("Expected args ['serve', '--debug'], got %v", settings.Args)
+	}
+	if settings.Docker != nil && settings.Docker.Enabled {
+		t.Error("Expected Docker to be disabled or nil")
+	}
+
+	// Test MLX
+	settings = bc.GetBackendSettings("mlx")
+	if settings.Command != "custom-mlx" {
+		t.Errorf("Expected command 'custom-mlx', got %q", settings.Command)
+	}
+}
+
+func TestGetBackendSettings_EmptyConfig(t *testing.T) {
+	bc := &config.BackendConfig{}
+
+	// Test empty llama-cpp
+	settings := bc.GetBackendSettings("llama-cpp")
+	if settings.Command != "" {
+		t.Errorf("Expected empty command, got %q", settings.Command)
+	}
+
+	// Test empty vLLM
+	settings = bc.GetBackendSettings("vllm")
+	if settings.Command != "" {
+		t.Errorf("Expected empty command, got %q", settings.Command)
+	}
+
+	// Test empty MLX
+	settings = bc.GetBackendSettings("mlx")
+	if settings.Command != "" {
+		t.Errorf("Expected empty command, got %q", settings.Command)
+	}
+}
+
+func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
+	// Test that backend environment variables work correctly
+	envVars := map[string]string{
+		"LLAMACTL_LLAMACPP_COMMAND":        "env-llama",
+		"LLAMACTL_LLAMACPP_ARGS":           "--verbose --threads 4",
+		"LLAMACTL_LLAMACPP_DOCKER_ENABLED": "true",
+		"LLAMACTL_LLAMACPP_DOCKER_IMAGE":   "env-llama:latest",
+		"LLAMACTL_LLAMACPP_DOCKER_ARGS":    "--network host --gpus all",
+		"LLAMACTL_LLAMACPP_DOCKER_ENV":     "CUDA_VISIBLE_DEVICES=0,OMP_NUM_THREADS=4",
+		"LLAMACTL_VLLM_COMMAND":            "env-vllm",
+		"LLAMACTL_VLLM_DOCKER_ENABLED":     "false",
+		"LLAMACTL_VLLM_DOCKER_IMAGE":       "env-vllm:latest",
+		"LLAMACTL_VLLM_DOCKER_ENV":         "PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512,CUDA_VISIBLE_DEVICES=1",
+		"LLAMACTL_MLX_COMMAND":             "env-mlx",
+	}
+
+	// Set env vars and ensure cleanup
+	for key, value := range envVars {
+		os.Setenv(key, value)
+		defer os.Unsetenv(key)
+	}
+
+	cfg, err := config.LoadConfig("nonexistent-file.yaml")
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	// Verify llama-cpp environment overrides
+	if cfg.Backends.LlamaCpp.Command != "env-llama" {
+		t.Errorf("Expected llama command 'env-llama', got %q", cfg.Backends.LlamaCpp.Command)
+	}
+	expectedArgs := []string{"--verbose", "--threads", "4"}
+	if len(cfg.Backends.LlamaCpp.Args) != len(expectedArgs) {
+		t.Errorf("Expected llama args %v, got %v", expectedArgs, cfg.Backends.LlamaCpp.Args)
+	}
+	if !cfg.Backends.LlamaCpp.Docker.Enabled {
+		t.Error("Expected llama Docker to be enabled")
+	}
+	if cfg.Backends.LlamaCpp.Docker.Image != "env-llama:latest" {
+		t.Errorf("Expected llama Docker image 'env-llama:latest', got %q", cfg.Backends.LlamaCpp.Docker.Image)
+	}
+	expectedDockerArgs := []string{"--network", "host", "--gpus", "all"}
+	if len(cfg.Backends.LlamaCpp.Docker.Args) != len(expectedDockerArgs) {
+		t.Errorf("Expected llama Docker args %v, got %v", expectedDockerArgs, cfg.Backends.LlamaCpp.Docker.Args)
+	}
+	if cfg.Backends.LlamaCpp.Docker.Environment["CUDA_VISIBLE_DEVICES"] != "0" {
+		t.Errorf("Expected CUDA_VISIBLE_DEVICES=0, got %q", cfg.Backends.LlamaCpp.Docker.Environment["CUDA_VISIBLE_DEVICES"])
+	}
+	if cfg.Backends.LlamaCpp.Docker.Environment["OMP_NUM_THREADS"] != "4" {
+		t.Errorf("Expected OMP_NUM_THREADS=4, got %q", cfg.Backends.LlamaCpp.Docker.Environment["OMP_NUM_THREADS"])
+	}
+
+	// Verify vLLM environment overrides
+	if cfg.Backends.VLLM.Command != "env-vllm" {
+		t.Errorf("Expected vLLM command 'env-vllm', got %q", cfg.Backends.VLLM.Command)
+	}
+	if cfg.Backends.VLLM.Docker.Enabled {
+		t.Error("Expected vLLM Docker to be disabled")
+	}
+	if cfg.Backends.VLLM.Docker.Environment["PYTORCH_CUDA_ALLOC_CONF"] != "max_split_size_mb:512" {
+		t.Errorf("Expected PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512, got %q", cfg.Backends.VLLM.Docker.Environment["PYTORCH_CUDA_ALLOC_CONF"])
+	}
+
+	// Verify MLX environment overrides
+	if cfg.Backends.MLX.Command != "env-mlx" {
+		t.Errorf("Expected MLX command 'env-mlx', got %q", cfg.Backends.MLX.Command)
+	}
+}
+
+func TestGetBackendSettings_InvalidBackendType(t *testing.T) {
+	bc := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+			Args:    []string{},
+		},
+	}
+
+	// Test invalid backend type returns empty settings
+	settings := bc.GetBackendSettings("invalid-backend")
+	if settings.Command != "" {
+		t.Errorf("Expected empty command for invalid backend, got %q", settings.Command)
 	}
 }
