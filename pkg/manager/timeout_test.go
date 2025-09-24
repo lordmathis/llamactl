@@ -14,8 +14,8 @@ import (
 func TestTimeoutFunctionality(t *testing.T) {
 	// Test timeout checker initialization
 	backendConfig := config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+		MLX:      config.BackendSettings{Command: "mlx_lm.server"},
 	}
 	cfg := config.InstancesConfig{
 		PortRange:            [2]int{8000, 9000},

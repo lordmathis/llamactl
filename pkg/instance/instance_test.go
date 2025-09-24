@@ -12,8 +12,18 @@ import (
 
 func TestNewInstance(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+			Args:    []string{},
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+			Args:    []string{},
+		},
+		VLLM: config.BackendSettings{
+			Command: "vllm",
+			Args:    []string{"serve"},
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -66,8 +76,18 @@ func TestNewInstance(t *testing.T) {
 
 func TestNewInstance_WithRestartOptions(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+			Args:    []string{},
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+			Args:    []string{},
+		},
+		VLLM: config.BackendSettings{
+			Command: "vllm",
+			Args:    []string{"serve"},
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -112,8 +132,18 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 
 func TestSetOptions(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+			Args:    []string{},
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+			Args:    []string{},
+		},
+		VLLM: config.BackendSettings{
+			Command: "vllm",
+			Args:    []string{"serve"},
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -163,8 +193,18 @@ func TestSetOptions(t *testing.T) {
 
 func TestGetProxy(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+			Args:    []string{},
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+			Args:    []string{},
+		},
+		VLLM: config.BackendSettings{
+			Command: "vllm",
+			Args:    []string{"serve"},
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -205,8 +245,18 @@ func TestGetProxy(t *testing.T) {
 
 func TestMarshalJSON(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+			Args:    []string{},
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+			Args:    []string{},
+		},
+		VLLM: config.BackendSettings{
+			Command: "vllm",
+			Args:    []string{"serve"},
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -364,8 +414,18 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 	}
 
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+			Args:    []string{},
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+			Args:    []string{},
+		},
+		VLLM: config.BackendSettings{
+			Command: "vllm",
+			Args:    []string{"serve"},
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{

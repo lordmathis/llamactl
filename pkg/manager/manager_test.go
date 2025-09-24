@@ -16,8 +16,12 @@ import (
 
 func TestNewInstanceManager(t *testing.T) {
 	backendConfig := config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+		},
 	}
 
 	cfg := config.InstancesConfig{
@@ -49,8 +53,12 @@ func TestPersistence(t *testing.T) {
 	tempDir := t.TempDir()
 
 	backendConfig := config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+		},
 	}
 
 	cfg := config.InstancesConfig{
@@ -182,8 +190,12 @@ func TestShutdown(t *testing.T) {
 // Helper function to create a test manager with standard config
 func createTestManager() manager.InstanceManager {
 	backendConfig := config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+		},
 	}
 
 	cfg := config.InstancesConfig{
