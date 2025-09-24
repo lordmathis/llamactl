@@ -139,7 +139,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 				Docker: &DockerSettings{
 					Enabled:     false,
 					Image:       "ghcr.io/ggml-org/llama.cpp:server",
-					Args:        []string{"--network", "host", "--gpus", "all"},
+					Args:        []string{"run", "--rm", "--network", "host", "--gpus", "all"},
 					Environment: map[string]string{},
 				},
 			},
@@ -149,7 +149,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 				Docker: &DockerSettings{
 					Enabled:     false,
 					Image:       "vllm/vllm-openai:latest",
-					Args:        []string{"--network", "host", "--gpus", "all", "--shm-size", "1g"},
+					Args:        []string{"run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"},
 					Environment: map[string]string{},
 				},
 			},

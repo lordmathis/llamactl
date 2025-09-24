@@ -434,7 +434,7 @@ func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 		"LLAMACTL_LLAMACPP_ARGS":           "--verbose --threads 4",
 		"LLAMACTL_LLAMACPP_DOCKER_ENABLED": "true",
 		"LLAMACTL_LLAMACPP_DOCKER_IMAGE":   "env-llama:latest",
-		"LLAMACTL_LLAMACPP_DOCKER_ARGS":    "--network host --gpus all",
+		"LLAMACTL_LLAMACPP_DOCKER_ARGS":    "run --rm --network host --gpus all",
 		"LLAMACTL_LLAMACPP_DOCKER_ENV":     "CUDA_VISIBLE_DEVICES=0,OMP_NUM_THREADS=4",
 		"LLAMACTL_VLLM_COMMAND":            "env-vllm",
 		"LLAMACTL_VLLM_DOCKER_ENABLED":     "false",
@@ -468,7 +468,7 @@ func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 	if cfg.Backends.LlamaCpp.Docker.Image != "env-llama:latest" {
 		t.Errorf("Expected llama Docker image 'env-llama:latest', got %q", cfg.Backends.LlamaCpp.Docker.Image)
 	}
-	expectedDockerArgs := []string{"--network", "host", "--gpus", "all"}
+	expectedDockerArgs := []string{"run", "--rm", "--network", "host", "--gpus", "all"}
 	if len(cfg.Backends.LlamaCpp.Docker.Args) != len(expectedDockerArgs) {
 		t.Errorf("Expected llama Docker args %v, got %v", expectedDockerArgs, cfg.Backends.LlamaCpp.Docker.Args)
 	}
