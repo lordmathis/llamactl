@@ -372,8 +372,13 @@ func (i *Process) buildCommand() (*exec.Cmd, error) {
 		return nil, err
 	}
 
-	// Delegate to the backend's BuildCommand method
-	return i.options.BuildCommand(i.ctx, backendConfig)
+	// Get the command to execute
+	cmd := i.options.GetCommand(backendConfig)
+
+	// Build command arguments
+	args := i.options.BuildCommandArgs(backendConfig)
+
+	return exec.Command(cmd, args...), nil
 }
 
 // getBackendConfig resolves the backend configuration for the current instance
@@ -394,4 +399,3 @@ func (i *Process) getBackendConfig() (*config.BackendSettings, error) {
 	settings := i.globalBackendSettings.GetBackendSettings(backendTypeStr)
 	return &settings, nil
 }
-

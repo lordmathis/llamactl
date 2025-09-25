@@ -1,7 +1,6 @@
 package instance
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/backends"
@@ -10,7 +9,6 @@ import (
 	"llamactl/pkg/backends/vllm"
 	"llamactl/pkg/config"
 	"log"
-	"os/exec"
 )
 
 type CreateInstanceOptions struct {
@@ -190,61 +188,54 @@ func (c *CreateInstanceOptions) ValidateAndApplyDefaults(name string, globalSett
 	}
 }
 
+func (c *CreateInstanceOptions) GetCommand(backendConfig *config.BackendSettings) string {
+
+	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
+		return "docker"
+	}
+
+	return backendConfig.Command
+}
+
 // BuildCommandArgs builds command line arguments for the backend
-func (c *CreateInstanceOptions) BuildCommandArgs() []string {
-	switch c.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if c.LlamaServerOptions != nil {
-			return c.LlamaServerOptions.BuildCommandArgs()
-		}
-	case backends.BackendTypeMlxLm:
-		if c.MlxServerOptions != nil {
-			return c.MlxServerOptions.BuildCommandArgs()
-		}
-	case backends.BackendTypeVllm:
-		if c.VllmServerOptions != nil {
-			// No longer prepend "serve" - comes from backend config
-			return c.VllmServerOptions.BuildCommandArgs()
-		}
-	}
-	return []string{}
-}
+func (c *CreateInstanceOptions) BuildCommandArgs(backendConfig *config.BackendSettings) []string {
 
-// BuildCommandArgsWithDocker builds command line arguments for the backend,
-// handling Docker transformations if needed
-func (c *CreateInstanceOptions) BuildCommandArgsWithDocker(dockerImage string) []string {
-	switch c.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if c.LlamaServerOptions != nil {
-			return c.LlamaServerOptions.BuildCommandArgsWithDocker(dockerImage)
-		}
-	case backends.BackendTypeMlxLm:
-		if c.MlxServerOptions != nil {
-			return c.MlxServerOptions.BuildCommandArgsWithDocker(dockerImage)
-		}
-	case backends.BackendTypeVllm:
-		if c.VllmServerOptions != nil {
-			return c.VllmServerOptions.BuildCommandArgsWithDocker(dockerImage)
-		}
-	}
-	return []string{}
-}
+	var args []string
 
-// BuildCommand builds the complete command for the backend, handling Docker vs native execution
-func (c *CreateInstanceOptions) BuildCommand(ctx context.Context, backendConfig *config.BackendSettings) (*exec.Cmd, error) {
-	switch c.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if c.LlamaServerOptions != nil {
-			return c.LlamaServerOptions.BuildCommand(ctx, backendConfig)
+	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
+		// For Docker, start with Docker args
+		args = append(args, backendConfig.Docker.Args...)
+
+		switch c.BackendType {
+		case backends.BackendTypeLlamaCpp:
+			if c.LlamaServerOptions != nil {
+				args = append(args, c.LlamaServerOptions.BuildDockerArgs()...)
+			}
+		case backends.BackendTypeVllm:
+			if c.VllmServerOptions != nil {
+				args = append(args, c.VllmServerOptions.BuildDockerArgs()...)
+			}
 		}
-	case backends.BackendTypeMlxLm:
-		if c.MlxServerOptions != nil {
-			return c.MlxServerOptions.BuildCommand(ctx, backendConfig)
-		}
-	case backends.BackendTypeVllm:
-		if c.VllmServerOptions != nil {
-			return c.VllmServerOptions.BuildCommand(ctx, backendConfig)
+
+	} else {
+		// For native execution, start with backend args
+		args = append(args, backendConfig.Args...)
+
+		switch c.BackendType {
+		case backends.BackendTypeLlamaCpp:
+			if c.LlamaServerOptions != nil {
+				args = append(args, c.LlamaServerOptions.BuildCommandArgs()...)
+			}
+		case backends.BackendTypeMlxLm:
+			if c.MlxServerOptions != nil {
+				args = append(args, c.MlxServerOptions.BuildCommandArgs()...)
+			}
+		case backends.BackendTypeVllm:
+			if c.VllmServerOptions != nil {
+				args = append(args, c.VllmServerOptions.BuildCommandArgs()...)
+			}
 		}
 	}
-	return nil, fmt.Errorf("no backend options configured for type: %s", c.BackendType)
+
+	return args
 }

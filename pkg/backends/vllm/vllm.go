@@ -1,14 +1,17 @@
 package vllm
 
 import (
-	"context"
-	"fmt"
-	"llamactl/pkg/config"
-	"os/exec"
-	"strings"
-
 	"llamactl/pkg/backends"
 )
+
+// multiValuedFlags defines flags that should be repeated for each value rather than comma-separated
+var multiValuedFlags = map[string]bool{
+	"api-key":         true,
+	"allowed-origins": true,
+	"allowed-methods": true,
+	"allowed-headers": true,
+	"middleware":      true,
+}
 
 type VllmServerOptions struct {
 	// Basic connection options (auto-assigned by llamactl)
@@ -137,102 +140,35 @@ type VllmServerOptions struct {
 }
 
 // BuildCommandArgs converts VllmServerOptions to command line arguments
-// Note: This does NOT include the "serve" subcommand, that's handled at the instance level
-// For vLLM, the model parameter is passed as a positional argument, not a --model flag
+// For vLLM native, model is a positional argument after "serve"
 func (o *VllmServerOptions) BuildCommandArgs() []string {
 	var args []string
 
-	// Add model as positional argument if specified
+	// Add model as positional argument if specified (for native execution)
 	if o.Model != "" {
 		args = append(args, o.Model)
 	}
 
-	// Create a copy of the options without the Model field to avoid including it as --model flag
+	// Create a copy without Model field to avoid --model flag
 	optionsCopy := *o
-	optionsCopy.Model = "" // Clear model field so it won't be included as a flag
+	optionsCopy.Model = ""
 
-	multipleFlags := map[string]bool{
-		"api-key":         true,
-		"allowed-origins": true,
-		"allowed-methods": true,
-		"allowed-headers": true,
-		"middleware":      true,
-	}
+	// Use package-level multipleFlags variable
 
-	// Build the rest of the arguments as flags
-	flagArgs := backends.BuildCommandArgs(&optionsCopy, multipleFlags)
+	flagArgs := backends.BuildCommandArgs(&optionsCopy, multiValuedFlags)
 	args = append(args, flagArgs...)
 
 	return args
 }
 
-// BuildCommandArgsWithDocker converts VllmServerOptions to command line arguments,
-// handling Docker transformations if needed
-func (o *VllmServerOptions) BuildCommandArgsWithDocker(dockerImage string) []string {
-	args := o.BuildCommandArgs()
+func (o *VllmServerOptions) BuildDockerArgs() []string {
+	var args []string
 
-	// Handle vLLM Docker image quirk
-	if isVLLMDocker(dockerImage) {
-		args = transformVLLMArgs(args)
-	}
+	// Use package-level multipleFlags variable
+	flagArgs := backends.BuildCommandArgs(o, multiValuedFlags)
+	args = append(args, flagArgs...)
 
 	return args
-}
-
-// isVLLMDocker checks if the Docker image is a vLLM image
-func isVLLMDocker(image string) bool {
-	return strings.Contains(strings.ToLower(image), "vllm")
-}
-
-// transformVLLMArgs converts vLLM arguments for Docker execution
-// Convert: ["serve", "microsoft/DialoGPT-medium", "--flag", "value"]
-// To: ["--model", "microsoft/DialoGPT-medium", "--flag", "value"]
-func transformVLLMArgs(args []string) []string {
-	if len(args) >= 2 && args[0] == "serve" {
-		return append([]string{"--model", args[1]}, args[2:]...)
-	}
-	return args
-}
-
-// BuildCommand creates the complete command for execution, handling Docker vs native execution
-func (o *VllmServerOptions) BuildCommand(ctx context.Context, backendConfig *config.BackendSettings) (*exec.Cmd, error) {
-	// Build instance-specific arguments using backend functions
-	var instanceArgs []string
-	if backendConfig.Docker != nil && backendConfig.Docker.Enabled {
-		// Use Docker-aware argument building
-		instanceArgs = o.BuildCommandArgsWithDocker(backendConfig.Docker.Image)
-	} else {
-		// Use regular argument building for native execution
-		instanceArgs = o.BuildCommandArgs()
-	}
-
-	// Combine backend args with instance args
-	finalArgs := append(backendConfig.Args, instanceArgs...)
-
-	// Choose Docker vs Native execution
-	if backendConfig.Docker != nil && backendConfig.Docker.Enabled {
-		return buildDockerCommand(ctx, backendConfig, finalArgs)
-	} else {
-		return exec.CommandContext(ctx, backendConfig.Command, finalArgs...), nil
-	}
-}
-
-// buildDockerCommand builds a Docker command with the specified configuration and arguments
-func buildDockerCommand(ctx context.Context, backendConfig *config.BackendSettings, args []string) (*exec.Cmd, error) {
-	// Start with configured Docker arguments (should include "run", "--rm", etc.)
-	dockerArgs := make([]string, len(backendConfig.Docker.Args))
-	copy(dockerArgs, backendConfig.Docker.Args)
-
-	// Add environment variables
-	for key, value := range backendConfig.Docker.Environment {
-		dockerArgs = append(dockerArgs, "-e", fmt.Sprintf("%s=%s", key, value))
-	}
-
-	// Add image and container arguments
-	dockerArgs = append(dockerArgs, backendConfig.Docker.Image)
-	dockerArgs = append(dockerArgs, args...)
-
-	return exec.CommandContext(ctx, "docker", dockerArgs...), nil
 }
 
 // ParseVllmCommand parses a vLLM serve command string into VllmServerOptions
