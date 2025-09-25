@@ -137,9 +137,11 @@ func LoadConfig(configPath string) (AppConfig, error) {
 				Command: "llama-server",
 				Args:    []string{},
 				Docker: &DockerSettings{
-					Enabled:     false,
-					Image:       "ghcr.io/ggml-org/llama.cpp:server",
-					Args:        []string{"run", "--rm", "--network", "host", "--gpus", "all"},
+					Enabled: false,
+					Image:   "ghcr.io/ggml-org/llama.cpp:server",
+					Args: []string{
+						"run", "--rm", "--network", "host", "--gpus", "all",
+						"-v", filepath.Join(getDefaultDataDirectory(), "llama.cpp") + ":/root/.cache/llama.cpp"},
 					Environment: map[string]string{},
 				},
 			},
@@ -147,9 +149,12 @@ func LoadConfig(configPath string) (AppConfig, error) {
 				Command: "vllm",
 				Args:    []string{"serve"},
 				Docker: &DockerSettings{
-					Enabled:     false,
-					Image:       "vllm/vllm-openai:latest",
-					Args:        []string{"run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"},
+					Enabled: false,
+					Image:   "vllm/vllm-openai:latest",
+					Args: []string{
+						"run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g",
+						"-v", filepath.Join(getDefaultDataDirectory(), "huggingface") + ":/root/.cache/huggingface",
+					},
 					Environment: map[string]string{},
 				},
 			},
