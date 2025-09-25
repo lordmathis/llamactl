@@ -205,6 +205,7 @@ func (c *CreateInstanceOptions) BuildCommandArgs(backendConfig *config.BackendSe
 	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
 		// For Docker, start with Docker args
 		args = append(args, backendConfig.Docker.Args...)
+		args = append(args, backendConfig.Docker.Image)
 
 		switch c.BackendType {
 		case backends.BackendTypeLlamaCpp:
