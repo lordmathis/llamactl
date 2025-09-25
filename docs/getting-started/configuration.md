@@ -20,9 +20,27 @@ server:
   enable_swagger: false          # Enable Swagger UI for API docs
 
 backends:
-  llama_executable: llama-server # Path to llama-server executable
-  mlx_lm_executable: mlx_lm.server # Path to mlx_lm.server executable
-  vllm_executable: vllm # Path to vllm executable
+  llama-cpp:
+    command: "llama-server"
+    args: []
+    docker:
+      enabled: false
+      image: "ghcr.io/ggml-org/llama.cpp:server"
+      args: ["run", "--rm", "--network", "host", "--gpus", "all"]
+      environment: {}
+
+  vllm:
+    command: "vllm"
+    args: ["serve"]
+    docker:
+      enabled: false
+      image: "vllm/vllm-openai:latest"
+      args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
+      environment: {}
+
+  mlx:
+    command: "mlx_lm.server"
+    args: []
 
 instances:
   port_range: [8000, 9000]       # Port range for instances
@@ -90,18 +108,40 @@ server:
 - `LLAMACTL_ENABLE_SWAGGER` - Enable Swagger UI (true/false)
 
 ### Backend Configuration
-
 ```yaml
 backends:
-  llama_executable: "llama-server"     # Path to llama-server executable (default: "llama-server")
-  mlx_lm_executable: "mlx_lm.server"   # Path to mlx_lm.server executable (default: "mlx_lm.server")
-  vllm_executable: "vllm"              # Path to vllm executable (default: "vllm")
+  llama-cpp:
+    command: "llama-server"
+    args: []
+    docker:
+      enabled: false                   # Enable Docker runtime (default: false)
+      image: "ghcr.io/ggml-org/llama.cpp:server"
+      args: ["run", "--rm", "--network", "host", "--gpus", "all"]
+      environment: {}
+
+  vllm:
+    command: "vllm"
+    args: ["serve"]
+    docker:
+      enabled: false
+      image: "vllm/vllm-openai:latest"
+      args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
+      environment: {}
+
+  mlx:
+    command: "mlx_lm.server"
+    args: []
+    # MLX does not support Docker
 ```
 
-**Environment Variables:**
-- `LLAMACTL_LLAMA_EXECUTABLE` - Path to llama-server executable
-- `LLAMACTL_MLX_LM_EXECUTABLE` - Path to mlx_lm.server executable
-- `LLAMACTL_VLLM_EXECUTABLE` - Path to vllm executable
+**Backend Configuration Fields:**
+- `command`: Executable name/path for the backend
+- `args`: Default arguments prepended to all instances
+- `docker`: Docker-specific configuration (optional)
+  - `enabled`: Boolean flag to enable Docker runtime
+  - `image`: Docker image to use
+  - `args`: Additional arguments passed to `docker run`
+  - `environment`: Environment variables for the container (optional)
 
 ### Instance Configuration
 

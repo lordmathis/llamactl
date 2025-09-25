@@ -188,24 +188,55 @@ func (c *CreateInstanceOptions) ValidateAndApplyDefaults(name string, globalSett
 	}
 }
 
+func (c *CreateInstanceOptions) GetCommand(backendConfig *config.BackendSettings) string {
+
+	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
+		return "docker"
+	}
+
+	return backendConfig.Command
+}
+
 // BuildCommandArgs builds command line arguments for the backend
-func (c *CreateInstanceOptions) BuildCommandArgs() []string {
-	switch c.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if c.LlamaServerOptions != nil {
-			return c.LlamaServerOptions.BuildCommandArgs()
+func (c *CreateInstanceOptions) BuildCommandArgs(backendConfig *config.BackendSettings) []string {
+
+	var args []string
+
+	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
+		// For Docker, start with Docker args
+		args = append(args, backendConfig.Docker.Args...)
+		args = append(args, backendConfig.Docker.Image)
+
+		switch c.BackendType {
+		case backends.BackendTypeLlamaCpp:
+			if c.LlamaServerOptions != nil {
+				args = append(args, c.LlamaServerOptions.BuildDockerArgs()...)
+			}
+		case backends.BackendTypeVllm:
+			if c.VllmServerOptions != nil {
+				args = append(args, c.VllmServerOptions.BuildDockerArgs()...)
+			}
 		}
-	case backends.BackendTypeMlxLm:
-		if c.MlxServerOptions != nil {
-			return c.MlxServerOptions.BuildCommandArgs()
-		}
-	case backends.BackendTypeVllm:
-		if c.VllmServerOptions != nil {
-			// Prepend "serve" as first argument
-			args := []string{"serve"}
-			args = append(args, c.VllmServerOptions.BuildCommandArgs()...)
-			return args
+
+	} else {
+		// For native execution, start with backend args
+		args = append(args, backendConfig.Args...)
+
+		switch c.BackendType {
+		case backends.BackendTypeLlamaCpp:
+			if c.LlamaServerOptions != nil {
+				args = append(args, c.LlamaServerOptions.BuildCommandArgs()...)
+			}
+		case backends.BackendTypeMlxLm:
+			if c.MlxServerOptions != nil {
+				args = append(args, c.MlxServerOptions.BuildCommandArgs()...)
+			}
+		case backends.BackendTypeVllm:
+			if c.VllmServerOptions != nil {
+				args = append(args, c.VllmServerOptions.BuildCommandArgs()...)
+			}
 		}
 	}
-	return []string{}
+
+	return args
 }

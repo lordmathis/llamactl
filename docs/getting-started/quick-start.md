@@ -88,6 +88,21 @@ Here are basic example configurations for each backend:
 }
 ```
 
+## Docker Support
+
+Llamactl can run backends in Docker containers. To enable Docker for a backend, add a `docker` section to that backend in your YAML configuration file (e.g. `config.yaml`) as shown below:
+
+```yaml
+backends:
+  vllm:
+    command: "vllm"
+    args: ["serve"]
+    docker:
+      enabled: true
+      image: "vllm/vllm-openai:latest"
+      args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
+```
+
 ## Using the API
 
 You can also manage instances via the REST API:

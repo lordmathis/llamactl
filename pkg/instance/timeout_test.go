@@ -34,8 +34,12 @@ func (m *MockTimeProvider) SetTime(t time.Time) {
 
 func TestUpdateLastRequestTime(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -60,8 +64,12 @@ func TestUpdateLastRequestTime(t *testing.T) {
 
 func TestShouldTimeout_NotRunning(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -90,8 +98,12 @@ func TestShouldTimeout_NotRunning(t *testing.T) {
 
 func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -133,8 +145,12 @@ func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
 
 func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -167,8 +183,12 @@ func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
 
 func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{
@@ -207,8 +227,12 @@ func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
 
 func TestTimeoutConfiguration_Validation(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaExecutable: "llama-server",
-		MLXLMExecutable: "mlx_lm.server",
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+		MLX: config.BackendSettings{
+			Command: "mlx_lm.server",
+		},
 	}
 
 	globalSettings := &config.InstancesConfig{

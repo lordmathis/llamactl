@@ -4,6 +4,15 @@ import (
 	"llamactl/pkg/backends"
 )
 
+// multiValuedFlags defines flags that should be repeated for each value rather than comma-separated
+var multiValuedFlags = map[string]bool{
+	"api-key":         true,
+	"allowed-origins": true,
+	"allowed-methods": true,
+	"allowed-headers": true,
+	"middleware":      true,
+}
+
 type VllmServerOptions struct {
 	// Basic connection options (auto-assigned by llamactl)
 	Host string `json:"host,omitempty"`
@@ -131,30 +140,32 @@ type VllmServerOptions struct {
 }
 
 // BuildCommandArgs converts VllmServerOptions to command line arguments
-// Note: This does NOT include the "serve" subcommand, that's handled at the instance level
-// For vLLM, the model parameter is passed as a positional argument, not a --model flag
+// For vLLM native, model is a positional argument after "serve"
 func (o *VllmServerOptions) BuildCommandArgs() []string {
 	var args []string
 
-	// Add model as positional argument if specified
+	// Add model as positional argument if specified (for native execution)
 	if o.Model != "" {
 		args = append(args, o.Model)
 	}
 
-	// Create a copy of the options without the Model field to avoid including it as --model flag
+	// Create a copy without Model field to avoid --model flag
 	optionsCopy := *o
-	optionsCopy.Model = "" // Clear model field so it won't be included as a flag
+	optionsCopy.Model = ""
 
-	multipleFlags := map[string]bool{
-		"api-key":         true,
-		"allowed-origins": true,
-		"allowed-methods": true,
-		"allowed-headers": true,
-		"middleware":      true,
-	}
+	// Use package-level multipleFlags variable
 
-	// Build the rest of the arguments as flags
-	flagArgs := backends.BuildCommandArgs(&optionsCopy, multipleFlags)
+	flagArgs := backends.BuildCommandArgs(&optionsCopy, multiValuedFlags)
+	args = append(args, flagArgs...)
+
+	return args
+}
+
+func (o *VllmServerOptions) BuildDockerArgs() []string {
+	var args []string
+
+	// Use package-level multipleFlags variable
+	flagArgs := backends.BuildCommandArgs(o, multiValuedFlags)
 	args = append(args, flagArgs...)
 
 	return args

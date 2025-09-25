@@ -1,6 +1,8 @@
 package backends
 
 import (
+	"fmt"
+	"llamactl/pkg/config"
 	"reflect"
 	"strconv"
 	"strings"
@@ -67,4 +69,25 @@ func BuildCommandArgs(options any, multipleFlags map[string]bool) []string {
 	}
 
 	return args
+}
+
+// BuildDockerCommand builds a Docker command with the specified configuration and arguments
+func BuildDockerCommand(backendConfig *config.BackendSettings, instanceArgs []string) (string, []string, error) {
+	// Start with configured Docker arguments (should include "run", "--rm", etc.)
+	dockerArgs := make([]string, len(backendConfig.Docker.Args))
+	copy(dockerArgs, backendConfig.Docker.Args)
+
+	// Add environment variables
+	for key, value := range backendConfig.Docker.Environment {
+		dockerArgs = append(dockerArgs, "-e", fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// Add image name
+	dockerArgs = append(dockerArgs, backendConfig.Docker.Image)
+
+	// Add backend args and instance args
+	dockerArgs = append(dockerArgs, backendConfig.Args...)
+	dockerArgs = append(dockerArgs, instanceArgs...)
+
+	return "docker", dockerArgs, nil
 }

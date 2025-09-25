@@ -14,6 +14,7 @@
 ### 🔗 Universal Compatibility
 - **OpenAI API Compatible**: Drop-in replacement - route requests by instance name
 - **Multi-Backend Support**: Native support for llama.cpp, MLX (Apple Silicon optimized), and vLLM
+- **Docker Support**: Run backends in containers
 
 ### 🌐 User-Friendly Interface
 - **Web Dashboard**: Modern React UI for visual management (unlike CLI-only tools)
@@ -32,6 +33,7 @@
 # For llama.cpp: https://github.com/ggml-org/llama.cpp#quick-start
 # For MLX on macOS: pip install mlx-lm
 # For vLLM: pip install vllm
+# Or use Docker - no local installation required
 
 # 2. Download and run llamactl
 LATEST_VERSION=$(curl -s https://api.github.com/repos/lordmathis/llamactl/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
@@ -112,6 +114,7 @@ You need `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp) 
 brew install llama.cpp
 
 # Or build from source - see llama.cpp docs
+# Or use Docker - no local installation required
 ```
 
 **For MLX backend (macOS only):**
@@ -139,8 +142,50 @@ python -m venv vllm-env
 source vllm-env/bin/activate
 pip install vllm
 
-# For production deployments, consider container-based installation
+# Or use Docker - no local installation required
 ```
+
+## Docker Support
+
+llamactl supports running backends in Docker containers with identical behavior to native execution. This is particularly useful for:
+- Production deployments without local backend installation
+- Isolating backend dependencies
+- GPU-accelerated inference using official Docker images
+
+### Docker Configuration
+
+Enable Docker support using the new structured backend configuration:
+
+```yaml
+backends:
+  llama-cpp:
+    command: "llama-server"
+    docker:
+      enabled: true
+      image: "ghcr.io/ggml-org/llama.cpp:server"
+      args: ["run", "--rm", "--network", "host", "--gpus", "all"]
+
+  vllm:
+    command: "vllm"
+    args: ["serve"]
+    docker:
+      enabled: true
+      image: "vllm/vllm-openai:latest"
+      args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
+```
+
+### Key Features
+
+- **Host Networking**: Uses `--network host` for seamless port management
+- **GPU Support**: Includes `--gpus all` for GPU acceleration
+- **Environment Variables**: Configure container environment as needed
+- **Flexible Configuration**: Per-backend Docker settings with sensible defaults
+
+### Requirements
+
+- Docker installed and running
+- For GPU support: nvidia-docker2 (Linux) or Docker Desktop with GPU support
+- No local backend installation required when using Docker
 
 ## Configuration
 
@@ -154,9 +199,27 @@ server:
   enable_swagger: false          # Enable Swagger UI for API docs
 
 backends:
-  llama_executable: llama-server # Path to llama-server executable
-  mlx_lm_executable: mlx_lm.server # Path to mlx_lm.server executable
-  vllm_executable: vllm # Path to vllm executable
+  llama-cpp:
+    command: "llama-server"
+    args: []
+    docker:
+      enabled: false
+      image: "ghcr.io/ggml-org/llama.cpp:server"
+      args: ["run", "--rm", "--network", "host", "--gpus", "all"]
+      environment: {}
+
+  vllm:
+    command: "vllm"
+    args: ["serve"]
+    docker:
+      enabled: false
+      image: "vllm/vllm-openai:latest"
+      args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
+      environment: {}
+
+  mlx:
+    command: "mlx_lm.server"
+    args: []
 
 instances:
   port_range: [8000, 9000]       # Port range for instances

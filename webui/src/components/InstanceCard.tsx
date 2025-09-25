@@ -66,7 +66,7 @@ function InstanceCard({
             
             {/* Badges row */}
             <div className="flex items-center gap-2 flex-wrap">
-              <BackendBadge backend={instance.options?.backend_type} />
+              <BackendBadge backend={instance.options?.backend_type} docker={instance.docker_enabled} />
               {running && <HealthBadge health={health} />}
             </div>
           </div>

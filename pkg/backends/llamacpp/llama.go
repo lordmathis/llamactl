@@ -7,6 +7,28 @@ import (
 	"strconv"
 )
 
+// multiValuedFlags defines flags that should be repeated for each value rather than comma-separated
+// Used for both parsing (with underscores) and building (with dashes)
+var multiValuedFlags = map[string]bool{
+	// Parsing keys (with underscores)
+	"override_tensor":       true,
+	"override_kv":           true,
+	"lora":                  true,
+	"lora_scaled":           true,
+	"control_vector":        true,
+	"control_vector_scaled": true,
+	"dry_sequence_breaker":  true,
+	"logit_bias":            true,
+	// Building keys (with dashes)
+	"override-tensor":       true,
+	"override-kv":           true,
+	"lora-scaled":           true,
+	"control-vector":        true,
+	"control-vector-scaled": true,
+	"dry-sequence-breaker":  true,
+	"logit-bias":            true,
+}
+
 type LlamaServerOptions struct {
 	// Common params
 	VerbosePrompt           bool     `json:"verbose_prompt,omitempty"`
@@ -316,17 +338,13 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 // BuildCommandArgs converts InstanceOptions to command line arguments
 func (o *LlamaServerOptions) BuildCommandArgs() []string {
 	// Llama uses multiple flags for arrays by default (not comma-separated)
-	multipleFlags := map[string]bool{
-		"override-tensor":       true,
-		"override-kv":           true,
-		"lora":                  true,
-		"lora-scaled":           true,
-		"control-vector":        true,
-		"control-vector-scaled": true,
-		"dry-sequence-breaker":  true,
-		"logit-bias":            true,
-	}
-	return backends.BuildCommandArgs(o, multipleFlags)
+	// Use package-level multiValuedFlags variable
+	return backends.BuildCommandArgs(o, multiValuedFlags)
+}
+
+func (o *LlamaServerOptions) BuildDockerArgs() []string {
+	// For llama, Docker args are the same as normal args
+	return o.BuildCommandArgs()
 }
 
 // ParseLlamaCommand parses a llama-server command string into LlamaServerOptions
@@ -338,16 +356,7 @@ func (o *LlamaServerOptions) BuildCommandArgs() []string {
 func ParseLlamaCommand(command string) (*LlamaServerOptions, error) {
 	executableNames := []string{"llama-server"}
 	var subcommandNames []string // Llama has no subcommands
-	multiValuedFlags := map[string]bool{
-		"override_tensor":       true,
-		"override_kv":           true,
-		"lora":                  true,
-		"lora_scaled":           true,
-		"control_vector":        true,
-		"control_vector_scaled": true,
-		"dry_sequence_breaker":  true,
-		"logit_bias":            true,
-	}
+	// Use package-level multiValuedFlags variable
 
 	var llamaOptions LlamaServerOptions
 	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &llamaOptions); err != nil {
