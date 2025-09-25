@@ -1,13 +1,14 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { BackendType, type BackendTypeValue } from "@/types/instance";
-import { Server } from "lucide-react";
+import { Server, Package } from "lucide-react";
 
 interface BackendBadgeProps {
   backend?: BackendTypeValue;
+  docker?: boolean;
 }
 
-const BackendBadge: React.FC<BackendBadgeProps> = ({ backend }) => {
+const BackendBadge: React.FC<BackendBadgeProps> = ({ backend, docker }) => {
   if (!backend) {
     return null;
   }
@@ -39,13 +40,25 @@ const BackendBadge: React.FC<BackendBadgeProps> = ({ backend }) => {
   };
 
   return (
-    <Badge
-      variant="outline"
-      className={`flex items-center gap-1.5 ${getColorClasses()}`}
-    >
-      <Server className="h-3 w-3" />
-      <span className="text-xs">{getText()}</span>
-    </Badge>
+    <div className="flex items-center gap-1">
+      <Badge
+        variant="outline"
+        className={`flex items-center gap-1.5 ${getColorClasses()}`}
+      >
+        <Server className="h-3 w-3" />
+        <span className="text-xs">{getText()}</span>
+      </Badge>
+      {docker && (
+        <Badge
+          variant="outline"
+          className="flex items-center gap-1.5 bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-200 dark:border-orange-800"
+          title="Docker enabled"
+        >
+          <Package className="h-3 w-3" />
+          <span className="text-[10px] uppercase tracking-wide">Docker</span>
+        </Badge>
+      )}
+    </div>
   );
 };
 

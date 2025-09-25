@@ -221,14 +221,33 @@ func (i *Process) MarshalJSON() ([]byte, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
+	// Determine if docker is enabled for this instance's backend
+	var dockerEnabled bool
+	if i.options != nil {
+		switch i.options.BackendType {
+		case backends.BackendTypeLlamaCpp:
+			if i.globalBackendSettings != nil && i.globalBackendSettings.LlamaCpp.Docker != nil && i.globalBackendSettings.LlamaCpp.Docker.Enabled {
+				dockerEnabled = true
+			}
+		case backends.BackendTypeVllm:
+			if i.globalBackendSettings != nil && i.globalBackendSettings.VLLM.Docker != nil && i.globalBackendSettings.VLLM.Docker.Enabled {
+				dockerEnabled = true
+			}
+		case backends.BackendTypeMlxLm:
+			// MLX does not support docker currently
+		}
+	}
+
 	// Use anonymous struct to avoid recursion
 	type Alias Process
 	return json.Marshal(&struct {
 		*Alias
-		Options *CreateInstanceOptions `json:"options,omitempty"`
+		Options       *CreateInstanceOptions `json:"options,omitempty"`
+		DockerEnabled bool                   `json:"docker_enabled,omitempty"`
 	}{
-		Alias:   (*Alias)(i),
-		Options: i.options,
+		Alias:         (*Alias)(i),
+		Options:       i.options,
+		DockerEnabled: dockerEnabled,
 	})
 }
 

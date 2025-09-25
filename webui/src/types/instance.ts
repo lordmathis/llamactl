@@ -23,4 +23,5 @@ export interface Instance {
   name: string;
   status: InstanceStatus;
   options?: CreateInstanceOptions;
+  docker_enabled?: boolean; // indicates backend is running via Docker
 }
