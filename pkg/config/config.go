@@ -166,10 +166,12 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			},
 		},
 		Instances: InstancesConfig{
-			PortRange:            [2]int{8000, 9000},
-			DataDir:              getDefaultDataDirectory(),
-			InstancesDir:         filepath.Join(getDefaultDataDirectory(), "instances"),
-			LogsDir:              filepath.Join(getDefaultDataDirectory(), "logs"),
+			PortRange: [2]int{8000, 9000},
+			DataDir:   getDefaultDataDirectory(),
+			// NOTE: empty strings are set as placeholder values since InstancesDir and LogsDir
+			// should be relative path to DataDir if not explicitly set.
+			InstancesDir:         "",
+			LogsDir:              "",
 			AutoCreateDirs:       true,
 			MaxInstances:         -1, // -1 means unlimited
 			MaxRunningInstances:  -1, // -1 means unlimited
@@ -196,6 +198,14 @@ func LoadConfig(configPath string) (AppConfig, error) {
 
 	// 3. Override with environment variables
 	loadEnvVars(&cfg)
+
+	// If InstancesDir or LogsDir is not set, set it to relative path of DataDir
+	if cfg.Instances.InstancesDir == "" {
+		cfg.Instances.InstancesDir = filepath.Join(cfg.Instances.DataDir, "instances")
+	}
+	if cfg.Instances.LogsDir == "" {
+		cfg.Instances.LogsDir = filepath.Join(cfg.Instances.DataDir, "logs")
+	}
 
 	return cfg, nil
 }
