@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -216,6 +217,7 @@ func loadConfigFile(cfg *AppConfig, configPath string) error {
 			if err := yaml.Unmarshal(data, cfg); err != nil {
 				return err
 			}
+			log.Printf("Read config at %s", path)
 			return nil
 		}
 	}
@@ -475,6 +477,10 @@ func getDefaultDataDirectory() string {
 // getDefaultConfigLocations returns platform-specific config file locations
 func getDefaultConfigLocations() []string {
 	var locations []string
+	// Use ./llamactl.yaml and ./config.yaml as the default config file
+	locations = append(locations, "llamactl.yaml")
+	locations = append(locations, "config.yaml")
+
 	homeDir, _ := os.UserHomeDir()
 
 	switch runtime.GOOS {
