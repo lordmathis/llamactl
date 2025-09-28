@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"runtime"
 	"syscall"
@@ -384,7 +385,11 @@ func (i *Process) buildCommand() (*exec.Cmd, error) {
 
 	// Create the exec.Cmd
 	cmd := exec.CommandContext(i.ctx, command, args...)
-	cmd.Env = []string{}
+
+	// Start with host environment variables
+	cmd.Env = os.Environ()
+
+	// Add/override with backend-specific environment variables
 	for k, v := range env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
