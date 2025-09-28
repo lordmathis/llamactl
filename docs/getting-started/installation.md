@@ -71,7 +71,72 @@ sudo mv llamactl /usr/local/bin/
 # Windows - Download from releases page
 ```
 
-### Option 2: Build from Source
+### Option 2: Docker
+
+llamactl provides Dockerfiles for creating Docker images with CUDA support for llama.cpp and vLLM backends. The resulting images include the latest llamactl release with the respective backend pre-installed.
+
+**Available Dockerfiles:**
+- **llamactl with llama.cpp CUDA**: `Dockerfile.llamacpp` (based on `ghcr.io/ggml-org/llama.cpp:server`)
+- **llamactl with vLLM CUDA**: `Dockerfile.vllm` (based on `vllm/vllm-openai:latest`)
+
+#### Using Docker Compose
+
+```bash
+# Clone the repository
+git clone https://github.com/lordmathis/llamactl.git
+cd llamactl
+
+# Create directories for data and models
+mkdir -p data/llamacpp data/vllm models
+
+# Start llamactl with llama.cpp backend
+docker-compose up llamactl-llamacpp -d
+
+# Or start llamactl with vLLM backend
+docker-compose up llamactl-vllm -d
+```
+
+Access the dashboard at:
+- llamactl with llama.cpp: http://localhost:8080
+- llamactl with vLLM: http://localhost:8081
+
+#### Using Docker Build and Run
+
+**llamactl with llama.cpp CUDA:**
+```bash
+docker build -f Dockerfile.llamacpp -t llamactl:llamacpp-cuda .
+docker run -d \
+  --name llamactl-llamacpp \
+  --gpus all \
+  -p 8080:8080 \
+  -v $(pwd)/data/llamacpp:/data \
+  -v $(pwd)/models:/models \
+  -e LLAMACTL_LLAMACPP_COMMAND=llama-server \
+  llamactl:llamacpp-cuda
+```
+
+**llamactl with vLLM CUDA:**
+```bash
+docker build -f Dockerfile.vllm -t llamactl:vllm-cuda .
+docker run -d \
+  --name llamactl-vllm \
+  --gpus all \
+  -p 8080:8080 \
+  -v $(pwd)/data/vllm:/data \
+  -v $(pwd)/models:/models \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  -e LLAMACTL_VLLM_COMMAND=vllm \
+  -e LLAMACTL_VLLM_ARGS=serve \
+  llamactl:vllm-cuda
+```
+
+**Docker-Specific Configuration:**
+- Set `LLAMACTL_LLAMACPP_COMMAND=llama-server` to use the pre-installed llama-server
+- Set `LLAMACTL_VLLM_COMMAND=vllm` to use the pre-installed vLLM
+- Volume mount `/data` for llamactl data and `/models` for your model files
+- Use `--gpus all` for GPU access
+
+### Option 3: Build from Source
 
 Requirements:
 - Go 1.24 or later

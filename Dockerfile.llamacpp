@@ -1,0 +1,22 @@
+FROM ghcr.io/ggml-org/llama.cpp:server
+
+# Install curl for downloading llamactl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Download and install the latest llamactl release
+RUN LATEST_VERSION=$(curl -s https://api.github.com/repos/lordmathis/llamactl/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') && \
+    curl -L "https://github.com/lordmathis/llamactl/releases/download/${LATEST_VERSION}/llamactl-${LATEST_VERSION}-linux-amd64.tar.gz" | tar -xz && \
+    mv llamactl /usr/local/bin/ && \
+    chmod +x /usr/local/bin/llamactl
+
+# Create data directory for llamactl
+RUN mkdir -p /data
+
+# Set working directory
+WORKDIR /data
+
+# Expose the default llamactl port
+EXPOSE 8080
+
+# Set llamactl as the entrypoint
+ENTRYPOINT ["llamactl"]

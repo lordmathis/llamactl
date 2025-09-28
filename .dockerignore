@@ -1,0 +1,45 @@
+# Git and version control
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Development files
+.vscode/
+.idea/
+
+# Build artifacts
+webui/node_modules/
+webui/dist/
+webui/.next/
+*.log
+*.tmp
+
+# Data directories
+data/
+models/
+logs/
+
+# Test files
+*_test.go
+**/*_test.go
+
+# CI/CD
+.github/
+
+# Local configuration
+llamactl.yaml
+config.yaml
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*~
