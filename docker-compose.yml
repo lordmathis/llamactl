@@ -13,8 +13,6 @@ services:
       - ./data/llamacpp:/data
       - ./models:/models  # Mount models directory
     environment:
-      # Configure llamactl to use llama-server from the base image
-      - LLAMACTL_LLAMACPP_COMMAND=llama-server
       # Enable Docker mode for nested containers (if needed)
       - LLAMACTL_LLAMACPP_DOCKER_ENABLED=false
     deploy:
@@ -39,9 +37,6 @@ services:
       - ./models:/models  # Mount models directory
       - ~/.cache/huggingface:/root/.cache/huggingface  # HuggingFace cache
     environment:
-      # Configure llamactl to use vllm from the base image
-      - LLAMACTL_VLLM_COMMAND=vllm
-      - LLAMACTL_VLLM_ARGS=serve
       # Enable Docker mode for nested containers (if needed)
       - LLAMACTL_VLLM_DOCKER_ENABLED=false
       # vLLM specific environment variables
