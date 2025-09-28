@@ -13,9 +13,10 @@ import (
 
 // BackendSettings contains structured backend configuration
 type BackendSettings struct {
-	Command string          `yaml:"command"`
-	Args    []string        `yaml:"args"`
-	Docker  *DockerSettings `yaml:"docker,omitempty"`
+	Command     string            `yaml:"command"`
+	Args        []string          `yaml:"args"`
+	Environment map[string]string `yaml:"environment,omitempty"`
+	Docker      *DockerSettings   `yaml:"docker,omitempty"`
 }
 
 // DockerSettings contains Docker-specific configuration
@@ -135,8 +136,9 @@ func LoadConfig(configPath string) (AppConfig, error) {
 		},
 		Backends: BackendConfig{
 			LlamaCpp: BackendSettings{
-				Command: "llama-server",
-				Args:    []string{},
+				Command:     "llama-server",
+				Args:        []string{},
+				Environment: map[string]string{},
 				Docker: &DockerSettings{
 					Enabled: false,
 					Image:   "ghcr.io/ggml-org/llama.cpp:server",
