@@ -9,6 +9,7 @@ import (
 	"llamactl/pkg/backends/vllm"
 	"llamactl/pkg/config"
 	"log"
+	"maps"
 )
 
 type CreateInstanceOptions struct {
@@ -20,6 +21,8 @@ type CreateInstanceOptions struct {
 	OnDemandStart *bool `json:"on_demand_start,omitempty"`
 	// Idle timeout
 	IdleTimeout *int `json:"idle_timeout,omitempty"` // minutes
+	//Environment variables
+	Environment map[string]string `json:"environment,omitempty"`
 
 	BackendType    backends.BackendType `json:"backend_type"`
 	BackendOptions map[string]any       `json:"backend_options,omitempty"`
@@ -239,4 +242,24 @@ func (c *CreateInstanceOptions) BuildCommandArgs(backendConfig *config.BackendSe
 	}
 
 	return args
+}
+
+func (c *CreateInstanceOptions) BuildEnvironment(backendConfig *config.BackendSettings) map[string]string {
+	env := map[string]string{}
+
+	if backendConfig.Environment != nil {
+		maps.Copy(env, backendConfig.Environment)
+	}
+
+	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
+		if backendConfig.Docker.Environment != nil {
+			maps.Copy(env, backendConfig.Docker.Environment)
+		}
+	}
+
+	if c.Environment != nil {
+		maps.Copy(env, c.Environment)
+	}
+
+	return env
 }

@@ -22,7 +22,8 @@
 
 ### ⚡ Smart Operations
 - **Instance Monitoring**: Health checks, auto-restart, log management
-- **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits  
+- **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits
+- **Environment Variables**: Set custom environment variables per instance for advanced configuration  
 
 ![Dashboard Screenshot](docs/images/dashboard.png)
 
@@ -52,7 +53,8 @@ llamactl
 2. Click "Create Instance"
 3. Choose backend type (llama.cpp, MLX, or vLLM)
 4. Set model path and backend-specific options
-5. Start or stop the instance
+5. Configure environment variables if needed (optional)
+6. Start or stop the instance
 
 ### Or use the REST API:
 ```bash
@@ -66,10 +68,10 @@ curl -X POST localhost:8080/api/v1/instances/my-mlx-model \
   -H "Authorization: Bearer your-key" \
   -d '{"backend_type": "mlx_lm", "backend_options": {"model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit"}}'
 
-# Create vLLM instance
+# Create vLLM instance with environment variables
 curl -X POST localhost:8080/api/v1/instances/my-vllm-model \
   -H "Authorization: Bearer your-key" \
-  -d '{"backend_type": "vllm", "backend_options": {"model": "microsoft/DialoGPT-medium", "tensor_parallel_size": 2}}'
+  -d '{"backend_type": "vllm", "backend_options": {"model": "microsoft/DialoGPT-medium", "tensor_parallel_size": 2}, "environment": {"CUDA_VISIBLE_DEVICES": "0,1", "NCCL_DEBUG": "INFO"}}'
 
 # Use with OpenAI SDK
 curl -X POST localhost:8080/v1/chat/completions \
@@ -147,45 +149,21 @@ pip install vllm
 
 ## Docker Support
 
-llamactl supports running backends in Docker containers with identical behavior to native execution. This is particularly useful for:
-- Production deployments without local backend installation
-- Isolating backend dependencies
-- GPU-accelerated inference using official Docker images
-
-### Docker Configuration
-
-Enable Docker support using the new structured backend configuration:
+llamactl supports running backends in Docker containers - perfect for production deployments without local backend installation. Simply enable Docker in your configuration:
 
 ```yaml
 backends:
   llama-cpp:
-    command: "llama-server"
     docker:
       enabled: true
-      image: "ghcr.io/ggml-org/llama.cpp:server"
-      args: ["run", "--rm", "--network", "host", "--gpus", "all"]
-
   vllm:
-    command: "vllm"
-    args: ["serve"]
     docker:
       enabled: true
-      image: "vllm/vllm-openai:latest"
-      args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
 ```
 
-### Key Features
+**Requirements:** Docker installed and running. For GPU support: nvidia-docker2 (Linux) or Docker Desktop with GPU support.
 
-- **Host Networking**: Uses `--network host` for seamless port management
-- **GPU Support**: Includes `--gpus all` for GPU acceleration
-- **Environment Variables**: Configure container environment as needed
-- **Flexible Configuration**: Per-backend Docker settings with sensible defaults
-
-### Requirements
-
-- Docker installed and running
-- For GPU support: nvidia-docker2 (Linux) or Docker Desktop with GPU support
-- No local backend installation required when using Docker
+For detailed Docker configuration options, see the [Configuration Guide](docs/getting-started/configuration.md).
 
 ## Configuration
 
@@ -202,24 +180,27 @@ backends:
   llama-cpp:
     command: "llama-server"
     args: []
+    environment: {}               # Environment variables for the backend process
     docker:
       enabled: false
       image: "ghcr.io/ggml-org/llama.cpp:server"
       args: ["run", "--rm", "--network", "host", "--gpus", "all"]
-      environment: {}
+      environment: {}             # Environment variables for the container
 
   vllm:
     command: "vllm"
     args: ["serve"]
+    environment: {}               # Environment variables for the backend process
     docker:
       enabled: false
       image: "vllm/vllm-openai:latest"
       args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
-      environment: {}
+      environment: {}             # Environment variables for the container
 
   mlx:
     command: "mlx_lm.server"
     args: []
+    environment: {}               # Environment variables for the backend process
 
 instances:
   port_range: [8000, 9000]       # Port range for instances

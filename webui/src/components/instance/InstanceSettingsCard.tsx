@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import AutoRestartConfiguration from '@/components/instance/AutoRestartConfiguration'
 import NumberInput from '@/components/form/NumberInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
+import EnvironmentVariablesInput from '@/components/form/EnvironmentVariablesInput'
 
 interface InstanceSettingsCardProps {
   instanceName: string
@@ -74,6 +75,14 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
             value={formData.on_demand_start}
             onChange={(value) => onChange('on_demand_start', value)}
             description="Start instance only when needed"
+          />
+
+          <EnvironmentVariablesInput
+            id="environment"
+            label="Environment Variables"
+            value={formData.environment}
+            onChange={(value) => onChange('environment', value)}
+            description="Custom environment variables for the instance"
           />
         </div>
       </CardContent>

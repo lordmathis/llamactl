@@ -53,6 +53,7 @@ Each instance is displayed as a card showing:
     - **Restart Delay**: Delay in seconds between restart attempts
     - **On Demand Start**: Start instance when receiving a request to the OpenAI compatible endpoint
     - **Idle Timeout**: Minutes before stopping idle instance (set to 0 to disable)
+    - **Environment Variables**: Set custom environment variables for the instance process
 6. Configure backend-specific options:
     - **llama.cpp**: Threads, context size, GPU layers, port, etc.
     - **MLX**: Temperature, top-p, adapter path, Python environment, etc.
@@ -101,7 +102,12 @@ curl -X POST http://localhost:8080/api/instances/my-vllm-instance \
       "gpu_memory_utilization": 0.9
     },
     "auto_restart": true,
-    "on_demand_start": true
+    "on_demand_start": true,
+    "environment": {
+      "CUDA_VISIBLE_DEVICES": "0,1",
+      "NCCL_DEBUG": "INFO",
+      "PYTHONPATH": "/custom/path"
+    }
   }'
 
 # Create llama.cpp instance with HuggingFace model

@@ -23,6 +23,7 @@ backends:
   llama-cpp:
     command: "llama-server"
     args: []
+    environment: {}               # Environment variables for the backend process
     docker:
       enabled: false
       image: "ghcr.io/ggml-org/llama.cpp:server"
@@ -32,6 +33,7 @@ backends:
   vllm:
     command: "vllm"
     args: ["serve"]
+    environment: {}               # Environment variables for the backend process
     docker:
       enabled: false
       image: "vllm/vllm-openai:latest"
@@ -41,6 +43,7 @@ backends:
   mlx:
     command: "mlx_lm.server"
     args: []
+    environment: {}               # Environment variables for the backend process
 
 instances:
   port_range: [8000, 9000]       # Port range for instances
@@ -113,6 +116,7 @@ backends:
   llama-cpp:
     command: "llama-server"
     args: []
+    environment: {}                    # Environment variables for the backend process
     docker:
       enabled: false                   # Enable Docker runtime (default: false)
       image: "ghcr.io/ggml-org/llama.cpp:server"
@@ -122,6 +126,7 @@ backends:
   vllm:
     command: "vllm"
     args: ["serve"]
+    environment: {}                    # Environment variables for the backend process
     docker:
       enabled: false
       image: "vllm/vllm-openai:latest"
@@ -131,17 +136,44 @@ backends:
   mlx:
     command: "mlx_lm.server"
     args: []
+    environment: {}                    # Environment variables for the backend process
     # MLX does not support Docker
 ```
 
 **Backend Configuration Fields:**
 - `command`: Executable name/path for the backend
 - `args`: Default arguments prepended to all instances
+- `environment`: Environment variables for the backend process (optional)
 - `docker`: Docker-specific configuration (optional)
   - `enabled`: Boolean flag to enable Docker runtime
   - `image`: Docker image to use
   - `args`: Additional arguments passed to `docker run`
   - `environment`: Environment variables for the container (optional)
+
+**Environment Variables:**
+
+**LlamaCpp Backend:**
+- `LLAMACTL_LLAMACPP_COMMAND` - LlamaCpp executable command
+- `LLAMACTL_LLAMACPP_ARGS` - Space-separated default arguments
+- `LLAMACTL_LLAMACPP_ENV` - Environment variables in format "KEY1=value1,KEY2=value2"
+- `LLAMACTL_LLAMACPP_DOCKER_ENABLED` - Enable Docker runtime (true/false)
+- `LLAMACTL_LLAMACPP_DOCKER_IMAGE` - Docker image to use
+- `LLAMACTL_LLAMACPP_DOCKER_ARGS` - Space-separated Docker arguments
+- `LLAMACTL_LLAMACPP_DOCKER_ENV` - Docker environment variables in format "KEY1=value1,KEY2=value2"
+
+**VLLM Backend:**
+- `LLAMACTL_VLLM_COMMAND` - VLLM executable command
+- `LLAMACTL_VLLM_ARGS` - Space-separated default arguments
+- `LLAMACTL_VLLM_ENV` - Environment variables in format "KEY1=value1,KEY2=value2"
+- `LLAMACTL_VLLM_DOCKER_ENABLED` - Enable Docker runtime (true/false)
+- `LLAMACTL_VLLM_DOCKER_IMAGE` - Docker image to use
+- `LLAMACTL_VLLM_DOCKER_ARGS` - Space-separated Docker arguments
+- `LLAMACTL_VLLM_DOCKER_ENV` - Docker environment variables in format "KEY1=value1,KEY2=value2"
+
+**MLX Backend:**
+- `LLAMACTL_MLX_COMMAND` - MLX executable command
+- `LLAMACTL_MLX_ARGS` - Space-separated default arguments
+- `LLAMACTL_MLX_ENV` - Environment variables in format "KEY1=value1,KEY2=value2"
 
 ### Instance Configuration
 

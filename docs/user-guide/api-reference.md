@@ -116,7 +116,18 @@ Create and start a new instance.
 POST /api/v1/instances/{name}
 ```
 
-**Request Body:** JSON object with instance configuration. See [Managing Instances](managing-instances.md) for available configuration options.
+**Request Body:** JSON object with instance configuration. Common fields include:
+
+- `backend_type`: Backend type (`llama_cpp`, `mlx_lm`, or `vllm`)
+- `backend_options`: Backend-specific configuration
+- `auto_restart`: Enable automatic restart on failure
+- `max_restarts`: Maximum restart attempts
+- `restart_delay`: Delay between restarts in seconds
+- `on_demand_start`: Start instance when receiving requests
+- `idle_timeout`: Idle timeout in minutes
+- `environment`: Environment variables as key-value pairs
+
+See [Managing Instances](managing-instances.md) for complete configuration options.
 
 **Response:**
 ```json
@@ -354,7 +365,15 @@ curl -X POST http://localhost:8080/api/v1/instances/my-model \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-api-key" \
   -d '{
-    "model": "/models/llama-2-7b.gguf"
+    "backend_type": "llama_cpp",
+    "backend_options": {
+      "model": "/models/llama-2-7b.gguf",
+      "gpu_layers": 32
+    },
+    "environment": {
+      "CUDA_VISIBLE_DEVICES": "0",
+      "OMP_NUM_THREADS": "8"
+    }
   }'
 
 # Check instance status
