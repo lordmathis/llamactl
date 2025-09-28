@@ -12,7 +12,10 @@ services:
     volumes:
       - ./data/llamacpp:/data
       - ./models:/models  # Mount models directory
+      - ~/.cache/llama.cpp:/root/.cache/llama.cpp  # Llama.cpp cache
     environment:
+      # Set data directory for persistence
+      - LLAMACTL_DATA_DIR=/data
       # Enable Docker mode for nested containers (if needed)
       - LLAMACTL_LLAMACPP_DOCKER_ENABLED=false
     deploy:
@@ -37,6 +40,8 @@ services:
       - ./models:/models  # Mount models directory
       - ~/.cache/huggingface:/root/.cache/huggingface  # HuggingFace cache
     environment:
+      # Set data directory for persistence
+      - LLAMACTL_DATA_DIR=/data
       # Enable Docker mode for nested containers (if needed)
       - LLAMACTL_VLLM_DOCKER_ENABLED=false
       # vLLM specific environment variables
@@ -49,7 +54,3 @@ services:
               count: all
               capabilities: [gpu]
     restart: unless-stopped
-
-networks:
-  default:
-    name: llamactl-network
