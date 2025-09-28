@@ -73,11 +73,13 @@ sudo mv llamactl /usr/local/bin/
 
 ### Option 2: Docker
 
-llamactl provides Dockerfiles for creating Docker images with CUDA support for llama.cpp and vLLM backends. The resulting images include the latest llamactl release with the respective backend pre-installed.
+llamactl provides Dockerfiles for creating Docker images with backends pre-installed. The resulting images include the latest llamactl release with the respective backend.
 
-**Available Dockerfiles:**
-- **llamactl with llama.cpp CUDA**: `Dockerfile.llamacpp` (based on `ghcr.io/ggml-org/llama.cpp:server`)
+**Available Dockerfiles (CUDA):**
+- **llamactl with llama.cpp CUDA**: `Dockerfile.llamacpp` (based on `ghcr.io/ggml-org/llama.cpp:server-cuda`)
 - **llamactl with vLLM CUDA**: `Dockerfile.vllm` (based on `vllm/vllm-openai:latest`)
+
+**Note:** These Dockerfiles are configured for CUDA. For other platforms (CPU, ROCm, Vulkan, etc.), adapt the base image. For llama.cpp, see available tags at [llama.cpp Docker docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/docker.md). For vLLM, check [vLLM docs](https://docs.vllm.ai/en/v0.6.5/serving/deploying_with_docker.html).
 
 #### Using Docker Compose
 

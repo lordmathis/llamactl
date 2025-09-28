@@ -110,7 +110,8 @@ docker-compose up llamactl-llamacpp -d
 docker-compose up llamactl-vllm -d
 ```
 
-**Features:** Full CUDA support, automatic latest release installation, no backend dependencies.
+**Features:** CUDA support, automatic latest release installation, no backend dependencies.
+**Note:** Dockerfiles are configured for CUDA. Adapt base images for other platforms (CPU, ROCm, etc.).
 
 For detailed Docker setup and configuration, see the [Installation Guide](docs/getting-started/installation.md).
 
