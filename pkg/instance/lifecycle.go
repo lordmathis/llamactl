@@ -37,6 +37,9 @@ func (i *Process) Start() error {
 	// Initialize last request time to current time when starting
 	i.lastRequestTime.Store(i.timeProvider.Now().Unix())
 
+	// Create context before building command (needed for CommandContext)
+	i.ctx, i.cancel = context.WithCancel(context.Background())
+
 	// Create log files
 	if err := i.logger.Create(); err != nil {
 		return fmt.Errorf("failed to create log files: %w", err)
@@ -47,8 +50,6 @@ func (i *Process) Start() error {
 	if cmdErr != nil {
 		return fmt.Errorf("failed to build command: %w", cmdErr)
 	}
-
-	i.ctx, i.cancel = context.WithCancel(context.Background())
 	i.cmd = cmd
 
 	if runtime.GOOS != "windows" {
