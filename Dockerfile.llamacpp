@@ -1,4 +1,4 @@
-FROM ghcr.io/ggml-org/llama.cpp:server
+FROM ghcr.io/ggml-org/llama.cpp:server-cuda
 
 # Install curl for downloading llamactl
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
