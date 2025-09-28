@@ -149,49 +149,21 @@ pip install vllm
 
 ## Docker Support
 
-llamactl supports running backends in Docker containers with identical behavior to native execution. This is particularly useful for:
-- Production deployments without local backend installation
-- Isolating backend dependencies
-- GPU-accelerated inference using official Docker images
-
-### Docker Configuration
-
-Enable Docker support using the new structured backend configuration:
+llamactl supports running backends in Docker containers - perfect for production deployments without local backend installation. Simply enable Docker in your configuration:
 
 ```yaml
 backends:
   llama-cpp:
-    command: "llama-server"
-    environment: {}               # Environment variables for the backend process
     docker:
       enabled: true
-      image: "ghcr.io/ggml-org/llama.cpp:server"
-      args: ["run", "--rm", "--network", "host", "--gpus", "all"]
-      environment: {}             # Environment variables for the container
-
   vllm:
-    command: "vllm"
-    args: ["serve"]
-    environment: {}               # Environment variables for the backend process
     docker:
       enabled: true
-      image: "vllm/vllm-openai:latest"
-      args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
-      environment: {}             # Environment variables for the container
 ```
 
-### Key Features
+**Requirements:** Docker installed and running. For GPU support: nvidia-docker2 (Linux) or Docker Desktop with GPU support.
 
-- **Host Networking**: Uses `--network host` for seamless port management
-- **GPU Support**: Includes `--gpus all` for GPU acceleration
-- **Environment Variables**: Configure container environment as needed
-- **Flexible Configuration**: Per-backend Docker settings with sensible defaults
-
-### Requirements
-
-- Docker installed and running
-- For GPU support: nvidia-docker2 (Linux) or Docker Desktop with GPU support
-- No local backend installation required when using Docker
+For detailed Docker configuration options, see the [Configuration Guide](docs/getting-started/configuration.md).
 
 ## Configuration
 
