@@ -302,6 +302,12 @@ func loadEnvVars(cfg *AppConfig) {
 	if llamaArgs := os.Getenv("LLAMACTL_LLAMACPP_ARGS"); llamaArgs != "" {
 		cfg.Backends.LlamaCpp.Args = strings.Split(llamaArgs, " ")
 	}
+	if llamaEnv := os.Getenv("LLAMACTL_LLAMACPP_ENV"); llamaEnv != "" {
+		if cfg.Backends.LlamaCpp.Environment == nil {
+			cfg.Backends.LlamaCpp.Environment = make(map[string]string)
+		}
+		parseEnvVars(llamaEnv, cfg.Backends.LlamaCpp.Environment)
+	}
 	if llamaDockerEnabled := os.Getenv("LLAMACTL_LLAMACPP_DOCKER_ENABLED"); llamaDockerEnabled != "" {
 		if b, err := strconv.ParseBool(llamaDockerEnabled); err == nil {
 			if cfg.Backends.LlamaCpp.Docker == nil {
@@ -329,17 +335,21 @@ func loadEnvVars(cfg *AppConfig) {
 		if cfg.Backends.LlamaCpp.Docker.Environment == nil {
 			cfg.Backends.LlamaCpp.Docker.Environment = make(map[string]string)
 		}
-		// Parse env vars in format "KEY1=value1,KEY2=value2"
-		for _, envPair := range strings.Split(llamaDockerEnv, ",") {
-			if parts := strings.SplitN(strings.TrimSpace(envPair), "=", 2); len(parts) == 2 {
-				cfg.Backends.LlamaCpp.Docker.Environment[parts[0]] = parts[1]
-			}
-		}
+		parseEnvVars(llamaDockerEnv, cfg.Backends.LlamaCpp.Docker.Environment)
 	}
 
 	// vLLM backend
 	if vllmCmd := os.Getenv("LLAMACTL_VLLM_COMMAND"); vllmCmd != "" {
 		cfg.Backends.VLLM.Command = vllmCmd
+	}
+	if vllmArgs := os.Getenv("LLAMACTL_VLLM_ARGS"); vllmArgs != "" {
+		cfg.Backends.VLLM.Args = strings.Split(vllmArgs, " ")
+	}
+	if vllmEnv := os.Getenv("LLAMACTL_VLLM_ENV"); vllmEnv != "" {
+		if cfg.Backends.VLLM.Environment == nil {
+			cfg.Backends.VLLM.Environment = make(map[string]string)
+		}
+		parseEnvVars(vllmEnv, cfg.Backends.VLLM.Environment)
 	}
 	if vllmDockerEnabled := os.Getenv("LLAMACTL_VLLM_DOCKER_ENABLED"); vllmDockerEnabled != "" {
 		if b, err := strconv.ParseBool(vllmDockerEnabled); err == nil {
@@ -368,12 +378,7 @@ func loadEnvVars(cfg *AppConfig) {
 		if cfg.Backends.VLLM.Docker.Environment == nil {
 			cfg.Backends.VLLM.Docker.Environment = make(map[string]string)
 		}
-		// Parse env vars in format "KEY1=value1,KEY2=value2"
-		for _, envPair := range strings.Split(vllmDockerEnv, ",") {
-			if parts := strings.SplitN(strings.TrimSpace(envPair), "=", 2); len(parts) == 2 {
-				cfg.Backends.VLLM.Docker.Environment[parts[0]] = parts[1]
-			}
-		}
+		parseEnvVars(vllmDockerEnv, cfg.Backends.VLLM.Docker.Environment)
 	}
 
 	// MLX backend
@@ -382,6 +387,12 @@ func loadEnvVars(cfg *AppConfig) {
 	}
 	if mlxArgs := os.Getenv("LLAMACTL_MLX_ARGS"); mlxArgs != "" {
 		cfg.Backends.MLX.Args = strings.Split(mlxArgs, " ")
+	}
+	if mlxEnv := os.Getenv("LLAMACTL_MLX_ENV"); mlxEnv != "" {
+		if cfg.Backends.MLX.Environment == nil {
+			cfg.Backends.MLX.Environment = make(map[string]string)
+		}
+		parseEnvVars(mlxEnv, cfg.Backends.MLX.Environment)
 	}
 
 	// Instance defaults
@@ -455,6 +466,19 @@ func ParsePortRange(s string) [2]int {
 	}
 
 	return [2]int{0, 0} // Invalid format
+}
+
+// parseEnvVars parses environment variables in format "KEY1=value1,KEY2=value2"
+// and populates the provided environment map
+func parseEnvVars(envString string, envMap map[string]string) {
+	if envString == "" {
+		return
+	}
+	for _, envPair := range strings.Split(envString, ",") {
+		if parts := strings.SplitN(strings.TrimSpace(envPair), "=", 2); len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
+		}
+	}
 }
 
 // getDefaultDataDirectory returns platform-specific default data directory
