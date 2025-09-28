@@ -372,13 +372,23 @@ func (i *Process) buildCommand() (*exec.Cmd, error) {
 		return nil, err
 	}
 
+	// Build the environment variables
+	env := i.options.BuildEnvironment(backendConfig)
+
 	// Get the command to execute
-	cmd := i.options.GetCommand(backendConfig)
+	command := i.options.GetCommand(backendConfig)
 
 	// Build command arguments
 	args := i.options.BuildCommandArgs(backendConfig)
 
-	return exec.Command(cmd, args...), nil
+	// Create the exec.Cmd
+	cmd := exec.CommandContext(i.ctx, command, args...)
+	cmd.Env = []string{}
+	for k, v := range env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return cmd, nil
 }
 
 // getBackendConfig resolves the backend configuration for the current instance
