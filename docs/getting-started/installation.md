@@ -109,9 +109,7 @@ docker run -d \
   --name llamactl-llamacpp \
   --gpus all \
   -p 8080:8080 \
-  -v $(pwd)/data/llamacpp:/data \
-  -v $(pwd)/models:/models \
-  -e LLAMACTL_LLAMACPP_COMMAND=llama-server \
+  -v ~/.cache/llama.cpp:/root/.cache/llama.cpp \
   llamactl:llamacpp-cuda
 ```
 
@@ -122,19 +120,9 @@ docker run -d \
   --name llamactl-vllm \
   --gpus all \
   -p 8080:8080 \
-  -v $(pwd)/data/vllm:/data \
-  -v $(pwd)/models:/models \
   -v ~/.cache/huggingface:/root/.cache/huggingface \
-  -e LLAMACTL_VLLM_COMMAND=vllm \
-  -e LLAMACTL_VLLM_ARGS=serve \
   llamactl:vllm-cuda
 ```
-
-**Docker-Specific Configuration:**
-- Set `LLAMACTL_LLAMACPP_COMMAND=llama-server` to use the pre-installed llama-server
-- Set `LLAMACTL_VLLM_COMMAND=vllm` to use the pre-installed vLLM
-- Volume mount `/data` for llamactl data and `/models` for your model files
-- Use `--gpus all` for GPU access
 
 ### Option 3: Build from Source
 
