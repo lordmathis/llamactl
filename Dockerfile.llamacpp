@@ -18,5 +18,7 @@ WORKDIR /data
 # Expose the default llamactl port
 EXPOSE 8080
 
+ENV LLAMACTL_LLAMACPP_COMMAND=/app/llama-server
+
 # Set llamactl as the entrypoint
 ENTRYPOINT ["llamactl"]
