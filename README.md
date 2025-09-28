@@ -22,7 +22,8 @@
 
 ### ⚡ Smart Operations
 - **Instance Monitoring**: Health checks, auto-restart, log management
-- **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits  
+- **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits
+- **Environment Variables**: Set custom environment variables per instance for advanced configuration  
 
 ![Dashboard Screenshot](docs/images/dashboard.png)
 
@@ -52,7 +53,8 @@ llamactl
 2. Click "Create Instance"
 3. Choose backend type (llama.cpp, MLX, or vLLM)
 4. Set model path and backend-specific options
-5. Start or stop the instance
+5. Configure environment variables if needed (optional)
+6. Start or stop the instance
 
 ### Or use the REST API:
 ```bash
@@ -66,10 +68,10 @@ curl -X POST localhost:8080/api/v1/instances/my-mlx-model \
   -H "Authorization: Bearer your-key" \
   -d '{"backend_type": "mlx_lm", "backend_options": {"model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit"}}'
 
-# Create vLLM instance
+# Create vLLM instance with environment variables
 curl -X POST localhost:8080/api/v1/instances/my-vllm-model \
   -H "Authorization: Bearer your-key" \
-  -d '{"backend_type": "vllm", "backend_options": {"model": "microsoft/DialoGPT-medium", "tensor_parallel_size": 2}}'
+  -d '{"backend_type": "vllm", "backend_options": {"model": "microsoft/DialoGPT-medium", "tensor_parallel_size": 2}, "environment": {"CUDA_VISIBLE_DEVICES": "0,1", "NCCL_DEBUG": "INFO"}}'
 
 # Use with OpenAI SDK
 curl -X POST localhost:8080/v1/chat/completions \
