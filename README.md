@@ -162,18 +162,22 @@ Enable Docker support using the new structured backend configuration:
 backends:
   llama-cpp:
     command: "llama-server"
+    environment: {}               # Environment variables for the backend process
     docker:
       enabled: true
       image: "ghcr.io/ggml-org/llama.cpp:server"
       args: ["run", "--rm", "--network", "host", "--gpus", "all"]
+      environment: {}             # Environment variables for the container
 
   vllm:
     command: "vllm"
     args: ["serve"]
+    environment: {}               # Environment variables for the backend process
     docker:
       enabled: true
       image: "vllm/vllm-openai:latest"
       args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
+      environment: {}             # Environment variables for the container
 ```
 
 ### Key Features
@@ -204,24 +208,27 @@ backends:
   llama-cpp:
     command: "llama-server"
     args: []
+    environment: {}               # Environment variables for the backend process
     docker:
       enabled: false
       image: "ghcr.io/ggml-org/llama.cpp:server"
       args: ["run", "--rm", "--network", "host", "--gpus", "all"]
-      environment: {}
+      environment: {}             # Environment variables for the container
 
   vllm:
     command: "vllm"
     args: ["serve"]
+    environment: {}               # Environment variables for the backend process
     docker:
       enabled: false
       image: "vllm/vllm-openai:latest"
       args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
-      environment: {}
+      environment: {}             # Environment variables for the container
 
   mlx:
     command: "mlx_lm.server"
     args: []
+    environment: {}               # Environment variables for the backend process
 
 instances:
   port_range: [8000, 9000]       # Port range for instances
