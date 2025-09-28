@@ -1,12 +1,10 @@
 import {
-  type CreateInstanceOptions,
   type LlamaCppBackendOptions,
   type MlxBackendOptions,
   type VllmBackendOptions,
   LlamaCppBackendOptionsSchema,
   MlxBackendOptionsSchema,
   VllmBackendOptionsSchema,
-  getAllFieldKeys,
   getAllLlamaCppFieldKeys,
   getAllMlxFieldKeys,
   getAllVllmFieldKeys,
@@ -14,41 +12,6 @@ import {
   getMlxFieldType,
   getVllmFieldType
 } from '@/schemas/instanceOptions'
-
-// Instance-level basic fields (not backend-specific)
-export const basicFieldsConfig: Record<string, {
-  label: string
-  description?: string
-  placeholder?: string
-}> = {
-  auto_restart: {
-    label: 'Auto Restart',
-    description: 'Automatically restart the instance on failure'
-  },
-  max_restarts: {
-    label: 'Max Restarts',
-    placeholder: '3',
-    description: 'Maximum number of restart attempts (0 = unlimited)'
-  },
-  restart_delay: {
-    label: 'Restart Delay (seconds)',
-    placeholder: '5',
-    description: 'Delay in seconds before attempting restart'
-  },
-  idle_timeout: {
-    label: 'Idle Timeout (minutes)',
-    placeholder: '60',
-    description: 'Time in minutes before instance is considered idle and stopped'
-  },
-  on_demand_start: {
-    label: 'On-Demand Start',
-    description: 'Start instance upon receiving OpenAI-compatible API request'
-  },
-  backend_type: {
-    label: 'Backend Type',
-    description: 'Type of backend to use for this instance'
-  }
-}
 
 // LlamaCpp backend-specific basic fields
 const basicLlamaCppFieldsConfig: Record<string, {
@@ -152,18 +115,6 @@ const backendFieldGetters = {
   llama_cpp: getAllLlamaCppFieldKeys,
 } as const
 
-function isBasicField(key: keyof CreateInstanceOptions): boolean {
-  return key in basicFieldsConfig
-}
-
-export function getBasicFields(): (keyof CreateInstanceOptions)[] {
-  return Object.keys(basicFieldsConfig) as (keyof CreateInstanceOptions)[]
-}
-
-export function getAdvancedFields(): (keyof CreateInstanceOptions)[] {
-  return getAllFieldKeys().filter(key => !isBasicField(key))
-}
-
 export function getBasicBackendFields(backendType?: string): string[] {
   const normalizedType = (backendType || 'llama_cpp') as keyof typeof backendFieldConfigs
   const config = backendFieldConfigs[normalizedType] || basicLlamaCppFieldsConfig
@@ -222,5 +173,3 @@ export function getBackendFieldType(key: string): 'text' | 'number' | 'boolean' 
   return 'text'
 }
 
-// Re-export the Zod-based functions
-export { getFieldType } from '@/schemas/instanceOptions'

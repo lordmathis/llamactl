@@ -33,6 +33,9 @@ export const CreateInstanceOptionsSchema = z.object({
   idle_timeout: z.number().optional(),
   on_demand_start: z.boolean().optional(),
 
+  // Environment variables
+  environment: z.record(z.string(), z.string()).optional(),
+
   // Backend configuration
   backend_type: z.enum([BackendType.LLAMA_CPP, BackendType.MLX_LM, BackendType.VLLM]).optional(),
   backend_options: BackendOptionsSchema.optional(),
@@ -75,5 +78,6 @@ export function getFieldType(key: keyof CreateInstanceOptions): 'text' | 'number
   if (innerSchema instanceof z.ZodNumber) return 'number'
   if (innerSchema instanceof z.ZodArray) return 'array'
   if (innerSchema instanceof z.ZodObject) return 'object'
+  if (innerSchema instanceof z.ZodRecord) return 'object' // Handle ZodRecord as object
   return 'text' // ZodString and others default to text
 }
