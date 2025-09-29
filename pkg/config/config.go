@@ -13,10 +13,11 @@ import (
 
 // BackendSettings contains structured backend configuration
 type BackendSettings struct {
-	Command     string            `yaml:"command"`
-	Args        []string          `yaml:"args"`
-	Environment map[string]string `yaml:"environment,omitempty"`
-	Docker      *DockerSettings   `yaml:"docker,omitempty"`
+	Command         string            `yaml:"command"`
+	Args            []string          `yaml:"args"`
+	Environment     map[string]string `yaml:"environment,omitempty"`
+	Docker          *DockerSettings   `yaml:"docker,omitempty"`
+	ResponseHeaders map[string]string `yaml:"response_headers,omitempty"`
 }
 
 // DockerSettings contains Docker-specific configuration
@@ -58,6 +59,9 @@ type ServerConfig struct {
 
 	// Enable Swagger UI for API documentation
 	EnableSwagger bool `yaml:"enable_swagger"`
+
+	// Response headers to send with responses
+	ResponseHeaders map[string]string `yaml:"response_headers,omitempty"`
 }
 
 // InstancesConfig contains instance management configuration
@@ -337,6 +341,12 @@ func loadEnvVars(cfg *AppConfig) {
 		}
 		parseEnvVars(llamaDockerEnv, cfg.Backends.LlamaCpp.Docker.Environment)
 	}
+	if llamaEnv := os.Getenv("LLAMACTL_LLAMACPP_RESPONSE_HEADERS"); llamaEnv != "" {
+		if cfg.Backends.LlamaCpp.ResponseHeaders == nil {
+			cfg.Backends.LlamaCpp.ResponseHeaders = make(map[string]string)
+		}
+		parseHeaders(llamaEnv, cfg.Backends.LlamaCpp.ResponseHeaders)
+	}
 
 	// vLLM backend
 	if vllmCmd := os.Getenv("LLAMACTL_VLLM_COMMAND"); vllmCmd != "" {
@@ -380,6 +390,12 @@ func loadEnvVars(cfg *AppConfig) {
 		}
 		parseEnvVars(vllmDockerEnv, cfg.Backends.VLLM.Docker.Environment)
 	}
+	if llamaEnv := os.Getenv("LLAMACTL_VLLM_RESPONSE_HEADERS"); llamaEnv != "" {
+		if cfg.Backends.VLLM.ResponseHeaders == nil {
+			cfg.Backends.VLLM.ResponseHeaders = make(map[string]string)
+		}
+		parseHeaders(llamaEnv, cfg.Backends.VLLM.ResponseHeaders)
+	}
 
 	// MLX backend
 	if mlxCmd := os.Getenv("LLAMACTL_MLX_COMMAND"); mlxCmd != "" {
@@ -393,6 +409,12 @@ func loadEnvVars(cfg *AppConfig) {
 			cfg.Backends.MLX.Environment = make(map[string]string)
 		}
 		parseEnvVars(mlxEnv, cfg.Backends.MLX.Environment)
+	}
+	if llamaEnv := os.Getenv("LLAMACTL_MLX_RESPONSE_HEADERS"); llamaEnv != "" {
+		if cfg.Backends.MLX.ResponseHeaders == nil {
+			cfg.Backends.MLX.ResponseHeaders = make(map[string]string)
+		}
+		parseHeaders(llamaEnv, cfg.Backends.MLX.ResponseHeaders)
 	}
 
 	// Instance defaults
@@ -475,6 +497,19 @@ func parseEnvVars(envString string, envMap map[string]string) {
 		return
 	}
 	for _, envPair := range strings.Split(envString, ",") {
+		if parts := strings.SplitN(strings.TrimSpace(envPair), "=", 2); len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
+		}
+	}
+}
+
+// parseHeaders parses HTTP headers in format "KEY1=value1;KEY2=value2"
+// and populates the provided environment map
+func parseHeaders(envString string, envMap map[string]string) {
+	if envString == "" {
+		return
+	}
+	for _, envPair := range strings.Split(envString, ";") {
 		if parts := strings.SplitN(strings.TrimSpace(envPair), "=", 2); len(parts) == 2 {
 			envMap[parts[0]] = parts[1]
 		}

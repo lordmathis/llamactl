@@ -1,4 +1,5 @@
-import { type ReactNode, createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { API_BASE } from '@/lib/api'
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react'
 
 interface AuthContextState {
   isAuthenticated: boolean
@@ -62,7 +63,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Validate API key by making a test request
   const validateApiKey = async (key: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/v1/instances', {
+      const response = await fetch(API_BASE + '/instances', {
         headers: {
           'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json'

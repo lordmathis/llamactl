@@ -122,6 +122,7 @@ backends:
       image: "ghcr.io/ggml-org/llama.cpp:server"
       args: ["run", "--rm", "--network", "host", "--gpus", "all"]
       environment: {}
+    response_headers: {}               # Additional response headers to send with responses
 
   vllm:
     command: "vllm"
@@ -132,23 +133,28 @@ backends:
       image: "vllm/vllm-openai:latest"
       args: ["run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g"]
       environment: {}
+    response_headers: {}               # Additional response headers to send with responses
 
   mlx:
     command: "mlx_lm.server"
     args: []
     environment: {}                    # Environment variables for the backend process
     # MLX does not support Docker
+    response_headers: {}               # Additional response headers to send with responses
 ```
 
 **Backend Configuration Fields:**
 - `command`: Executable name/path for the backend
 - `args`: Default arguments prepended to all instances
 - `environment`: Environment variables for the backend process (optional)
+- `response_headers`: Additional response headers to send with responses (optional)
 - `docker`: Docker-specific configuration (optional)
   - `enabled`: Boolean flag to enable Docker runtime
   - `image`: Docker image to use
   - `args`: Additional arguments passed to `docker run`
   - `environment`: Environment variables for the container (optional)
+
+> If llamactl is behind an nginx proxy, `X-Accel-Buffering: no` may be required for nginx to properly stream the responses without buffering.
 
 **Environment Variables:**
 
@@ -160,6 +166,7 @@ backends:
 - `LLAMACTL_LLAMACPP_DOCKER_IMAGE` - Docker image to use
 - `LLAMACTL_LLAMACPP_DOCKER_ARGS` - Space-separated Docker arguments
 - `LLAMACTL_LLAMACPP_DOCKER_ENV` - Docker environment variables in format "KEY1=value1,KEY2=value2"
+- `LLAMACTL_LLAMACPP_RESPONSE_HEADERS` - Response headers in format "KEY1=value1,KEY2=value2"
 
 **VLLM Backend:**
 - `LLAMACTL_VLLM_COMMAND` - VLLM executable command
