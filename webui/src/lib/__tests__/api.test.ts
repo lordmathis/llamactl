@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { instancesApi } from '@/lib/api'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock fetch globally
 const mockFetch = vi.fn()
@@ -53,7 +53,9 @@ describe('API Error Handling', () => {
     await instancesApi.getLogs('test-instance', 100)
 
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/v1/instances/test-instance/logs?lines=100',
+      expect.stringMatching(
+        /^https?:\/\/[^/]+\/api\/v1\/instances\/test-instance\/logs\?lines=100$/
+      ),
       expect.any(Object)
     )
   })

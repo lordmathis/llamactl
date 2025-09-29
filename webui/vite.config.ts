@@ -21,4 +21,6 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: true,
   },
+  // ensures relative asset paths to support being served behind a subpath
+  base: "./"
 })

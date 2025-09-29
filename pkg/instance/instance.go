@@ -198,6 +198,15 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 
+	var responseHeaders map[string]string
+	switch i.options.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		responseHeaders = i.globalBackendSettings.LlamaCpp.ResponseHeaders
+	case backends.BackendTypeVllm:
+		responseHeaders = i.globalBackendSettings.VLLM.ResponseHeaders
+	case backends.BackendTypeMlxLm:
+		responseHeaders = i.globalBackendSettings.MLX.ResponseHeaders
+	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		// Remove CORS headers from llama-server response to avoid conflicts
 		// llamactl will add its own CORS headers
@@ -207,6 +216,10 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 		resp.Header.Del("Access-Control-Allow-Credentials")
 		resp.Header.Del("Access-Control-Max-Age")
 		resp.Header.Del("Access-Control-Expose-Headers")
+
+		for key, value := range responseHeaders {
+			resp.Header.Set(key, value)
+		}
 		return nil
 	}
 
