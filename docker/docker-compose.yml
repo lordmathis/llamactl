@@ -3,8 +3,8 @@ version: '3.8'
 services:
   llamactl-llamacpp:
     build:
-      context: .
-      dockerfile: Dockerfile.llamacpp
+      context: ..
+      dockerfile: docker/Dockerfile.llamacpp
     image: llamactl:llamacpp-cuda
     container_name: llamactl-llamacpp
     ports:
@@ -29,8 +29,8 @@ services:
 
   llamactl-vllm:
     build:
-      context: .
-      dockerfile: Dockerfile.vllm
+      context: ..
+      dockerfile: docker/Dockerfile.vllm
     image: llamactl:vllm-cuda
     container_name: llamactl-vllm
     ports:
