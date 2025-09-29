@@ -1,0 +1,64 @@
+# WebUI build stage
+FROM node:20-alpine AS webui-builder
+
+WORKDIR /webui
+
+# Copy webui package files
+COPY webui/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy webui source
+COPY webui/ ./
+
+# Build webui
+RUN npm run build
+
+# Go build stage
+FROM golang:1.24-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates
+
+# Set working directory
+WORKDIR /build
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY cmd/ ./cmd/
+COPY pkg/ ./pkg/
+COPY apidocs/ ./apidocs/
+COPY webui/webui.go ./webui/
+
+# Copy built webui from webui-builder
+COPY --from=webui-builder /webui/dist ./webui/dist
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o llamactl ./cmd/server
+
+# Final stage
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates
+
+# Create data directory
+RUN mkdir -p /data
+
+# Set working directory
+WORKDIR /data
+
+# Copy binary from builder
+COPY --from=builder /build/llamactl /usr/local/bin/llamactl
+
+# Expose the default port
+EXPOSE 8080
+
+# Set llamactl as the entrypoint
+ENTRYPOINT ["llamactl"]

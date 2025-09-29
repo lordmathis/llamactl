@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  llamactl-llamacpp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.llamacpp
+    image: llamactl:llamacpp-cuda
+    container_name: llamactl-llamacpp
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/llamacpp:/data
+      - ./models:/models  # Mount models directory
+      - ~/.cache/llama.cpp:/root/.cache/llama.cpp  # Llama.cpp cache
+    environment:
+      # Set data directory for persistence
+      - LLAMACTL_DATA_DIR=/data
+      # Enable Docker mode for nested containers (if needed)
+      - LLAMACTL_LLAMACPP_DOCKER_ENABLED=false
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  llamactl-vllm:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.vllm
+    image: llamactl:vllm-cuda
+    container_name: llamactl-vllm
+    ports:
+      - "8081:8080"  # Use different port to avoid conflicts
+    volumes:
+      - ./data/vllm:/data
+      - ./models:/models  # Mount models directory
+      - ~/.cache/huggingface:/root/.cache/huggingface  # HuggingFace cache
+    environment:
+      # Set data directory for persistence
+      - LLAMACTL_DATA_DIR=/data
+      # Enable Docker mode for nested containers (if needed)
+      - LLAMACTL_VLLM_DOCKER_ENABLED=false
+      # vLLM specific environment variables
+      - CUDA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped

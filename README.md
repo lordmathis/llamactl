@@ -95,7 +95,30 @@ sudo mv llamactl /usr/local/bin/
 # Windows - Download from releases page
 ```
 
-### Option 2: Build from Source
+### Option 2: Docker (No local backend installation required)
+
+```bash
+# Clone repository and build Docker images
+git clone https://github.com/lordmathis/llamactl.git
+cd llamactl
+mkdir -p data/llamacpp data/vllm models
+
+# Build and start llamactl with llama.cpp CUDA backend
+docker-compose -f docker/docker-compose.yml up llamactl-llamacpp -d
+
+# Build and start llamactl with vLLM CUDA backend
+docker-compose -f docker/docker-compose.yml up llamactl-vllm -d
+
+# Build from source using multi-stage build
+docker build -f docker/Dockerfile.source -t llamactl:source .
+```
+
+**Features:** CUDA support, automatic latest release installation, no backend dependencies.
+**Note:** Dockerfiles are configured for CUDA. Adapt base images for other platforms (CPU, ROCm, etc.).
+
+For detailed Docker setup and configuration, see the [Installation Guide](docs/getting-started/installation.md).
+
+### Option 3: Build from Source
 Requires Go 1.24+ and Node.js 22+
 ```bash
 git clone https://github.com/lordmathis/llamactl.git
@@ -147,9 +170,9 @@ pip install vllm
 # Or use Docker - no local installation required
 ```
 
-## Docker Support
+## Backend Docker Support
 
-llamactl supports running backends in Docker containers - perfect for production deployments without local backend installation. Simply enable Docker in your configuration:
+llamactl can run backends in Docker containers:
 
 ```yaml
 backends:
