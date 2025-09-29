@@ -104,10 +104,13 @@ cd llamactl
 mkdir -p data/llamacpp data/vllm models
 
 # Build and start llamactl with llama.cpp CUDA backend
-docker-compose up llamactl-llamacpp -d
+docker-compose -f docker/docker-compose.yml up llamactl-llamacpp -d
 
 # Build and start llamactl with vLLM CUDA backend
-docker-compose up llamactl-vllm -d
+docker-compose -f docker/docker-compose.yml up llamactl-vllm -d
+
+# Build from source using multi-stage build
+docker build -f docker/Dockerfile.source -t llamactl:source .
 ```
 
 **Features:** CUDA support, automatic latest release installation, no backend dependencies.
