@@ -6,6 +6,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,6 +30,18 @@ type InstanceManager interface {
 	Shutdown()
 }
 
+type RemoteManager interface {
+	ListRemoteInstances(node *config.NodeConfig) ([]*instance.Process, error)
+	CreateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
+	GetRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
+	UpdateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
+	DeleteRemoteInstance(node *config.NodeConfig, name string) error
+	StartRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
+	StopRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
+	RestartRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
+	GetRemoteInstanceLogs(node *config.NodeConfig, name string) (string, error)
+}
+
 type instanceManager struct {
 	mu               sync.RWMutex
 	instances        map[string]*instance.Process
@@ -42,6 +55,9 @@ type instanceManager struct {
 	shutdownChan   chan struct{}
 	shutdownDone   chan struct{}
 	isShutdown     bool
+
+	// Remote instance management
+	httpClient *http.Client
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
@@ -59,6 +75,10 @@ func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig con
 		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
 		shutdownChan:   make(chan struct{}),
 		shutdownDone:   make(chan struct{}),
+
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
 	}
 
 	// Load existing instances from disk

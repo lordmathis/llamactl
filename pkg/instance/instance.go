@@ -287,3 +287,14 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+func (i *Process) IsRemote() bool {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	if i.options == nil {
+		return false
+	}
+
+	return len(i.options.Nodes) > 0
+}

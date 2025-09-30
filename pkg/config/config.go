@@ -41,6 +41,7 @@ type AppConfig struct {
 	Backends   BackendConfig   `yaml:"backends"`
 	Instances  InstancesConfig `yaml:"instances"`
 	Auth       AuthConfig      `yaml:"auth"`
+	Nodes      []NodeConfig    `yaml:"nodes,omitempty"`
 	Version    string          `yaml:"-"`
 	CommitHash string          `yaml:"-"`
 	BuildTime  string          `yaml:"-"`
@@ -123,6 +124,12 @@ type AuthConfig struct {
 
 	// List of keys for management endpoints
 	ManagementKeys []string `yaml:"management_keys"`
+}
+
+type NodeConfig struct {
+	Name    string `yaml:"name"`
+	Address string `yaml:"address"`
+	APIKey  string `yaml:"api_key,omitempty"`
 }
 
 // LoadConfig loads configuration with the following precedence:
