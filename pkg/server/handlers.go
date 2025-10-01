@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -23,12 +24,16 @@ import (
 type Handler struct {
 	InstanceManager manager.InstanceManager
 	cfg             config.AppConfig
+	httpClient      *http.Client
 }
 
 func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 	return &Handler{
 		InstanceManager: im,
 		cfg:             cfg,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
 	}
 }
 
@@ -461,6 +466,12 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 			return
 		}
 
+		// Check if this is a remote instance
+		if inst.IsRemote() {
+			h.RemoteInstanceProxy(w, r, name, inst)
+			return
+		}
+
 		if !inst.IsRunning() {
 			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
 			return
@@ -501,6 +512,73 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 		// Forward the request using the cached proxy
 		proxy.ServeHTTP(w, r)
 	}
+}
+
+// RemoteInstanceProxy proxies requests to a remote instance
+func (h *Handler) RemoteInstanceProxy(w http.ResponseWriter, r *http.Request, name string, inst *instance.Process) {
+	// Get the node name from instance options
+	options := inst.GetOptions()
+	if options == nil || len(options.Nodes) == 0 {
+		http.Error(w, "Instance has no node configured", http.StatusInternalServerError)
+		return
+	}
+
+	nodeName := options.Nodes[0]
+	var nodeConfig *config.NodeConfig
+	for i := range h.cfg.Nodes {
+		if h.cfg.Nodes[i].Name == nodeName {
+			nodeConfig = &h.cfg.Nodes[i]
+			break
+		}
+	}
+
+	if nodeConfig == nil {
+		http.Error(w, fmt.Sprintf("Node %s not found", nodeName), http.StatusInternalServerError)
+		return
+	}
+
+	// Strip the "/api/v1/instances/<name>/proxy" prefix from the request URL
+	prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", name)
+	proxyPath := r.URL.Path[len(prefix):]
+
+	// Build the remote URL
+	remoteURL := fmt.Sprintf("%s/api/v1/instances/%s/proxy%s", nodeConfig.Address, name, proxyPath)
+
+	// Create a new request to the remote node
+	req, err := http.NewRequest(r.Method, remoteURL, r.Body)
+	if err != nil {
+		http.Error(w, "Failed to create remote request: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Copy headers
+	req.Header = r.Header.Clone()
+
+	// Add API key if configured
+	if nodeConfig.APIKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", nodeConfig.APIKey))
+	}
+
+	// Forward the request
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		http.Error(w, "Failed to proxy to remote instance: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Copy response headers
+	for key, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
+	}
+
+	// Copy status code
+	w.WriteHeader(resp.StatusCode)
+
+	// Copy response body
+	io.Copy(w, resp.Body)
 }
 
 // OpenAIListInstances godoc
@@ -584,6 +662,12 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
+		// Check if this is a remote instance
+		if inst.IsRemote() {
+			h.RemoteOpenAIProxy(w, r, modelName, inst, bodyBytes)
+			return
+		}
+
 		if !inst.IsRunning() {
 			allowOnDemand := inst.GetOptions() != nil && inst.GetOptions().OnDemandStart != nil && *inst.GetOptions().OnDemandStart
 			if !allowOnDemand {
@@ -632,6 +716,72 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 
 		proxy.ServeHTTP(w, r)
 	}
+}
+
+// RemoteOpenAIProxy proxies OpenAI-compatible requests to a remote instance
+func (h *Handler) RemoteOpenAIProxy(w http.ResponseWriter, r *http.Request, modelName string, inst *instance.Process, bodyBytes []byte) {
+	// Get the node name from instance options
+	options := inst.GetOptions()
+	if options == nil || len(options.Nodes) == 0 {
+		http.Error(w, "Instance has no node configured", http.StatusInternalServerError)
+		return
+	}
+
+	nodeName := options.Nodes[0]
+	var nodeConfig *config.NodeConfig
+	for i := range h.cfg.Nodes {
+		if h.cfg.Nodes[i].Name == nodeName {
+			nodeConfig = &h.cfg.Nodes[i]
+			break
+		}
+	}
+
+	if nodeConfig == nil {
+		http.Error(w, fmt.Sprintf("Node %s not found", nodeName), http.StatusInternalServerError)
+		return
+	}
+
+	// Build the remote URL - forward to the same OpenAI endpoint on the remote node
+	remoteURL := fmt.Sprintf("%s%s", nodeConfig.Address, r.URL.Path)
+	if r.URL.RawQuery != "" {
+		remoteURL += "?" + r.URL.RawQuery
+	}
+
+	// Create a new request to the remote node
+	req, err := http.NewRequest(r.Method, remoteURL, bytes.NewReader(bodyBytes))
+	if err != nil {
+		http.Error(w, "Failed to create remote request: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Copy headers
+	req.Header = r.Header.Clone()
+
+	// Add API key if configured
+	if nodeConfig.APIKey != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", nodeConfig.APIKey))
+	}
+
+	// Forward the request
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		http.Error(w, "Failed to proxy to remote instance: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Copy response headers
+	for key, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
+	}
+
+	// Copy status code
+	w.WriteHeader(resp.StatusCode)
+
+	// Copy response body
+	io.Copy(w, resp.Body)
 }
 
 // ParseCommandRequest represents the request body for command parsing
