@@ -3,6 +3,7 @@ package manager
 import (
 	"fmt"
 	"llamactl/pkg/backends"
+	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
 	"os"
@@ -43,14 +44,42 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 	im.mu.Lock()
 	defer im.mu.Unlock()
 
-	// Check max instances limit after acquiring the lock
-	if len(im.instances) >= im.instancesConfig.MaxInstances && im.instancesConfig.MaxInstances != -1 {
-		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances)
-	}
-
-	// Check if instance with this name already exists
+	// Check if instance with this name already exists (must be globally unique)
 	if im.instances[name] != nil {
 		return nil, fmt.Errorf("instance with name %s already exists", name)
+	}
+
+	// Check if this is a remote instance
+	isRemote := len(options.Nodes) > 0
+	var nodeConfig *config.NodeConfig
+
+	if isRemote {
+		// Validate that the node exists
+		nodeName := options.Nodes[0] // Use first node for now
+		var exists bool
+		nodeConfig, exists = im.nodeConfigMap[nodeName]
+		if !exists {
+			return nil, fmt.Errorf("node %s not found", nodeName)
+		}
+
+		// Create the remote instance
+		inst, err := im.CreateRemoteInstance(nodeConfig, name, options)
+		if err != nil {
+			return nil, err
+		}
+
+		// Add to local tracking maps (but don't count towards limits)
+		im.instances[name] = inst
+		im.instanceNodeMap[name] = nodeConfig
+
+		return inst, nil
+	}
+
+	// Local instance creation
+	// Check max instances limit for local instances only
+	localInstanceCount := len(im.instances) - len(im.instanceNodeMap)
+	if localInstanceCount >= im.instancesConfig.MaxInstances && im.instancesConfig.MaxInstances != -1 {
+		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances)
 	}
 
 	// Assign and validate port for backend-specific options
@@ -156,7 +185,18 @@ func (im *instanceManager) DeleteInstance(name string) error {
 
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
-		return im.DeleteRemoteInstance(node, name)
+		err := im.DeleteRemoteInstance(node, name)
+		if err != nil {
+			return err
+		}
+
+		// Clean up local tracking
+		im.mu.Lock()
+		delete(im.instances, name)
+		delete(im.instanceNodeMap, name)
+		im.mu.Unlock()
+
+		return nil
 	}
 
 	if inst.IsRunning() {
@@ -183,7 +223,6 @@ func (im *instanceManager) DeleteInstance(name string) error {
 func (im *instanceManager) StartInstance(name string) (*instance.Process, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
-	maxRunningExceeded := len(im.runningInstances) >= im.instancesConfig.MaxRunningInstances && im.instancesConfig.MaxRunningInstances != -1
 	im.mu.RUnlock()
 
 	if !exists {
@@ -198,6 +237,17 @@ func (im *instanceManager) StartInstance(name string) (*instance.Process, error)
 	if inst.IsRunning() {
 		return inst, fmt.Errorf("instance with name %s is already running", name)
 	}
+
+	// Check max running instances limit for local instances only
+	im.mu.RLock()
+	localRunningCount := 0
+	for instName := range im.runningInstances {
+		if _, isRemote := im.instanceNodeMap[instName]; !isRemote {
+			localRunningCount++
+		}
+	}
+	maxRunningExceeded := localRunningCount >= im.instancesConfig.MaxRunningInstances && im.instancesConfig.MaxRunningInstances != -1
+	im.mu.RUnlock()
 
 	if maxRunningExceeded {
 		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.instancesConfig.MaxRunningInstances))
