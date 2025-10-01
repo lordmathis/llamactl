@@ -72,6 +72,11 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		im.instances[name] = inst
 		im.instanceNodeMap[name] = nodeConfig
 
+		// Persist the remote instance locally for tracking across restarts
+		if err := im.persistInstance(inst); err != nil {
+			return nil, fmt.Errorf("failed to persist remote instance %s: %w", name, err)
+		}
+
 		return inst, nil
 	}
 
@@ -132,7 +137,24 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.CreateI
 
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
-		return im.UpdateRemoteInstance(node, name, options)
+		updatedInst, err := im.UpdateRemoteInstance(node, name, options)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update local tracking
+		im.mu.Lock()
+		im.instances[name] = updatedInst
+		im.mu.Unlock()
+
+		// Persist the updated remote instance locally
+		im.mu.Lock()
+		defer im.mu.Unlock()
+		if err := im.persistInstance(updatedInst); err != nil {
+			return nil, fmt.Errorf("failed to persist updated remote instance %s: %w", name, err)
+		}
+
+		return updatedInst, nil
 	}
 
 	if options == nil {
@@ -192,9 +214,15 @@ func (im *instanceManager) DeleteInstance(name string) error {
 
 		// Clean up local tracking
 		im.mu.Lock()
+		defer im.mu.Unlock()
 		delete(im.instances, name)
 		delete(im.instanceNodeMap, name)
-		im.mu.Unlock()
+
+		// Delete the instance's config file if persistence is enabled
+		instancePath := filepath.Join(im.instancesConfig.InstancesDir, name+".json")
+		if err := os.Remove(instancePath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to delete config file for remote instance %s: %w", name, err)
+		}
 
 		return nil
 	}
