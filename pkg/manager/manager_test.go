@@ -34,7 +34,7 @@ func TestNewInstanceManager(t *testing.T) {
 		TimeoutCheckInterval: 5,
 	}
 
-	mgr := manager.NewInstanceManager(backendConfig, cfg)
+	mgr := manager.NewInstanceManager(backendConfig, cfg, nil)
 	if mgr == nil {
 		t.Fatal("NewInstanceManager returned nil")
 	}
@@ -69,7 +69,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	// Test instance persistence on creation
-	manager1 := manager.NewInstanceManager(backendConfig, cfg)
+	manager1 := manager.NewInstanceManager(backendConfig, cfg, nil)
 	options := &instance.CreateInstanceOptions{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -90,7 +90,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	// Test loading instances from disk
-	manager2 := manager.NewInstanceManager(backendConfig, cfg)
+	manager2 := manager.NewInstanceManager(backendConfig, cfg, nil)
 	instances, err := manager2.ListInstances()
 	if err != nil {
 		t.Fatalf("ListInstances failed: %v", err)
@@ -207,5 +207,5 @@ func createTestManager() manager.InstanceManager {
 		DefaultRestartDelay:  5,
 		TimeoutCheckInterval: 5,
 	}
-	return manager.NewInstanceManager(backendConfig, cfg)
+	return manager.NewInstanceManager(backendConfig, cfg, nil)
 }

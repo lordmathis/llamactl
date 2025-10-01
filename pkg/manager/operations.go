@@ -75,24 +75,35 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 // GetInstance retrieves an instance by its name.
 func (im *instanceManager) GetInstance(name string) (*instance.Process, error) {
 	im.mu.RLock()
-	defer im.mu.RUnlock()
+	inst, exists := im.instances[name]
+	im.mu.RUnlock()
 
-	instance, exists := im.instances[name]
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
-	return instance, nil
+
+	// Check if instance is remote and delegate to remote operation
+	if node := im.getNodeForInstance(inst); node != nil {
+		return im.GetRemoteInstance(node, name)
+	}
+
+	return inst, nil
 }
 
 // UpdateInstance updates the options of an existing instance and returns it.
 // If the instance is running, it will be restarted to apply the new options.
 func (im *instanceManager) UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
 	im.mu.RLock()
-	instance, exists := im.instances[name]
+	inst, exists := im.instances[name]
 	im.mu.RUnlock()
 
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
+	}
+
+	// Check if instance is remote and delegate to remote operation
+	if node := im.getNodeForInstance(inst); node != nil {
+		return im.UpdateRemoteInstance(node, name, options)
 	}
 
 	if options == nil {
@@ -105,55 +116,63 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.CreateI
 	}
 
 	// Check if instance is running before updating options
-	wasRunning := instance.IsRunning()
+	wasRunning := inst.IsRunning()
 
 	// If the instance is running, stop it first
 	if wasRunning {
-		if err := instance.Stop(); err != nil {
+		if err := inst.Stop(); err != nil {
 			return nil, fmt.Errorf("failed to stop instance %s for update: %w", name, err)
 		}
 	}
 
 	// Now update the options while the instance is stopped
-	instance.SetOptions(options)
+	inst.SetOptions(options)
 
 	// If it was running before, start it again with the new options
 	if wasRunning {
-		if err := instance.Start(); err != nil {
+		if err := inst.Start(); err != nil {
 			return nil, fmt.Errorf("failed to start instance %s after update: %w", name, err)
 		}
 	}
 
 	im.mu.Lock()
 	defer im.mu.Unlock()
-	if err := im.persistInstance(instance); err != nil {
+	if err := im.persistInstance(inst); err != nil {
 		return nil, fmt.Errorf("failed to persist updated instance %s: %w", name, err)
 	}
 
-	return instance, nil
+	return inst, nil
 }
 
 // DeleteInstance removes stopped instance by its name.
 func (im *instanceManager) DeleteInstance(name string) error {
 	im.mu.Lock()
-	defer im.mu.Unlock()
+	inst, exists := im.instances[name]
+	im.mu.Unlock()
 
-	instance, exists := im.instances[name]
 	if !exists {
 		return fmt.Errorf("instance with name %s not found", name)
 	}
 
-	if instance.IsRunning() {
+	// Check if instance is remote and delegate to remote operation
+	if node := im.getNodeForInstance(inst); node != nil {
+		return im.DeleteRemoteInstance(node, name)
+	}
+
+	if inst.IsRunning() {
 		return fmt.Errorf("instance with name %s is still running, stop it before deleting", name)
 	}
 
-	delete(im.ports, instance.GetPort())
+	im.mu.Lock()
+	defer im.mu.Unlock()
+
+	delete(im.ports, inst.GetPort())
 	delete(im.instances, name)
 
 	// Delete the instance's config file if persistence is enabled
-	instancePath := filepath.Join(im.instancesConfig.InstancesDir, instance.Name+".json")
+	instancePath := filepath.Join(im.instancesConfig.InstancesDir, inst.Name+".json")
 	if err := os.Remove(instancePath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to delete config file for instance %s: %w", instance.Name, err)
+		return fmt.Errorf("failed to delete config file for instance %s: %w", inst.Name, err)
 	}
 
 	return nil
@@ -163,33 +182,39 @@ func (im *instanceManager) DeleteInstance(name string) error {
 // If the instance is already running, it returns an error.
 func (im *instanceManager) StartInstance(name string) (*instance.Process, error) {
 	im.mu.RLock()
-	instance, exists := im.instances[name]
+	inst, exists := im.instances[name]
 	maxRunningExceeded := len(im.runningInstances) >= im.instancesConfig.MaxRunningInstances && im.instancesConfig.MaxRunningInstances != -1
 	im.mu.RUnlock()
 
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
-	if instance.IsRunning() {
-		return instance, fmt.Errorf("instance with name %s is already running", name)
+
+	// Check if instance is remote and delegate to remote operation
+	if node := im.getNodeForInstance(inst); node != nil {
+		return im.StartRemoteInstance(node, name)
+	}
+
+	if inst.IsRunning() {
+		return inst, fmt.Errorf("instance with name %s is already running", name)
 	}
 
 	if maxRunningExceeded {
 		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.instancesConfig.MaxRunningInstances))
 	}
 
-	if err := instance.Start(); err != nil {
+	if err := inst.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start instance %s: %w", name, err)
 	}
 
 	im.mu.Lock()
 	defer im.mu.Unlock()
-	err := im.persistInstance(instance)
+	err := im.persistInstance(inst)
 	if err != nil {
 		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
 	}
 
-	return instance, nil
+	return inst, nil
 }
 
 func (im *instanceManager) IsMaxRunningInstancesReached() bool {
@@ -206,47 +231,71 @@ func (im *instanceManager) IsMaxRunningInstancesReached() bool {
 // StopInstance stops a running instance and returns it.
 func (im *instanceManager) StopInstance(name string) (*instance.Process, error) {
 	im.mu.RLock()
-	instance, exists := im.instances[name]
+	inst, exists := im.instances[name]
 	im.mu.RUnlock()
 
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
-	if !instance.IsRunning() {
-		return instance, fmt.Errorf("instance with name %s is already stopped", name)
+
+	// Check if instance is remote and delegate to remote operation
+	if node := im.getNodeForInstance(inst); node != nil {
+		return im.StopRemoteInstance(node, name)
 	}
 
-	if err := instance.Stop(); err != nil {
+	if !inst.IsRunning() {
+		return inst, fmt.Errorf("instance with name %s is already stopped", name)
+	}
+
+	if err := inst.Stop(); err != nil {
 		return nil, fmt.Errorf("failed to stop instance %s: %w", name, err)
 	}
 
 	im.mu.Lock()
 	defer im.mu.Unlock()
-	err := im.persistInstance(instance)
+	err := im.persistInstance(inst)
 	if err != nil {
 		return nil, fmt.Errorf("failed to persist instance %s: %w", name, err)
 	}
 
-	return instance, nil
+	return inst, nil
 }
 
 // RestartInstance stops and then starts an instance, returning the updated instance.
 func (im *instanceManager) RestartInstance(name string) (*instance.Process, error) {
-	instance, err := im.StopInstance(name)
+	im.mu.RLock()
+	inst, exists := im.instances[name]
+	im.mu.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("instance with name %s not found", name)
+	}
+
+	// Check if instance is remote and delegate to remote operation
+	if node := im.getNodeForInstance(inst); node != nil {
+		return im.RestartRemoteInstance(node, name)
+	}
+
+	inst, err := im.StopInstance(name)
 	if err != nil {
 		return nil, err
 	}
-	return im.StartInstance(instance.Name)
+	return im.StartInstance(inst.Name)
 }
 
 // GetInstanceLogs retrieves the logs for a specific instance by its name.
 func (im *instanceManager) GetInstanceLogs(name string) (string, error) {
 	im.mu.RLock()
-	_, exists := im.instances[name]
+	inst, exists := im.instances[name]
 	im.mu.RUnlock()
 
 	if !exists {
 		return "", fmt.Errorf("instance with name %s not found", name)
+	}
+
+	// Check if instance is remote and delegate to remote operation
+	if node := im.getNodeForInstance(inst); node != nil {
+		return im.GetRemoteInstanceLogs(node, name)
 	}
 
 	// TODO: Implement actual log retrieval logic

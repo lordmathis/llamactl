@@ -75,7 +75,7 @@ func TestCreateInstance_ValidationAndLimits(t *testing.T) {
 		MaxInstances:         1, // Very low limit for testing
 		TimeoutCheckInterval: 5,
 	}
-	limitedManager := manager.NewInstanceManager(backendConfig, cfg)
+	limitedManager := manager.NewInstanceManager(backendConfig, cfg, nil)
 
 	_, err = limitedManager.CreateInstance("instance1", options)
 	if err != nil {

@@ -57,14 +57,23 @@ type instanceManager struct {
 	isShutdown     bool
 
 	// Remote instance management
-	httpClient *http.Client
+	httpClient        *http.Client
+	instanceNodeMap   map[string]*config.NodeConfig // Maps instance name to its node config
+	nodeConfigMap     map[string]*config.NodeConfig // Maps node name to node config for quick lookup
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
-func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig) InstanceManager {
+func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig, nodesConfig []config.NodeConfig) InstanceManager {
 	if instancesConfig.TimeoutCheckInterval <= 0 {
 		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
 	}
+
+	// Build node config map for quick lookup
+	nodeConfigMap := make(map[string]*config.NodeConfig)
+	for i := range nodesConfig {
+		nodeConfigMap[nodesConfig[i].Name] = &nodesConfig[i]
+	}
+
 	im := &instanceManager{
 		instances:        make(map[string]*instance.Process),
 		runningInstances: make(map[string]struct{}),
@@ -79,6 +88,9 @@ func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig con
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+
+		instanceNodeMap: make(map[string]*config.NodeConfig),
+		nodeConfigMap:   nodeConfigMap,
 	}
 
 	// Load existing instances from disk
@@ -315,4 +327,19 @@ func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus inst
 	} else {
 		delete(im.runningInstances, name)
 	}
+}
+
+// getNodeForInstance returns the node configuration for a remote instance
+// Returns nil if the instance is not remote or the node is not found
+func (im *instanceManager) getNodeForInstance(inst *instance.Process) *config.NodeConfig {
+	if !inst.IsRemote() {
+		return nil
+	}
+
+	// Check if we have a cached mapping
+	if nodeConfig, exists := im.instanceNodeMap[inst.Name]; exists {
+		return nodeConfig
+	}
+
+	return nil
 }
