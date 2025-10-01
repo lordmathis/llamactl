@@ -270,24 +270,43 @@ func (im *instanceManager) loadInstance(name, path string) error {
 		return fmt.Errorf("instance name mismatch: file=%s, instance.Name=%s", name, persistedInstance.Name)
 	}
 
-	statusCallback := func(oldStatus, newStatus instance.InstanceStatus) {
-		im.onStatusChange(persistedInstance.Name, oldStatus, newStatus)
+	options := persistedInstance.GetOptions()
+
+	// Check if this is a remote instance
+	isRemote := options != nil && len(options.Nodes) > 0
+
+	var statusCallback func(oldStatus, newStatus instance.InstanceStatus)
+	if !isRemote {
+		// Only set status callback for local instances
+		statusCallback = func(oldStatus, newStatus instance.InstanceStatus) {
+			im.onStatusChange(persistedInstance.Name, oldStatus, newStatus)
+		}
 	}
 
 	// Create new inst using NewInstance (handles validation, defaults, setup)
-	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, persistedInstance.GetOptions(), statusCallback)
+	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
 	inst.Created = persistedInstance.Created
 	inst.SetStatus(persistedInstance.Status)
 
-	// Check for port conflicts and add to maps
-	if inst.GetPort() > 0 {
-		port := inst.GetPort()
-		if im.ports[port] {
-			return fmt.Errorf("port conflict: instance %s wants port %d which is already in use", name, port)
+	// Handle remote instance mapping
+	if isRemote {
+		nodeName := options.Nodes[0]
+		nodeConfig, exists := im.nodeConfigMap[nodeName]
+		if !exists {
+			return fmt.Errorf("node %s not found for remote instance %s", nodeName, name)
 		}
-		im.ports[port] = true
+		im.instanceNodeMap[name] = nodeConfig
+	} else {
+		// Check for port conflicts only for local instances
+		if inst.GetPort() > 0 {
+			port := inst.GetPort()
+			if im.ports[port] {
+				return fmt.Errorf("port conflict: instance %s wants port %d which is already in use", name, port)
+			}
+			im.ports[port] = true
+		}
 	}
 
 	im.instances[name] = inst
