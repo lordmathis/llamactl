@@ -106,6 +106,21 @@ export const backendsApi = {
   },
 };
 
+// Node API types
+export interface NodeResponse {
+  name: string;
+  address: string;
+}
+
+// Node API functions
+export const nodesApi = {
+  // GET /nodes
+  list: () => apiCall<NodeResponse[]>("/nodes"),
+
+  // GET /nodes/{name}
+  get: (name: string) => apiCall<NodeResponse>(`/nodes/${name}`),
+};
+
 // Instance API functions
 export const instancesApi = {
   // GET /instances

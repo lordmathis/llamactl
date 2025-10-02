@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import type { CreateInstanceOptions } from '@/types/instance'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -7,6 +7,8 @@ import AutoRestartConfiguration from '@/components/instance/AutoRestartConfigura
 import NumberInput from '@/components/form/NumberInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
 import EnvironmentVariablesInput from '@/components/form/EnvironmentVariablesInput'
+import SelectInput from '@/components/form/SelectInput'
+import { nodesApi, type NodeResponse } from '@/lib/api'
 
 interface InstanceSettingsCardProps {
   instanceName: string
@@ -25,6 +27,42 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
   onNameChange,
   onChange
 }) => {
+  const [nodes, setNodes] = useState<NodeResponse[]>([])
+  const [loadingNodes, setLoadingNodes] = useState(true)
+
+  useEffect(() => {
+    const fetchNodes = async () => {
+      try {
+        const fetchedNodes = await nodesApi.list()
+        setNodes(fetchedNodes)
+      } catch (error) {
+        console.error('Failed to fetch nodes:', error)
+      } finally {
+        setLoadingNodes(false)
+      }
+    }
+
+    fetchNodes()
+  }, [])
+
+  const nodeOptions = [
+    { value: '', label: 'Default (Main Node)' },
+    ...nodes.map(node => ({
+      value: node.name,
+      label: node.name
+    }))
+  ]
+
+  const handleNodeChange = (value: string | undefined) => {
+    if (value) {
+      onChange('nodes', [value])
+    } else {
+      onChange('nodes', undefined)
+    }
+  }
+
+  const selectedNode = formData.nodes && formData.nodes.length > 0 ? formData.nodes[0] : ''
+
   return (
     <Card>
       <CardHeader>
@@ -49,6 +87,18 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
             Unique identifier for the instance
           </p>
         </div>
+
+        {/* Node Selection */}
+        {!loadingNodes && nodes.length > 0 && (
+          <SelectInput
+            id="node"
+            label="Node"
+            value={selectedNode}
+            onChange={handleNodeChange}
+            options={nodeOptions}
+            description="Select the node where the instance will run (default: main node)"
+          />
+        )}
 
         {/* Auto Restart Configuration */}
         <AutoRestartConfiguration
