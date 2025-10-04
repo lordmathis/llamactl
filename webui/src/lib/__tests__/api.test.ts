@@ -11,11 +11,13 @@ describe('API Error Handling', () => {
   })
 
   it('converts HTTP errors to meaningful messages', async () => {
-    mockFetch.mockResolvedValue({
+    const mockResponse = {
       ok: false,
       status: 409,
-      text: () => Promise.resolve('Instance already exists')
-    })
+      text: () => Promise.resolve('Instance already exists'),
+      clone: function() { return this }
+    }
+    mockFetch.mockResolvedValue(mockResponse)
 
     await expect(instancesApi.create('existing', {}))
       .rejects
@@ -23,11 +25,13 @@ describe('API Error Handling', () => {
   })
 
   it('handles empty error responses gracefully', async () => {
-    mockFetch.mockResolvedValue({
+    const mockResponse = {
       ok: false,
       status: 500,
-      text: () => Promise.resolve('')
-    })
+      text: () => Promise.resolve(''),
+      clone: function() { return this }
+    }
+    mockFetch.mockResolvedValue(mockResponse)
 
     await expect(instancesApi.list())
       .rejects
