@@ -131,11 +131,16 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(instances); err != nil {
+		// Marshal to bytes first to set Content-Length header
+		data, err := json.Marshal(instances)
+		if err != nil {
 			http.Error(w, "Failed to encode instances: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+		w.Write(data)
 	}
 }
 
