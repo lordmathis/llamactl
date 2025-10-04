@@ -263,19 +263,32 @@ func (im *instanceManager) loadInstance(name, path string) error {
 }
 
 // autoStartInstances starts instances that were running when persisted and have auto-restart enabled
+// For instances with auto-restart disabled, it sets their status to Stopped
 func (im *instanceManager) autoStartInstances() {
 	im.mu.RLock()
 	var instancesToStart []*instance.Process
+	var instancesToStop []*instance.Process
 	for _, inst := range im.instances {
 		if inst.IsRunning() && // Was running when persisted
 			inst.GetOptions() != nil &&
-			inst.GetOptions().AutoRestart != nil &&
-			*inst.GetOptions().AutoRestart {
-			instancesToStart = append(instancesToStart, inst)
+			inst.GetOptions().AutoRestart != nil {
+			if *inst.GetOptions().AutoRestart {
+				instancesToStart = append(instancesToStart, inst)
+			} else {
+				// Instance was running but auto-restart is disabled, mark as stopped
+				instancesToStop = append(instancesToStop, inst)
+			}
 		}
 	}
 	im.mu.RUnlock()
 
+	// Stop instances that have auto-restart disabled
+	for _, inst := range instancesToStop {
+		log.Printf("Instance %s was running but auto-restart is disabled, setting status to stopped", inst.Name)
+		inst.SetStatus(instance.Stopped)
+	}
+
+	// Start instances that have auto-restart enabled
 	for _, inst := range instancesToStart {
 		log.Printf("Auto-starting instance %s", inst.Name)
 		// Reset running state before starting (since Start() expects stopped instance)
