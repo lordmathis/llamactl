@@ -17,6 +17,7 @@ server:
   host: "0.0.0.0"                # Server host to bind to
   port: 8080                     # Server port to bind to
   allowed_origins: ["*"]         # Allowed CORS origins (default: all)
+  allowed_headers: ["*"]         # Allowed CORS headers (default: all)
   enable_swagger: false          # Enable Swagger UI for API docs
 
 backends:
@@ -104,6 +105,7 @@ server:
   host: "0.0.0.0"         # Server host to bind to (default: "0.0.0.0")
   port: 8080              # Server port to bind to (default: 8080)
   allowed_origins: ["*"]  # CORS allowed origins (default: ["*"])
+  allowed_headers: ["*"]  # CORS allowed headers (default: ["*"])
   enable_swagger: false   # Enable Swagger UI (default: false)
 ```
 
