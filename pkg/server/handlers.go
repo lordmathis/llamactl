@@ -207,7 +207,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.GetInstance(name)
 		if err != nil {
-			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
