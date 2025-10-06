@@ -207,7 +207,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.GetInstance(name)
 		if err != nil {
-			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -480,28 +480,14 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 
 		// Strip the "/api/v1/instances/<name>/proxy" prefix from the request URL
 		prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", name)
-		proxyPath := r.URL.Path[len(prefix):]
-
-		// Ensure the proxy path starts with "/"
-		if !strings.HasPrefix(proxyPath, "/") {
-			proxyPath = "/" + proxyPath
-		}
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 
 		// Update the last request time for the instance
 		inst.UpdateLastRequestTime()
 
-		// Modify the request to remove the proxy prefix
-		originalPath := r.URL.Path
-		r.URL.Path = proxyPath
-
 		// Set forwarded headers
 		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 		r.Header.Set("X-Forwarded-Proto", "http")
-
-		// Restore original path for logging purposes
-		defer func() {
-			r.URL.Path = originalPath
-		}()
 
 		// Forward the request using the cached proxy
 		proxy.ServeHTTP(w, r)
@@ -585,12 +571,13 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		// Route to the appropriate inst based on instance name
 		inst, err := h.InstanceManager.GetInstance(modelName)
 		if err != nil {
-			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		if !inst.IsRunning() {
-			allowOnDemand := inst.GetOptions() != nil && inst.GetOptions().OnDemandStart != nil && *inst.GetOptions().OnDemandStart
+			options := inst.GetOptions()
+			allowOnDemand := options != nil && options.OnDemandStart != nil && *options.OnDemandStart
 			if !allowOnDemand {
 				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
 				return
@@ -634,6 +621,84 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		// Recreate the request body from the bytes we read
 		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		r.ContentLength = int64(len(bodyBytes))
+
+		proxy.ServeHTTP(w, r)
+	}
+}
+
+func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		// Get the instance name from the URL parameter
+		name := chi.URLParam(r, "name")
+		if name == "" {
+			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+			return
+		}
+
+		// Route to the appropriate inst based on instance name
+		inst, err := h.InstanceManager.GetInstance(name)
+		if err != nil {
+			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		options := inst.GetOptions()
+		if options == nil {
+			http.Error(w, "Cannot obtain Instance's options", http.StatusInternalServerError)
+			return
+		}
+
+		if options.BackendType != backends.BackendTypeLlamaCpp {
+			http.Error(w, "Instance is not a llama.cpp server.", http.StatusBadRequest)
+			return
+		}
+
+		if !inst.IsRunning() {
+
+			if !(onDemandStart && options.OnDemandStart != nil && *options.OnDemandStart) {
+				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
+				return
+			}
+
+			if h.InstanceManager.IsMaxRunningInstancesReached() {
+				if h.cfg.Instances.EnableLRUEviction {
+					err := h.InstanceManager.EvictLRUInstance()
+					if err != nil {
+						http.Error(w, "Cannot start Instance, failed to evict instance "+err.Error(), http.StatusInternalServerError)
+						return
+					}
+				} else {
+					http.Error(w, "Cannot start Instance, maximum number of instances reached", http.StatusConflict)
+					return
+				}
+			}
+
+			// If on-demand start is enabled, start the instance
+			if _, err := h.InstanceManager.StartInstance(name); err != nil {
+				http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// Wait for the instance to become healthy before proceeding
+			if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil { // 2 minutes timeout
+				http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			}
+		}
+
+		proxy, err := inst.GetProxy()
+		if err != nil {
+			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Strip the "/llama-cpp/<name>" prefix from the request URL
+		prefix := fmt.Sprintf("/llama-cpp/%s", name)
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+
+		// Update the last request time for the instance
+		inst.UpdateLastRequestTime()
 
 		proxy.ServeHTTP(w, r)
 	}
@@ -719,21 +784,21 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
 			return
 		}
-		
+
 		if strings.TrimSpace(req.Command) == "" {
 			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
 			return
 		}
-		
+
 		mlxOptions, err := mlx.ParseMlxCommand(req.Command)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
 			return
 		}
-		
+
 		// Currently only support mlx_lm backend type
 		backendType := backends.BackendTypeMlxLm
-		
+
 		options := &instance.CreateInstanceOptions{
 			BackendType:      backendType,
 			MlxServerOptions: mlxOptions,
