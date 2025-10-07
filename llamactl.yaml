@@ -1,5 +1,0 @@
-auth:
-  management_keys:
-    - test-mgmt
-  inference_keys:
-    - test-inf
