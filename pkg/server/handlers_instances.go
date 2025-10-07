@@ -102,7 +102,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.GetInstance(name)
 		if err != nil {
-			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -361,12 +361,6 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 			return
 		}
 
-		// Check if this is a remote instance
-		if inst.IsRemote() {
-			h.RemoteInstanceProxy(w, r, name, inst)
-			return
-		}
-
 		if !inst.IsRunning() {
 			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
 			return
@@ -381,28 +375,14 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 
 		// Strip the "/api/v1/instances/<name>/proxy" prefix from the request URL
 		prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", name)
-		proxyPath := r.URL.Path[len(prefix):]
-
-		// Ensure the proxy path starts with "/"
-		if !strings.HasPrefix(proxyPath, "/") {
-			proxyPath = "/" + proxyPath
-		}
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 
 		// Update the last request time for the instance
 		inst.UpdateLastRequestTime()
 
-		// Modify the request to remove the proxy prefix
-		originalPath := r.URL.Path
-		r.URL.Path = proxyPath
-
 		// Set forwarded headers
 		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 		r.Header.Set("X-Forwarded-Proto", "http")
-
-		// Restore original path for logging purposes
-		defer func() {
-			r.URL.Path = originalPath
-		}()
 
 		// Forward the request using the cached proxy
 		proxy.ServeHTTP(w, r)

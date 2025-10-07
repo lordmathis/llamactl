@@ -20,7 +20,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   handler.cfg.Server.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowedHeaders:   handler.cfg.Server.AllowedHeaders,
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
 		MaxAge:           300,
@@ -109,6 +109,51 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		//   - /v1/reranking
 		// The instance/model to use is determined by the request body.
 		r.Post("/*", handler.OpenAIProxy())
+
+	})
+
+	r.Route("/llama-cpp/{name}", func(r chi.Router) {
+
+		// Public Routes
+		// Allow llama-cpp server to serve its own WebUI if it is running.
+		// Don't auto start the server since it can be accessed without an API key
+		r.Get("/", handler.LlamaCppProxy(false))
+
+		// Private Routes
+		r.Group(func(r chi.Router) {
+
+			if authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
+				r.Use(authMiddleware.AuthMiddleware(KeyTypeInference))
+			}
+
+			// This handler auto start the server if it's not running
+			llamaCppHandler := handler.LlamaCppProxy(true)
+
+			// llama.cpp server specific proxy endpoints
+			r.Get("/props", llamaCppHandler)
+			// /slots endpoint is secured (see: https://github.com/ggml-org/llama.cpp/pull/15630)
+			r.Get("/slots", llamaCppHandler)
+			r.Post("/apply-template", llamaCppHandler)
+			r.Post("/completion", llamaCppHandler)
+			r.Post("/detokenize", llamaCppHandler)
+			r.Post("/embeddings", llamaCppHandler)
+			r.Post("/infill", llamaCppHandler)
+			r.Post("/metrics", llamaCppHandler)
+			r.Post("/props", llamaCppHandler)
+			r.Post("/reranking", llamaCppHandler)
+			r.Post("/tokenize", llamaCppHandler)
+
+			// OpenAI-compatible proxy endpoint
+			// Handles all POST requests to /v1/*, including:
+			//   - /v1/completions
+			//   - /v1/chat/completions
+			//   - /v1/embeddings
+			//   - /v1/rerank
+			//   - /v1/reranking
+			// llamaCppHandler is used here because some users of llama.cpp endpoints depend
+			// on "model" field being optional, and handler.OpenAIProxy requires it.
+			r.Post("/v1/*", llamaCppHandler)
+		})
 
 	})
 

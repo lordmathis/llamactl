@@ -87,7 +87,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		// Route to the appropriate inst based on instance name
 		inst, err := h.InstanceManager.GetInstance(modelName)
 		if err != nil {
-			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -98,7 +98,8 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		}
 
 		if !inst.IsRunning() {
-			allowOnDemand := inst.GetOptions() != nil && inst.GetOptions().OnDemandStart != nil && *inst.GetOptions().OnDemandStart
+			options := inst.GetOptions()
+			allowOnDemand := options != nil && options.OnDemandStart != nil && *options.OnDemandStart
 			if !allowOnDemand {
 				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
 				return

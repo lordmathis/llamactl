@@ -26,7 +26,8 @@ export async function handleApiError(response: Response): Promise<void> {
   }
 
   if (!response.ok) {
-    const errorMessage = await parseErrorResponse(response)
+    // Clone the response before reading to avoid consuming the body stream
+    const errorMessage = await parseErrorResponse(response.clone())
     throw new Error(errorMessage)
   }
 }

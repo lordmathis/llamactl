@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/backends/llamacpp"
 	"llamactl/pkg/backends/mlx"
@@ -10,11 +11,91 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // ParseCommandRequest represents the request body for command parsing
 type ParseCommandRequest struct {
 	Command string `json:"command"`
+}
+
+func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		// Get the instance name from the URL parameter
+		name := chi.URLParam(r, "name")
+		if name == "" {
+			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+			return
+		}
+
+		// Route to the appropriate inst based on instance name
+		inst, err := h.InstanceManager.GetInstance(name)
+		if err != nil {
+			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		options := inst.GetOptions()
+		if options == nil {
+			http.Error(w, "Cannot obtain Instance's options", http.StatusInternalServerError)
+			return
+		}
+
+		if options.BackendType != backends.BackendTypeLlamaCpp {
+			http.Error(w, "Instance is not a llama.cpp server.", http.StatusBadRequest)
+			return
+		}
+
+		if !inst.IsRunning() {
+
+			if !(onDemandStart && options.OnDemandStart != nil && *options.OnDemandStart) {
+				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
+				return
+			}
+
+			if h.InstanceManager.IsMaxRunningInstancesReached() {
+				if h.cfg.Instances.EnableLRUEviction {
+					err := h.InstanceManager.EvictLRUInstance()
+					if err != nil {
+						http.Error(w, "Cannot start Instance, failed to evict instance "+err.Error(), http.StatusInternalServerError)
+						return
+					}
+				} else {
+					http.Error(w, "Cannot start Instance, maximum number of instances reached", http.StatusConflict)
+					return
+				}
+			}
+
+			// If on-demand start is enabled, start the instance
+			if _, err := h.InstanceManager.StartInstance(name); err != nil {
+				http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// Wait for the instance to become healthy before proceeding
+			if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil { // 2 minutes timeout
+				http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			}
+		}
+
+		proxy, err := inst.GetProxy()
+		if err != nil {
+			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Strip the "/llama-cpp/<name>" prefix from the request URL
+		prefix := fmt.Sprintf("/llama-cpp/%s", name)
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+
+		// Update the last request time for the instance
+		inst.UpdateLastRequestTime()
+
+		proxy.ServeHTTP(w, r)
+	}
 }
 
 // ParseLlamaCommand godoc

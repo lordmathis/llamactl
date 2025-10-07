@@ -58,6 +58,9 @@ type ServerConfig struct {
 	// Allowed origins for CORS (e.g., "http://localhost:3000")
 	AllowedOrigins []string `yaml:"allowed_origins"`
 
+	// Allowed headers for CORS (e.g., "Accept", "Authorization", "Content-Type", "X-CSRF-Token")
+	AllowedHeaders []string `yaml:"allowed_headers"`
+
 	// Enable Swagger UI for API documentation
 	EnableSwagger bool `yaml:"enable_swagger"`
 
@@ -143,6 +146,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			Host:           "0.0.0.0",
 			Port:           8080,
 			AllowedOrigins: []string{"*"}, // Default to allow all origins
+			AllowedHeaders: []string{"*"}, // Default to allow all headers
 			EnableSwagger:  false,
 		},
 		Backends: BackendConfig{

@@ -209,3 +209,66 @@ func createTestManager() manager.InstanceManager {
 	}
 	return manager.NewInstanceManager(backendConfig, cfg, nil)
 }
+
+func TestAutoRestartDisabledInstanceStatus(t *testing.T) {
+	tempDir := t.TempDir()
+
+	backendConfig := config.BackendConfig{
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+		},
+	}
+
+	cfg := config.InstancesConfig{
+		PortRange:            [2]int{8000, 9000},
+		InstancesDir:         tempDir,
+		MaxInstances:         10,
+		TimeoutCheckInterval: 5,
+	}
+
+	// Create first manager and instance with auto-restart disabled
+	manager1 := manager.NewInstanceManager(backendConfig, cfg)
+
+	autoRestart := false
+	options := &instance.CreateInstanceOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		AutoRestart: &autoRestart,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+			Port:  8080,
+		},
+	}
+
+	inst, err := manager1.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	// Simulate instance being in running state when persisted
+	// (this would happen if the instance was running when llamactl was stopped)
+	inst.SetStatus(instance.Running)
+
+	// Shutdown first manager
+	manager1.Shutdown()
+
+	// Create second manager (simulating restart of llamactl)
+	manager2 := manager.NewInstanceManager(backendConfig, cfg)
+
+	// Get the loaded instance
+	loadedInst, err := manager2.GetInstance("test-instance")
+	if err != nil {
+		t.Fatalf("GetInstance failed: %v", err)
+	}
+
+	// The instance should be marked as Stopped, not Running
+	// because auto-restart is disabled
+	if loadedInst.IsRunning() {
+		t.Errorf("Expected instance with auto-restart disabled to be stopped after manager restart, but it was running")
+	}
+
+	if loadedInst.GetStatus() != instance.Stopped {
+		t.Errorf("Expected instance status to be Stopped, got %v", loadedInst.GetStatus())
+	}
+
+	manager2.Shutdown()
+}
