@@ -83,11 +83,8 @@ func (im *instanceManager) ListRemoteInstances(nodeConfig *config.NodeConfig) ([
 // CreateRemoteInstance creates a new instance on the remote node
 func (im *instanceManager) CreateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/", name)
-	payload := map[string]any{
-		"options": options,
-	}
 
-	resp, err := im.makeRemoteRequest(nodeConfig, "POST", path, payload)
+	resp, err := im.makeRemoteRequest(nodeConfig, "POST", path, options)
 	if err != nil {
 		return nil, err
 	}
@@ -119,11 +116,8 @@ func (im *instanceManager) GetRemoteInstance(nodeConfig *config.NodeConfig, name
 // UpdateRemoteInstance updates an existing instance on the remote node
 func (im *instanceManager) UpdateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/", name)
-	payload := map[string]any{
-		"options": options,
-	}
 
-	resp, err := im.makeRemoteRequest(nodeConfig, "PUT", path, payload)
+	resp, err := im.makeRemoteRequest(nodeConfig, "PUT", path, options)
 	if err != nil {
 		return nil, err
 	}
