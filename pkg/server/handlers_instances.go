@@ -407,9 +407,9 @@ func (h *Handler) RemoteInstanceProxy(w http.ResponseWriter, r *http.Request, na
 
 	nodeName := options.Nodes[0]
 
-	// Check if we have a cached proxy for this instance
+	// Check if we have a cached proxy for this node
 	h.remoteProxiesMu.RLock()
-	proxy, exists := h.remoteProxies[name]
+	proxy, exists := h.remoteProxies[nodeName]
 	h.remoteProxiesMu.RUnlock()
 
 	if !exists {
@@ -447,9 +447,9 @@ func (h *Handler) RemoteInstanceProxy(w http.ResponseWriter, r *http.Request, na
 			}
 		}
 
-		// Cache the proxy
+		// Cache the proxy by node name
 		h.remoteProxiesMu.Lock()
-		h.remoteProxies[name] = proxy
+		h.remoteProxies[nodeName] = proxy
 		h.remoteProxiesMu.Unlock()
 	}
 
