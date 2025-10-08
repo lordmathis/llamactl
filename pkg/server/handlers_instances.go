@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
 	"net/http"
@@ -414,15 +413,8 @@ func (h *Handler) RemoteInstanceProxy(w http.ResponseWriter, r *http.Request, na
 
 	if !exists {
 		// Find node configuration
-		var nodeConfig *config.NodeConfig
-		for i := range h.cfg.Nodes {
-			if h.cfg.Nodes[i].Name == nodeName {
-				nodeConfig = &h.cfg.Nodes[i]
-				break
-			}
-		}
-
-		if nodeConfig == nil {
+		nodeConfig, exists := h.cfg.Nodes[nodeName]
+		if !exists {
 			http.Error(w, fmt.Sprintf("Node %s not found", nodeName), http.StatusInternalServerError)
 			return
 		}

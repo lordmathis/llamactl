@@ -41,7 +41,7 @@ type AppConfig struct {
 	Backends   BackendConfig   `yaml:"backends"`
 	Instances  InstancesConfig `yaml:"instances"`
 	Auth       AuthConfig      `yaml:"auth"`
-	Nodes      []NodeConfig    `yaml:"nodes,omitempty"`
+	Nodes      map[string]NodeConfig `yaml:"nodes,omitempty"`
 	Version    string          `yaml:"-"`
 	CommitHash string          `yaml:"-"`
 	BuildTime  string          `yaml:"-"`
@@ -130,7 +130,6 @@ type AuthConfig struct {
 }
 
 type NodeConfig struct {
-	Name    string `yaml:"name"`
 	Address string `yaml:"address"`
 	APIKey  string `yaml:"api_key,omitempty"`
 }

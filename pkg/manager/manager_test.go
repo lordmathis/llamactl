@@ -34,7 +34,7 @@ func TestNewInstanceManager(t *testing.T) {
 		TimeoutCheckInterval: 5,
 	}
 
-	mgr := manager.NewInstanceManager(backendConfig, cfg, []config.NodeConfig{})
+	mgr := manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{})
 	if mgr == nil {
 		t.Fatal("NewInstanceManager returned nil")
 	}
@@ -69,7 +69,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	// Test instance persistence on creation
-	manager1 := manager.NewInstanceManager(backendConfig, cfg, []config.NodeConfig{})
+	manager1 := manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{})
 	options := &instance.CreateInstanceOptions{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -90,7 +90,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	// Test loading instances from disk
-	manager2 := manager.NewInstanceManager(backendConfig, cfg, []config.NodeConfig{})
+	manager2 := manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{})
 	instances, err := manager2.ListInstances()
 	if err != nil {
 		t.Fatalf("ListInstances failed: %v", err)
@@ -207,7 +207,7 @@ func createTestManager() manager.InstanceManager {
 		DefaultRestartDelay:  5,
 		TimeoutCheckInterval: 5,
 	}
-	return manager.NewInstanceManager(backendConfig, cfg, []config.NodeConfig{})
+	return manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{})
 }
 
 func TestAutoRestartDisabledInstanceStatus(t *testing.T) {
@@ -227,7 +227,7 @@ func TestAutoRestartDisabledInstanceStatus(t *testing.T) {
 	}
 
 	// Create first manager and instance with auto-restart disabled
-	manager1 := manager.NewInstanceManager(backendConfig, cfg, []config.NodeConfig{})
+	manager1 := manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{})
 
 	autoRestart := false
 	options := &instance.CreateInstanceOptions{
@@ -252,7 +252,7 @@ func TestAutoRestartDisabledInstanceStatus(t *testing.T) {
 	manager1.Shutdown()
 
 	// Create second manager (simulating restart of llamactl)
-	manager2 := manager.NewInstanceManager(backendConfig, cfg, []config.NodeConfig{})
+	manager2 := manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{})
 
 	// Get the loaded instance
 	loadedInst, err := manager2.GetInstance("test-instance")

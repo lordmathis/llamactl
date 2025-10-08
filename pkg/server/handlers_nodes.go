@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"llamactl/pkg/config"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -10,26 +9,24 @@ import (
 
 // NodeResponse represents a sanitized node configuration for API responses
 type NodeResponse struct {
-	Name    string `json:"name"`
 	Address string `json:"address"`
 }
 
 // ListNodes godoc
 // @Summary List all configured nodes
-// @Description Returns a list of all nodes configured in the server
+// @Description Returns a map of all nodes configured in the server (node name -> node config)
 // @Tags nodes
 // @Security ApiKeyAuth
 // @Produces json
-// @Success 200 {array} NodeResponse "List of nodes"
+// @Success 200 {object} map[string]NodeResponse "Map of nodes"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /nodes [get]
 func (h *Handler) ListNodes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Convert to sanitized response format
-		nodeResponses := make([]NodeResponse, len(h.cfg.Nodes))
-		for i, node := range h.cfg.Nodes {
-			nodeResponses[i] = NodeResponse{
-				Name:    node.Name,
+		// Convert to sanitized response format (map of name -> NodeResponse)
+		nodeResponses := make(map[string]NodeResponse, len(h.cfg.Nodes))
+		for name, node := range h.cfg.Nodes {
+			nodeResponses[name] = NodeResponse{
 				Address: node.Address,
 			}
 		}
@@ -62,22 +59,14 @@ func (h *Handler) GetNode() http.HandlerFunc {
 			return
 		}
 
-		var nodeConfig *config.NodeConfig
-		for i := range h.cfg.Nodes {
-			if h.cfg.Nodes[i].Name == name {
-				nodeConfig = &h.cfg.Nodes[i]
-				break
-			}
-		}
-
-		if nodeConfig == nil {
+		nodeConfig, exists := h.cfg.Nodes[name]
+		if !exists {
 			http.Error(w, "Node not found", http.StatusNotFound)
 			return
 		}
 
 		// Convert to sanitized response format
 		nodeResponse := NodeResponse{
-			Name:    nodeConfig.Name,
 			Address: nodeConfig.Address,
 		}
 

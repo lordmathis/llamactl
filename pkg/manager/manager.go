@@ -63,15 +63,16 @@ type instanceManager struct {
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
-func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig, nodesConfig []config.NodeConfig) InstanceManager {
+func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig, nodesConfig map[string]config.NodeConfig) InstanceManager {
 	if instancesConfig.TimeoutCheckInterval <= 0 {
 		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
 	}
 
 	// Build node config map for quick lookup
 	nodeConfigMap := make(map[string]*config.NodeConfig)
-	for i := range nodesConfig {
-		nodeConfigMap[nodesConfig[i].Name] = &nodesConfig[i]
+	for name := range nodesConfig {
+		nodeCopy := nodesConfig[name]
+		nodeConfigMap[name] = &nodeCopy
 	}
 
 	im := &instanceManager{
