@@ -8,7 +8,7 @@ import NumberInput from '@/components/form/NumberInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
 import EnvironmentVariablesInput from '@/components/form/EnvironmentVariablesInput'
 import SelectInput from '@/components/form/SelectInput'
-import { nodesApi, type NodeResponse } from '@/lib/api'
+import { nodesApi, type NodesMap } from '@/lib/api'
 
 interface InstanceSettingsCardProps {
   instanceName: string
@@ -27,7 +27,7 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
   onNameChange,
   onChange
 }) => {
-  const [nodes, setNodes] = useState<NodeResponse[]>([])
+  const [nodes, setNodes] = useState<NodesMap>({})
   const [loadingNodes, setLoadingNodes] = useState(true)
 
   useEffect(() => {
@@ -45,13 +45,10 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
     void fetchNodes()
   }, [])
 
-  const nodeOptions = [
-    { value: '', label: 'Default (Main Node)' },
-    ...nodes.map(node => ({
-      value: node.name,
-      label: node.name
-    }))
-  ]
+  const nodeOptions = Object.keys(nodes).map(nodeName => ({
+    value: nodeName,
+    label: nodeName
+  }))
 
   const handleNodeChange = (value: string | undefined) => {
     if (value) {
@@ -89,7 +86,7 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
         </div>
 
         {/* Node Selection */}
-        {!loadingNodes && nodes.length > 0 && (
+        {!loadingNodes && Object.keys(nodes).length > 0 && (
           <SelectInput
             id="node"
             label="Node"
