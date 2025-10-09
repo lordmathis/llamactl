@@ -880,43 +880,43 @@
 
 
 <h1 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h1>
-<p>This guide will help you get Llamactl up and running in just a few minutes.</p>
+<p>This guide will help you get Llamactl up and running in just a few minutes.  </p>
 <h2 id="step-1-start-llamactl">Step 1: Start Llamactl<a class="headerlink" href="#step-1-start-llamactl" title="Permanent link">&para;</a></h2>
-<p>Start the Llamactl server:</p>
+<p>Start the Llamactl server:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>llamactl
 </code></pre></div>
-<p>By default, Llamactl will start on <code>http://localhost:8080</code>.</p>
+<p>By default, Llamactl will start on <code>http://localhost:8080</code>.  </p>
 <h2 id="step-2-access-the-web-ui">Step 2: Access the Web UI<a class="headerlink" href="#step-2-access-the-web-ui" title="Permanent link">&para;</a></h2>
-<p>Open your web browser and navigate to:</p>
+<p>Open your web browser and navigate to:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>http://localhost:8080
 </code></pre></div>
-<p>Login with the management API key. By default it is generated during server startup. Copy it from the terminal output.</p>
-<p>You should see the Llamactl web interface.</p>
+<p>Login with the management API key. By default it is generated during server startup. Copy it from the terminal output.  </p>
+<p>You should see the Llamactl web interface.  </p>
 <h2 id="step-3-create-your-first-instance">Step 3: Create Your First Instance<a class="headerlink" href="#step-3-create-your-first-instance" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Click the "Add Instance" button</li>
-<li>Fill in the instance configuration:</li>
-<li><strong>Name</strong>: Give your instance a descriptive name</li>
-<li><strong>Backend Type</strong>: Choose from llama.cpp, MLX, or vLLM</li>
-<li><strong>Model</strong>: Model path or identifier for your chosen backend</li>
+<li>Click the "Add Instance" button  </li>
+<li>Fill in the instance configuration:  </li>
+<li><strong>Name</strong>: Give your instance a descriptive name  </li>
+<li><strong>Backend Type</strong>: Choose from llama.cpp, MLX, or vLLM  </li>
+<li><strong>Model</strong>: Model path or identifier for your chosen backend  </li>
 <li>
-<p><strong>Additional Options</strong>: Backend-specific parameters</p>
+<p><strong>Additional Options</strong>: Backend-specific parameters  </p>
 </li>
 <li>
-<p>Click "Create Instance"</p>
+<p>Click "Create Instance"  </p>
 </li>
 </ol>
 <h2 id="step-4-start-your-instance">Step 4: Start Your Instance<a class="headerlink" href="#step-4-start-your-instance" title="Permanent link">&para;</a></h2>
-<p>Once created, you can:</p>
+<p>Once created, you can:  </p>
 <ul>
-<li><strong>Start</strong> the instance by clicking the start button</li>
-<li><strong>Monitor</strong> its status in real-time</li>
-<li><strong>View logs</strong> by clicking the logs button</li>
-<li><strong>Stop</strong> the instance when needed</li>
+<li><strong>Start</strong> the instance by clicking the start button  </li>
+<li><strong>Monitor</strong> its status in real-time  </li>
+<li><strong>View logs</strong> by clicking the logs button  </li>
+<li><strong>Stop</strong> the instance when needed  </li>
 </ul>
 <h2 id="example-configurations">Example Configurations<a class="headerlink" href="#example-configurations" title="Permanent link">&para;</a></h2>
-<p>Here are basic example configurations for each backend:</p>
-<p><strong>llama.cpp backend:</strong>
+<p>Here are basic example configurations for each backend:  </p>
+<p><strong>llama.cpp backend:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama2-7b&quot;</span><span class="p">,</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;backend_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama_cpp&quot;</span><span class="p">,</span>
@@ -928,7 +928,7 @@
 <a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>MLX backend (macOS only):</strong>
+<p><strong>MLX backend (macOS only):</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mistral-mlx&quot;</span><span class="p">,</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;backend_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mlx_lm&quot;</span><span class="p">,</span>
@@ -939,7 +939,7 @@
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>vLLM backend:</strong>
+<p><strong>vLLM backend:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dialogpt-vllm&quot;</span><span class="p">,</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;backend_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vllm&quot;</span><span class="p">,</span>
@@ -951,7 +951,7 @@
 <a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">}</span>
 </code></pre></div></p>
 <h2 id="docker-support">Docker Support<a class="headerlink" href="#docker-support" title="Permanent link">&para;</a></h2>
-<p>Llamactl can run backends in Docker containers. To enable Docker for a backend, add a <code>docker</code> section to that backend in your YAML configuration file (e.g. <code>config.yaml</code>) as shown below:</p>
+<p>Llamactl can run backends in Docker containers. To enable Docker for a backend, add a <code>docker</code> section to that backend in your YAML configuration file (e.g. <code>config.yaml</code>) as shown below:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">backends</span><span class="p">:</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">vllm</span><span class="p">:</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vllm&quot;</span>
@@ -962,7 +962,7 @@
 <a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">      </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;run&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;--rm&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;--network&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;host&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;--gpus&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;all&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;--shm-size&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;1g&quot;</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <h2 id="using-the-api">Using the API<a class="headerlink" href="#using-the-api" title="Permanent link">&para;</a></h2>
-<p>You can also manage instances via the REST API:</p>
+<p>You can also manage instances via the REST API:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># List all instances</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>curl<span class="w"> </span>http://localhost:8080/api/instances
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
@@ -980,9 +980,9 @@
 <a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/instances/my-model/start
 </code></pre></div>
 <h2 id="openai-compatible-api">OpenAI Compatible API<a class="headerlink" href="#openai-compatible-api" title="Permanent link">&para;</a></h2>
-<p>Llamactl provides OpenAI-compatible endpoints, making it easy to integrate with existing OpenAI client libraries and tools.</p>
+<p>Llamactl provides OpenAI-compatible endpoints, making it easy to integrate with existing OpenAI client libraries and tools.  </p>
 <h3 id="chat-completions">Chat Completions<a class="headerlink" href="#chat-completions" title="Permanent link">&para;</a></h3>
-<p>Once you have an instance running, you can use it with the OpenAI-compatible chat completions endpoint:</p>
+<p>Once you have an instance running, you can use it with the OpenAI-compatible chat completions endpoint:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/v1/chat/completions<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
@@ -998,7 +998,7 @@
 <a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="s1">  }&#39;</span>
 </code></pre></div>
 <h3 id="using-with-python-openai-client">Using with Python OpenAI Client<a class="headerlink" href="#using-with-python-openai-client" title="Permanent link">&para;</a></h3>
-<p>You can also use the official OpenAI Python client:</p>
+<p>You can also use the official OpenAI Python client:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># Point the client to your Llamactl server</span>
@@ -1020,14 +1020,14 @@
 <a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="list-available-models">List Available Models<a class="headerlink" href="#list-available-models" title="Permanent link">&para;</a></h3>
-<p>Get a list of running instances (models) in OpenAI-compatible format:</p>
+<p>Get a list of running instances (models) in OpenAI-compatible format:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>curl<span class="w"> </span>http://localhost:8080/v1/models
 </code></pre></div>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Manage instances <a href="../../user-guide/managing-instances/">Managing Instances</a></li>
-<li>Explore the <a href="../../user-guide/api-reference/">API Reference</a></li>
-<li>Configure advanced settings in the <a href="../configuration/">Configuration</a> guide</li>
+<li>Manage instances <a href="../../user-guide/managing-instances/">Managing Instances</a>  </li>
+<li>Explore the <a href="../../user-guide/api-reference/">API Reference</a>  </li>
+<li>Configure advanced settings in the <a href="../configuration/">Configuration</a> guide  </li>
 </ul>
 
 

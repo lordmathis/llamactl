@@ -838,12 +838,12 @@
 
 
 <h1 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h1>
-<p>llamactl can be configured via configuration files or environment variables. Configuration is loaded in the following order of precedence:</p>
+<p>llamactl can be configured via configuration files or environment variables. Configuration is loaded in the following order of precedence:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Defaults &lt; Configuration file &lt; Environment variables
 </code></pre></div>
-<p>llamactl works out of the box with sensible defaults, but you can customize the behavior to suit your needs.</p>
+<p>llamactl works out of the box with sensible defaults, but you can customize the behavior to suit your needs.  </p>
 <h2 id="default-configuration">Default Configuration<a class="headerlink" href="#default-configuration" title="Permanent link">&para;</a></h2>
-<p>Here's the default configuration with all available options:</p>
+<p>Here's the default configuration with all available options:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">server</span><span class="p">:</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.0.0.0&quot;</span><span class="w">                </span><span class="c1"># Server host to bind to</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span><span class="w">                     </span><span class="c1"># Server port to bind to</span>
@@ -908,7 +908,7 @@
 </code></pre></div>
 <h2 id="configuration-files">Configuration Files<a class="headerlink" href="#configuration-files" title="Permanent link">&para;</a></h2>
 <h3 id="configuration-file-locations">Configuration File Locations<a class="headerlink" href="#configuration-file-locations" title="Permanent link">&para;</a></h3>
-<p>Configuration files are searched in the following locations (in order of precedence):</p>
+<p>Configuration files are searched in the following locations (in order of precedence):  </p>
 <p><strong>Linux:</strong><br />
 - <code>./llamactl.yaml</code> or <code>./config.yaml</code> (current directory)<br />
 - <code>$HOME/.config/llamactl/config.yaml</code><br />
@@ -922,7 +922,7 @@
 - <code>%APPDATA%\llamactl\config.yaml</code><br />
 - <code>%USERPROFILE%\llamactl\config.yaml</code><br />
 - <code>%PROGRAMDATA%\llamactl\config.yaml</code>  </p>
-<p>You can specify the path to config file with <code>LLAMACTL_CONFIG_PATH</code> environment variable.</p>
+<p>You can specify the path to config file with <code>LLAMACTL_CONFIG_PATH</code> environment variable.  </p>
 <h2 id="configuration-options">Configuration Options<a class="headerlink" href="#configuration-options" title="Permanent link">&para;</a></h2>
 <h3 id="server-configuration">Server Configuration<a class="headerlink" href="#server-configuration" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">server</span><span class="p">:</span>
@@ -932,11 +932,11 @@
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">allowed_headers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;*&quot;</span><span class="p p-Indicator">]</span><span class="w">  </span><span class="c1"># CORS allowed headers (default: [&quot;*&quot;])</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">enable_swagger</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">   </span><span class="c1"># Enable Swagger UI (default: false)</span>
 </code></pre></div>
-<p><strong>Environment Variables:</strong>
-- <code>LLAMACTL_HOST</code> - Server host
-- <code>LLAMACTL_PORT</code> - Server port
-- <code>LLAMACTL_ALLOWED_ORIGINS</code> - Comma-separated CORS origins
-- <code>LLAMACTL_ENABLE_SWAGGER</code> - Enable Swagger UI (true/false)</p>
+<p><strong>Environment Variables:</strong><br />
+- <code>LLAMACTL_HOST</code> - Server host<br />
+- <code>LLAMACTL_PORT</code> - Server port<br />
+- <code>LLAMACTL_ALLOWED_ORIGINS</code> - Comma-separated CORS origins<br />
+- <code>LLAMACTL_ENABLE_SWAGGER</code> - Enable Swagger UI (true/false)  </p>
 <h3 id="backend-configuration">Backend Configuration<a class="headerlink" href="#backend-configuration" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">backends</span><span class="p">:</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">llama-cpp</span><span class="p">:</span>
@@ -968,43 +968,43 @@
 <a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">    </span><span class="c1"># MLX does not support Docker</span>
 <a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">    </span><span class="nt">response_headers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span><span class="w">         </span><span class="c1"># Additional response headers to send with responses</span>
 </code></pre></div>
-<p><strong>Backend Configuration Fields:</strong>
-- <code>command</code>: Executable name/path for the backend
-- <code>args</code>: Default arguments prepended to all instances
-- <code>environment</code>: Environment variables for the backend process (optional)
-- <code>response_headers</code>: Additional response headers to send with responses (optional)
-- <code>docker</code>: Docker-specific configuration (optional)
-  - <code>enabled</code>: Boolean flag to enable Docker runtime
-  - <code>image</code>: Docker image to use
-  - <code>args</code>: Additional arguments passed to <code>docker run</code>
-  - <code>environment</code>: Environment variables for the container (optional)</p>
+<p><strong>Backend Configuration Fields:</strong><br />
+- <code>command</code>: Executable name/path for the backend<br />
+- <code>args</code>: Default arguments prepended to all instances<br />
+- <code>environment</code>: Environment variables for the backend process (optional)<br />
+- <code>response_headers</code>: Additional response headers to send with responses (optional)<br />
+- <code>docker</code>: Docker-specific configuration (optional)<br />
+  - <code>enabled</code>: Boolean flag to enable Docker runtime<br />
+  - <code>image</code>: Docker image to use<br />
+  - <code>args</code>: Additional arguments passed to <code>docker run</code><br />
+  - <code>environment</code>: Environment variables for the container (optional)  </p>
 <blockquote>
 <p>If llamactl is behind an NGINX proxy, <code>X-Accel-Buffering: no</code> response header may be required for NGINX to properly stream the responses without buffering.</p>
 </blockquote>
-<p><strong>Environment Variables:</strong></p>
-<p><strong>LlamaCpp Backend:</strong>
-- <code>LLAMACTL_LLAMACPP_COMMAND</code> - LlamaCpp executable command
-- <code>LLAMACTL_LLAMACPP_ARGS</code> - Space-separated default arguments
-- <code>LLAMACTL_LLAMACPP_ENV</code> - Environment variables in format "KEY1=value1,KEY2=value2"
-- <code>LLAMACTL_LLAMACPP_DOCKER_ENABLED</code> - Enable Docker runtime (true/false)
-- <code>LLAMACTL_LLAMACPP_DOCKER_IMAGE</code> - Docker image to use
-- <code>LLAMACTL_LLAMACPP_DOCKER_ARGS</code> - Space-separated Docker arguments
-- <code>LLAMACTL_LLAMACPP_DOCKER_ENV</code> - Docker environment variables in format "KEY1=value1,KEY2=value2"
-- <code>LLAMACTL_LLAMACPP_RESPONSE_HEADERS</code> - Response headers in format "KEY1=value1;KEY2=value2"</p>
-<p><strong>VLLM Backend:</strong>
-- <code>LLAMACTL_VLLM_COMMAND</code> - VLLM executable command
-- <code>LLAMACTL_VLLM_ARGS</code> - Space-separated default arguments
-- <code>LLAMACTL_VLLM_ENV</code> - Environment variables in format "KEY1=value1,KEY2=value2"
-- <code>LLAMACTL_VLLM_DOCKER_ENABLED</code> - Enable Docker runtime (true/false)
-- <code>LLAMACTL_VLLM_DOCKER_IMAGE</code> - Docker image to use
-- <code>LLAMACTL_VLLM_DOCKER_ARGS</code> - Space-separated Docker arguments
-- <code>LLAMACTL_VLLM_DOCKER_ENV</code> - Docker environment variables in format "KEY1=value1,KEY2=value2"
-- <code>LLAMACTL_VLLM_RESPONSE_HEADERS</code> - Response headers in format "KEY1=value1;KEY2=value2"</p>
-<p><strong>MLX Backend:</strong>
-- <code>LLAMACTL_MLX_COMMAND</code> - MLX executable command
-- <code>LLAMACTL_MLX_ARGS</code> - Space-separated default arguments
-- <code>LLAMACTL_MLX_ENV</code> - Environment variables in format "KEY1=value1,KEY2=value2"
-- <code>LLAMACTL_MLX_RESPONSE_HEADERS</code> - Response headers in format "KEY1=value1;KEY2=value2"</p>
+<p><strong>Environment Variables:</strong>  </p>
+<p><strong>LlamaCpp Backend:</strong><br />
+- <code>LLAMACTL_LLAMACPP_COMMAND</code> - LlamaCpp executable command<br />
+- <code>LLAMACTL_LLAMACPP_ARGS</code> - Space-separated default arguments<br />
+- <code>LLAMACTL_LLAMACPP_ENV</code> - Environment variables in format "KEY1=value1,KEY2=value2"<br />
+- <code>LLAMACTL_LLAMACPP_DOCKER_ENABLED</code> - Enable Docker runtime (true/false)<br />
+- <code>LLAMACTL_LLAMACPP_DOCKER_IMAGE</code> - Docker image to use<br />
+- <code>LLAMACTL_LLAMACPP_DOCKER_ARGS</code> - Space-separated Docker arguments<br />
+- <code>LLAMACTL_LLAMACPP_DOCKER_ENV</code> - Docker environment variables in format "KEY1=value1,KEY2=value2"<br />
+- <code>LLAMACTL_LLAMACPP_RESPONSE_HEADERS</code> - Response headers in format "KEY1=value1;KEY2=value2"  </p>
+<p><strong>VLLM Backend:</strong><br />
+- <code>LLAMACTL_VLLM_COMMAND</code> - VLLM executable command<br />
+- <code>LLAMACTL_VLLM_ARGS</code> - Space-separated default arguments<br />
+- <code>LLAMACTL_VLLM_ENV</code> - Environment variables in format "KEY1=value1,KEY2=value2"<br />
+- <code>LLAMACTL_VLLM_DOCKER_ENABLED</code> - Enable Docker runtime (true/false)<br />
+- <code>LLAMACTL_VLLM_DOCKER_IMAGE</code> - Docker image to use<br />
+- <code>LLAMACTL_VLLM_DOCKER_ARGS</code> - Space-separated Docker arguments<br />
+- <code>LLAMACTL_VLLM_DOCKER_ENV</code> - Docker environment variables in format "KEY1=value1,KEY2=value2"<br />
+- <code>LLAMACTL_VLLM_RESPONSE_HEADERS</code> - Response headers in format "KEY1=value1;KEY2=value2"  </p>
+<p><strong>MLX Backend:</strong><br />
+- <code>LLAMACTL_MLX_COMMAND</code> - MLX executable command<br />
+- <code>LLAMACTL_MLX_ARGS</code> - Space-separated default arguments<br />
+- <code>LLAMACTL_MLX_ENV</code> - Environment variables in format "KEY1=value1,KEY2=value2"<br />
+- <code>LLAMACTL_MLX_RESPONSE_HEADERS</code> - Response headers in format "KEY1=value1;KEY2=value2"  </p>
 <h3 id="instance-configuration">Instance Configuration<a class="headerlink" href="#instance-configuration" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">instances</span><span class="p">:</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">port_range</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">8000</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">9000</span><span class="p p-Indicator">]</span><span class="w">                          </span><span class="c1"># Port range for instances (default: [8000, 9000])</span>
@@ -1029,8 +1029,8 @@
 - <code>LLAMACTL_LOGS_DIR</code> - Log directory path<br />
 - <code>LLAMACTL_AUTO_CREATE_DATA_DIR</code> - Auto-create data/config/logs directories (true/false)<br />
 - <code>LLAMACTL_MAX_INSTANCES</code> - Maximum number of instances<br />
-- <code>LLAMACTL_MAX_RUNNING_INSTANCES</code> - Maximum number of running instances
-- <code>LLAMACTL_ENABLE_LRU_EVICTION</code> - Enable LRU eviction for idle instances
+- <code>LLAMACTL_MAX_RUNNING_INSTANCES</code> - Maximum number of running instances<br />
+- <code>LLAMACTL_ENABLE_LRU_EVICTION</code> - Enable LRU eviction for idle instances<br />
 - <code>LLAMACTL_DEFAULT_AUTO_RESTART</code> - Default auto-restart setting (true/false)<br />
 - <code>LLAMACTL_DEFAULT_MAX_RESTARTS</code> - Default maximum restarts<br />
 - <code>LLAMACTL_DEFAULT_RESTART_DELAY</code> - Default restart delay in seconds<br />
@@ -1044,13 +1044,13 @@
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">require_management_auth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">          </span><span class="c1"># Require API key for management endpoints (default: true)</span>
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">management_keys</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span><span class="w">                    </span><span class="c1"># List of valid management API keys</span>
 </code></pre></div>
-<p><strong>Environment Variables:</strong>
-- <code>LLAMACTL_REQUIRE_INFERENCE_AUTH</code> - Require auth for OpenAI endpoints (true/false)
-- <code>LLAMACTL_INFERENCE_KEYS</code> - Comma-separated inference API keys
-- <code>LLAMACTL_REQUIRE_MANAGEMENT_AUTH</code> - Require auth for management endpoints (true/false)
-- <code>LLAMACTL_MANAGEMENT_KEYS</code> - Comma-separated management API keys</p>
+<p><strong>Environment Variables:</strong><br />
+- <code>LLAMACTL_REQUIRE_INFERENCE_AUTH</code> - Require auth for OpenAI endpoints (true/false)<br />
+- <code>LLAMACTL_INFERENCE_KEYS</code> - Comma-separated inference API keys<br />
+- <code>LLAMACTL_REQUIRE_MANAGEMENT_AUTH</code> - Require auth for management endpoints (true/false)<br />
+- <code>LLAMACTL_MANAGEMENT_KEYS</code> - Comma-separated management API keys  </p>
 <h3 id="remote-node-configuration">Remote Node Configuration<a class="headerlink" href="#remote-node-configuration" title="Permanent link">&para;</a></h3>
-<p>llamactl supports remote node deployments. Configure remote nodes to deploy instances on remote hosts and manage them centrally.</p>
+<p>llamactl supports remote node deployments. Configure remote nodes to deploy instances on remote hosts and manage them centrally.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">local_node</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="w">               </span><span class="c1"># Name of the local node (default: &quot;main&quot;)</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nt">nodes</span><span class="p">:</span><span class="w">                           </span><span class="c1"># Node configuration map</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">main</span><span class="p">:</span><span class="w">                          </span><span class="c1"># Local node (empty address means local)</span>
@@ -1060,13 +1060,13 @@
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="nt">address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://192.168.1.10:8080&quot;</span>
 <a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;worker1-api-key&quot;</span><span class="w">   </span><span class="c1"># Management API key for authentication</span>
 </code></pre></div>
-<p><strong>Node Configuration Fields:</strong>
-- <code>local_node</code>: Specifies which node in the <code>nodes</code> map represents the local node
-- <code>nodes</code>: Map of node configurations
-  - <code>address</code>: HTTP/HTTPS URL of the remote node (empty for local node)
-  - <code>api_key</code>: Management API key for authenticating with the remote node</p>
-<p><strong>Environment Variables:</strong>
-- <code>LLAMACTL_LOCAL_NODE</code> - Name of the local node</p>
+<p><strong>Node Configuration Fields:</strong><br />
+- <code>local_node</code>: Specifies which node in the <code>nodes</code> map represents the local node<br />
+- <code>nodes</code>: Map of node configurations<br />
+  - <code>address</code>: HTTP/HTTPS URL of the remote node (empty for local node)<br />
+  - <code>api_key</code>: Management API key for authenticating with the remote node  </p>
+<p><strong>Environment Variables:</strong><br />
+- <code>LLAMACTL_LOCAL_NODE</code> - Name of the local node  </p>
 
 
 

@@ -1228,63 +1228,63 @@
 
 
 <h1 id="managing-instances">Managing Instances<a class="headerlink" href="#managing-instances" title="Permanent link">&para;</a></h1>
-<p>Learn how to effectively manage your llama.cpp, MLX, and vLLM instances with Llamactl through both the Web UI and API.</p>
+<p>Learn how to effectively manage your llama.cpp, MLX, and vLLM instances with Llamactl through both the Web UI and API.  </p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>Llamactl provides two ways to manage instances:</p>
+<p>Llamactl provides two ways to manage instances:  </p>
 <ul>
-<li><strong>Web UI</strong>: Accessible at <code>http://localhost:8080</code> with an intuitive dashboard</li>
-<li><strong>REST API</strong>: Programmatic access for automation and integration</li>
+<li><strong>Web UI</strong>: Accessible at <code>http://localhost:8080</code> with an intuitive dashboard  </li>
+<li><strong>REST API</strong>: Programmatic access for automation and integration  </li>
 </ul>
-<p><img alt="Dashboard Screenshot" src="../../images/dashboard.png" /></p>
+<p><img alt="Dashboard Screenshot" src="../../images/dashboard.png" />  </p>
 <h3 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h3>
-<p>If authentication is enabled:
-1. Navigate to the web UI
-2. Enter your credentials
-3. Bearer token is stored for the session</p>
+<p>If authentication is enabled:<br />
+1. Navigate to the web UI<br />
+2. Enter your credentials<br />
+3. Bearer token is stored for the session  </p>
 <h3 id="theme-support">Theme Support<a class="headerlink" href="#theme-support" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Switch between light and dark themes</li>
-<li>Setting is remembered across sessions</li>
+<li>Switch between light and dark themes  </li>
+<li>Setting is remembered across sessions  </li>
 </ul>
 <h2 id="instance-cards">Instance Cards<a class="headerlink" href="#instance-cards" title="Permanent link">&para;</a></h2>
-<p>Each instance is displayed as a card showing:</p>
+<p>Each instance is displayed as a card showing:  </p>
 <ul>
-<li><strong>Instance name</strong></li>
-<li><strong>Health status badge</strong> (unknown, ready, error, failed)</li>
-<li><strong>Action buttons</strong> (start, stop, edit, logs, delete)</li>
+<li><strong>Instance name</strong>  </li>
+<li><strong>Health status badge</strong> (unknown, ready, error, failed)  </li>
+<li><strong>Action buttons</strong> (start, stop, edit, logs, delete)  </li>
 </ul>
 <h2 id="create-instance">Create Instance<a class="headerlink" href="#create-instance" title="Permanent link">&para;</a></h2>
 <h3 id="via-web-ui">Via Web UI<a class="headerlink" href="#via-web-ui" title="Permanent link">&para;</a></h3>
-<p><img alt="Create Instance Screenshot" src="../../images/create_instance.png" /></p>
+<p><img alt="Create Instance Screenshot" src="../../images/create_instance.png" />  </p>
 <ol>
-<li>Click the <strong>"Create Instance"</strong> button on the dashboard</li>
-<li>Enter a unique <strong>Name</strong> for your instance (only required field)</li>
-<li><strong>Select Target Node</strong>: Choose which node to deploy the instance to from the dropdown</li>
-<li><strong>Choose Backend Type</strong>:<ul>
-<li><strong>llama.cpp</strong>: For GGUF models using llama-server</li>
-<li><strong>MLX</strong>: For MLX-optimized models (macOS only)</li>
-<li><strong>vLLM</strong>: For distributed serving and high-throughput inference</li>
+<li>Click the <strong>"Create Instance"</strong> button on the dashboard  </li>
+<li>Enter a unique <strong>Name</strong> for your instance (only required field)  </li>
+<li><strong>Select Target Node</strong>: Choose which node to deploy the instance to from the dropdown  </li>
+<li><strong>Choose Backend Type</strong>:  <ul>
+<li><strong>llama.cpp</strong>: For GGUF models using llama-server  </li>
+<li><strong>MLX</strong>: For MLX-optimized models (macOS only)  </li>
+<li><strong>vLLM</strong>: For distributed serving and high-throughput inference  </li>
 </ul>
 </li>
-<li>Configure model source:<ul>
-<li><strong>For llama.cpp</strong>: GGUF model path or HuggingFace repo</li>
-<li><strong>For MLX</strong>: MLX model path or identifier (e.g., <code>mlx-community/Mistral-7B-Instruct-v0.3-4bit</code>)</li>
-<li><strong>For vLLM</strong>: HuggingFace model identifier (e.g., <code>microsoft/DialoGPT-medium</code>)</li>
+<li>Configure model source:  <ul>
+<li><strong>For llama.cpp</strong>: GGUF model path or HuggingFace repo  </li>
+<li><strong>For MLX</strong>: MLX model path or identifier (e.g., <code>mlx-community/Mistral-7B-Instruct-v0.3-4bit</code>)  </li>
+<li><strong>For vLLM</strong>: HuggingFace model identifier (e.g., <code>microsoft/DialoGPT-medium</code>)  </li>
 </ul>
 </li>
-<li>Configure optional instance management settings:<ul>
-<li><strong>Auto Restart</strong>: Automatically restart instance on failure</li>
-<li><strong>Max Restarts</strong>: Maximum number of restart attempts</li>
-<li><strong>Restart Delay</strong>: Delay in seconds between restart attempts</li>
-<li><strong>On Demand Start</strong>: Start instance when receiving a request to the OpenAI compatible endpoint</li>
-<li><strong>Idle Timeout</strong>: Minutes before stopping idle instance (set to 0 to disable)</li>
-<li><strong>Environment Variables</strong>: Set custom environment variables for the instance process</li>
+<li>Configure optional instance management settings:  <ul>
+<li><strong>Auto Restart</strong>: Automatically restart instance on failure  </li>
+<li><strong>Max Restarts</strong>: Maximum number of restart attempts  </li>
+<li><strong>Restart Delay</strong>: Delay in seconds between restart attempts  </li>
+<li><strong>On Demand Start</strong>: Start instance when receiving a request to the OpenAI compatible endpoint  </li>
+<li><strong>Idle Timeout</strong>: Minutes before stopping idle instance (set to 0 to disable)  </li>
+<li><strong>Environment Variables</strong>: Set custom environment variables for the instance process  </li>
 </ul>
 </li>
-<li>Configure backend-specific options:<ul>
-<li><strong>llama.cpp</strong>: Threads, context size, GPU layers, port, etc.</li>
-<li><strong>MLX</strong>: Temperature, top-p, adapter path, Python environment, etc.</li>
-<li><strong>vLLM</strong>: Tensor parallel size, GPU memory utilization, quantization, etc.</li>
+<li>Configure backend-specific options:  <ul>
+<li><strong>llama.cpp</strong>: Threads, context size, GPU layers, port, etc.  </li>
+<li><strong>MLX</strong>: Temperature, top-p, adapter path, Python environment, etc.  </li>
+<li><strong>vLLM</strong>: Tensor parallel size, GPU memory utilization, quantization, etc.  </li>
 </ul>
 </li>
 <li>Click <strong>"Create"</strong> to save the instance  </li>
@@ -1364,10 +1364,10 @@
 <h2 id="start-instance">Start Instance<a class="headerlink" href="#start-instance" title="Permanent link">&para;</a></h2>
 <h3 id="via-web-ui_1">Via Web UI<a class="headerlink" href="#via-web-ui_1" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Click the <strong>"Start"</strong> button on an instance card</li>
-<li>Watch the status change to "Unknown"</li>
-<li>Monitor progress in the logs</li>
-<li>Instance status changes to "Ready" when ready</li>
+<li>Click the <strong>"Start"</strong> button on an instance card  </li>
+<li>Watch the status change to "Unknown"  </li>
+<li>Monitor progress in the logs  </li>
+<li>Instance status changes to "Ready" when ready  </li>
 </ol>
 <h3 id="via-api_1">Via API<a class="headerlink" href="#via-api_1" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/instances/<span class="o">{</span>name<span class="o">}</span>/start
@@ -1375,8 +1375,8 @@
 <h2 id="stop-instance">Stop Instance<a class="headerlink" href="#stop-instance" title="Permanent link">&para;</a></h2>
 <h3 id="via-web-ui_2">Via Web UI<a class="headerlink" href="#via-web-ui_2" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Click the <strong>"Stop"</strong> button on an instance card</li>
-<li>Instance gracefully shuts down</li>
+<li>Click the <strong>"Stop"</strong> button on an instance card  </li>
+<li>Instance gracefully shuts down  </li>
 </ol>
 <h3 id="via-api_2">Via API<a class="headerlink" href="#via-api_2" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/instances/<span class="o">{</span>name<span class="o">}</span>/stop
@@ -1384,13 +1384,13 @@
 <h2 id="edit-instance">Edit Instance<a class="headerlink" href="#edit-instance" title="Permanent link">&para;</a></h2>
 <h3 id="via-web-ui_3">Via Web UI<a class="headerlink" href="#via-web-ui_3" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Click the <strong>"Edit"</strong> button on an instance card</li>
-<li>Modify settings in the configuration dialog</li>
-<li>Changes require instance restart to take effect</li>
-<li>Click <strong>"Update &amp; Restart"</strong> to apply changes</li>
+<li>Click the <strong>"Edit"</strong> button on an instance card  </li>
+<li>Modify settings in the configuration dialog  </li>
+<li>Changes require instance restart to take effect  </li>
+<li>Click <strong>"Update &amp; Restart"</strong> to apply changes  </li>
 </ol>
 <h3 id="via-api_3">Via API<a class="headerlink" href="#via-api_3" title="Permanent link">&para;</a></h3>
-<p>Modify instance settings:</p>
+<p>Modify instance settings:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>PUT<span class="w"> </span>http://localhost:8080/api/instances/<span class="o">{</span>name<span class="o">}</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
@@ -1402,45 +1402,45 @@
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Configuration changes require restarting the instance to take effect.</p>
+<p>Configuration changes require restarting the instance to take effect.  </p>
 </div>
 <h2 id="view-logs">View Logs<a class="headerlink" href="#view-logs" title="Permanent link">&para;</a></h2>
 <h3 id="via-web-ui_4">Via Web UI<a class="headerlink" href="#via-web-ui_4" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Click the <strong>"Logs"</strong> button on any instance card</li>
-<li>Real-time log viewer opens</li>
+<li>Click the <strong>"Logs"</strong> button on any instance card  </li>
+<li>Real-time log viewer opens  </li>
 </ol>
 <h3 id="via-api_4">Via API<a class="headerlink" href="#via-api_4" title="Permanent link">&para;</a></h3>
-<p>Check instance status in real-time:</p>
+<p>Check instance status in real-time:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Get instance details</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>curl<span class="w"> </span>http://localhost:8080/api/instances/<span class="o">{</span>name<span class="o">}</span>/logs
 </code></pre></div>
 <h2 id="delete-instance">Delete Instance<a class="headerlink" href="#delete-instance" title="Permanent link">&para;</a></h2>
 <h3 id="via-web-ui_5">Via Web UI<a class="headerlink" href="#via-web-ui_5" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Click the <strong>"Delete"</strong> button on an instance card</li>
-<li>Only stopped instances can be deleted</li>
-<li>Confirm deletion in the dialog</li>
+<li>Click the <strong>"Delete"</strong> button on an instance card  </li>
+<li>Only stopped instances can be deleted  </li>
+<li>Confirm deletion in the dialog  </li>
 </ol>
 <h3 id="via-api_5">Via API<a class="headerlink" href="#via-api_5" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>http://localhost:8080/api/instances/<span class="o">{</span>name<span class="o">}</span>
 </code></pre></div>
 <h2 id="instance-proxy">Instance Proxy<a class="headerlink" href="#instance-proxy" title="Permanent link">&para;</a></h2>
-<p>Llamactl proxies all requests to the underlying backend instances (llama-server, MLX, or vLLM).</p>
+<p>Llamactl proxies all requests to the underlying backend instances (llama-server, MLX, or vLLM).  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Get instance details</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>curl<span class="w"> </span>http://localhost:8080/api/instances/<span class="o">{</span>name<span class="o">}</span>/proxy/
 </code></pre></div>
-<p>All backends provide OpenAI-compatible endpoints. Check the respective documentation:
-- <a href="https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md">llama-server docs</a>
-- <a href="https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md">MLX-LM docs</a>
-- <a href="https://docs.vllm.ai/en/latest/">vLLM docs</a></p>
+<p>All backends provide OpenAI-compatible endpoints. Check the respective documentation:<br />
+- <a href="https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md">llama-server docs</a><br />
+- <a href="https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md">MLX-LM docs</a><br />
+- <a href="https://docs.vllm.ai/en/latest/">vLLM docs</a>  </p>
 <h3 id="instance-health">Instance Health<a class="headerlink" href="#instance-health" title="Permanent link">&para;</a></h3>
 <h4 id="via-web-ui_6">Via Web UI<a class="headerlink" href="#via-web-ui_6" title="Permanent link">&para;</a></h4>
 <ol>
-<li>The health status badge is displayed on each instance card</li>
+<li>The health status badge is displayed on each instance card  </li>
 </ol>
 <h4 id="via-api_6">Via API<a class="headerlink" href="#via-api_6" title="Permanent link">&para;</a></h4>
-<p>Check the health status of your instances:</p>
+<p>Check the health status of your instances:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>http://localhost:8080/api/instances/<span class="o">{</span>name<span class="o">}</span>/proxy/health
 </code></pre></div>
 

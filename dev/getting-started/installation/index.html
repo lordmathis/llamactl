@@ -886,20 +886,20 @@
 
 
 <h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
-<p>This guide will walk you through installing Llamactl on your system.</p>
+<p>This guide will walk you through installing Llamactl on your system.  </p>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
 <h3 id="backend-dependencies">Backend Dependencies<a class="headerlink" href="#backend-dependencies" title="Permanent link">&para;</a></h3>
-<p>llamactl supports multiple backends. Install at least one:</p>
-<p><strong>For llama.cpp backend (all platforms):</strong></p>
-<p>You need <code>llama-server</code> from <a href="https://github.com/ggml-org/llama.cpp">llama.cpp</a> installed:</p>
+<p>llamactl supports multiple backends. Install at least one:  </p>
+<p><strong>For llama.cpp backend (all platforms):</strong>  </p>
+<p>You need <code>llama-server</code> from <a href="https://github.com/ggml-org/llama.cpp">llama.cpp</a> installed:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Homebrew (macOS/Linux)</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>brew<span class="w"> </span>install<span class="w"> </span>llama.cpp
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Winget (Windows)</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>winget<span class="w"> </span>install<span class="w"> </span>llama.cpp
 </code></pre></div>
-<p>Or build from source - see llama.cpp docs</p>
-<p><strong>For MLX backend (macOS only):</strong></p>
-<p>MLX provides optimized inference on Apple Silicon. Install MLX-LM:</p>
+<p>Or build from source - see llama.cpp docs  </p>
+<p><strong>For MLX backend (macOS only):</strong>  </p>
+<p>MLX provides optimized inference on Apple Silicon. Install MLX-LM:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Install via pip (requires Python 3.8+)</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pip<span class="w"> </span>install<span class="w"> </span>mlx-lm
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
@@ -908,9 +908,9 @@
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nb">source</span><span class="w"> </span>mlx-env/bin/activate
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>pip<span class="w"> </span>install<span class="w"> </span>mlx-lm
 </code></pre></div>
-<p>Note: MLX backend is only available on macOS with Apple Silicon (M1, M2, M3, etc.)</p>
-<p><strong>For vLLM backend:</strong></p>
-<p>vLLM provides high-throughput distributed serving for LLMs. Install vLLM:</p>
+<p>Note: MLX backend is only available on macOS with Apple Silicon (M1, M2, M3, etc.)  </p>
+<p><strong>For vLLM backend:</strong>  </p>
+<p>vLLM provides high-throughput distributed serving for LLMs. Install vLLM:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Install via pip (requires Python 3.8+, GPU required)</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pip<span class="w"> </span>install<span class="w"> </span>vllm
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
@@ -923,7 +923,7 @@
 </code></pre></div>
 <h2 id="installation-methods">Installation Methods<a class="headerlink" href="#installation-methods" title="Permanent link">&para;</a></h2>
 <h3 id="option-1-download-binary-recommended">Option 1: Download Binary (Recommended)<a class="headerlink" href="#option-1-download-binary-recommended" title="Permanent link">&para;</a></h3>
-<p>Download the latest release from the <a href="https://github.com/lordmathis/llamactl/releases">GitHub releases page</a>:</p>
+<p>Download the latest release from the <a href="https://github.com/lordmathis/llamactl/releases">GitHub releases page</a>:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Linux/macOS - Get latest version and download</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">LATEST_VERSION</span><span class="o">=</span><span class="k">$(</span>curl<span class="w"> </span>-s<span class="w"> </span>https://api.github.com/repos/lordmathis/llamactl/releases/latest<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39;&quot;tag_name&quot;:&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sed<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;s/.*&quot;([^&quot;]+)&quot;.*/\1/&#39;</span><span class="k">)</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>curl<span class="w"> </span>-L<span class="w"> </span>https://github.com/lordmathis/llamactl/releases/download/<span class="si">${</span><span class="nv">LATEST_VERSION</span><span class="si">}</span>/llamactl-<span class="si">${</span><span class="nv">LATEST_VERSION</span><span class="si">}</span>-<span class="k">$(</span>uname<span class="w"> </span>-s<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39;[:upper:]&#39;</span><span class="w"> </span><span class="s1">&#39;[:lower:]&#39;</span><span class="k">)</span>-<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span>.tar.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>tar<span class="w"> </span>-xz
@@ -935,12 +935,12 @@
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Windows - Download from releases page</span>
 </code></pre></div>
 <h3 id="option-2-docker">Option 2: Docker<a class="headerlink" href="#option-2-docker" title="Permanent link">&para;</a></h3>
-<p>llamactl provides Dockerfiles for creating Docker images with backends pre-installed. The resulting images include the latest llamactl release with the respective backend.</p>
-<p><strong>Available Dockerfiles (CUDA):</strong>
-- <strong>llamactl with llama.cpp CUDA</strong>: <code>docker/Dockerfile.llamacpp</code> (based on <code>ghcr.io/ggml-org/llama.cpp:server-cuda</code>)
-- <strong>llamactl with vLLM CUDA</strong>: <code>docker/Dockerfile.vllm</code> (based on <code>vllm/vllm-openai:latest</code>)
-- <strong>llamactl built from source</strong>: <code>docker/Dockerfile.source</code> (multi-stage build with webui)</p>
-<p><strong>Note:</strong> These Dockerfiles are configured for CUDA. For other platforms (CPU, ROCm, Vulkan, etc.), adapt the base image. For llama.cpp, see available tags at <a href="https://github.com/ggml-org/llama.cpp/blob/master/docs/docker.md">llama.cpp Docker docs</a>. For vLLM, check <a href="https://docs.vllm.ai/en/v0.6.5/serving/deploying_with_docker.html">vLLM docs</a>.</p>
+<p>llamactl provides Dockerfiles for creating Docker images with backends pre-installed. The resulting images include the latest llamactl release with the respective backend.  </p>
+<p><strong>Available Dockerfiles (CUDA):</strong><br />
+- <strong>llamactl with llama.cpp CUDA</strong>: <code>docker/Dockerfile.llamacpp</code> (based on <code>ghcr.io/ggml-org/llama.cpp:server-cuda</code>)<br />
+- <strong>llamactl with vLLM CUDA</strong>: <code>docker/Dockerfile.vllm</code> (based on <code>vllm/vllm-openai:latest</code>)<br />
+- <strong>llamactl built from source</strong>: <code>docker/Dockerfile.source</code> (multi-stage build with webui)  </p>
+<p><strong>Note:</strong> These Dockerfiles are configured for CUDA. For other platforms (CPU, ROCm, Vulkan, etc.), adapt the base image. For llama.cpp, see available tags at <a href="https://github.com/ggml-org/llama.cpp/blob/master/docs/docker.md">llama.cpp Docker docs</a>. For vLLM, check <a href="https://docs.vllm.ai/en/v0.6.5/serving/deploying_with_docker.html">vLLM docs</a>.  </p>
 <h4 id="using-docker-compose">Using Docker Compose<a class="headerlink" href="#using-docker-compose" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Clone the repository</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/lordmathis/llamactl.git
@@ -955,11 +955,11 @@
 <a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># Or start llamactl with vLLM backend</span>
 <a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>docker-compose<span class="w"> </span>-f<span class="w"> </span>docker/docker-compose.yml<span class="w"> </span>up<span class="w"> </span>llamactl-vllm<span class="w"> </span>-d
 </code></pre></div>
-<p>Access the dashboard at:
-- llamactl with llama.cpp: http://localhost:8080
-- llamactl with vLLM: http://localhost:8081</p>
+<p>Access the dashboard at:<br />
+- llamactl with llama.cpp: http://localhost:8080<br />
+- llamactl with vLLM: http://localhost:8081  </p>
 <h4 id="using-docker-build-and-run">Using Docker Build and Run<a class="headerlink" href="#using-docker-build-and-run" title="Permanent link">&para;</a></h4>
-<p><strong>llamactl with llama.cpp CUDA:</strong>
+<p><strong>llamactl with llama.cpp CUDA:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>docker/Dockerfile.llamacpp<span class="w"> </span>-t<span class="w"> </span>llamactl:llamacpp-cuda<span class="w"> </span>.
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>--name<span class="w"> </span>llamactl-llamacpp<span class="w"> </span><span class="se">\</span>
@@ -968,7 +968,7 @@
 <a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span>-v<span class="w"> </span>~/.cache/llama.cpp:/root/.cache/llama.cpp<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span>llamactl:llamacpp-cuda
 </code></pre></div></p>
-<p><strong>llamactl with vLLM CUDA:</strong>
+<p><strong>llamactl with vLLM CUDA:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>docker/Dockerfile.vllm<span class="w"> </span>-t<span class="w"> </span>llamactl:vllm-cuda<span class="w"> </span>.
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>--name<span class="w"> </span>llamactl-vllm<span class="w"> </span><span class="se">\</span>
@@ -977,7 +977,7 @@
 <a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span>-v<span class="w"> </span>~/.cache/huggingface:/root/.cache/huggingface<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span>llamactl:vllm-cuda
 </code></pre></div></p>
-<p><strong>llamactl built from source:</strong>
+<p><strong>llamactl built from source:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>docker/Dockerfile.source<span class="w"> </span>-t<span class="w"> </span>llamactl:source<span class="w"> </span>.
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>--name<span class="w"> </span>llamactl<span class="w"> </span><span class="se">\</span>
@@ -985,11 +985,11 @@
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span>llamactl:source
 </code></pre></div></p>
 <h3 id="option-3-build-from-source">Option 3: Build from Source<a class="headerlink" href="#option-3-build-from-source" title="Permanent link">&para;</a></h3>
-<p>Requirements:
-- Go 1.24 or later
-- Node.js 22 or later
-- Git</p>
-<p>If you prefer to build from source:</p>
+<p>Requirements:<br />
+- Go 1.24 or later<br />
+- Node.js 22 or later<br />
+- Git  </p>
+<p>If you prefer to build from source:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Clone the repository</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/lordmathis/llamactl.git
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nb">cd</span><span class="w"> </span>llamactl
@@ -1001,16 +1001,16 @@
 <a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>go<span class="w"> </span>build<span class="w"> </span>-o<span class="w"> </span>llamactl<span class="w"> </span>./cmd/server
 </code></pre></div>
 <h2 id="remote-node-installation">Remote Node Installation<a class="headerlink" href="#remote-node-installation" title="Permanent link">&para;</a></h2>
-<p>For deployments with remote nodes:
-- Install llamactl on each node using any of the methods above
-- Configure API keys for authentication between nodes</p>
+<p>For deployments with remote nodes:<br />
+- Install llamactl on each node using any of the methods above<br />
+- Configure API keys for authentication between nodes  </p>
 <h2 id="verification">Verification<a class="headerlink" href="#verification" title="Permanent link">&para;</a></h2>
-<p>Verify your installation by checking the version:</p>
+<p>Verify your installation by checking the version:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>llamactl<span class="w"> </span>--version
 </code></pre></div>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
-<p>Now that Llamactl is installed, continue to the <a href="../quick-start/">Quick Start</a> guide to get your first instance running!</p>
-<p>For remote node deployments, see the <a href="../configuration/">Configuration Guide</a> for node setup instructions.</p>
+<p>Now that Llamactl is installed, continue to the <a href="../quick-start/">Quick Start</a> guide to get your first instance running!  </p>
+<p>For remote node deployments, see the <a href="../configuration/">Configuration Guide</a> for node setup instructions.  </p>
 
 
 

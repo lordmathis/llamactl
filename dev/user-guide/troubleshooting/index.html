@@ -998,12 +998,12 @@
 
 
 <h1 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h1>
-<p>Issues specific to Llamactl deployment and operation.</p>
+<p>Issues specific to Llamactl deployment and operation.  </p>
 <h2 id="configuration-issues">Configuration Issues<a class="headerlink" href="#configuration-issues" title="Permanent link">&para;</a></h2>
 <h3 id="invalid-configuration">Invalid Configuration<a class="headerlink" href="#invalid-configuration" title="Permanent link">&para;</a></h3>
-<p><strong>Problem:</strong> Invalid configuration preventing startup</p>
-<p><strong>Solutions:</strong>
-1. Use minimal configuration:
+<p><strong>Problem:</strong> Invalid configuration preventing startup  </p>
+<p><strong>Solutions:</strong><br />
+1. Use minimal configuration:<br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">server</span><span class="p">:</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.0.0.0&quot;</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span>
@@ -1011,23 +1011,23 @@
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">port_range</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">8000</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">9000</span><span class="p p-Indicator">]</span>
 </code></pre></div></p>
 <ol>
-<li>Check data directory permissions:
+<li>Check data directory permissions:<br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Ensure data directory is writable (default: ~/.local/share/llamactl)</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>~/.local/share/llamactl/<span class="o">{</span>instances,logs<span class="o">}</span>
 </code></pre></div></li>
 </ol>
 <h2 id="instance-management-issues">Instance Management Issues<a class="headerlink" href="#instance-management-issues" title="Permanent link">&para;</a></h2>
 <h3 id="model-loading-failures">Model Loading Failures<a class="headerlink" href="#model-loading-failures" title="Permanent link">&para;</a></h3>
-<p><strong>Problem:</strong> Instance fails to start with model loading errors</p>
+<p><strong>Problem:</strong> Instance fails to start with model loading errors  </p>
 <p><strong>Common Solutions:</strong><br />
 - <strong>llama-server not found:</strong> Ensure <code>llama-server</code> binary is in PATH<br />
 - <strong>Wrong model format:</strong> Ensure model is in GGUF format<br />
 - <strong>Insufficient memory:</strong> Use smaller model or reduce context size<br />
 - <strong>Path issues:</strong> Use absolute paths to model files  </p>
 <h3 id="memory-issues">Memory Issues<a class="headerlink" href="#memory-issues" title="Permanent link">&para;</a></h3>
-<p><strong>Problem:</strong> Out of memory errors or system becomes unresponsive</p>
-<p><strong>Solutions:</strong>
-1. <strong>Reduce context size:</strong>
+<p><strong>Problem:</strong> Out of memory errors or system becomes unresponsive  </p>
+<p><strong>Solutions:</strong><br />
+1. <strong>Reduce context size:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;n_ctx&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1024</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">}</span>
@@ -1038,16 +1038,16 @@
 <li>Use smaller model variants (7B instead of 13B)  </li>
 </ol>
 <h3 id="gpu-configuration">GPU Configuration<a class="headerlink" href="#gpu-configuration" title="Permanent link">&para;</a></h3>
-<p><strong>Problem:</strong> GPU not being used effectively</p>
-<p><strong>Solutions:</strong>
-1. <strong>Configure GPU layers:</strong>
+<p><strong>Problem:</strong> GPU not being used effectively  </p>
+<p><strong>Solutions:</strong><br />
+1. <strong>Configure GPU layers:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;n_gpu_layers&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">35</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="advanced-instance-issues">Advanced Instance Issues<a class="headerlink" href="#advanced-instance-issues" title="Permanent link">&para;</a></h3>
-<p><strong>Problem:</strong> Complex model loading, performance, or compatibility issues</p>
-<p>Since llamactl uses <code>llama-server</code> under the hood, many instance-related issues are actually llama.cpp issues. For advanced troubleshooting:</p>
+<p><strong>Problem:</strong> Complex model loading, performance, or compatibility issues  </p>
+<p>Since llamactl uses <code>llama-server</code> under the hood, many instance-related issues are actually llama.cpp issues. For advanced troubleshooting:  </p>
 <p><strong>Resources:</strong><br />
 - <strong>llama.cpp Documentation:</strong> <a href="https://github.com/ggml/llama.cpp">https://github.com/ggml/llama.cpp</a><br />
 - <strong>llama.cpp Issues:</strong> <a href="https://github.com/ggml/llama.cpp/issues">https://github.com/ggml/llama.cpp/issues</a><br />
@@ -1056,28 +1056,28 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Test your model and parameters directly with llama-server</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>llama-server<span class="w"> </span>--model<span class="w"> </span>/path/to/model.gguf<span class="w"> </span>--port<span class="w"> </span><span class="m">8081</span><span class="w"> </span>--n-gpu-layers<span class="w"> </span><span class="m">35</span>
 </code></pre></div></p>
-<p>This helps determine if the issue is with llamactl or with the underlying llama.cpp/llama-server.</p>
+<p>This helps determine if the issue is with llamactl or with the underlying llama.cpp/llama-server.  </p>
 <h2 id="api-and-network-issues">API and Network Issues<a class="headerlink" href="#api-and-network-issues" title="Permanent link">&para;</a></h2>
 <h3 id="cors-errors">CORS Errors<a class="headerlink" href="#cors-errors" title="Permanent link">&para;</a></h3>
-<p><strong>Problem:</strong> Web UI shows CORS errors in browser console</p>
-<p><strong>Solutions:</strong>
-1. <strong>Configure allowed origins:</strong>
+<p><strong>Problem:</strong> Web UI shows CORS errors in browser console  </p>
+<p><strong>Solutions:</strong><br />
+1. <strong>Configure allowed origins:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">server</span><span class="p">:</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">allowed_origins</span><span class="p">:</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;http://localhost:3000&quot;</span>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;https://yourdomain.com&quot;</span>
 </code></pre></div></p>
 <h2 id="authentication-issues">Authentication Issues<a class="headerlink" href="#authentication-issues" title="Permanent link">&para;</a></h2>
-<p><strong>Problem:</strong> API requests failing with authentication errors</p>
-<p><strong>Solutions:</strong>
-1. <strong>Disable authentication temporarily:</strong>
+<p><strong>Problem:</strong> API requests failing with authentication errors  </p>
+<p><strong>Solutions:</strong><br />
+1. <strong>Disable authentication temporarily:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">auth</span><span class="p">:</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">require_management_auth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">require_inference_auth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 </code></pre></div></p>
 <ol>
 <li>
-<p><strong>Configure API keys:</strong>
+<p><strong>Configure API keys:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">auth</span><span class="p">:</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">management_keys</span><span class="p">:</span>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;your-management-key&quot;</span>
@@ -1086,7 +1086,7 @@
 </code></pre></div></p>
 </li>
 <li>
-<p><strong>Use correct Authorization header:</strong>
+<p><strong>Use correct Authorization header:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer your-api-key&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>http://localhost:8080/api/v1/instances
 </code></pre></div></p>
@@ -1094,9 +1094,9 @@
 </ol>
 <h2 id="remote-node-issues">Remote Node Issues<a class="headerlink" href="#remote-node-issues" title="Permanent link">&para;</a></h2>
 <h3 id="node-configuration">Node Configuration<a class="headerlink" href="#node-configuration" title="Permanent link">&para;</a></h3>
-<p><strong>Problem:</strong> Remote instances not appearing or cannot be managed</p>
-<p><strong>Solutions:</strong>
-1. <strong>Verify node configuration:</strong>
+<p><strong>Problem:</strong> Remote instances not appearing or cannot be managed  </p>
+<p><strong>Solutions:</strong><br />
+1. <strong>Verify node configuration:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">local_node</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="w">  </span><span class="c1"># Must match a key in nodes map</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nt">nodes</span><span class="p">:</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">main</span><span class="p">:</span>
@@ -1106,7 +1106,7 @@
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secure-key&quot;</span><span class="w">  </span><span class="c1"># Must match worker1&#39;s management key</span>
 </code></pre></div></p>
 <ol>
-<li><strong>Test remote node connectivity:</strong>
+<li><strong>Test remote node connectivity:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer remote-node-key&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>http://remote-node:8080/api/v1/instances
 </code></pre></div></li>
@@ -1124,21 +1124,21 @@
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>llamactl
 </code></pre></div>
 <h2 id="getting-help">Getting Help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h2>
-<p>When reporting issues, include:</p>
+<p>When reporting issues, include:  </p>
 <ol>
 <li>
-<p><strong>System information:</strong>
+<p><strong>System information:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>llamactl<span class="w"> </span>--version
 </code></pre></div></p>
 </li>
 <li>
-<p><strong>Configuration file</strong> (remove sensitive keys)</p>
+<p><strong>Configuration file</strong> (remove sensitive keys)  </p>
 </li>
 <li>
-<p><strong>Relevant log output</strong></p>
+<p><strong>Relevant log output</strong>  </p>
 </li>
 <li>
-<p><strong>Steps to reproduce the issue</strong></p>
+<p><strong>Steps to reproduce the issue</strong>  </p>
 </li>
 </ol>
 

@@ -1396,50 +1396,50 @@
 
 
 <h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
-<p>Complete reference for the Llamactl REST API.</p>
+<p>Complete reference for the Llamactl REST API.  </p>
 <h2 id="base-url">Base URL<a class="headerlink" href="#base-url" title="Permanent link">&para;</a></h2>
-<p>All API endpoints are relative to the base URL:</p>
+<p>All API endpoints are relative to the base URL:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>http://localhost:8080/api/v1
 </code></pre></div>
 <h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h2>
-<p>Llamactl supports API key authentication. If authentication is enabled, include the API key in the Authorization header:</p>
+<p>Llamactl supports API key authentication. If authentication is enabled, include the API key in the Authorization header:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;your-api-key&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>http://localhost:8080/api/v1/instances
 </code></pre></div>
-<p>The server supports two types of API keys:
-- <strong>Management API Keys</strong>: Required for instance management operations (CRUD operations on instances)
-- <strong>Inference API Keys</strong>: Required for OpenAI-compatible inference endpoints</p>
+<p>The server supports two types of API keys:<br />
+- <strong>Management API Keys</strong>: Required for instance management operations (CRUD operations on instances)<br />
+- <strong>Inference API Keys</strong>: Required for OpenAI-compatible inference endpoints  </p>
 <h2 id="system-endpoints">System Endpoints<a class="headerlink" href="#system-endpoints" title="Permanent link">&para;</a></h2>
 <h3 id="get-llamactl-version">Get Llamactl Version<a class="headerlink" href="#get-llamactl-version" title="Permanent link">&para;</a></h3>
-<p>Get the version information of the llamactl server.</p>
+<p>Get the version information of the llamactl server.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="err">GET /api/v1/version</span>
 </code></pre></div>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Version: 1.0.0
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Commit: abc123
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Build Time: 2024-01-15T10:00:00Z
 </code></pre></div></p>
 <h3 id="get-llama-server-help">Get Llama Server Help<a class="headerlink" href="#get-llama-server-help" title="Permanent link">&para;</a></h3>
-<p>Get help text for the llama-server command.</p>
+<p>Get help text for the llama-server command.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="err">GET /api/v1/server/help</span>
 </code></pre></div>
-<p><strong>Response:</strong> Plain text help output from <code>llama-server --help</code></p>
+<p><strong>Response:</strong> Plain text help output from <code>llama-server --help</code>  </p>
 <h3 id="get-llama-server-version">Get Llama Server Version<a class="headerlink" href="#get-llama-server-version" title="Permanent link">&para;</a></h3>
-<p>Get version information of the llama-server binary.</p>
+<p>Get version information of the llama-server binary.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="err">GET /api/v1/server/version</span>
 </code></pre></div>
-<p><strong>Response:</strong> Plain text version output from <code>llama-server --version</code></p>
+<p><strong>Response:</strong> Plain text version output from <code>llama-server --version</code>  </p>
 <h3 id="list-available-devices">List Available Devices<a class="headerlink" href="#list-available-devices" title="Permanent link">&para;</a></h3>
-<p>List available devices for llama-server.</p>
+<p>List available devices for llama-server.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="err">GET /api/v1/server/devices</span>
 </code></pre></div>
-<p><strong>Response:</strong> Plain text device list from <code>llama-server --list-devices</code></p>
+<p><strong>Response:</strong> Plain text device list from <code>llama-server --list-devices</code>  </p>
 <h2 id="instances">Instances<a class="headerlink" href="#instances" title="Permanent link">&para;</a></h2>
 <h3 id="list-all-instances">List All Instances<a class="headerlink" href="#list-all-instances" title="Permanent link">&para;</a></h3>
-<p>Get a list of all instances.</p>
+<p>Get a list of all instances.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="err">GET /api/v1/instances</span>
 </code></pre></div>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">[</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="p">{</span>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama2-7b&quot;</span><span class="p">,</span>
@@ -1449,10 +1449,10 @@
 <a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">]</span>
 </code></pre></div></p>
 <h3 id="get-instance-details">Get Instance Details<a class="headerlink" href="#get-instance-details" title="Permanent link">&para;</a></h3>
-<p>Get detailed information about a specific instance.</p>
+<p>Get detailed information about a specific instance.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="err">GET /api/v1/instances/{name}</span>
 </code></pre></div>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama2-7b&quot;</span><span class="p">,</span>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;running&quot;</span><span class="p">,</span>
@@ -1460,23 +1460,23 @@
 <a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="create-instance">Create Instance<a class="headerlink" href="#create-instance" title="Permanent link">&para;</a></h3>
-<p>Create and start a new instance.</p>
+<p>Create and start a new instance.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="err">POST /api/v1/instances/{name}</span>
 </code></pre></div>
-<p><strong>Request Body:</strong> JSON object with instance configuration. Common fields include:</p>
+<p><strong>Request Body:</strong> JSON object with instance configuration. Common fields include:  </p>
 <ul>
-<li><code>backend_type</code>: Backend type (<code>llama_cpp</code>, <code>mlx_lm</code>, or <code>vllm</code>)</li>
-<li><code>backend_options</code>: Backend-specific configuration</li>
-<li><code>auto_restart</code>: Enable automatic restart on failure</li>
-<li><code>max_restarts</code>: Maximum restart attempts</li>
-<li><code>restart_delay</code>: Delay between restarts in seconds</li>
-<li><code>on_demand_start</code>: Start instance when receiving requests</li>
-<li><code>idle_timeout</code>: Idle timeout in minutes</li>
-<li><code>environment</code>: Environment variables as key-value pairs</li>
-<li><code>nodes</code>: Array with single node name to deploy the instance to (for remote deployments)</li>
+<li><code>backend_type</code>: Backend type (<code>llama_cpp</code>, <code>mlx_lm</code>, or <code>vllm</code>)  </li>
+<li><code>backend_options</code>: Backend-specific configuration  </li>
+<li><code>auto_restart</code>: Enable automatic restart on failure  </li>
+<li><code>max_restarts</code>: Maximum restart attempts  </li>
+<li><code>restart_delay</code>: Delay between restarts in seconds  </li>
+<li><code>on_demand_start</code>: Start instance when receiving requests  </li>
+<li><code>idle_timeout</code>: Idle timeout in minutes  </li>
+<li><code>environment</code>: Environment variables as key-value pairs  </li>
+<li><code>nodes</code>: Array with single node name to deploy the instance to (for remote deployments)  </li>
 </ul>
-<p>See <a href="../managing-instances/">Managing Instances</a> for complete configuration options.</p>
-<p><strong>Response:</strong>
+<p>See <a href="../managing-instances/">Managing Instances</a> for complete configuration options.  </p>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span>
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama2-7b&quot;</span><span class="p">,</span>
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;running&quot;</span><span class="p">,</span>
@@ -1484,11 +1484,11 @@
 <a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="update-instance">Update Instance<a class="headerlink" href="#update-instance" title="Permanent link">&para;</a></h3>
-<p>Update an existing instance configuration. See <a href="../managing-instances/">Managing Instances</a> for available configuration options.</p>
+<p>Update an existing instance configuration. See <a href="../managing-instances/">Managing Instances</a> for available configuration options.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="err">PUT /api/v1/instances/{name}</span>
 </code></pre></div>
-<p><strong>Request Body:</strong> JSON object with configuration fields to update.</p>
-<p><strong>Response:</strong>
+<p><strong>Request Body:</strong> JSON object with configuration fields to update.  </p>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">{</span>
 <a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama2-7b&quot;</span><span class="p">,</span>
 <a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;running&quot;</span><span class="p">,</span>
@@ -1496,30 +1496,30 @@
 <a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="delete-instance">Delete Instance<a class="headerlink" href="#delete-instance" title="Permanent link">&para;</a></h3>
-<p>Stop and remove an instance.</p>
+<p>Stop and remove an instance.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="err">DELETE /api/v1/instances/{name}</span>
 </code></pre></div>
-<p><strong>Response:</strong> <code>204 No Content</code></p>
+<p><strong>Response:</strong> <code>204 No Content</code>  </p>
 <h2 id="instance-operations">Instance Operations<a class="headerlink" href="#instance-operations" title="Permanent link">&para;</a></h2>
 <h3 id="start-instance">Start Instance<a class="headerlink" href="#start-instance" title="Permanent link">&para;</a></h3>
-<p>Start a stopped instance.</p>
+<p>Start a stopped instance.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="err">POST /api/v1/instances/{name}/start</span>
 </code></pre></div>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="p">{</span>
 <a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama2-7b&quot;</span><span class="p">,</span>
 <a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;running&quot;</span><span class="p">,</span>
 <a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">  </span><span class="nt">&quot;created&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1705312200</span>
 <a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Error Responses:</strong>
-- <code>409 Conflict</code>: Maximum number of running instances reached
-- <code>500 Internal Server Error</code>: Failed to start instance</p>
+<p><strong>Error Responses:</strong><br />
+- <code>409 Conflict</code>: Maximum number of running instances reached<br />
+- <code>500 Internal Server Error</code>: Failed to start instance  </p>
 <h3 id="stop-instance">Stop Instance<a class="headerlink" href="#stop-instance" title="Permanent link">&para;</a></h3>
-<p>Stop a running instance.</p>
+<p>Stop a running instance.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="err">POST /api/v1/instances/{name}/stop</span>
 </code></pre></div>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="p">{</span>
 <a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama2-7b&quot;</span><span class="p">,</span>
 <a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;stopped&quot;</span><span class="p">,</span>
@@ -1527,10 +1527,10 @@
 <a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="restart-instance">Restart Instance<a class="headerlink" href="#restart-instance" title="Permanent link">&para;</a></h3>
-<p>Restart an instance (stop then start).</p>
+<p>Restart an instance (stop then start).  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="err">POST /api/v1/instances/{name}/restart</span>
 </code></pre></div>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="p">{</span>
 <a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama2-7b&quot;</span><span class="p">,</span>
 <a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;running&quot;</span><span class="p">,</span>
@@ -1538,35 +1538,35 @@
 <a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="get-instance-logs">Get Instance Logs<a class="headerlink" href="#get-instance-logs" title="Permanent link">&para;</a></h3>
-<p>Retrieve instance logs.</p>
+<p>Retrieve instance logs.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="err">GET /api/v1/instances/{name}/logs</span>
 </code></pre></div>
-<p><strong>Query Parameters:</strong>
-- <code>lines</code>: Number of lines to return (default: all lines, use -1 for all)</p>
-<p><strong>Response:</strong> Plain text log output</p>
-<p><strong>Example:</strong>
+<p><strong>Query Parameters:</strong><br />
+- <code>lines</code>: Number of lines to return (default: all lines, use -1 for all)  </p>
+<p><strong>Response:</strong> Plain text log output  </p>
+<p><strong>Example:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:8080/api/v1/instances/my-instance/logs?lines=100&quot;</span>
 </code></pre></div></p>
 <h3 id="proxy-to-instance">Proxy to Instance<a class="headerlink" href="#proxy-to-instance" title="Permanent link">&para;</a></h3>
-<p>Proxy HTTP requests directly to the llama-server instance.</p>
+<p>Proxy HTTP requests directly to the llama-server instance.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="err">GET /api/v1/instances/{name}/proxy/*</span>
 <a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="err">POST /api/v1/instances/{name}/proxy/*</span>
 </code></pre></div>
-<p>This endpoint forwards all requests to the underlying llama-server instance running on its configured port. The proxy strips the <code>/api/v1/instances/{name}/proxy</code> prefix and forwards the remaining path to the instance.</p>
-<p><strong>Example - Check Instance Health:</strong>
+<p>This endpoint forwards all requests to the underlying llama-server instance running on its configured port. The proxy strips the <code>/api/v1/instances/{name}/proxy</code> prefix and forwards the remaining path to the instance.  </p>
+<p><strong>Example - Check Instance Health:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer your-api-key&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="w">  </span>http://localhost:8080/api/v1/instances/my-model/proxy/health
 </code></pre></div></p>
-<p>This forwards the request to <code>http://instance-host:instance-port/health</code> on the actual llama-server instance.</p>
-<p><strong>Error Responses:</strong>
-- <code>503 Service Unavailable</code>: Instance is not running</p>
+<p>This forwards the request to <code>http://instance-host:instance-port/health</code> on the actual llama-server instance.  </p>
+<p><strong>Error Responses:</strong><br />
+- <code>503 Service Unavailable</code>: Instance is not running  </p>
 <h2 id="openai-compatible-api">OpenAI-Compatible API<a class="headerlink" href="#openai-compatible-api" title="Permanent link">&para;</a></h2>
-<p>Llamactl provides OpenAI-compatible endpoints for inference operations.</p>
+<p>Llamactl provides OpenAI-compatible endpoints for inference operations.  </p>
 <h3 id="list-models">List Models<a class="headerlink" href="#list-models" title="Permanent link">&para;</a></h3>
-<p>List all instances in OpenAI-compatible format.</p>
+<p>List all instances in OpenAI-compatible format.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="err">GET /v1/models</span>
 </code></pre></div>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="p">{</span>
 <a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="w">  </span><span class="nt">&quot;object&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;list&quot;</span><span class="p">,</span>
 <a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -1580,15 +1580,15 @@
 <a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="chat-completions-completions-embeddings">Chat Completions, Completions, Embeddings<a class="headerlink" href="#chat-completions-completions-embeddings" title="Permanent link">&para;</a></h3>
-<p>All OpenAI-compatible inference endpoints are available:</p>
+<p>All OpenAI-compatible inference endpoints are available:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="err">POST /v1/chat/completions</span>
 <a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="err">POST /v1/completions</span>
 <a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="err">POST /v1/embeddings</span>
 <a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="err">POST /v1/rerank</span>
 <a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="err">POST /v1/reranking</span>
 </code></pre></div>
-<p><strong>Request Body:</strong> Standard OpenAI format with <code>model</code> field specifying the instance name</p>
-<p><strong>Example:</strong>
+<p><strong>Request Body:</strong> Standard OpenAI format with <code>model</code> field specifying the instance name  </p>
+<p><strong>Example:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="p">{</span>
 <a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama2-7b&quot;</span><span class="p">,</span>
 <a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="w">  </span><span class="nt">&quot;messages&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -1599,34 +1599,34 @@
 <a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a><span class="w">  </span><span class="p">]</span>
 <a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a><span class="p">}</span>
 </code></pre></div></p>
-<p>The server routes requests to the appropriate instance based on the <code>model</code> field in the request body. Instances with on-demand starting enabled will be automatically started if not running. For configuration details, see <a href="../managing-instances/">Managing Instances</a>.</p>
-<p><strong>Error Responses:</strong>
-- <code>400 Bad Request</code>: Invalid request body or missing instance name
-- <code>503 Service Unavailable</code>: Instance is not running and on-demand start is disabled
-- <code>409 Conflict</code>: Cannot start instance due to maximum instances limit</p>
+<p>The server routes requests to the appropriate instance based on the <code>model</code> field in the request body. Instances with on-demand starting enabled will be automatically started if not running. For configuration details, see <a href="../managing-instances/">Managing Instances</a>.  </p>
+<p><strong>Error Responses:</strong><br />
+- <code>400 Bad Request</code>: Invalid request body or missing instance name<br />
+- <code>503 Service Unavailable</code>: Instance is not running and on-demand start is disabled<br />
+- <code>409 Conflict</code>: Cannot start instance due to maximum instances limit  </p>
 <h2 id="instance-status-values">Instance Status Values<a class="headerlink" href="#instance-status-values" title="Permanent link">&para;</a></h2>
-<p>Instances can have the following status values:
-- <code>stopped</code>: Instance is not running
-- <code>running</code>: Instance is running and ready to accept requests
+<p>Instances can have the following status values:<br />
+- <code>stopped</code>: Instance is not running<br />
+- <code>running</code>: Instance is running and ready to accept requests<br />
 - <code>failed</code>: Instance failed to start or crashed  </p>
 <h2 id="error-responses">Error Responses<a class="headerlink" href="#error-responses" title="Permanent link">&para;</a></h2>
-<p>All endpoints may return error responses in the following format:</p>
+<p>All endpoints may return error responses in the following format:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="p">{</span>
 <a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Error message description&quot;</span>
 <a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="common-http-status-codes">Common HTTP Status Codes<a class="headerlink" href="#common-http-status-codes" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>200</code>: Success</li>
-<li><code>201</code>: Created</li>
-<li><code>204</code>: No Content (successful deletion)</li>
-<li><code>400</code>: Bad Request (invalid parameters or request body)</li>
-<li><code>401</code>: Unauthorized (missing or invalid API key)</li>
-<li><code>403</code>: Forbidden (insufficient permissions)</li>
-<li><code>404</code>: Not Found (instance not found)</li>
-<li><code>409</code>: Conflict (instance already exists, max instances reached)</li>
-<li><code>500</code>: Internal Server Error</li>
-<li><code>503</code>: Service Unavailable (instance not running)</li>
+<li><code>200</code>: Success  </li>
+<li><code>201</code>: Created  </li>
+<li><code>204</code>: No Content (successful deletion)  </li>
+<li><code>400</code>: Bad Request (invalid parameters or request body)  </li>
+<li><code>401</code>: Unauthorized (missing or invalid API key)  </li>
+<li><code>403</code>: Forbidden (insufficient permissions)  </li>
+<li><code>404</code>: Not Found (instance not found)  </li>
+<li><code>409</code>: Conflict (instance already exists, max instances reached)  </li>
+<li><code>500</code>: Internal Server Error  </li>
+<li><code>503</code>: Service Unavailable (instance not running)  </li>
 </ul>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <h3 id="complete-instance-lifecycle">Complete Instance Lifecycle<a class="headerlink" href="#complete-instance-lifecycle" title="Permanent link">&para;</a></h3>
@@ -1704,7 +1704,7 @@
 <a id="__codelineno-32-27" name="__codelineno-32-27" href="#__codelineno-32-27"></a><span class="s1">  }&#39;</span>
 </code></pre></div>
 <h3 id="using-the-proxy-endpoint">Using the Proxy Endpoint<a class="headerlink" href="#using-the-proxy-endpoint" title="Permanent link">&para;</a></h3>
-<p>You can also directly proxy requests to the llama-server instance:</p>
+<p>You can also directly proxy requests to the llama-server instance:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="c1"># Direct proxy to instance (bypasses OpenAI compatibility layer)</span>
 <a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-model/proxy/completion<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
@@ -1716,17 +1716,17 @@
 </code></pre></div>
 <h2 id="backend-specific-endpoints">Backend-Specific Endpoints<a class="headerlink" href="#backend-specific-endpoints" title="Permanent link">&para;</a></h2>
 <h3 id="parse-commands">Parse Commands<a class="headerlink" href="#parse-commands" title="Permanent link">&para;</a></h3>
-<p>Llamactl provides endpoints to parse command strings from different backends into instance configuration options.</p>
+<p>Llamactl provides endpoints to parse command strings from different backends into instance configuration options.  </p>
 <h4 id="parse-llamacpp-command">Parse Llama.cpp Command<a class="headerlink" href="#parse-llamacpp-command" title="Permanent link">&para;</a></h4>
-<p>Parse a llama-server command string into instance options.</p>
+<p>Parse a llama-server command string into instance options.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="err">POST /api/v1/backends/llama-cpp/parse-command</span>
 </code></pre></div>
-<p><strong>Request Body:</strong>
+<p><strong>Request Body:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="p">{</span>
 <a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="w">  </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama-server -m /path/to/model.gguf -c 2048 --port 8080&quot;</span>
 <a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="p">{</span>
 <a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="w">  </span><span class="nt">&quot;backend_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama_cpp&quot;</span><span class="p">,</span>
 <a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="w">  </span><span class="nt">&quot;llama_server_options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -1737,15 +1737,15 @@
 <a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="p">}</span>
 </code></pre></div></p>
 <h4 id="parse-mlx-lm-command">Parse MLX-LM Command<a class="headerlink" href="#parse-mlx-lm-command" title="Permanent link">&para;</a></h4>
-<p>Parse an MLX-LM server command string into instance options.</p>
+<p>Parse an MLX-LM server command string into instance options.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="err">POST /api/v1/backends/mlx/parse-command</span>
 </code></pre></div>
-<p><strong>Request Body:</strong>
+<p><strong>Request Body:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="p">{</span>
 <a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="w">  </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mlx_lm.server --model /path/to/model --port 8080&quot;</span>
 <a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="p">{</span>
 <a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="w">  </span><span class="nt">&quot;backend_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mlx_lm&quot;</span><span class="p">,</span>
 <a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="w">  </span><span class="nt">&quot;mlx_server_options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -1755,15 +1755,15 @@
 <a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a><span class="p">}</span>
 </code></pre></div></p>
 <h4 id="parse-vllm-command">Parse vLLM Command<a class="headerlink" href="#parse-vllm-command" title="Permanent link">&para;</a></h4>
-<p>Parse a vLLM serve command string into instance options.</p>
+<p>Parse a vLLM serve command string into instance options.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="err">POST /api/v1/backends/vllm/parse-command</span>
 </code></pre></div>
-<p><strong>Request Body:</strong>
+<p><strong>Request Body:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="p">{</span>
 <a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="w">  </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vllm serve /path/to/model --port 8080&quot;</span>
 <a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Response:</strong>
+<p><strong>Response:</strong><br />
 <div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="p">{</span>
 <a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a><span class="w">  </span><span class="nt">&quot;backend_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;vllm&quot;</span><span class="p">,</span>
 <a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="w">  </span><span class="nt">&quot;vllm_server_options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -1772,20 +1772,20 @@
 <a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-42-7" name="__codelineno-42-7" href="#__codelineno-42-7"></a><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Error Responses for Parse Commands:</strong>
-- <code>400 Bad Request</code>: Invalid request body, empty command, or parse error
-- <code>500 Internal Server Error</code>: Encoding error</p>
+<p><strong>Error Responses for Parse Commands:</strong><br />
+- <code>400 Bad Request</code>: Invalid request body, empty command, or parse error<br />
+- <code>500 Internal Server Error</code>: Encoding error  </p>
 <h2 id="auto-generated-documentation">Auto-Generated Documentation<a class="headerlink" href="#auto-generated-documentation" title="Permanent link">&para;</a></h2>
-<p>The API documentation is automatically generated from code annotations using Swagger/OpenAPI. To regenerate the documentation:</p>
+<p>The API documentation is automatically generated from code annotations using Swagger/OpenAPI. To regenerate the documentation:  </p>
 <ol>
-<li>Install the swag tool: <code>go install github.com/swaggo/swag/cmd/swag@latest</code></li>
-<li>Generate docs: <code>swag init -g cmd/server/main.go -o apidocs</code></li>
+<li>Install the swag tool: <code>go install github.com/swaggo/swag/cmd/swag@latest</code>  </li>
+<li>Generate docs: <code>swag init -g cmd/server/main.go -o apidocs</code>  </li>
 </ol>
 <h2 id="swagger-documentation">Swagger Documentation<a class="headerlink" href="#swagger-documentation" title="Permanent link">&para;</a></h2>
-<p>If swagger documentation is enabled in the server configuration, you can access the interactive API documentation at:</p>
+<p>If swagger documentation is enabled in the server configuration, you can access the interactive API documentation at:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>http://localhost:8080/swagger/
 </code></pre></div>
-<p>This provides a complete interactive interface for testing all API endpoints.</p>
+<p>This provides a complete interactive interface for testing all API endpoints.  </p>
 
 
 
