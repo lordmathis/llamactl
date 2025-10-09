@@ -12,6 +12,11 @@ func (im *instanceManager) checkAllTimeouts() {
 
 	// Identify instances that should timeout
 	for _, inst := range im.instances {
+		// Skip remote instances - they are managed by their respective nodes
+		if inst.IsRemote() {
+			continue
+		}
+
 		if inst.ShouldTimeout() {
 			timeoutInstances = append(timeoutInstances, inst.Name)
 		}
@@ -37,6 +42,11 @@ func (im *instanceManager) EvictLRUInstance() error {
 	for name := range im.runningInstances {
 		inst := im.instances[name]
 		if inst == nil {
+			continue
+		}
+
+		// Skip remote instances - they are managed by their respective nodes
+		if inst.IsRemote() {
 			continue
 		}
 

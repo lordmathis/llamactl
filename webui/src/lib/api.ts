@@ -103,6 +103,22 @@ export const backendsApi = {
   },
 };
 
+// Node API types
+export interface NodeResponse {
+  address: string;
+}
+
+export type NodesMap = Record<string, NodeResponse>;
+
+// Node API functions
+export const nodesApi = {
+  // GET /nodes - returns map of node name to NodeResponse
+  list: () => apiCall<NodesMap>("/nodes"),
+
+  // GET /nodes/{name}
+  get: (name: string) => apiCall<NodeResponse>(`/nodes/${name}`),
+};
+
 // Instance API functions
 export const instancesApi = {
   // GET /instances

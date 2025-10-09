@@ -37,13 +37,15 @@ type BackendConfig struct {
 
 // AppConfig represents the configuration for llamactl
 type AppConfig struct {
-	Server     ServerConfig    `yaml:"server"`
-	Backends   BackendConfig   `yaml:"backends"`
-	Instances  InstancesConfig `yaml:"instances"`
-	Auth       AuthConfig      `yaml:"auth"`
-	Version    string          `yaml:"-"`
-	CommitHash string          `yaml:"-"`
-	BuildTime  string          `yaml:"-"`
+	Server     ServerConfig          `yaml:"server"`
+	Backends   BackendConfig         `yaml:"backends"`
+	Instances  InstancesConfig       `yaml:"instances"`
+	Auth       AuthConfig            `yaml:"auth"`
+	LocalNode  string                `yaml:"local_node,omitempty"`
+	Nodes      map[string]NodeConfig `yaml:"nodes,omitempty"`
+	Version    string                `yaml:"-"`
+	CommitHash string                `yaml:"-"`
+	BuildTime  string                `yaml:"-"`
 }
 
 // ServerConfig contains HTTP server configuration
@@ -128,6 +130,11 @@ type AuthConfig struct {
 	ManagementKeys []string `yaml:"management_keys"`
 }
 
+type NodeConfig struct {
+	Address string `yaml:"address"`
+	APIKey  string `yaml:"api_key,omitempty"`
+}
+
 // LoadConfig loads configuration with the following precedence:
 // 1. Hardcoded defaults
 // 2. Config file
@@ -141,6 +148,10 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			AllowedOrigins: []string{"*"}, // Default to allow all origins
 			AllowedHeaders: []string{"*"}, // Default to allow all headers
 			EnableSwagger:  false,
+		},
+		LocalNode: "main",
+		Nodes: map[string]NodeConfig{
+			"main": {}, // Local node with empty config
 		},
 		Backends: BackendConfig{
 			LlamaCpp: BackendSettings{
@@ -468,6 +479,11 @@ func loadEnvVars(cfg *AppConfig) {
 	}
 	if managementKeys := os.Getenv("LLAMACTL_MANAGEMENT_KEYS"); managementKeys != "" {
 		cfg.Auth.ManagementKeys = strings.Split(managementKeys, ",")
+	}
+
+	// Local node config
+	if localNode := os.Getenv("LLAMACTL_LOCAL_NODE"); localNode != "" {
+		cfg.LocalNode = localNode
 	}
 }
 

@@ -39,6 +39,9 @@ export const CreateInstanceOptionsSchema = z.object({
   // Backend configuration
   backend_type: z.enum([BackendType.LLAMA_CPP, BackendType.MLX_LM, BackendType.VLLM]).optional(),
   backend_options: BackendOptionsSchema.optional(),
+
+  // Node configuration
+  nodes: z.array(z.string()).optional(),
 })
 
 // Re-export types and schemas from backend files

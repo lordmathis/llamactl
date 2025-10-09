@@ -60,6 +60,15 @@ func SetupRouter(handler *Handler) *chi.Mux {
 			})
 		})
 
+		// Node management endpoints
+		r.Route("/nodes", func(r chi.Router) {
+			r.Get("/", handler.ListNodes()) // List all nodes
+
+			r.Route("/{name}", func(r chi.Router) {
+				r.Get("/", handler.GetNode())
+			})
+		})
+
 		// Instance management endpoints
 		r.Route("/instances", func(r chi.Router) {
 			r.Get("/", handler.ListInstances()) // List all instances

@@ -39,26 +39,27 @@ Each instance is displayed as a card showing:
 
 1. Click the **"Create Instance"** button on the dashboard
 2. Enter a unique **Name** for your instance (only required field)
-3. **Choose Backend Type**:
+3. **Select Target Node**: Choose which node to deploy the instance to from the dropdown
+4. **Choose Backend Type**:
     - **llama.cpp**: For GGUF models using llama-server
     - **MLX**: For MLX-optimized models (macOS only)
     - **vLLM**: For distributed serving and high-throughput inference
-4. Configure model source:
+5. Configure model source:
     - **For llama.cpp**: GGUF model path or HuggingFace repo
     - **For MLX**: MLX model path or identifier (e.g., `mlx-community/Mistral-7B-Instruct-v0.3-4bit`)
     - **For vLLM**: HuggingFace model identifier (e.g., `microsoft/DialoGPT-medium`)
-5. Configure optional instance management settings:
+6. Configure optional instance management settings:
     - **Auto Restart**: Automatically restart instance on failure
     - **Max Restarts**: Maximum number of restart attempts
     - **Restart Delay**: Delay in seconds between restart attempts
     - **On Demand Start**: Start instance when receiving a request to the OpenAI compatible endpoint
     - **Idle Timeout**: Minutes before stopping idle instance (set to 0 to disable)
     - **Environment Variables**: Set custom environment variables for the instance process
-6. Configure backend-specific options:
+7. Configure backend-specific options:
     - **llama.cpp**: Threads, context size, GPU layers, port, etc.
     - **MLX**: Temperature, top-p, adapter path, Python environment, etc.
     - **vLLM**: Tensor parallel size, GPU memory utilization, quantization, etc.
-7. Click **"Create"** to save the instance  
+8. Click **"Create"** to save the instance  
 
 ### Via API
 
@@ -120,6 +121,18 @@ curl -X POST http://localhost:8080/api/instances/gemma-3-27b \
       "hf_file": "gemma-3-27b-it-GGUF.gguf",
       "gpu_layers": 32
     }
+  }'
+
+# Create instance on specific remote node
+curl -X POST http://localhost:8080/api/instances/remote-llama \
+  -H "Content-Type: application/json" \
+  -d '{
+    "backend_type": "llama_cpp",
+    "backend_options": {
+      "model": "/models/llama-7b.gguf",
+      "gpu_layers": 32
+    },
+    "nodes": ["worker1"]
   }'
 ```
 
@@ -227,3 +240,4 @@ Check the health status of your instances:
 ```bash
 curl http://localhost:8080/api/instances/{name}/proxy/health
 ```
+

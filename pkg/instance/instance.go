@@ -171,6 +171,11 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 		return nil, fmt.Errorf("instance %s has no options set", i.Name)
 	}
 
+	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
+	if len(i.options.Nodes) > 0 {
+		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
+	}
+
 	var host string
 	var port int
 	switch i.options.BackendType {
@@ -285,5 +290,24 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 		i.options = aux.Options
 	}
 
+	// Initialize fields that are not serialized
+	if i.timeProvider == nil {
+		i.timeProvider = realTimeProvider{}
+	}
+	if i.logger == nil && i.globalInstanceSettings != nil {
+		i.logger = NewInstanceLogger(i.Name, i.globalInstanceSettings.LogsDir)
+	}
+
 	return nil
+}
+
+func (i *Process) IsRemote() bool {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	if i.options == nil {
+		return false
+	}
+
+	return len(i.options.Nodes) > 0
 }

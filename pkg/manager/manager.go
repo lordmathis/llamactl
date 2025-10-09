@@ -6,6 +6,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,8 +26,20 @@ type InstanceManager interface {
 	StopInstance(name string) (*instance.Process, error)
 	EvictLRUInstance() error
 	RestartInstance(name string) (*instance.Process, error)
-	GetInstanceLogs(name string) (string, error)
+	GetInstanceLogs(name string, numLines int) (string, error)
 	Shutdown()
+}
+
+type RemoteManager interface {
+	ListRemoteInstances(node *config.NodeConfig) ([]*instance.Process, error)
+	CreateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
+	GetRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
+	UpdateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
+	DeleteRemoteInstance(node *config.NodeConfig, name string) error
+	StartRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
+	StopRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
+	RestartRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
+	GetRemoteInstanceLogs(node *config.NodeConfig, name string, numLines int) (string, error)
 }
 
 type instanceManager struct {
@@ -42,13 +55,26 @@ type instanceManager struct {
 	shutdownChan   chan struct{}
 	shutdownDone   chan struct{}
 	isShutdown     bool
+
+	// Remote instance management
+	httpClient        *http.Client
+	instanceNodeMap   map[string]*config.NodeConfig // Maps instance name to its node config
+	nodeConfigMap     map[string]*config.NodeConfig // Maps node name to node config for quick lookup
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
-func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig) InstanceManager {
+func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig, nodesConfig map[string]config.NodeConfig) InstanceManager {
 	if instancesConfig.TimeoutCheckInterval <= 0 {
 		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
 	}
+
+	// Build node config map for quick lookup
+	nodeConfigMap := make(map[string]*config.NodeConfig)
+	for name := range nodesConfig {
+		nodeCopy := nodesConfig[name]
+		nodeConfigMap[name] = &nodeCopy
+	}
+
 	im := &instanceManager{
 		instances:        make(map[string]*instance.Process),
 		runningInstances: make(map[string]struct{}),
@@ -59,6 +85,13 @@ func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig con
 		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
 		shutdownChan:   make(chan struct{}),
 		shutdownDone:   make(chan struct{}),
+
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+
+		instanceNodeMap: make(map[string]*config.NodeConfig),
+		nodeConfigMap:   nodeConfigMap,
 	}
 
 	// Load existing instances from disk
@@ -238,24 +271,43 @@ func (im *instanceManager) loadInstance(name, path string) error {
 		return fmt.Errorf("instance name mismatch: file=%s, instance.Name=%s", name, persistedInstance.Name)
 	}
 
-	statusCallback := func(oldStatus, newStatus instance.InstanceStatus) {
-		im.onStatusChange(persistedInstance.Name, oldStatus, newStatus)
+	options := persistedInstance.GetOptions()
+
+	// Check if this is a remote instance
+	isRemote := options != nil && len(options.Nodes) > 0
+
+	var statusCallback func(oldStatus, newStatus instance.InstanceStatus)
+	if !isRemote {
+		// Only set status callback for local instances
+		statusCallback = func(oldStatus, newStatus instance.InstanceStatus) {
+			im.onStatusChange(persistedInstance.Name, oldStatus, newStatus)
+		}
 	}
 
 	// Create new inst using NewInstance (handles validation, defaults, setup)
-	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, persistedInstance.GetOptions(), statusCallback)
+	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
 	inst.Created = persistedInstance.Created
 	inst.SetStatus(persistedInstance.Status)
 
-	// Check for port conflicts and add to maps
-	if inst.GetPort() > 0 {
-		port := inst.GetPort()
-		if im.ports[port] {
-			return fmt.Errorf("port conflict: instance %s wants port %d which is already in use", name, port)
+	// Handle remote instance mapping
+	if isRemote {
+		nodeName := options.Nodes[0]
+		nodeConfig, exists := im.nodeConfigMap[nodeName]
+		if !exists {
+			return fmt.Errorf("node %s not found for remote instance %s", nodeName, name)
 		}
-		im.ports[port] = true
+		im.instanceNodeMap[name] = nodeConfig
+	} else {
+		// Check for port conflicts only for local instances
+		if inst.GetPort() > 0 {
+			port := inst.GetPort()
+			if im.ports[port] {
+				return fmt.Errorf("port conflict: instance %s wants port %d which is already in use", name, port)
+			}
+			im.ports[port] = true
+		}
 	}
 
 	im.instances[name] = inst
@@ -293,8 +345,18 @@ func (im *instanceManager) autoStartInstances() {
 		log.Printf("Auto-starting instance %s", inst.Name)
 		// Reset running state before starting (since Start() expects stopped instance)
 		inst.SetStatus(instance.Stopped)
-		if err := inst.Start(); err != nil {
-			log.Printf("Failed to auto-start instance %s: %v", inst.Name, err)
+
+		// Check if this is a remote instance
+		if node := im.getNodeForInstance(inst); node != nil {
+			// Remote instance - use StartRemoteInstance
+			if _, err := im.StartRemoteInstance(node, inst.Name); err != nil {
+				log.Printf("Failed to auto-start remote instance %s: %v", inst.Name, err)
+			}
+		} else {
+			// Local instance - call Start() directly
+			if err := inst.Start(); err != nil {
+				log.Printf("Failed to auto-start instance %s: %v", inst.Name, err)
+			}
 		}
 	}
 }
@@ -308,4 +370,19 @@ func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus inst
 	} else {
 		delete(im.runningInstances, name)
 	}
+}
+
+// getNodeForInstance returns the node configuration for a remote instance
+// Returns nil if the instance is not remote or the node is not found
+func (im *instanceManager) getNodeForInstance(inst *instance.Process) *config.NodeConfig {
+	if !inst.IsRemote() {
+		return nil
+	}
+
+	// Check if we have a cached mapping
+	if nodeConfig, exists := im.instanceNodeMap[inst.Name]; exists {
+		return nodeConfig
+	}
+
+	return nil
 }

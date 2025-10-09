@@ -510,3 +510,132 @@ func TestGetBackendSettings_InvalidBackendType(t *testing.T) {
 		t.Errorf("Expected empty command for invalid backend, got %q", settings.Command)
 	}
 }
+
+func TestLoadConfig_LocalNode(t *testing.T) {
+	t.Run("default local node", func(t *testing.T) {
+		cfg, err := config.LoadConfig("nonexistent-file.yaml")
+		if err != nil {
+			t.Fatalf("LoadConfig failed: %v", err)
+		}
+
+		if cfg.LocalNode != "main" {
+			t.Errorf("Expected default local node 'main', got %q", cfg.LocalNode)
+		}
+	})
+
+	t.Run("local node from file", func(t *testing.T) {
+		tempDir := t.TempDir()
+		configFile := filepath.Join(tempDir, "test-config.yaml")
+
+		configContent := `
+local_node: "worker1"
+nodes:
+  worker1:
+    address: ""
+  worker2:
+    address: "http://192.168.1.10:8080"
+    api_key: "test-key"
+`
+
+		err := os.WriteFile(configFile, []byte(configContent), 0644)
+		if err != nil {
+			t.Fatalf("Failed to write test config file: %v", err)
+		}
+
+		cfg, err := config.LoadConfig(configFile)
+		if err != nil {
+			t.Fatalf("LoadConfig failed: %v", err)
+		}
+
+		if cfg.LocalNode != "worker1" {
+			t.Errorf("Expected local node 'worker1', got %q", cfg.LocalNode)
+		}
+
+		// Verify nodes map (includes default "main" + worker1 + worker2)
+		if len(cfg.Nodes) != 3 {
+			t.Errorf("Expected 3 nodes (default main + worker1 + worker2), got %d", len(cfg.Nodes))
+		}
+
+		// Verify local node exists and is empty
+		localNode, exists := cfg.Nodes["worker1"]
+		if !exists {
+			t.Error("Expected local node 'worker1' to exist in nodes map")
+		}
+		if localNode.Address != "" {
+			t.Errorf("Expected local node address to be empty, got %q", localNode.Address)
+		}
+		if localNode.APIKey != "" {
+			t.Errorf("Expected local node api_key to be empty, got %q", localNode.APIKey)
+		}
+
+		// Verify remote node
+		remoteNode, exists := cfg.Nodes["worker2"]
+		if !exists {
+			t.Error("Expected remote node 'worker2' to exist in nodes map")
+		}
+		if remoteNode.Address != "http://192.168.1.10:8080" {
+			t.Errorf("Expected remote node address 'http://192.168.1.10:8080', got %q", remoteNode.Address)
+		}
+
+		// Verify default main node still exists
+		_, exists = cfg.Nodes["main"]
+		if !exists {
+			t.Error("Expected default 'main' node to still exist in nodes map")
+		}
+	})
+
+	t.Run("custom local node name in config", func(t *testing.T) {
+		tempDir := t.TempDir()
+		configFile := filepath.Join(tempDir, "test-config.yaml")
+
+		configContent := `
+local_node: "primary"
+nodes:
+  primary:
+    address: ""
+  worker1:
+    address: "http://192.168.1.10:8080"
+`
+
+		err := os.WriteFile(configFile, []byte(configContent), 0644)
+		if err != nil {
+			t.Fatalf("Failed to write test config file: %v", err)
+		}
+
+		cfg, err := config.LoadConfig(configFile)
+		if err != nil {
+			t.Fatalf("LoadConfig failed: %v", err)
+		}
+
+		if cfg.LocalNode != "primary" {
+			t.Errorf("Expected local node 'primary', got %q", cfg.LocalNode)
+		}
+
+		// Verify nodes map includes default "main" + primary + worker1
+		if len(cfg.Nodes) != 3 {
+			t.Errorf("Expected 3 nodes (default main + primary + worker1), got %d", len(cfg.Nodes))
+		}
+
+		localNode, exists := cfg.Nodes["primary"]
+		if !exists {
+			t.Error("Expected local node 'primary' to exist in nodes map")
+		}
+		if localNode.Address != "" {
+			t.Errorf("Expected local node address to be empty, got %q", localNode.Address)
+		}
+	})
+
+	t.Run("local node from environment variable", func(t *testing.T) {
+		os.Setenv("LLAMACTL_LOCAL_NODE", "custom-node")
+		defer os.Unsetenv("LLAMACTL_LOCAL_NODE")
+
+		cfg, err := config.LoadConfig("nonexistent-file.yaml")
+		if err != nil {
+			t.Fatalf("LoadConfig failed: %v", err)
+		}
+
+		if cfg.LocalNode != "custom-node" {
+			t.Errorf("Expected local node 'custom-node' from env var, got %q", cfg.LocalNode)
+		}
+	})
+}

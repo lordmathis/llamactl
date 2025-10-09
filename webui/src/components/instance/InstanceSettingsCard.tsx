@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import type { CreateInstanceOptions } from '@/types/instance'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -7,6 +7,8 @@ import AutoRestartConfiguration from '@/components/instance/AutoRestartConfigura
 import NumberInput from '@/components/form/NumberInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
 import EnvironmentVariablesInput from '@/components/form/EnvironmentVariablesInput'
+import SelectInput from '@/components/form/SelectInput'
+import { nodesApi, type NodesMap } from '@/lib/api'
 
 interface InstanceSettingsCardProps {
   instanceName: string
@@ -25,6 +27,46 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
   onNameChange,
   onChange
 }) => {
+  const [nodes, setNodes] = useState<NodesMap>({})
+  const [loadingNodes, setLoadingNodes] = useState(true)
+
+  useEffect(() => {
+    const fetchNodes = async () => {
+      try {
+        const fetchedNodes = await nodesApi.list()
+        setNodes(fetchedNodes)
+
+        // Auto-select first node if none selected
+        const nodeNames = Object.keys(fetchedNodes)
+        if (nodeNames.length > 0 && (!formData.nodes || formData.nodes.length === 0)) {
+          onChange('nodes', [nodeNames[0]])
+        }
+      } catch (error) {
+        console.error('Failed to fetch nodes:', error)
+      } finally {
+        setLoadingNodes(false)
+      }
+    }
+
+    void fetchNodes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const nodeOptions = Object.keys(nodes).map(nodeName => ({
+    value: nodeName,
+    label: nodeName
+  }))
+
+  const handleNodeChange = (value: string | undefined) => {
+    if (value) {
+      onChange('nodes', [value])
+    } else {
+      onChange('nodes', undefined)
+    }
+  }
+
+  const selectedNode = formData.nodes && formData.nodes.length > 0 ? formData.nodes[0] : ''
+
   return (
     <Card>
       <CardHeader>
@@ -49,6 +91,18 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
             Unique identifier for the instance
           </p>
         </div>
+
+        {/* Node Selection */}
+        {!loadingNodes && Object.keys(nodes).length > 0 && (
+          <SelectInput
+            id="node"
+            label="Node"
+            value={selectedNode}
+            onChange={handleNodeChange}
+            options={nodeOptions}
+            description="Select the node where the instance will run (default: main node)"
+          />
+        )}
 
         {/* Auto Restart Configuration */}
         <AutoRestartConfiguration

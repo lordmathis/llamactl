@@ -157,6 +157,12 @@ cd webui && npm ci && npm run build && cd ..
 go build -o llamactl ./cmd/server
 ```
 
+## Remote Node Installation
+
+For deployments with remote nodes:
+- Install llamactl on each node using any of the methods above
+- Configure API keys for authentication between nodes
+
 ## Verification
 
 Verify your installation by checking the version:
@@ -168,3 +174,5 @@ llamactl --version
 ## Next Steps
 
 Now that Llamactl is installed, continue to the [Quick Start](quick-start.md) guide to get your first instance running!
+
+For remote node deployments, see the [Configuration Guide](configuration.md) for node setup instructions.

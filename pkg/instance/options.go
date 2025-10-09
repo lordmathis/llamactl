@@ -27,6 +27,8 @@ type CreateInstanceOptions struct {
 	BackendType    backends.BackendType `json:"backend_type"`
 	BackendOptions map[string]any       `json:"backend_options,omitempty"`
 
+	Nodes []string `json:"nodes,omitempty"`
+
 	// Backend-specific options
 	LlamaServerOptions *llamacpp.LlamaServerOptions `json:"-"`
 	MlxServerOptions   *mlx.MlxServerOptions        `json:"-"`
