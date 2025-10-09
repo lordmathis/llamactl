@@ -12,6 +12,37 @@ import (
 
 type MaxRunningInstancesError error
 
+// updateLocalInstanceFromRemote updates the local stub instance with data from the remote instance
+// while preserving the Nodes field to maintain remote instance tracking
+func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Process, remoteInst *instance.Process) {
+	if localInst == nil || remoteInst == nil {
+		return
+	}
+
+	// Get the remote instance options
+	remoteOptions := remoteInst.GetOptions()
+	if remoteOptions == nil {
+		return
+	}
+
+	// Preserve the Nodes field from the local instance
+	localOptions := localInst.GetOptions()
+	var preservedNodes []string
+	if localOptions != nil && len(localOptions.Nodes) > 0 {
+		preservedNodes = make([]string, len(localOptions.Nodes))
+		copy(preservedNodes, localOptions.Nodes)
+	}
+
+	// Create a copy of remote options and restore the Nodes field
+	updatedOptions := *remoteOptions
+	updatedOptions.Nodes = preservedNodes
+
+	// Update the local instance with all remote data
+	localInst.SetOptions(&updatedOptions)
+	localInst.Status = remoteInst.Status
+	localInst.Created = remoteInst.Created
+}
+
 // ListInstances returns a list of all instances managed by the instance manager.
 // For remote instances, this fetches the live state from remote nodes and updates local stubs.
 func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
@@ -32,9 +63,9 @@ func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
 				continue
 			}
 
-			// Update the local stub's status to reflect remote state
+			// Update the local stub with all remote data (preserving Nodes)
 			im.mu.Lock()
-			inst.Status = remoteInst.Status
+			im.updateLocalInstanceFromRemote(inst, remoteInst)
 			im.mu.Unlock()
 		}
 	}
@@ -90,9 +121,8 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		// We keep the original options (with Nodes) so IsRemote() works correctly
 		inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, nil)
 
-		// Copy the status and creation time from the remote instance
-		inst.Status = remoteInst.Status
-		inst.Created = remoteInst.Created
+		// Update the local stub with all remote data (preserving Nodes)
+		im.updateLocalInstanceFromRemote(inst, remoteInst)
 
 		// Add to local tracking maps (but don't count towards limits)
 		im.instances[name] = inst
@@ -150,9 +180,9 @@ func (im *instanceManager) GetInstance(name string) (*instance.Process, error) {
 			return nil, err
 		}
 
-		// Update the local stub's status to reflect remote state
+		// Update the local stub with all remote data (preserving Nodes)
 		im.mu.Lock()
-		inst.Status = remoteInst.Status
+		im.updateLocalInstanceFromRemote(inst, remoteInst)
 		im.mu.Unlock()
 
 		// Return the local stub (preserving Nodes field)
@@ -180,10 +210,9 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.CreateI
 			return nil, err
 		}
 
-		// Update the local instance's fields (preserving Nodes field)
+		// Update the local stub with all remote data (preserving Nodes)
 		im.mu.Lock()
-		inst.SetOptions(options) // Update options with the original (including Nodes)
-		inst.Status = remoteInst.Status
+		im.updateLocalInstanceFromRemote(inst, remoteInst)
 		im.mu.Unlock()
 
 		// Persist the updated remote instance locally
@@ -303,9 +332,9 @@ func (im *instanceManager) StartInstance(name string) (*instance.Process, error)
 			return nil, err
 		}
 
-		// Update the local instance's status to match the remote
+		// Update the local stub with all remote data (preserving Nodes)
 		im.mu.Lock()
-		inst.Status = remoteInst.Status
+		im.updateLocalInstanceFromRemote(inst, remoteInst)
 		im.mu.Unlock()
 
 		return inst, nil
@@ -372,9 +401,9 @@ func (im *instanceManager) StopInstance(name string) (*instance.Process, error) 
 			return nil, err
 		}
 
-		// Update the local instance's status to match the remote
+		// Update the local stub with all remote data (preserving Nodes)
 		im.mu.Lock()
-		inst.Status = remoteInst.Status
+		im.updateLocalInstanceFromRemote(inst, remoteInst)
 		im.mu.Unlock()
 
 		return inst, nil
@@ -415,9 +444,9 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Process, erro
 			return nil, err
 		}
 
-		// Update the local instance's status to match the remote
+		// Update the local stub with all remote data (preserving Nodes)
 		im.mu.Lock()
-		inst.Status = remoteInst.Status
+		im.updateLocalInstanceFromRemote(inst, remoteInst)
 		im.mu.Unlock()
 
 		return inst, nil
