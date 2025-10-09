@@ -13,15 +13,33 @@ import (
 type MaxRunningInstancesError error
 
 // ListInstances returns a list of all instances managed by the instance manager.
+// For remote instances, this fetches the live state from remote nodes and updates local stubs.
 func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
 	im.mu.RLock()
-	defer im.mu.RUnlock()
-
-	instances := make([]*instance.Process, 0, len(im.instances))
+	localInstances := make([]*instance.Process, 0, len(im.instances))
 	for _, inst := range im.instances {
-		instances = append(instances, inst)
+		localInstances = append(localInstances, inst)
 	}
-	return instances, nil
+	im.mu.RUnlock()
+
+	// Update remote instances with live state
+	for _, inst := range localInstances {
+		if node := im.getNodeForInstance(inst); node != nil {
+			remoteInst, err := im.GetRemoteInstance(node, inst.Name)
+			if err != nil {
+				// Log error but continue with stale data
+				// Don't fail the entire list operation due to one remote failure
+				continue
+			}
+
+			// Update the local stub's status to reflect remote state
+			im.mu.Lock()
+			inst.Status = remoteInst.Status
+			im.mu.Unlock()
+		}
+	}
+
+	return localInstances, nil
 }
 
 // CreateInstance creates a new instance with the given options and returns it.
@@ -115,6 +133,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 }
 
 // GetInstance retrieves an instance by its name.
+// For remote instances, this fetches the live state from the remote node and updates the local stub.
 func (im *instanceManager) GetInstance(name string) (*instance.Process, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
@@ -124,9 +143,20 @@ func (im *instanceManager) GetInstance(name string) (*instance.Process, error) {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
 
-	// Check if instance is remote and delegate to remote operation
+	// Check if instance is remote and fetch live state
 	if node := im.getNodeForInstance(inst); node != nil {
-		return im.GetRemoteInstance(node, name)
+		remoteInst, err := im.GetRemoteInstance(node, name)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update the local stub's status to reflect remote state
+		im.mu.Lock()
+		inst.Status = remoteInst.Status
+		im.mu.Unlock()
+
+		// Return the local stub (preserving Nodes field)
+		return inst, nil
 	}
 
 	return inst, nil
@@ -401,7 +431,7 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Process, erro
 }
 
 // GetInstanceLogs retrieves the logs for a specific instance by its name.
-func (im *instanceManager) GetInstanceLogs(name string) (string, error) {
+func (im *instanceManager) GetInstanceLogs(name string, numLines int) (string, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -412,11 +442,11 @@ func (im *instanceManager) GetInstanceLogs(name string) (string, error) {
 
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
-		return im.GetRemoteInstanceLogs(node, name)
+		return im.GetRemoteInstanceLogs(node, name, numLines)
 	}
 
-	// TODO: Implement actual log retrieval logic
-	return fmt.Sprintf("Logs for instance %s", name), nil
+	// Get logs from the local instance
+	return inst.GetLogs(numLines)
 }
 
 // getPortFromOptions extracts the port from backend-specific options

@@ -211,8 +211,8 @@ func (im *instanceManager) RestartRemoteInstance(nodeConfig *config.NodeConfig, 
 }
 
 // GetRemoteInstanceLogs retrieves logs for an instance from the remote node
-func (im *instanceManager) GetRemoteInstanceLogs(nodeConfig *config.NodeConfig, name string) (string, error) {
-	path := fmt.Sprintf("/api/v1/instances/%s/logs", name)
+func (im *instanceManager) GetRemoteInstanceLogs(nodeConfig *config.NodeConfig, name string, numLines int) (string, error) {
+	path := fmt.Sprintf("/api/v1/instances/%s/logs?lines=%d", name, numLines)
 	resp, err := im.makeRemoteRequest(nodeConfig, "GET", path, nil)
 	if err != nil {
 		return "", err

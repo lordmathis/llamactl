@@ -26,7 +26,7 @@ type InstanceManager interface {
 	StopInstance(name string) (*instance.Process, error)
 	EvictLRUInstance() error
 	RestartInstance(name string) (*instance.Process, error)
-	GetInstanceLogs(name string) (string, error)
+	GetInstanceLogs(name string, numLines int) (string, error)
 	Shutdown()
 }
 
@@ -39,7 +39,7 @@ type RemoteManager interface {
 	StartRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
 	StopRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
 	RestartRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
-	GetRemoteInstanceLogs(node *config.NodeConfig, name string) (string, error)
+	GetRemoteInstanceLogs(node *config.NodeConfig, name string, numLines int) (string, error)
 }
 
 type instanceManager struct {

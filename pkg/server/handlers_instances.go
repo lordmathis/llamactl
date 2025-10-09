@@ -308,23 +308,18 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 		}
 
 		lines := r.URL.Query().Get("lines")
-		if lines == "" {
-			lines = "-1"
+		numLines := -1 // Default to all lines
+		if lines != "" {
+			parsedLines, err := strconv.Atoi(lines)
+			if err != nil {
+				http.Error(w, "Invalid lines parameter: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			numLines = parsedLines
 		}
 
-		num_lines, err := strconv.Atoi(lines)
-		if err != nil {
-			http.Error(w, "Invalid lines parameter: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		inst, err := h.InstanceManager.GetInstance(name)
-		if err != nil {
-			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		logs, err := inst.GetLogs(num_lines)
+		// Use the instance manager which handles both local and remote instances
+		logs, err := h.InstanceManager.GetInstanceLogs(name, numLines)
 		if err != nil {
 			http.Error(w, "Failed to get logs: "+err.Error(), http.StatusInternalServerError)
 			return
