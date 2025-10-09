@@ -35,6 +35,12 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
       try {
         const fetchedNodes = await nodesApi.list()
         setNodes(fetchedNodes)
+
+        // Auto-select first node if none selected
+        const nodeNames = Object.keys(fetchedNodes)
+        if (nodeNames.length > 0 && (!formData.nodes || formData.nodes.length === 0)) {
+          onChange('nodes', [nodeNames[0]])
+        }
       } catch (error) {
         console.error('Failed to fetch nodes:', error)
       } finally {
@@ -43,6 +49,7 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
     }
 
     void fetchNodes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const nodeOptions = Object.keys(nodes).map(nodeName => ({
