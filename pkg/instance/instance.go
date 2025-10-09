@@ -171,6 +171,11 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 		return nil, fmt.Errorf("instance %s has no options set", i.Name)
 	}
 
+	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
+	if len(i.options.Nodes) > 0 {
+		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
+	}
+
 	var host string
 	var port int
 	switch i.options.BackendType {
