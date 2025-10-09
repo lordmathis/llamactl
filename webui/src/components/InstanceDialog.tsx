@@ -106,7 +106,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
     // Clean up undefined values to avoid sending empty fields
     const cleanOptions: CreateInstanceOptions = {};
     Object.entries(formData).forEach(([key, value]) => {
-      if (key === 'backend_options' && value && typeof value === 'object') {
+      if (key === 'backend_options' && value && typeof value === 'object' && !Array.isArray(value)) {
         // Handle backend_options specially - clean nested object
         const cleanBackendOptions: any = {};
         Object.entries(value).forEach(([backendKey, backendValue]) => {
@@ -118,7 +118,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
             cleanBackendOptions[backendKey] = backendValue;
           }
         });
-        
+
         // Only include backend_options if it has content
         if (Object.keys(cleanBackendOptions).length > 0) {
           (cleanOptions as any)[key] = cleanBackendOptions;
