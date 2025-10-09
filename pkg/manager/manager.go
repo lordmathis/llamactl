@@ -345,8 +345,18 @@ func (im *instanceManager) autoStartInstances() {
 		log.Printf("Auto-starting instance %s", inst.Name)
 		// Reset running state before starting (since Start() expects stopped instance)
 		inst.SetStatus(instance.Stopped)
-		if err := inst.Start(); err != nil {
-			log.Printf("Failed to auto-start instance %s: %v", inst.Name, err)
+
+		// Check if this is a remote instance
+		if node := im.getNodeForInstance(inst); node != nil {
+			// Remote instance - use StartRemoteInstance
+			if _, err := im.StartRemoteInstance(node, inst.Name); err != nil {
+				log.Printf("Failed to auto-start remote instance %s: %v", inst.Name, err)
+			}
+		} else {
+			// Local instance - call Start() directly
+			if err := inst.Start(); err != nil {
+				log.Printf("Failed to auto-start instance %s: %v", inst.Name, err)
+			}
 		}
 	}
 }
