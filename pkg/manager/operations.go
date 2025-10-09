@@ -62,11 +62,19 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 			return nil, fmt.Errorf("node %s not found", nodeName)
 		}
 
-		// Create the remote instance
-		inst, err := im.CreateRemoteInstance(nodeConfig, name, options)
+		// Create the remote instance on the remote node
+		remoteInst, err := im.CreateRemoteInstance(nodeConfig, name, options)
 		if err != nil {
 			return nil, err
 		}
+
+		// Create a local stub that preserves the Nodes field for tracking
+		// We keep the original options (with Nodes) so IsRemote() works correctly
+		inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, nil)
+
+		// Copy the status and creation time from the remote instance
+		inst.Status = remoteInst.Status
+		inst.Created = remoteInst.Created
 
 		// Add to local tracking maps (but don't count towards limits)
 		im.instances[name] = inst
@@ -137,24 +145,25 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.CreateI
 
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
-		updatedInst, err := im.UpdateRemoteInstance(node, name, options)
+		remoteInst, err := im.UpdateRemoteInstance(node, name, options)
 		if err != nil {
 			return nil, err
 		}
 
-		// Update local tracking
+		// Update the local instance's fields (preserving Nodes field)
 		im.mu.Lock()
-		im.instances[name] = updatedInst
+		inst.SetOptions(options) // Update options with the original (including Nodes)
+		inst.Status = remoteInst.Status
 		im.mu.Unlock()
 
 		// Persist the updated remote instance locally
 		im.mu.Lock()
 		defer im.mu.Unlock()
-		if err := im.persistInstance(updatedInst); err != nil {
+		if err := im.persistInstance(inst); err != nil {
 			return nil, fmt.Errorf("failed to persist updated remote instance %s: %w", name, err)
 		}
 
-		return updatedInst, nil
+		return inst, nil
 	}
 
 	if options == nil {
@@ -259,7 +268,17 @@ func (im *instanceManager) StartInstance(name string) (*instance.Process, error)
 
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
-		return im.StartRemoteInstance(node, name)
+		remoteInst, err := im.StartRemoteInstance(node, name)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update the local instance's status to match the remote
+		im.mu.Lock()
+		inst.Status = remoteInst.Status
+		im.mu.Unlock()
+
+		return inst, nil
 	}
 
 	if inst.IsRunning() {
@@ -318,7 +337,17 @@ func (im *instanceManager) StopInstance(name string) (*instance.Process, error) 
 
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
-		return im.StopRemoteInstance(node, name)
+		remoteInst, err := im.StopRemoteInstance(node, name)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update the local instance's status to match the remote
+		im.mu.Lock()
+		inst.Status = remoteInst.Status
+		im.mu.Unlock()
+
+		return inst, nil
 	}
 
 	if !inst.IsRunning() {
@@ -351,7 +380,17 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Process, erro
 
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
-		return im.RestartRemoteInstance(node, name)
+		remoteInst, err := im.RestartRemoteInstance(node, name)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update the local instance's status to match the remote
+		im.mu.Lock()
+		inst.Status = remoteInst.Status
+		im.mu.Unlock()
+
+		return inst, nil
 	}
 
 	inst, err := im.StopInstance(name)
