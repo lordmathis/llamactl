@@ -285,6 +285,14 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 		i.options = aux.Options
 	}
 
+	// Initialize fields that are not serialized
+	if i.timeProvider == nil {
+		i.timeProvider = realTimeProvider{}
+	}
+	if i.logger == nil && i.globalInstanceSettings != nil {
+		i.logger = NewInstanceLogger(i.Name, i.globalInstanceSettings.LogsDir)
+	}
+
 	return nil
 }
 
