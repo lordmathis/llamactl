@@ -123,8 +123,12 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
         if (Object.keys(cleanBackendOptions).length > 0) {
           (cleanOptions as any)[key] = cleanBackendOptions;
         }
-      } else if (value !== undefined && value !== null && (typeof value !== 'string' || value.trim() !== "")) {
-        // Handle arrays - don't include empty arrays
+      } else if (value !== undefined && value !== null) {
+        // Skip empty strings
+        if (typeof value === 'string' && value.trim() === "") {
+          return;
+        }
+        // Skip empty arrays
         if (Array.isArray(value) && value.length === 0) {
           return;
         }
