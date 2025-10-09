@@ -287,6 +287,10 @@ func (im *instanceManager) DeleteInstance(name string) error {
 		delete(im.instanceNodeMap, name)
 
 		// Delete the instance's config file if persistence is enabled
+		// Re-validate instance name for security (defense in depth)
+		if _, err := validation.ValidateInstanceName(name); err != nil {
+			return fmt.Errorf("invalid instance name for file deletion: %w", err)
+		}
 		instancePath := filepath.Join(im.instancesConfig.InstancesDir, name+".json")
 		if err := os.Remove(instancePath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("failed to delete config file for remote instance %s: %w", name, err)
@@ -306,6 +310,10 @@ func (im *instanceManager) DeleteInstance(name string) error {
 	delete(im.instances, name)
 
 	// Delete the instance's config file if persistence is enabled
+	// Re-validate instance name for security (defense in depth)
+	if _, err := validation.ValidateInstanceName(inst.Name); err != nil {
+		return fmt.Errorf("invalid instance name for file deletion: %w", err)
+	}
 	instancePath := filepath.Join(im.instancesConfig.InstancesDir, inst.Name+".json")
 	if err := os.Remove(instancePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to delete config file for instance %s: %w", inst.Name, err)
