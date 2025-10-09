@@ -698,6 +698,30 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#remote-node-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Remote Node Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Remote Node Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Node Configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#debugging-and-logs" class="md-nav__link">
     <span class="md-ellipsis">
       Debugging and Logs
@@ -890,6 +914,30 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#remote-node-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Remote Node Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Remote Node Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Node Configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#debugging-and-logs" class="md-nav__link">
     <span class="md-ellipsis">
       Debugging and Logs
@@ -1044,24 +1092,43 @@
 </code></pre></div></p>
 </li>
 </ol>
+<h2 id="remote-node-issues">Remote Node Issues<a class="headerlink" href="#remote-node-issues" title="Permanent link">&para;</a></h2>
+<h3 id="node-configuration">Node Configuration<a class="headerlink" href="#node-configuration" title="Permanent link">&para;</a></h3>
+<p><strong>Problem:</strong> Remote instances not appearing or cannot be managed</p>
+<p><strong>Solutions:</strong>
+1. <strong>Verify node configuration:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">local_node</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="w">  </span><span class="c1"># Must match a key in nodes map</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nt">nodes</span><span class="p">:</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">main</span><span class="p">:</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="nt">address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">     </span><span class="c1"># Empty for local node</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">worker1</span><span class="p">:</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="nt">address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://worker1.internal:8080&quot;</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secure-key&quot;</span><span class="w">  </span><span class="c1"># Must match worker1&#39;s management key</span>
+</code></pre></div></p>
+<ol>
+<li><strong>Test remote node connectivity:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer remote-node-key&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>http://remote-node:8080/api/v1/instances
+</code></pre></div></li>
+</ol>
 <h2 id="debugging-and-logs">Debugging and Logs<a class="headerlink" href="#debugging-and-logs" title="Permanent link">&para;</a></h2>
 <h3 id="viewing-instance-logs">Viewing Instance Logs<a class="headerlink" href="#viewing-instance-logs" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Get instance logs via API</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>curl<span class="w"> </span>http://localhost:8080/api/v1/instances/<span class="o">{</span>name<span class="o">}</span>/logs
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Or check log files directly</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>tail<span class="w"> </span>-f<span class="w"> </span>~/.local/share/llamactl/logs/<span class="o">{</span>instance-name<span class="o">}</span>.log
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Get instance logs via API</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>curl<span class="w"> </span>http://localhost:8080/api/v1/instances/<span class="o">{</span>name<span class="o">}</span>/logs
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># Or check log files directly</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>tail<span class="w"> </span>-f<span class="w"> </span>~/.local/share/llamactl/logs/<span class="o">{</span>instance-name<span class="o">}</span>.log
 </code></pre></div>
 <h3 id="enable-debug-logging">Enable Debug Logging<a class="headerlink" href="#enable-debug-logging" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">LLAMACTL_LOG_LEVEL</span><span class="o">=</span>debug
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>llamactl
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">LLAMACTL_LOG_LEVEL</span><span class="o">=</span>debug
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>llamactl
 </code></pre></div>
 <h2 id="getting-help">Getting Help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h2>
 <p>When reporting issues, include:</p>
 <ol>
 <li>
 <p><strong>System information:</strong>
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>llamactl<span class="w"> </span>--version
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>llamactl<span class="w"> </span>--version
 </code></pre></div></p>
 </li>
 <li>
@@ -1094,7 +1161,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">September 3, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 9, 2025</span>
   </span>
 
     

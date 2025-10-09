@@ -558,17 +558,17 @@
   
 </li>
         
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#command-line-options" class="md-nav__link">
+          <li class="md-nav__item">
+  <a href="#remote-node-configuration" class="md-nav__link">
     <span class="md-ellipsis">
-      Command Line Options
+      Remote Node Configuration
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -805,17 +805,17 @@
   
 </li>
         
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#command-line-options" class="md-nav__link">
+          <li class="md-nav__item">
+  <a href="#remote-node-configuration" class="md-nav__link">
     <span class="md-ellipsis">
-      Command Line Options
+      Remote Node Configuration
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -901,6 +901,10 @@
 <a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="w">  </span><span class="nt">inference_keys</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span><span class="w">             </span><span class="c1"># Keys for inference endpoints</span>
 <a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a><span class="w">  </span><span class="nt">require_management_auth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Require auth for management endpoints</span>
 <a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a><span class="w">  </span><span class="nt">management_keys</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span><span class="w">            </span><span class="c1"># Keys for management endpoints</span>
+<a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a>
+<a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a><span class="nt">local_node</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="w">               </span><span class="c1"># Name of the local node (default: &quot;main&quot;)</span>
+<a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a><span class="nt">nodes</span><span class="p">:</span><span class="w">                           </span><span class="c1"># Node configuration for multi-node deployment</span>
+<a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a><span class="w">  </span><span class="nt">main</span><span class="p">:</span><span class="w">                          </span><span class="c1"># Default local node (empty config)</span>
 </code></pre></div>
 <h2 id="configuration-files">Configuration Files<a class="headerlink" href="#configuration-files" title="Permanent link">&para;</a></h2>
 <h3 id="configuration-file-locations">Configuration File Locations<a class="headerlink" href="#configuration-file-locations" title="Permanent link">&para;</a></h3>
@@ -1040,16 +1044,29 @@
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">require_management_auth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">          </span><span class="c1"># Require API key for management endpoints (default: true)</span>
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">management_keys</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span><span class="w">                    </span><span class="c1"># List of valid management API keys</span>
 </code></pre></div>
-<p><strong>Environment Variables:</strong><br />
-- <code>LLAMACTL_REQUIRE_INFERENCE_AUTH</code> - Require auth for OpenAI endpoints (true/false)<br />
-- <code>LLAMACTL_INFERENCE_KEYS</code> - Comma-separated inference API keys<br />
-- <code>LLAMACTL_REQUIRE_MANAGEMENT_AUTH</code> - Require auth for management endpoints (true/false)<br />
-- <code>LLAMACTL_MANAGEMENT_KEYS</code> - Comma-separated management API keys  </p>
-<h2 id="command-line-options">Command Line Options<a class="headerlink" href="#command-line-options" title="Permanent link">&para;</a></h2>
-<p>View all available command line options:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>llamactl<span class="w"> </span>--help
+<p><strong>Environment Variables:</strong>
+- <code>LLAMACTL_REQUIRE_INFERENCE_AUTH</code> - Require auth for OpenAI endpoints (true/false)
+- <code>LLAMACTL_INFERENCE_KEYS</code> - Comma-separated inference API keys
+- <code>LLAMACTL_REQUIRE_MANAGEMENT_AUTH</code> - Require auth for management endpoints (true/false)
+- <code>LLAMACTL_MANAGEMENT_KEYS</code> - Comma-separated management API keys</p>
+<h3 id="remote-node-configuration">Remote Node Configuration<a class="headerlink" href="#remote-node-configuration" title="Permanent link">&para;</a></h3>
+<p>llamactl supports remote node deployments. Configure remote nodes to deploy instances on remote hosts and manage them centrally.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">local_node</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="w">               </span><span class="c1"># Name of the local node (default: &quot;main&quot;)</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nt">nodes</span><span class="p">:</span><span class="w">                           </span><span class="c1"># Node configuration map</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">main</span><span class="p">:</span><span class="w">                          </span><span class="c1"># Local node (empty address means local)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nt">address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                  </span><span class="c1"># Not used for local node</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                  </span><span class="c1"># Not used for local node</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nt">worker1</span><span class="p">:</span><span class="w">                       </span><span class="c1"># Remote worker node</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="nt">address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://192.168.1.10:8080&quot;</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;worker1-api-key&quot;</span><span class="w">   </span><span class="c1"># Management API key for authentication</span>
 </code></pre></div>
-<p>You can also override configuration using command line flags when starting llamactl.</p>
+<p><strong>Node Configuration Fields:</strong>
+- <code>local_node</code>: Specifies which node in the <code>nodes</code> map represents the local node
+- <code>nodes</code>: Map of node configurations
+  - <code>address</code>: HTTP/HTTPS URL of the remote node (empty for local node)
+  - <code>api_key</code>: Management API key for authenticating with the remote node</p>
+<p><strong>Environment Variables:</strong>
+- <code>LLAMACTL_LOCAL_NODE</code> - Name of the local node</p>
 
 
 
@@ -1070,7 +1087,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 4, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 9, 2025</span>
   </span>
 
     
