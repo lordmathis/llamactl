@@ -69,6 +69,7 @@ plugins:
 
 hooks:
   - docs/readme_sync.py
+  - docs/fix_line_endings.py
 
 extra:
   version:
