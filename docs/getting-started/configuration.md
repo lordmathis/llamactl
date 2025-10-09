@@ -70,6 +70,10 @@ auth:
   inference_keys: []             # Keys for inference endpoints
   require_management_auth: true  # Require auth for management endpoints
   management_keys: []            # Keys for management endpoints
+
+local_node: "main"               # Name of the local node (default: "main")
+nodes:                           # Node configuration for multi-node deployment
+  main:                          # Default local node (empty config)
 ```
 
 ## Configuration Files
@@ -235,18 +239,32 @@ auth:
   management_keys: []                    # List of valid management API keys
 ```
 
-**Environment Variables:**  
-- `LLAMACTL_REQUIRE_INFERENCE_AUTH` - Require auth for OpenAI endpoints (true/false)  
-- `LLAMACTL_INFERENCE_KEYS` - Comma-separated inference API keys  
-- `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)  
-- `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys  
+**Environment Variables:**
+- `LLAMACTL_REQUIRE_INFERENCE_AUTH` - Require auth for OpenAI endpoints (true/false)
+- `LLAMACTL_INFERENCE_KEYS` - Comma-separated inference API keys
+- `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)
+- `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys
 
-## Command Line Options
+### Remote Node Configuration
 
-View all available command line options:
+llamactl supports remote node deployments. Configure remote nodes to deploy instances on remote hosts and manage them centrally.
 
-```bash
-llamactl --help
+```yaml
+local_node: "main"               # Name of the local node (default: "main")
+nodes:                           # Node configuration map
+  main:                          # Local node (empty address means local)
+    address: ""                  # Not used for local node
+    api_key: ""                  # Not used for local node
+  worker1:                       # Remote worker node
+    address: "http://192.168.1.10:8080"
+    api_key: "worker1-api-key"   # Management API key for authentication
 ```
 
-You can also override configuration using command line flags when starting llamactl.
+**Node Configuration Fields:**
+- `local_node`: Specifies which node in the `nodes` map represents the local node
+- `nodes`: Map of node configurations
+  - `address`: HTTP/HTTPS URL of the remote node (empty for local node)
+  - `api_key`: Management API key for authenticating with the remote node
+
+**Environment Variables:**
+- `LLAMACTL_LOCAL_NODE` - Name of the local node

@@ -126,6 +126,7 @@ POST /api/v1/instances/{name}
 - `on_demand_start`: Start instance when receiving requests
 - `idle_timeout`: Idle timeout in minutes
 - `environment`: Environment variables as key-value pairs
+- `nodes`: Array with single node name to deploy the instance to (for remote deployments)
 
 See [Managing Instances](managing-instances.md) for complete configuration options.
 
@@ -403,6 +404,38 @@ curl -X POST -H "Authorization: Bearer your-api-key" \
 # Delete instance
 curl -X DELETE -H "Authorization: Bearer your-api-key" \
   http://localhost:8080/api/v1/instances/my-model
+```
+
+### Remote Node Instance Example
+
+```bash
+# Create instance on specific remote node
+curl -X POST http://localhost:8080/api/v1/instances/remote-model \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key" \
+  -d '{
+    "backend_type": "llama_cpp",
+    "backend_options": {
+      "model": "/models/llama-2-7b.gguf",
+      "gpu_layers": 32
+    },
+    "nodes": ["worker1"]
+  }'
+
+# Check status of remote instance
+curl -H "Authorization: Bearer your-api-key" \
+  http://localhost:8080/api/v1/instances/remote-model
+
+# Use remote instance with OpenAI-compatible API
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-inference-api-key" \
+  -d '{
+    "model": "remote-model",
+    "messages": [
+      {"role": "user", "content": "Hello from remote node!"}
+    ]
+  }'
 ```
 
 ### Using the Proxy Endpoint

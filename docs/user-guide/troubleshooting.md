@@ -125,6 +125,30 @@ This helps determine if the issue is with llamactl or with the underlying llama.
      http://localhost:8080/api/v1/instances
    ```
 
+## Remote Node Issues
+
+### Node Configuration
+
+**Problem:** Remote instances not appearing or cannot be managed
+
+**Solutions:**
+1. **Verify node configuration:**
+   ```yaml
+   local_node: "main"  # Must match a key in nodes map
+   nodes:
+     main:
+       address: ""     # Empty for local node
+     worker1:
+       address: "http://worker1.internal:8080"
+       api_key: "secure-key"  # Must match worker1's management key
+   ```
+
+2. **Test remote node connectivity:**
+   ```bash
+   curl -H "Authorization: Bearer remote-node-key" \
+     http://remote-node:8080/api/v1/instances
+   ```
+
 ## Debugging and Logs
 
 ### Viewing Instance Logs

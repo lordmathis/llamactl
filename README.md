@@ -23,7 +23,12 @@
 ### ⚡ Smart Operations
 - **Instance Monitoring**: Health checks, auto-restart, log management
 - **Smart Resource Management**: Idle timeout, LRU eviction, and configurable instance limits
-- **Environment Variables**: Set custom environment variables per instance for advanced configuration  
+- **Environment Variables**: Set custom environment variables per instance for advanced configuration
+
+### 🔗 Remote Instance Deployment
+- **Remote Node Support**: Deploy instances on remote hosts
+- **Central Management**: Manage remote instances from a single dashboard
+- **Seamless Routing**: Automatic request routing to remote instances  
 
 ![Dashboard Screenshot](docs/images/dashboard.png)
 
