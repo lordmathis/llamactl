@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type InstanceLogger struct {
+type Logger struct {
 	name        string
 	logDir      string
 	logFile     *os.File
@@ -18,15 +18,15 @@ type InstanceLogger struct {
 	mu          sync.RWMutex
 }
 
-func NewInstanceLogger(name string, logDir string) *InstanceLogger {
-	return &InstanceLogger{
+func NewInstanceLogger(name string, logDir string) *Logger {
+	return &Logger{
 		name:   name,
 		logDir: logDir,
 	}
 }
 
 // Create creates and opens the log files for stdout and stderr
-func (i *InstanceLogger) Create() error {
+func (i *Logger) Create() error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -57,7 +57,7 @@ func (i *InstanceLogger) Create() error {
 }
 
 // GetLogs retrieves the last n lines of logs from the instance
-func (i *InstanceLogger) GetLogs(num_lines int) (string, error) {
+func (i *Logger) GetLogs(num_lines int) (string, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
@@ -98,7 +98,7 @@ func (i *InstanceLogger) GetLogs(num_lines int) (string, error) {
 }
 
 // closeLogFile closes the log files
-func (i *InstanceLogger) Close() {
+func (i *Logger) Close() {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -111,7 +111,7 @@ func (i *InstanceLogger) Close() {
 }
 
 // readOutput reads from the given reader and writes lines to the log file
-func (i *InstanceLogger) readOutput(reader io.ReadCloser) {
+func (i *Logger) readOutput(reader io.ReadCloser) {
 	defer reader.Close()
 
 	scanner := bufio.NewScanner(reader)

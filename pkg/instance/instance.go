@@ -44,7 +44,7 @@ type Process struct {
 	Created int64 `json:"created,omitempty"` // Unix timestamp when the instance was created
 
 	// Logging file
-	logger *InstanceLogger `json:"-"`
+	logger *Logger `json:"-"`
 
 	// internal
 	cmd      *exec.Cmd              `json:"-"` // Command to run the instance
