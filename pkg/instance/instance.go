@@ -8,12 +8,9 @@ import (
 	"llamactl/pkg/backends"
 	"llamactl/pkg/config"
 	"log"
-	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os/exec"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -46,23 +43,24 @@ type Process struct {
 	// Logging file
 	logger *Logger `json:"-"`
 
+	// Proxy component
+	proxy *Proxy `json:"-"` // HTTP proxy and request tracking
+
 	// internal
-	cmd      *exec.Cmd              `json:"-"` // Command to run the instance
-	ctx      context.Context        `json:"-"` // Context for managing the instance lifecycle
-	cancel   context.CancelFunc     `json:"-"` // Function to cancel the context
-	stdout   io.ReadCloser          `json:"-"` // Standard output stream
-	stderr   io.ReadCloser          `json:"-"` // Standard error stream
-	mu       sync.RWMutex           `json:"-"` // RWMutex for better read/write separation
-	restarts int                    `json:"-"` // Number of restarts
-	proxy    *httputil.ReverseProxy `json:"-"` // Reverse proxy for this instance
+	cmd      *exec.Cmd          `json:"-"` // Command to run the instance
+	ctx      context.Context    `json:"-"` // Context for managing the instance lifecycle
+	cancel   context.CancelFunc `json:"-"` // Function to cancel the context
+	stdout   io.ReadCloser      `json:"-"` // Standard output stream
+	stderr   io.ReadCloser      `json:"-"` // Standard error stream
+	mu       sync.RWMutex       `json:"-"` // RWMutex for better read/write separation
+	restarts int                `json:"-"` // Number of restarts
 
 	// Restart control
 	restartCancel context.CancelFunc `json:"-"` // Cancel function for pending restarts
 	monitorDone   chan struct{}      `json:"-"` // Channel to signal monitor goroutine completion
 
-	// Timeout management
-	lastRequestTime atomic.Int64 // Unix timestamp of last request
-	timeProvider    TimeProvider `json:"-"` // Time provider for testing
+	// Time provider for testing (kept for backward compatibility during refactor)
+	timeProvider TimeProvider `json:"-"` // Time provider for testing
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
@@ -73,7 +71,7 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 	// Create the instance logger
 	logger := NewInstanceLogger(name, globalInstanceSettings.LogsDir)
 
-	return &Process{
+	instance := &Process{
 		Name:                   name,
 		options:                options,
 		globalInstanceSettings: globalInstanceSettings,
@@ -84,6 +82,11 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 		Status:                 Stopped,
 		onStatusChange:         onStatusChange,
 	}
+
+	// Create Proxy component
+	instance.proxy = NewProxy(instance)
+
+	return instance
 }
 
 func (i *Process) GetOptions() *CreateInstanceOptions {
@@ -149,88 +152,27 @@ func (i *Process) SetOptions(options *CreateInstanceOptions) {
 	options.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
 
 	i.options = options
+
 	// Clear the proxy so it gets recreated with new options
-	i.proxy = nil
+	if i.proxy != nil {
+		i.proxy.clearProxy()
+	}
 }
 
 // SetTimeProvider sets a custom time provider for testing
 func (i *Process) SetTimeProvider(tp TimeProvider) {
 	i.timeProvider = tp
+	if i.proxy != nil {
+		i.proxy.SetTimeProvider(tp)
+	}
 }
 
-// GetProxy returns the reverse proxy for this instance, creating it if needed
+// GetProxy returns the reverse proxy for this instance, delegating to Proxy component
 func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	if i.proxy != nil {
-		return i.proxy, nil
+	if i.proxy == nil {
+		return nil, fmt.Errorf("instance %s has no proxy component", i.Name)
 	}
-
-	if i.options == nil {
-		return nil, fmt.Errorf("instance %s has no options set", i.Name)
-	}
-
-	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
-	if len(i.options.Nodes) > 0 {
-		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
-	}
-
-	var host string
-	var port int
-	switch i.options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if i.options.LlamaServerOptions != nil {
-			host = i.options.LlamaServerOptions.Host
-			port = i.options.LlamaServerOptions.Port
-		}
-	case backends.BackendTypeMlxLm:
-		if i.options.MlxServerOptions != nil {
-			host = i.options.MlxServerOptions.Host
-			port = i.options.MlxServerOptions.Port
-		}
-	case backends.BackendTypeVllm:
-		if i.options.VllmServerOptions != nil {
-			host = i.options.VllmServerOptions.Host
-			port = i.options.VllmServerOptions.Port
-		}
-	}
-
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", host, port))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", i.Name, err)
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
-
-	var responseHeaders map[string]string
-	switch i.options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		responseHeaders = i.globalBackendSettings.LlamaCpp.ResponseHeaders
-	case backends.BackendTypeVllm:
-		responseHeaders = i.globalBackendSettings.VLLM.ResponseHeaders
-	case backends.BackendTypeMlxLm:
-		responseHeaders = i.globalBackendSettings.MLX.ResponseHeaders
-	}
-	proxy.ModifyResponse = func(resp *http.Response) error {
-		// Remove CORS headers from llama-server response to avoid conflicts
-		// llamactl will add its own CORS headers
-		resp.Header.Del("Access-Control-Allow-Origin")
-		resp.Header.Del("Access-Control-Allow-Methods")
-		resp.Header.Del("Access-Control-Allow-Headers")
-		resp.Header.Del("Access-Control-Allow-Credentials")
-		resp.Header.Del("Access-Control-Max-Age")
-		resp.Header.Del("Access-Control-Expose-Headers")
-
-		for key, value := range responseHeaders {
-			resp.Header.Set(key, value)
-		}
-		return nil
-	}
-
-	i.proxy = proxy
-
-	return i.proxy, nil
+	return i.proxy.GetProxy()
 }
 
 // MarshalJSON implements json.Marshaler for Instance
@@ -296,6 +238,9 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 	}
 	if i.logger == nil && i.globalInstanceSettings != nil {
 		i.logger = NewInstanceLogger(i.Name, i.globalInstanceSettings.LogsDir)
+	}
+	if i.proxy == nil {
+		i.proxy = NewProxy(i)
 	}
 
 	return nil

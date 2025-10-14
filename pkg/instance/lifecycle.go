@@ -36,7 +36,9 @@ func (i *Process) Start() error {
 	}
 
 	// Initialize last request time to current time when starting
-	i.lastRequestTime.Store(i.timeProvider.Now().Unix())
+	if i.proxy != nil {
+		i.proxy.UpdateLastRequestTime()
+	}
 
 	// Create context before building command (needed for CommandContext)
 	i.ctx, i.cancel = context.WithCancel(context.Background())
@@ -111,9 +113,6 @@ func (i *Process) Stop() error {
 	// Set status to stopped first to signal intentional stop
 	i.SetStatus(Stopped)
 
-	// Clean up the proxy
-	i.proxy = nil
-
 	// Get the monitor done channel before releasing the lock
 	monitorDone := i.monitorDone
 
@@ -159,8 +158,13 @@ func (i *Process) Stop() error {
 	return nil
 }
 
+// LastRequestTime returns the last request time as a Unix timestamp
+// Delegates to the Proxy component
 func (i *Process) LastRequestTime() int64 {
-	return i.lastRequestTime.Load()
+	if i.proxy == nil {
+		return 0
+	}
+	return i.proxy.LastRequestTime()
 }
 
 func (i *Process) WaitForHealthy(timeout int) error {
