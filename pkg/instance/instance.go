@@ -311,3 +311,7 @@ func (i *Process) IsRemote() bool {
 
 	return len(i.options.Nodes) > 0
 }
+
+func (i *Process) GetLogs(num_lines int) (string, error) {
+	return i.logger.GetLogs(num_lines)
+}
