@@ -179,35 +179,8 @@ func (i *Process) WaitForHealthy(timeout int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	// Get instance options to build the health check URL
-	opts := i.GetOptions()
-	if opts == nil {
-		return fmt.Errorf("instance %s has no options set", i.Name)
-	}
-
-	// Build the health check URL directly
-	var host string
-	var port int
-	switch opts.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if opts.LlamaServerOptions != nil {
-			host = opts.LlamaServerOptions.Host
-			port = opts.LlamaServerOptions.Port
-		}
-	case backends.BackendTypeMlxLm:
-		if opts.MlxServerOptions != nil {
-			host = opts.MlxServerOptions.Host
-			port = opts.MlxServerOptions.Port
-		}
-	case backends.BackendTypeVllm:
-		if opts.VllmServerOptions != nil {
-			host = opts.VllmServerOptions.Host
-			port = opts.VllmServerOptions.Port
-		}
-	}
-	if host == "" {
-		host = "localhost"
-	}
+	// Get host/port from process
+	host, port := i.getBackendHostPort()
 	healthURL := fmt.Sprintf("http://%s:%d/health", host, port)
 
 	// Create a dedicated HTTP client for health checks

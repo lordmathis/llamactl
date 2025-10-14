@@ -14,18 +14,6 @@ import (
 	"time"
 )
 
-// TimeProvider interface allows for testing with mock time
-type TimeProvider interface {
-	Now() time.Time
-}
-
-// realTimeProvider implements TimeProvider using the actual time
-type realTimeProvider struct{}
-
-func (realTimeProvider) Now() time.Time {
-	return time.Now()
-}
-
 // Process represents a running instance of the llama server
 type Process struct {
 	Name                   string                 `json:"name"`
@@ -58,9 +46,6 @@ type Process struct {
 	// Restart control
 	restartCancel context.CancelFunc `json:"-"` // Cancel function for pending restarts
 	monitorDone   chan struct{}      `json:"-"` // Channel to signal monitor goroutine completion
-
-	// Time provider for testing (kept for backward compatibility during refactor)
-	timeProvider TimeProvider `json:"-"` // Time provider for testing
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
@@ -77,7 +62,6 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 		globalInstanceSettings: globalInstanceSettings,
 		globalBackendSettings:  globalBackendSettings,
 		logger:                 logger,
-		timeProvider:           realTimeProvider{},
 		Created:                time.Now().Unix(),
 		Status:                 Stopped,
 		onStatusChange:         onStatusChange,
@@ -160,8 +144,8 @@ func (i *Process) SetOptions(options *CreateInstanceOptions) {
 }
 
 // SetTimeProvider sets a custom time provider for testing
+// Delegates to the Proxy component
 func (i *Process) SetTimeProvider(tp TimeProvider) {
-	i.timeProvider = tp
 	if i.proxy != nil {
 		i.proxy.SetTimeProvider(tp)
 	}
@@ -233,9 +217,6 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 	}
 
 	// Initialize fields that are not serialized
-	if i.timeProvider == nil {
-		i.timeProvider = realTimeProvider{}
-	}
 	if i.logger == nil && i.globalInstanceSettings != nil {
 		i.logger = NewInstanceLogger(i.Name, i.globalInstanceSettings.LogsDir)
 	}
@@ -259,4 +240,41 @@ func (i *Process) IsRemote() bool {
 
 func (i *Process) GetLogs(num_lines int) (string, error) {
 	return i.logger.GetLogs(num_lines)
+}
+
+// getBackendHostPort extracts the host and port from instance options
+// Returns the configured host and port for the backend
+func (i *Process) getBackendHostPort() (string, int) {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	if i.options == nil {
+		return "localhost", 0
+	}
+
+	var host string
+	var port int
+	switch i.options.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		if i.options.LlamaServerOptions != nil {
+			host = i.options.LlamaServerOptions.Host
+			port = i.options.LlamaServerOptions.Port
+		}
+	case backends.BackendTypeMlxLm:
+		if i.options.MlxServerOptions != nil {
+			host = i.options.MlxServerOptions.Host
+			port = i.options.MlxServerOptions.Port
+		}
+	case backends.BackendTypeVllm:
+		if i.options.VllmServerOptions != nil {
+			host = i.options.VllmServerOptions.Host
+			port = i.options.VllmServerOptions.Port
+		}
+	}
+
+	if host == "" {
+		host = "localhost"
+	}
+
+	return host, port
 }

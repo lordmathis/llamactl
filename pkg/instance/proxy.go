@@ -8,7 +8,20 @@ import (
 	"net/url"
 	"sync"
 	"sync/atomic"
+	"time"
 )
+
+// TimeProvider interface allows for testing with mock time
+type TimeProvider interface {
+	Now() time.Time
+}
+
+// realTimeProvider implements TimeProvider using the actual time
+type realTimeProvider struct{}
+
+func (realTimeProvider) Now() time.Time {
+	return time.Now()
+}
 
 // Proxy manages HTTP reverse proxy and request tracking for an instance.
 type Proxy struct {
@@ -54,30 +67,8 @@ func (p *Proxy) buildProxy() (*httputil.ReverseProxy, error) {
 		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", p.process.Name)
 	}
 
-	// Get host/port from options
-	var host string
-	var port int
-	switch options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if options.LlamaServerOptions != nil {
-			host = options.LlamaServerOptions.Host
-			port = options.LlamaServerOptions.Port
-		}
-	case backends.BackendTypeMlxLm:
-		if options.MlxServerOptions != nil {
-			host = options.MlxServerOptions.Host
-			port = options.MlxServerOptions.Port
-		}
-	case backends.BackendTypeVllm:
-		if options.VllmServerOptions != nil {
-			host = options.VllmServerOptions.Host
-			port = options.VllmServerOptions.Port
-		}
-	}
-
-	if host == "" {
-		host = "localhost"
-	}
+	// Get host/port from process
+	host, port := p.process.getBackendHostPort()
 
 	targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", host, port))
 	if err != nil {
