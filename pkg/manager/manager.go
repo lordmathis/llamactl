@@ -49,6 +49,7 @@ type instanceManager struct {
 	ports            map[int]bool
 	instancesConfig  config.InstancesConfig
 	backendsConfig   config.BackendConfig
+	localNodeName    string // Name of the local node
 
 	// Timeout checker
 	timeoutChecker *time.Ticker
@@ -63,7 +64,7 @@ type instanceManager struct {
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
-func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig, nodesConfig map[string]config.NodeConfig) InstanceManager {
+func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig, nodesConfig map[string]config.NodeConfig, localNodeName string) InstanceManager {
 	if instancesConfig.TimeoutCheckInterval <= 0 {
 		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
 	}
@@ -81,6 +82,7 @@ func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig con
 		ports:            make(map[int]bool),
 		instancesConfig:  instancesConfig,
 		backendsConfig:   backendsConfig,
+		localNodeName:    localNodeName,
 
 		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
 		shutdownChan:   make(chan struct{}),
@@ -274,7 +276,8 @@ func (im *instanceManager) loadInstance(name, path string) error {
 	options := persistedInstance.GetOptions()
 
 	// Check if this is a remote instance
-	isRemote := options != nil && len(options.Nodes) > 0
+	// An instance is remote if Nodes is specified AND the first node is not the local node
+	isRemote := options != nil && len(options.Nodes) > 0 && options.Nodes[0] != im.localNodeName
 
 	var statusCallback func(oldStatus, newStatus instance.Status)
 	if !isRemote {
@@ -285,7 +288,7 @@ func (im *instanceManager) loadInstance(name, path string) error {
 	}
 
 	// Create new inst using NewInstance (handles validation, defaults, setup)
-	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, statusCallback)
+	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
 	inst.Created = persistedInstance.Created

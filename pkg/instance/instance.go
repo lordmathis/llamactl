@@ -27,6 +27,7 @@ type Instance struct {
 	// Global configuration (read-only, no lock needed)
 	globalInstanceSettings *config.InstancesConfig
 	globalBackendSettings  *config.BackendConfig
+	localNodeName          string                 `json:"-"` // Name of the local node for remote detection
 
 	// Components (can be nil for remote instances or when stopped)
 	logger *logger `json:"-"` // nil for remote instances
@@ -47,7 +48,7 @@ type Instance struct {
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, opts *Options, onStatusChange func(oldStatus, newStatus Status)) *Instance {
+func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, opts *Options, localNodeName string, onStatusChange func(oldStatus, newStatus Status)) *Instance {
 	// Validate and copy options
 	opts.ValidateAndApplyDefaults(name, globalInstanceSettings)
 
@@ -66,6 +67,7 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 		options:                options,
 		globalInstanceSettings: globalInstanceSettings,
 		globalBackendSettings:  globalBackendSettings,
+		localNodeName:          localNodeName,
 		logger:                 logger,
 		Created:                time.Now().Unix(),
 		status:                 status,
@@ -157,6 +159,11 @@ func (i *Instance) SetOptions(opts *Options) {
 		return
 	}
 
+	// Preserve the original nodes to prevent changing instance location
+	if i.options != nil && i.options.Get() != nil && i.options.Get().Nodes != nil {
+		opts.Nodes = i.options.Get().Nodes
+	}
+
 	// Validate and copy options
 	opts.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
 
@@ -183,6 +190,13 @@ func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 	if i.proxy == nil {
 		return nil, fmt.Errorf("instance %s has no proxy component", i.Name)
 	}
+
+	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
+	opts := i.GetOptions()
+	if opts != nil && len(opts.Nodes) > 0 && opts.Nodes[0] != i.localNodeName {
+		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
+	}
+
 	return i.proxy.GetProxy()
 }
 
@@ -284,7 +298,18 @@ func (i *Instance) IsRemote() bool {
 		return false
 	}
 
-	return len(opts.Nodes) > 0
+	// If no nodes specified, it's a local instance
+	if len(opts.Nodes) == 0 {
+		return false
+	}
+
+	// If the first node is the local node, treat it as a local instance
+	if opts.Nodes[0] == i.localNodeName {
+		return false
+	}
+
+	// Otherwise, it's a remote instance
+	return true
 }
 
 func (i *Instance) GetLogs(num_lines int) (string, error) {

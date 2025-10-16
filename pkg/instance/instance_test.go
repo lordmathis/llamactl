@@ -44,7 +44,7 @@ func TestNewInstance(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	if inst.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
@@ -115,7 +115,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 	opts := instance.GetOptions()
 
 	// Check that explicit values override defaults
@@ -164,7 +164,7 @@ func TestSetOptions(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
 
 	// Update options
 	newOptions := &instance.Options{
@@ -188,6 +188,58 @@ func TestSetOptions(t *testing.T) {
 	// Check that defaults are still applied
 	if opts.AutoRestart == nil || !*opts.AutoRestart {
 		t.Error("Expected AutoRestart to be true (default)")
+	}
+}
+
+func TestSetOptions_PreservesNodes(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+			Args:    []string{},
+		},
+	}
+
+	globalSettings := &config.InstancesConfig{
+		LogsDir:             "/tmp/test",
+		DefaultAutoRestart:  true,
+		DefaultMaxRestarts:  3,
+		DefaultRestartDelay: 5,
+	}
+
+	// Create instance with initial nodes
+	initialOptions := &instance.CreateInstanceOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		Nodes:       []string{"worker1"},
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+			Port:  8080,
+		},
+	}
+
+	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
+
+	// Try to update with different nodes
+	updatedOptions := &instance.CreateInstanceOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		Nodes:       []string{"worker2"}, // Attempt to change node
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Model: "/path/to/new-model.gguf",
+			Port:  8081,
+		},
+	}
+
+	inst.SetOptions(updatedOptions)
+	opts := inst.GetOptions()
+
+	// Nodes should remain unchanged
+	if len(opts.Nodes) != 1 || opts.Nodes[0] != "worker1" {
+		t.Errorf("Expected nodes to remain ['worker1'], got %v", opts.Nodes)
+	}
+
+	// Other options should be updated
+	if opts.LlamaServerOptions.Model != "/path/to/new-model.gguf" {
+		t.Errorf("Expected updated model '/path/to/new-model.gguf', got %q", opts.LlamaServerOptions.Model)
 	}
 }
 
@@ -222,7 +274,7 @@ func TestGetProxy(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	// Get proxy for the first time
 	proxy1, err := inst.GetProxy()
@@ -277,7 +329,7 @@ func TestMarshalJSON(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	data, err := json.Marshal(instance)
 	if err != nil {
@@ -446,7 +498,7 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 			// Mock onStatusChange function
 			mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-			instance := instance.NewInstance("test", backendConfig, globalSettings, options, mockOnStatusChange)
+			instance := instance.NewInstance("test", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 			opts := instance.GetOptions()
 
 			if opts.MaxRestarts == nil {

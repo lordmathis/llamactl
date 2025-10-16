@@ -261,7 +261,7 @@ nodes:                           # Node configuration map
 ```
 
 **Node Configuration Fields:**
-- `local_node`: Specifies which node in the `nodes` map represents the local node
+- `local_node`: Specifies which node in the `nodes` map represents the local node. Must match exactly what other nodes call this node.
 - `nodes`: Map of node configurations
   - `address`: HTTP/HTTPS URL of the remote node (empty for local node)
   - `api_key`: Management API key for authenticating with the remote node
