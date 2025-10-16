@@ -143,7 +143,11 @@ This helps determine if the issue is with llamactl or with the underlying llama.
        api_key: "secure-key"  # Must match worker1's management key
    ```
 
-2. **Test remote node connectivity:**
+2. **Check node name consistency:**
+   - `local_node` on each node must match what other nodes call it
+   - Node names are case-sensitive
+
+3. **Test remote node connectivity:**
    ```bash
    curl -H "Authorization: Bearer remote-node-key" \
      http://remote-node:8080/api/v1/instances
