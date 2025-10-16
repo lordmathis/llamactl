@@ -162,6 +162,7 @@ go build -o llamactl ./cmd/server
 For deployments with remote nodes:
 - Install llamactl on each node using any of the methods above
 - Configure API keys for authentication between nodes
+- Ensure node names are consistent across all configurations
 
 ## Verification
 

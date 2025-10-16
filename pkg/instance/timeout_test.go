@@ -56,7 +56,7 @@ func TestUpdateLastRequestTime(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	// Test that UpdateLastRequestTime doesn't panic
 	inst.UpdateLastRequestTime()
@@ -88,7 +88,7 @@ func TestShouldTimeout_NotRunning(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	// Instance is not running, should not timeout regardless of configuration
 	if inst.ShouldTimeout() {
@@ -132,7 +132,7 @@ func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
 				},
 			}
 
-			inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+			inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 			// Simulate running state
 			inst.SetStatus(instance.Running)
 
@@ -169,7 +169,7 @@ func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 	inst.SetStatus(instance.Running)
 
 	// Update last request time to now
@@ -207,7 +207,7 @@ func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 	inst.SetStatus(instance.Running)
 
 	// Use MockTimeProvider to simulate old last request time
@@ -263,7 +263,7 @@ func TestTimeoutConfiguration_Validation(t *testing.T) {
 			// Mock onStatusChange function
 			mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-			inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+			inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 			opts := inst.GetOptions()
 
 			if opts.IdleTimeout == nil || *opts.IdleTimeout != tt.expectedTimeout {

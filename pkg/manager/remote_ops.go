@@ -10,31 +10,10 @@ import (
 	"net/http"
 )
 
-// stripNodesFromOptions creates a copy of the instance options without the Nodes field
-// to prevent routing loops when sending requests to remote nodes
-func (im *instanceManager) stripNodesFromOptions(options *instance.CreateInstanceOptions) *instance.CreateInstanceOptions {
-	if options == nil {
-		return nil
-	}
-
-	// Create a copy of the options struct
-	optionsCopy := *options
-
-	// Clear the Nodes field to prevent the remote node from trying to route further
-	optionsCopy.Nodes = nil
-
-	return &optionsCopy
-}
-
 // makeRemoteRequest is a helper function to make HTTP requests to a remote node
 func (im *instanceManager) makeRemoteRequest(nodeConfig *config.NodeConfig, method, path string, body any) (*http.Response, error) {
 	var reqBody io.Reader
 	if body != nil {
-		// Strip nodes from CreateInstanceOptions to prevent routing loops
-		if options, ok := body.(*instance.CreateInstanceOptions); ok {
-			body = im.stripNodesFromOptions(options)
-		}
-
 		jsonData, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request body: %w", err)

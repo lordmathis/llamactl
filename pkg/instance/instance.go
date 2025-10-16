@@ -35,6 +35,7 @@ type Process struct {
 	options                *CreateInstanceOptions `json:"-"`
 	globalInstanceSettings *config.InstancesConfig
 	globalBackendSettings  *config.BackendConfig
+	localNodeName          string                 `json:"-"` // Name of the local node for remote detection
 
 	// Status
 	Status         InstanceStatus `json:"status"`
@@ -66,7 +67,7 @@ type Process struct {
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus InstanceStatus)) *Process {
+func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, options *CreateInstanceOptions, localNodeName string, onStatusChange func(oldStatus, newStatus InstanceStatus)) *Process {
 	// Validate and copy options
 	options.ValidateAndApplyDefaults(name, globalInstanceSettings)
 
@@ -78,6 +79,7 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 		options:                options,
 		globalInstanceSettings: globalInstanceSettings,
 		globalBackendSettings:  globalBackendSettings,
+		localNodeName:          localNodeName,
 		logger:                 logger,
 		timeProvider:           realTimeProvider{},
 		Created:                time.Now().Unix(),
@@ -172,7 +174,7 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 	}
 
 	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
-	if len(i.options.Nodes) > 0 {
+	if len(i.options.Nodes) > 0 && i.options.Nodes[0] != i.localNodeName {
 		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
 	}
 
@@ -309,5 +311,16 @@ func (i *Process) IsRemote() bool {
 		return false
 	}
 
-	return len(i.options.Nodes) > 0
+	// If no nodes specified, it's a local instance
+	if len(i.options.Nodes) == 0 {
+		return false
+	}
+
+	// If the first node is the local node, treat it as a local instance
+	if i.options.Nodes[0] == i.localNodeName {
+		return false
+	}
+
+	// Otherwise, it's a remote instance
+	return true
 }

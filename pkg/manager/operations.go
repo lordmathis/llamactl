@@ -99,7 +99,8 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 	}
 
 	// Check if this is a remote instance
-	isRemote := len(options.Nodes) > 0
+	// An instance is remote if Nodes is specified AND the first node is not the local node
+	isRemote := len(options.Nodes) > 0 && options.Nodes[0] != im.localNodeName
 	var nodeConfig *config.NodeConfig
 
 	if isRemote {
@@ -119,7 +120,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 
 		// Create a local stub that preserves the Nodes field for tracking
 		// We keep the original options (with Nodes) so IsRemote() works correctly
-		inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, nil)
+		inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, nil)
 
 		// Update the local stub with all remote data (preserving Nodes)
 		im.updateLocalInstanceFromRemote(inst, remoteInst)
@@ -152,7 +153,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		im.onStatusChange(name, oldStatus, newStatus)
 	}
 
-	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, statusCallback)
+	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, statusCallback)
 	im.instances[inst.Name] = inst
 
 	if err := im.persistInstance(inst); err != nil {
