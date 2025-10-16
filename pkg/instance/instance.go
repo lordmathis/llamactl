@@ -147,6 +147,11 @@ func (i *Process) SetOptions(options *CreateInstanceOptions) {
 		return
 	}
 
+	// Preserve the original nodes to prevent changing instance location
+	if i.options != nil && i.options.Nodes != nil {
+		options.Nodes = i.options.Nodes
+	}
+
 	// Validate and copy options
 	options.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
 
