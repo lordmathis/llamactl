@@ -1106,10 +1106,17 @@
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secure-key&quot;</span><span class="w">  </span><span class="c1"># Must match worker1&#39;s management key</span>
 </code></pre></div></p>
 <ol>
-<li><strong>Test remote node connectivity:</strong><br />
+<li><strong>Check node name consistency:</strong>  </li>
+<li><code>local_node</code> on each node must match what other nodes call it  </li>
+<li>
+<p>Node names are case-sensitive  </p>
+</li>
+<li>
+<p><strong>Test remote node connectivity:</strong><br />
    <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer remote-node-key&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>http://remote-node:8080/api/v1/instances
-</code></pre></div></li>
+</code></pre></div></p>
+</li>
 </ol>
 <h2 id="debugging-and-logs">Debugging and Logs<a class="headerlink" href="#debugging-and-logs" title="Permanent link">&para;</a></h2>
 <h3 id="viewing-instance-logs">Viewing Instance Logs<a class="headerlink" href="#viewing-instance-logs" title="Permanent link">&para;</a></h3>
@@ -1161,7 +1168,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 9, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">October 16, 2025</span>
   </span>
 
     
