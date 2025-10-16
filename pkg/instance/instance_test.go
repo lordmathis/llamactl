@@ -44,7 +44,7 @@ func TestNewInstance(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	if inst.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
@@ -115,7 +115,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 	opts := instance.GetOptions()
 
 	// Check that explicit values override defaults
@@ -164,7 +164,7 @@ func TestSetOptions(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
 
 	// Update options
 	newOptions := &instance.CreateInstanceOptions{
@@ -222,7 +222,7 @@ func TestGetProxy(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	// Get proxy for the first time
 	proxy1, err := inst.GetProxy()
@@ -277,7 +277,7 @@ func TestMarshalJSON(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
+	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	data, err := json.Marshal(instance)
 	if err != nil {
@@ -446,7 +446,7 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 			// Mock onStatusChange function
 			mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
 
-			instance := instance.NewInstance("test", backendConfig, globalSettings, options, mockOnStatusChange)
+			instance := instance.NewInstance("test", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 			opts := instance.GetOptions()
 
 			if opts.MaxRestarts == nil {
