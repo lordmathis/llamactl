@@ -207,7 +207,7 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 	}
 
 	// Create instance with initial nodes
-	initialOptions := &instance.CreateInstanceOptions{
+	initialOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		Nodes:       []string{"worker1"},
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -216,11 +216,11 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 		},
 	}
 
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
 
 	// Try to update with different nodes
-	updatedOptions := &instance.CreateInstanceOptions{
+	updatedOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		Nodes:       []string{"worker2"}, // Attempt to change node
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -434,7 +434,7 @@ func TestUnmarshalJSON(t *testing.T) {
 	}
 }
 
-func TestCreateInstanceOptionsValidation(t *testing.T) {
+func TestCreateOptionsValidation(t *testing.T) {
 	tests := []struct {
 		name          string
 		maxRestarts   *int
