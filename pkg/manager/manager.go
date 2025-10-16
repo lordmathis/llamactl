@@ -289,7 +289,7 @@ func (im *instanceManager) loadInstance(name, path string) error {
 
 	// Restore persisted fields that NewInstance doesn't set
 	inst.Created = persistedInstance.Created
-	inst.SetStatus(persistedInstance.Status)
+	inst.SetStatus(persistedInstance.GetStatus())
 
 	// Handle remote instance mapping
 	if isRemote {

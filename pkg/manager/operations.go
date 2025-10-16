@@ -39,7 +39,7 @@ func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Ins
 
 	// Update the local instance with all remote data
 	localInst.SetOptions(&updatedOptions)
-	localInst.Status = remoteInst.Status
+	localInst.SetStatus(remoteInst.GetStatus())
 	localInst.Created = remoteInst.Created
 }
 

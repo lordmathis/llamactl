@@ -16,23 +16,21 @@ import (
 
 // Instance represents a running instance of the llama server
 type Instance struct {
-	Name                   string                 `json:"name"`
-	options                *CreateInstanceOptions `json:"-"`
+	// Immutable identity (no locking needed after creation)
+	Name    string `json:"name"`
+	Created int64  `json:"created,omitempty"` // Unix timestamp when the instance was created
+
+	// Mutable state - each owns its own lock
+	status  *status                `json:"status"` // unexported - status owns its lock
+	options *CreateInstanceOptions `json:"-"`
+
+	// Global configuration (read-only, no lock needed)
 	globalInstanceSettings *config.InstancesConfig
 	globalBackendSettings  *config.BackendConfig
 
-	// Status
-	Status         Status `json:"status"`
-	onStatusChange func(oldStatus, newStatus Status)
-
-	// Creation time
-	Created int64 `json:"created,omitempty"` // Unix timestamp when the instance was created
-
-	// Logging file
-	logger *logger `json:"-"`
-
-	// Proxy component
-	proxy *proxy `json:"-"` // HTTP proxy and request tracking
+	// Components (can be nil for remote instances or when stopped)
+	logger *logger `json:"-"` // nil for remote instances
+	proxy  *proxy  `json:"-"` // nil for remote instances
 
 	// internal
 	cmd      *exec.Cmd          `json:"-"` // Command to run the instance
@@ -56,6 +54,10 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 	// Create the instance logger
 	logger := NewLogger(name, globalInstanceSettings.LogsDir)
 
+	// Create status wrapper
+	status := newStatus(Stopped)
+	status.onStatusChange = onStatusChange
+
 	instance := &Instance{
 		Name:                   name,
 		options:                options,
@@ -63,8 +65,7 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 		globalBackendSettings:  globalBackendSettings,
 		logger:                 logger,
 		Created:                time.Now().Unix(),
-		Status:                 Stopped,
-		onStatusChange:         onStatusChange,
+		status:                 status,
 	}
 
 	// Create Proxy component
@@ -77,6 +78,29 @@ func (i *Instance) GetOptions() *CreateInstanceOptions {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 	return i.options
+}
+
+// GetStatus returns the current status, delegating to status component
+func (i *Instance) GetStatus() Status {
+	if i.status == nil {
+		return Stopped
+	}
+	return i.status.Get()
+}
+
+// SetStatus sets the status, delegating to status component
+func (i *Instance) SetStatus(s Status) {
+	if i.status != nil {
+		i.status.Set(s)
+	}
+}
+
+// IsRunning returns true if the status is Running, delegating to status component
+func (i *Instance) IsRunning() bool {
+	if i.status == nil {
+		return false
+	}
+	return i.status.IsRunning()
 }
 
 func (i *Instance) GetPort() int {
@@ -182,14 +206,17 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	// Use anonymous struct to avoid recursion
-	type Alias Instance
+	// Explicitly serialize to maintain backward compatible JSON format
 	return json.Marshal(&struct {
-		*Alias
+		Name          string                 `json:"name"`
+		Status        *status                `json:"status"`
+		Created       int64                  `json:"created,omitempty"`
 		Options       *CreateInstanceOptions `json:"options,omitempty"`
 		DockerEnabled bool                   `json:"docker_enabled,omitempty"`
 	}{
-		Alias:         (*Alias)(i),
+		Name:          i.Name,
+		Status:        i.status,
+		Created:       i.Created,
 		Options:       i.options,
 		DockerEnabled: dockerEnabled,
 	})
@@ -197,18 +224,22 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler for Instance
 func (i *Instance) UnmarshalJSON(data []byte) error {
-	// Use anonymous struct to avoid recursion
-	type Alias Instance
+	// Explicitly deserialize to match MarshalJSON format
 	aux := &struct {
-		*Alias
+		Name    string                 `json:"name"`
+		Status  *status                `json:"status"`
+		Created int64                  `json:"created,omitempty"`
 		Options *CreateInstanceOptions `json:"options,omitempty"`
-	}{
-		Alias: (*Alias)(i),
-	}
+	}{}
 
 	if err := json.Unmarshal(data, aux); err != nil {
 		return err
 	}
+
+	// Set the fields
+	i.Name = aux.Name
+	i.Created = aux.Created
+	i.status = aux.Status
 
 	// Handle options with validation and defaults
 	if aux.Options != nil {
@@ -216,7 +247,10 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 		i.options = aux.Options
 	}
 
-	// Initialize fields that are not serialized
+	// Initialize fields that are not serialized or may be nil
+	if i.status == nil {
+		i.status = newStatus(Stopped)
+	}
 	if i.logger == nil && i.globalInstanceSettings != nil {
 		i.logger = NewLogger(i.Name, i.globalInstanceSettings.LogsDir)
 	}

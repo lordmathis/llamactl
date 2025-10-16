@@ -3,9 +3,10 @@ package instance
 import (
 	"encoding/json"
 	"log"
+	"sync"
 )
 
-// Enum for instance status
+// Status is the enum for status values (exported).
 type Status int
 
 const (
@@ -26,24 +27,7 @@ var statusToName = map[Status]string{
 	Failed:  "failed",
 }
 
-func (p *Instance) SetStatus(status Status) {
-	oldStatus := p.Status
-	p.Status = status
-
-	if p.onStatusChange != nil {
-		p.onStatusChange(oldStatus, status)
-	}
-}
-
-func (p *Instance) GetStatus() Status {
-	return p.Status
-}
-
-// IsRunning returns true if the status is Running
-func (p *Instance) IsRunning() bool {
-	return p.Status == Running
-}
-
+// Status enum JSON marshaling methods
 func (s Status) MarshalJSON() ([]byte, error) {
 	name, ok := statusToName[s]
 	if !ok {
@@ -52,7 +36,7 @@ func (s Status) MarshalJSON() ([]byte, error) {
 	return json.Marshal(name)
 }
 
-// UnmarshalJSON implements json.Unmarshaler
+// UnmarshalJSON implements json.Unmarshaler for Status enum
 func (s *Status) UnmarshalJSON(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
@@ -67,4 +51,62 @@ func (s *Status) UnmarshalJSON(data []byte) error {
 
 	*s = status
 	return nil
+}
+
+// status represents the instance status with thread-safe access (unexported).
+type status struct {
+	mu sync.RWMutex
+	s  Status
+
+	// Callback for status changes
+	onStatusChange func(oldStatus, newStatus Status)
+}
+
+// newStatus creates a new status wrapper with the given initial status
+func newStatus(initial Status) *status {
+	return &status{
+		s: initial,
+	}
+}
+
+// Get returns the current status
+func (st *status) Get() Status {
+	st.mu.RLock()
+	defer st.mu.RUnlock()
+	return st.s
+}
+
+// Set updates the status and triggers the onStatusChange callback if set
+func (st *status) Set(newStatus Status) {
+	st.mu.Lock()
+	oldStatus := st.s
+	st.s = newStatus
+	callback := st.onStatusChange
+	st.mu.Unlock()
+
+	// Call the callback outside the lock to avoid potential deadlocks
+	if callback != nil {
+		callback(oldStatus, newStatus)
+	}
+}
+
+// IsRunning returns true if the status is Running
+func (st *status) IsRunning() bool {
+	st.mu.RLock()
+	defer st.mu.RUnlock()
+	return st.s == Running
+}
+
+// MarshalJSON implements json.Marshaler for status wrapper
+func (st *status) MarshalJSON() ([]byte, error) {
+	st.mu.RLock()
+	defer st.mu.RUnlock()
+	return st.s.MarshalJSON()
+}
+
+// UnmarshalJSON implements json.Unmarshaler for status wrapper
+func (st *status) UnmarshalJSON(data []byte) error {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	return st.s.UnmarshalJSON(data)
 }
