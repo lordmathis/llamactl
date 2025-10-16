@@ -26,7 +26,7 @@ var statusToName = map[InstanceStatus]string{
 	Failed:  "failed",
 }
 
-func (p *Process) SetStatus(status InstanceStatus) {
+func (p *Instance) SetStatus(status InstanceStatus) {
 	oldStatus := p.Status
 	p.Status = status
 
@@ -35,12 +35,12 @@ func (p *Process) SetStatus(status InstanceStatus) {
 	}
 }
 
-func (p *Process) GetStatus() InstanceStatus {
+func (p *Instance) GetStatus() InstanceStatus {
 	return p.Status
 }
 
 // IsRunning returns true if the status is Running
-func (p *Process) IsRunning() bool {
+func (p *Instance) IsRunning() bool {
 	return p.Status == Running
 }
 

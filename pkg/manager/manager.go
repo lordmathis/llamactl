@@ -16,35 +16,35 @@ import (
 
 // InstanceManager defines the interface for managing instances of the llama server.
 type InstanceManager interface {
-	ListInstances() ([]*instance.Process, error)
-	CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
-	GetInstance(name string) (*instance.Process, error)
-	UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
+	ListInstances() ([]*instance.Instance, error)
+	CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
+	GetInstance(name string) (*instance.Instance, error)
+	UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
 	DeleteInstance(name string) error
-	StartInstance(name string) (*instance.Process, error)
+	StartInstance(name string) (*instance.Instance, error)
 	IsMaxRunningInstancesReached() bool
-	StopInstance(name string) (*instance.Process, error)
+	StopInstance(name string) (*instance.Instance, error)
 	EvictLRUInstance() error
-	RestartInstance(name string) (*instance.Process, error)
+	RestartInstance(name string) (*instance.Instance, error)
 	GetInstanceLogs(name string, numLines int) (string, error)
 	Shutdown()
 }
 
 type RemoteManager interface {
-	ListRemoteInstances(node *config.NodeConfig) ([]*instance.Process, error)
-	CreateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
-	GetRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
-	UpdateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error)
+	ListRemoteInstances(node *config.NodeConfig) ([]*instance.Instance, error)
+	CreateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
+	GetRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
+	UpdateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
 	DeleteRemoteInstance(node *config.NodeConfig, name string) error
-	StartRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
-	StopRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
-	RestartRemoteInstance(node *config.NodeConfig, name string) (*instance.Process, error)
+	StartRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
+	StopRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
+	RestartRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
 	GetRemoteInstanceLogs(node *config.NodeConfig, name string, numLines int) (string, error)
 }
 
 type instanceManager struct {
 	mu               sync.RWMutex
-	instances        map[string]*instance.Process
+	instances        map[string]*instance.Instance
 	runningInstances map[string]struct{}
 	ports            map[int]bool
 	instancesConfig  config.InstancesConfig
@@ -57,9 +57,9 @@ type instanceManager struct {
 	isShutdown     bool
 
 	// Remote instance management
-	httpClient        *http.Client
-	instanceNodeMap   map[string]*config.NodeConfig // Maps instance name to its node config
-	nodeConfigMap     map[string]*config.NodeConfig // Maps node name to node config for quick lookup
+	httpClient      *http.Client
+	instanceNodeMap map[string]*config.NodeConfig // Maps instance name to its node config
+	nodeConfigMap   map[string]*config.NodeConfig // Maps node name to node config for quick lookup
 }
 
 // NewInstanceManager creates a new instance of InstanceManager.
@@ -76,7 +76,7 @@ func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig con
 	}
 
 	im := &instanceManager{
-		instances:        make(map[string]*instance.Process),
+		instances:        make(map[string]*instance.Instance),
 		runningInstances: make(map[string]struct{}),
 		ports:            make(map[int]bool),
 		instancesConfig:  instancesConfig,
@@ -130,7 +130,7 @@ func (im *instanceManager) getNextAvailablePort() (int, error) {
 }
 
 // persistInstance saves an instance to its JSON file
-func (im *instanceManager) persistInstance(instance *instance.Process) error {
+func (im *instanceManager) persistInstance(instance *instance.Instance) error {
 	if im.instancesConfig.InstancesDir == "" {
 		return nil // Persistence disabled
 	}
@@ -172,7 +172,7 @@ func (im *instanceManager) Shutdown() {
 	close(im.shutdownChan)
 
 	// Create a list of running instances to stop
-	var runningInstances []*instance.Process
+	var runningInstances []*instance.Instance
 	var runningNames []string
 	for name, inst := range im.instances {
 		if inst.IsRunning() {
@@ -197,7 +197,7 @@ func (im *instanceManager) Shutdown() {
 	wg.Add(len(runningInstances))
 
 	for i, inst := range runningInstances {
-		go func(name string, inst *instance.Process) {
+		go func(name string, inst *instance.Instance) {
 			defer wg.Done()
 			fmt.Printf("Stopping instance %s...\n", name)
 			// Attempt to stop the instance gracefully
@@ -261,7 +261,7 @@ func (im *instanceManager) loadInstance(name, path string) error {
 		return fmt.Errorf("failed to read instance file: %w", err)
 	}
 
-	var persistedInstance instance.Process
+	var persistedInstance instance.Instance
 	if err := json.Unmarshal(data, &persistedInstance); err != nil {
 		return fmt.Errorf("failed to unmarshal instance: %w", err)
 	}
@@ -318,8 +318,8 @@ func (im *instanceManager) loadInstance(name, path string) error {
 // For instances with auto-restart disabled, it sets their status to Stopped
 func (im *instanceManager) autoStartInstances() {
 	im.mu.RLock()
-	var instancesToStart []*instance.Process
-	var instancesToStop []*instance.Process
+	var instancesToStart []*instance.Instance
+	var instancesToStop []*instance.Instance
 	for _, inst := range im.instances {
 		if inst.IsRunning() && // Was running when persisted
 			inst.GetOptions() != nil &&
@@ -374,7 +374,7 @@ func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus inst
 
 // getNodeForInstance returns the node configuration for a remote instance
 // Returns nil if the instance is not remote or the node is not found
-func (im *instanceManager) getNodeForInstance(inst *instance.Process) *config.NodeConfig {
+func (im *instanceManager) getNodeForInstance(inst *instance.Instance) *config.NodeConfig {
 	if !inst.IsRemote() {
 		return nil
 	}

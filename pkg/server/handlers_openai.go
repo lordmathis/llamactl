@@ -152,7 +152,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 }
 
 // RemoteOpenAIProxy proxies OpenAI-compatible requests to a remote instance
-func (h *Handler) RemoteOpenAIProxy(w http.ResponseWriter, r *http.Request, modelName string, inst *instance.Process) {
+func (h *Handler) RemoteOpenAIProxy(w http.ResponseWriter, r *http.Request, modelName string, inst *instance.Instance) {
 	// Get the node name from instance options
 	options := inst.GetOptions()
 	if options == nil || len(options.Nodes) == 0 {

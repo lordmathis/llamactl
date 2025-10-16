@@ -14,7 +14,7 @@ type MaxRunningInstancesError error
 
 // updateLocalInstanceFromRemote updates the local stub instance with data from the remote instance
 // while preserving the Nodes field to maintain remote instance tracking
-func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Process, remoteInst *instance.Process) {
+func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Instance, remoteInst *instance.Instance) {
 	if localInst == nil || remoteInst == nil {
 		return
 	}
@@ -45,9 +45,9 @@ func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Pro
 
 // ListInstances returns a list of all instances managed by the instance manager.
 // For remote instances, this fetches the live state from remote nodes and updates local stubs.
-func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
+func (im *instanceManager) ListInstances() ([]*instance.Instance, error) {
 	im.mu.RLock()
-	localInstances := make([]*instance.Process, 0, len(im.instances))
+	localInstances := make([]*instance.Instance, 0, len(im.instances))
 	for _, inst := range im.instances {
 		localInstances = append(localInstances, inst)
 	}
@@ -75,7 +75,7 @@ func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
 
 // CreateInstance creates a new instance with the given options and returns it.
 // The instance is initially in a "stopped" state.
-func (im *instanceManager) CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
+func (im *instanceManager) CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error) {
 	if options == nil {
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
@@ -164,7 +164,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 
 // GetInstance retrieves an instance by its name.
 // For remote instances, this fetches the live state from the remote node and updates the local stub.
-func (im *instanceManager) GetInstance(name string) (*instance.Process, error) {
+func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -194,7 +194,7 @@ func (im *instanceManager) GetInstance(name string) (*instance.Process, error) {
 
 // UpdateInstance updates the options of an existing instance and returns it.
 // If the instance is running, it will be restarted to apply the new options.
-func (im *instanceManager) UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
+func (im *instanceManager) UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -326,7 +326,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 
 // StartInstance starts a stopped instance and returns it.
 // If the instance is already running, it returns an error.
-func (im *instanceManager) StartInstance(name string) (*instance.Process, error) {
+func (im *instanceManager) StartInstance(name string) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -395,7 +395,7 @@ func (im *instanceManager) IsMaxRunningInstancesReached() bool {
 }
 
 // StopInstance stops a running instance and returns it.
-func (im *instanceManager) StopInstance(name string) (*instance.Process, error) {
+func (im *instanceManager) StopInstance(name string) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -438,7 +438,7 @@ func (im *instanceManager) StopInstance(name string) (*instance.Process, error) 
 }
 
 // RestartInstance stops and then starts an instance, returning the updated instance.
-func (im *instanceManager) RestartInstance(name string) (*instance.Process, error) {
+func (im *instanceManager) RestartInstance(name string) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()

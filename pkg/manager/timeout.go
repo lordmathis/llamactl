@@ -37,7 +37,7 @@ func (im *instanceManager) checkAllTimeouts() {
 // EvictLRUInstance finds and stops the least recently used running instance.
 func (im *instanceManager) EvictLRUInstance() error {
 	im.mu.RLock()
-	var lruInstance *instance.Process
+	var lruInstance *instance.Instance
 
 	for name := range im.runningInstances {
 		inst := im.instances[name]

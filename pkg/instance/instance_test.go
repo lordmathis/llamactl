@@ -345,7 +345,7 @@ func TestUnmarshalJSON(t *testing.T) {
 		}
 	}`
 
-	var inst instance.Process
+	var inst instance.Instance
 	err := json.Unmarshal([]byte(jsonData), &inst)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)

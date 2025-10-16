@@ -16,7 +16,7 @@ import (
 )
 
 // Start starts the llama server instance and returns an error if it fails.
-func (i *Process) Start() error {
+func (i *Instance) Start() error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -90,7 +90,7 @@ func (i *Process) Start() error {
 }
 
 // Stop terminates the subprocess
-func (i *Process) Stop() error {
+func (i *Instance) Stop() error {
 	i.mu.Lock()
 
 	if !i.IsRunning() {
@@ -160,14 +160,14 @@ func (i *Process) Stop() error {
 
 // LastRequestTime returns the last request time as a Unix timestamp
 // Delegates to the Proxy component
-func (i *Process) LastRequestTime() int64 {
+func (i *Instance) LastRequestTime() int64 {
 	if i.proxy == nil {
 		return 0
 	}
 	return i.proxy.LastRequestTime()
 }
 
-func (i *Process) WaitForHealthy(timeout int) error {
+func (i *Instance) WaitForHealthy(timeout int) error {
 	if !i.IsRunning() {
 		return fmt.Errorf("instance %s is not running", i.Name)
 	}
@@ -226,7 +226,7 @@ func (i *Process) WaitForHealthy(timeout int) error {
 	}
 }
 
-func (i *Process) monitorProcess() {
+func (i *Instance) monitorProcess() {
 	defer func() {
 		i.mu.Lock()
 		if i.monitorDone != nil {
@@ -267,7 +267,7 @@ func (i *Process) monitorProcess() {
 }
 
 // handleRestart manages the restart process while holding the lock
-func (i *Process) handleRestart() {
+func (i *Instance) handleRestart() {
 	// Validate restart conditions and get safe parameters
 	shouldRestart, maxRestarts, restartDelay := i.validateRestartConditions()
 	if !shouldRestart {
@@ -310,7 +310,7 @@ func (i *Process) handleRestart() {
 }
 
 // validateRestartConditions checks if the instance should be restarted and returns the parameters
-func (i *Process) validateRestartConditions() (shouldRestart bool, maxRestarts int, restartDelay int) {
+func (i *Instance) validateRestartConditions() (shouldRestart bool, maxRestarts int, restartDelay int) {
 	if i.options == nil {
 		log.Printf("Instance %s not restarting: options are nil", i.Name)
 		return false, 0, 0
@@ -344,7 +344,7 @@ func (i *Process) validateRestartConditions() (shouldRestart bool, maxRestarts i
 }
 
 // buildCommand builds the command to execute using backend-specific logic
-func (i *Process) buildCommand() (*exec.Cmd, error) {
+func (i *Instance) buildCommand() (*exec.Cmd, error) {
 	// Get backend configuration
 	backendConfig, err := i.getBackendConfig()
 	if err != nil {
@@ -375,7 +375,7 @@ func (i *Process) buildCommand() (*exec.Cmd, error) {
 }
 
 // getBackendConfig resolves the backend configuration for the current instance
-func (i *Process) getBackendConfig() (*config.BackendSettings, error) {
+func (i *Instance) getBackendConfig() (*config.BackendSettings, error) {
 	var backendTypeStr string
 
 	switch i.options.BackendType {

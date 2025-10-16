@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-// Process represents a running instance of the llama server
-type Process struct {
+// Instance represents a running instance of the llama server
+type Instance struct {
 	Name                   string                 `json:"name"`
 	options                *CreateInstanceOptions `json:"-"`
 	globalInstanceSettings *config.InstancesConfig
@@ -29,10 +29,10 @@ type Process struct {
 	Created int64 `json:"created,omitempty"` // Unix timestamp when the instance was created
 
 	// Logging file
-	logger *Logger `json:"-"`
+	logger *logger `json:"-"`
 
 	// Proxy component
-	proxy *Proxy `json:"-"` // HTTP proxy and request tracking
+	proxy *proxy `json:"-"` // HTTP proxy and request tracking
 
 	// internal
 	cmd      *exec.Cmd          `json:"-"` // Command to run the instance
@@ -49,14 +49,14 @@ type Process struct {
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus InstanceStatus)) *Process {
+func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus InstanceStatus)) *Instance {
 	// Validate and copy options
 	options.ValidateAndApplyDefaults(name, globalInstanceSettings)
 
 	// Create the instance logger
-	logger := NewInstanceLogger(name, globalInstanceSettings.LogsDir)
+	logger := NewLogger(name, globalInstanceSettings.LogsDir)
 
-	instance := &Process{
+	instance := &Instance{
 		Name:                   name,
 		options:                options,
 		globalInstanceSettings: globalInstanceSettings,
@@ -73,13 +73,13 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 	return instance
 }
 
-func (i *Process) GetOptions() *CreateInstanceOptions {
+func (i *Instance) GetOptions() *CreateInstanceOptions {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 	return i.options
 }
 
-func (i *Process) GetPort() int {
+func (i *Instance) GetPort() int {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 	if i.options != nil {
@@ -101,7 +101,7 @@ func (i *Process) GetPort() int {
 	return 0
 }
 
-func (i *Process) GetHost() string {
+func (i *Instance) GetHost() string {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 	if i.options != nil {
@@ -123,7 +123,7 @@ func (i *Process) GetHost() string {
 	return ""
 }
 
-func (i *Process) SetOptions(options *CreateInstanceOptions) {
+func (i *Instance) SetOptions(options *CreateInstanceOptions) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -145,14 +145,14 @@ func (i *Process) SetOptions(options *CreateInstanceOptions) {
 
 // SetTimeProvider sets a custom time provider for testing
 // Delegates to the Proxy component
-func (i *Process) SetTimeProvider(tp TimeProvider) {
+func (i *Instance) SetTimeProvider(tp TimeProvider) {
 	if i.proxy != nil {
 		i.proxy.SetTimeProvider(tp)
 	}
 }
 
 // GetProxy returns the reverse proxy for this instance, delegating to Proxy component
-func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
+func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 	if i.proxy == nil {
 		return nil, fmt.Errorf("instance %s has no proxy component", i.Name)
 	}
@@ -160,7 +160,7 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 }
 
 // MarshalJSON implements json.Marshaler for Instance
-func (i *Process) MarshalJSON() ([]byte, error) {
+func (i *Instance) MarshalJSON() ([]byte, error) {
 	// Use read lock since we're only reading data
 	i.mu.RLock()
 	defer i.mu.RUnlock()
@@ -183,7 +183,7 @@ func (i *Process) MarshalJSON() ([]byte, error) {
 	}
 
 	// Use anonymous struct to avoid recursion
-	type Alias Process
+	type Alias Instance
 	return json.Marshal(&struct {
 		*Alias
 		Options       *CreateInstanceOptions `json:"options,omitempty"`
@@ -196,9 +196,9 @@ func (i *Process) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON implements json.Unmarshaler for Instance
-func (i *Process) UnmarshalJSON(data []byte) error {
+func (i *Instance) UnmarshalJSON(data []byte) error {
 	// Use anonymous struct to avoid recursion
-	type Alias Process
+	type Alias Instance
 	aux := &struct {
 		*Alias
 		Options *CreateInstanceOptions `json:"options,omitempty"`
@@ -218,7 +218,7 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 
 	// Initialize fields that are not serialized
 	if i.logger == nil && i.globalInstanceSettings != nil {
-		i.logger = NewInstanceLogger(i.Name, i.globalInstanceSettings.LogsDir)
+		i.logger = NewLogger(i.Name, i.globalInstanceSettings.LogsDir)
 	}
 	if i.proxy == nil {
 		i.proxy = NewProxy(i)
@@ -227,7 +227,7 @@ func (i *Process) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (i *Process) IsRemote() bool {
+func (i *Instance) IsRemote() bool {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
@@ -238,13 +238,13 @@ func (i *Process) IsRemote() bool {
 	return len(i.options.Nodes) > 0
 }
 
-func (i *Process) GetLogs(num_lines int) (string, error) {
+func (i *Instance) GetLogs(num_lines int) (string, error) {
 	return i.logger.GetLogs(num_lines)
 }
 
 // getBackendHostPort extracts the host and port from instance options
 // Returns the configured host and port for the backend
-func (i *Process) getBackendHostPort() (string, int) {
+func (i *Instance) getBackendHostPort() (string, int) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 

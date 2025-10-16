@@ -391,7 +391,7 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 }
 
 // RemoteInstanceProxy proxies requests to a remote instance
-func (h *Handler) RemoteInstanceProxy(w http.ResponseWriter, r *http.Request, name string, inst *instance.Process) {
+func (h *Handler) RemoteInstanceProxy(w http.ResponseWriter, r *http.Request, name string, inst *instance.Instance) {
 	// Get the node name from instance options
 	options := inst.GetOptions()
 	if options == nil || len(options.Nodes) == 0 {

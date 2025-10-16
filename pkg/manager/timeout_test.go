@@ -196,7 +196,7 @@ func TestEvictLRUInstance_Success(t *testing.T) {
 
 func TestEvictLRUInstance_NoEligibleInstances(t *testing.T) {
 	// Helper function to create instances with different timeout configurations
-	createInstanceWithTimeout := func(manager manager.InstanceManager, name, model string, timeout *int) *instance.Process {
+	createInstanceWithTimeout := func(manager manager.InstanceManager, name, model string, timeout *int) *instance.Instance {
 		options := &instance.CreateInstanceOptions{
 			BackendType: backends.BackendTypeLlamaCpp,
 			LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -236,7 +236,7 @@ func TestEvictLRUInstance_NoEligibleInstances(t *testing.T) {
 		inst3 := createInstanceWithTimeout(manager, "no-timeout-3", "/path/to/model3.gguf", nil)
 
 		// Set instances to running
-		instances := []*instance.Process{inst1, inst2, inst3}
+		instances := []*instance.Instance{inst1, inst2, inst3}
 		for _, inst := range instances {
 			inst.SetStatus(instance.Running)
 		}
@@ -276,7 +276,7 @@ func TestEvictLRUInstance_NoEligibleInstances(t *testing.T) {
 		instNoTimeout2 := createInstanceWithTimeout(manager, "no-timeout-2", "/path/to/model-no-timeout2.gguf", nil)
 
 		// Set all instances to running
-		instances := []*instance.Process{instWithTimeout, instNoTimeout1, instNoTimeout2}
+		instances := []*instance.Instance{instWithTimeout, instNoTimeout1, instNoTimeout2}
 		for _, inst := range instances {
 			inst.SetStatus(instance.Running)
 			inst.UpdateLastRequestTime()
