@@ -311,29 +311,30 @@ func (i *Instance) handleRestart() {
 
 // validateRestartConditions checks if the instance should be restarted and returns the parameters
 func (i *Instance) validateRestartConditions() (shouldRestart bool, maxRestarts int, restartDelay int) {
-	if i.options == nil {
+	opts := i.GetOptions()
+	if opts == nil {
 		log.Printf("Instance %s not restarting: options are nil", i.Name)
 		return false, 0, 0
 	}
 
-	if i.options.AutoRestart == nil || !*i.options.AutoRestart {
+	if opts.AutoRestart == nil || !*opts.AutoRestart {
 		log.Printf("Instance %s not restarting: AutoRestart is disabled", i.Name)
 		return false, 0, 0
 	}
 
-	if i.options.MaxRestarts == nil {
+	if opts.MaxRestarts == nil {
 		log.Printf("Instance %s not restarting: MaxRestarts is nil", i.Name)
 		return false, 0, 0
 	}
 
-	if i.options.RestartDelay == nil {
+	if opts.RestartDelay == nil {
 		log.Printf("Instance %s not restarting: RestartDelay is nil", i.Name)
 		return false, 0, 0
 	}
 
 	// Values are already validated during unmarshaling/SetOptions
-	maxRestarts = *i.options.MaxRestarts
-	restartDelay = *i.options.RestartDelay
+	maxRestarts = *opts.MaxRestarts
+	restartDelay = *opts.RestartDelay
 
 	if i.restarts >= maxRestarts {
 		log.Printf("Instance %s exceeded max restart attempts (%d)", i.Name, maxRestarts)
@@ -345,6 +346,12 @@ func (i *Instance) validateRestartConditions() (shouldRestart bool, maxRestarts 
 
 // buildCommand builds the command to execute using backend-specific logic
 func (i *Instance) buildCommand() (*exec.Cmd, error) {
+	// Get options
+	opts := i.GetOptions()
+	if opts == nil {
+		return nil, fmt.Errorf("instance options are nil")
+	}
+
 	// Get backend configuration
 	backendConfig, err := i.getBackendConfig()
 	if err != nil {
@@ -352,13 +359,13 @@ func (i *Instance) buildCommand() (*exec.Cmd, error) {
 	}
 
 	// Build the environment variables
-	env := i.options.BuildEnvironment(backendConfig)
+	env := opts.BuildEnvironment(backendConfig)
 
 	// Get the command to execute
-	command := i.options.GetCommand(backendConfig)
+	command := opts.GetCommand(backendConfig)
 
 	// Build command arguments
-	args := i.options.BuildCommandArgs(backendConfig)
+	args := opts.BuildCommandArgs(backendConfig)
 
 	// Create the exec.Cmd
 	cmd := exec.CommandContext(i.ctx, command, args...)
@@ -376,9 +383,14 @@ func (i *Instance) buildCommand() (*exec.Cmd, error) {
 
 // getBackendConfig resolves the backend configuration for the current instance
 func (i *Instance) getBackendConfig() (*config.BackendSettings, error) {
+	opts := i.GetOptions()
+	if opts == nil {
+		return nil, fmt.Errorf("instance options are nil")
+	}
+
 	var backendTypeStr string
 
-	switch i.options.BackendType {
+	switch opts.BackendType {
 	case backends.BackendTypeLlamaCpp:
 		backendTypeStr = "llama-cpp"
 	case backends.BackendTypeMlxLm:
@@ -386,7 +398,7 @@ func (i *Instance) getBackendConfig() (*config.BackendSettings, error) {
 	case backends.BackendTypeVllm:
 		backendTypeStr = "vllm"
 	default:
-		return nil, fmt.Errorf("unsupported backend type: %s", i.options.BackendType)
+		return nil, fmt.Errorf("unsupported backend type: %s", opts.BackendType)
 	}
 
 	settings := i.globalBackendSettings.GetBackendSettings(backendTypeStr)

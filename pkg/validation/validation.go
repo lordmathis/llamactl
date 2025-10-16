@@ -35,7 +35,7 @@ func validateStringForInjection(value string) error {
 }
 
 // ValidateInstanceOptions performs validation based on backend type
-func ValidateInstanceOptions(options *instance.CreateInstanceOptions) error {
+func ValidateInstanceOptions(options *instance.Options) error {
 	if options == nil {
 		return ValidationError(fmt.Errorf("options cannot be nil"))
 	}
@@ -54,7 +54,7 @@ func ValidateInstanceOptions(options *instance.CreateInstanceOptions) error {
 }
 
 // validateLlamaCppOptions validates llama.cpp specific options
-func validateLlamaCppOptions(options *instance.CreateInstanceOptions) error {
+func validateLlamaCppOptions(options *instance.Options) error {
 	if options.LlamaServerOptions == nil {
 		return ValidationError(fmt.Errorf("llama server options cannot be nil for llama.cpp backend"))
 	}
@@ -73,7 +73,7 @@ func validateLlamaCppOptions(options *instance.CreateInstanceOptions) error {
 }
 
 // validateMlxOptions validates MLX backend specific options
-func validateMlxOptions(options *instance.CreateInstanceOptions) error {
+func validateMlxOptions(options *instance.Options) error {
 	if options.MlxServerOptions == nil {
 		return ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
 	}
@@ -91,7 +91,7 @@ func validateMlxOptions(options *instance.CreateInstanceOptions) error {
 }
 
 // validateVllmOptions validates vLLM backend specific options
-func validateVllmOptions(options *instance.CreateInstanceOptions) error {
+func validateVllmOptions(options *instance.Options) error {
 	if options.VllmServerOptions == nil {
 		return ValidationError(fmt.Errorf("vLLM server options cannot be nil for vLLM backend"))
 	}

@@ -75,7 +75,7 @@ func (im *instanceManager) ListInstances() ([]*instance.Instance, error) {
 
 // CreateInstance creates a new instance with the given options and returns it.
 // The instance is initially in a "stopped" state.
-func (im *instanceManager) CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error) {
+func (im *instanceManager) CreateInstance(name string, options *instance.Options) (*instance.Instance, error) {
 	if options == nil {
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
@@ -194,7 +194,7 @@ func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) 
 
 // UpdateInstance updates the options of an existing instance and returns it.
 // If the instance is running, it will be restarted to apply the new options.
-func (im *instanceManager) UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error) {
+func (im *instanceManager) UpdateInstance(name string, options *instance.Options) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -489,7 +489,7 @@ func (im *instanceManager) GetInstanceLogs(name string, numLines int) (string, e
 }
 
 // getPortFromOptions extracts the port from backend-specific options
-func (im *instanceManager) getPortFromOptions(options *instance.CreateInstanceOptions) int {
+func (im *instanceManager) getPortFromOptions(options *instance.Options) int {
 	switch options.BackendType {
 	case backends.BackendTypeLlamaCpp:
 		if options.LlamaServerOptions != nil {
@@ -508,7 +508,7 @@ func (im *instanceManager) getPortFromOptions(options *instance.CreateInstanceOp
 }
 
 // setPortInOptions sets the port in backend-specific options
-func (im *instanceManager) setPortInOptions(options *instance.CreateInstanceOptions, port int) {
+func (im *instanceManager) setPortInOptions(options *instance.Options, port int) {
 	switch options.BackendType {
 	case backends.BackendTypeLlamaCpp:
 		if options.LlamaServerOptions != nil {
@@ -526,7 +526,7 @@ func (im *instanceManager) setPortInOptions(options *instance.CreateInstanceOpti
 }
 
 // assignAndValidatePort assigns a port if not specified and validates it's not in use
-func (im *instanceManager) assignAndValidatePort(options *instance.CreateInstanceOptions) error {
+func (im *instanceManager) assignAndValidatePort(options *instance.Options) error {
 	currentPort := im.getPortFromOptions(options)
 
 	if currentPort == 0 {

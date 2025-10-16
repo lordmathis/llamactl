@@ -15,7 +15,7 @@ func TestStripNodesFromOptions(t *testing.T) {
 	}
 
 	// Test main case: nodes should be stripped, other fields preserved
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		Nodes:       []string{"node1", "node2"},
 		Environment: map[string]string{"TEST": "value"},

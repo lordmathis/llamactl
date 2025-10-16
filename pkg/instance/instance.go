@@ -21,8 +21,8 @@ type Instance struct {
 	Created int64  `json:"created,omitempty"` // Unix timestamp when the instance was created
 
 	// Mutable state - each owns its own lock
-	status  *status                `json:"-"` // unexported - status owns its lock
-	options *CreateInstanceOptions `json:"-"`
+	status  *status  `json:"-"` // unexported - status owns its lock
+	options *options `json:"-"` // unexported - options owns its lock
 
 	// Global configuration (read-only, no lock needed)
 	globalInstanceSettings *config.InstancesConfig
@@ -47,9 +47,9 @@ type Instance struct {
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus Status)) *Instance {
+func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, opts *Options, onStatusChange func(oldStatus, newStatus Status)) *Instance {
 	// Validate and copy options
-	options.ValidateAndApplyDefaults(name, globalInstanceSettings)
+	opts.ValidateAndApplyDefaults(name, globalInstanceSettings)
 
 	// Create the instance logger
 	logger := NewLogger(name, globalInstanceSettings.LogsDir)
@@ -57,6 +57,9 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 	// Create status wrapper
 	status := newStatus(Stopped)
 	status.onStatusChange = onStatusChange
+
+	// Create options wrapper
+	options := newOptions(opts)
 
 	instance := &Instance{
 		Name:                   name,
@@ -74,10 +77,12 @@ func NewInstance(name string, globalBackendSettings *config.BackendConfig, globa
 	return instance
 }
 
-func (i *Instance) GetOptions() *CreateInstanceOptions {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-	return i.options
+// GetOptions returns the current options, delegating to options component
+func (i *Instance) GetOptions() *Options {
+	if i.options == nil {
+		return nil
+	}
+	return i.options.Get()
 }
 
 // GetStatus returns the current status, delegating to status component
@@ -104,21 +109,20 @@ func (i *Instance) IsRunning() bool {
 }
 
 func (i *Instance) GetPort() int {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-	if i.options != nil {
-		switch i.options.BackendType {
+	opts := i.GetOptions()
+	if opts != nil {
+		switch opts.BackendType {
 		case backends.BackendTypeLlamaCpp:
-			if i.options.LlamaServerOptions != nil {
-				return i.options.LlamaServerOptions.Port
+			if opts.LlamaServerOptions != nil {
+				return opts.LlamaServerOptions.Port
 			}
 		case backends.BackendTypeMlxLm:
-			if i.options.MlxServerOptions != nil {
-				return i.options.MlxServerOptions.Port
+			if opts.MlxServerOptions != nil {
+				return opts.MlxServerOptions.Port
 			}
 		case backends.BackendTypeVllm:
-			if i.options.VllmServerOptions != nil {
-				return i.options.VllmServerOptions.Port
+			if opts.VllmServerOptions != nil {
+				return opts.VllmServerOptions.Port
 			}
 		}
 	}
@@ -126,40 +130,39 @@ func (i *Instance) GetPort() int {
 }
 
 func (i *Instance) GetHost() string {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-	if i.options != nil {
-		switch i.options.BackendType {
+	opts := i.GetOptions()
+	if opts != nil {
+		switch opts.BackendType {
 		case backends.BackendTypeLlamaCpp:
-			if i.options.LlamaServerOptions != nil {
-				return i.options.LlamaServerOptions.Host
+			if opts.LlamaServerOptions != nil {
+				return opts.LlamaServerOptions.Host
 			}
 		case backends.BackendTypeMlxLm:
-			if i.options.MlxServerOptions != nil {
-				return i.options.MlxServerOptions.Host
+			if opts.MlxServerOptions != nil {
+				return opts.MlxServerOptions.Host
 			}
 		case backends.BackendTypeVllm:
-			if i.options.VllmServerOptions != nil {
-				return i.options.VllmServerOptions.Host
+			if opts.VllmServerOptions != nil {
+				return opts.VllmServerOptions.Host
 			}
 		}
 	}
 	return ""
 }
 
-func (i *Instance) SetOptions(options *CreateInstanceOptions) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	if options == nil {
+// SetOptions sets the options, delegating to options component
+func (i *Instance) SetOptions(opts *Options) {
+	if opts == nil {
 		log.Println("Warning: Attempted to set nil options on instance", i.Name)
 		return
 	}
 
 	// Validate and copy options
-	options.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
+	opts.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
 
-	i.options = options
+	if i.options != nil {
+		i.options.Set(opts)
+	}
 
 	// Clear the proxy so it gets recreated with new options
 	if i.proxy != nil {
@@ -189,10 +192,13 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
+	// Get options
+	opts := i.GetOptions()
+
 	// Determine if docker is enabled for this instance's backend
 	var dockerEnabled bool
-	if i.options != nil {
-		switch i.options.BackendType {
+	if opts != nil {
+		switch opts.BackendType {
 		case backends.BackendTypeLlamaCpp:
 			if i.globalBackendSettings != nil && i.globalBackendSettings.LlamaCpp.Docker != nil && i.globalBackendSettings.LlamaCpp.Docker.Enabled {
 				dockerEnabled = true
@@ -208,11 +214,11 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 
 	// Explicitly serialize to maintain backward compatible JSON format
 	return json.Marshal(&struct {
-		Name          string                 `json:"name"`
-		Status        *status                `json:"status"`
-		Created       int64                  `json:"created,omitempty"`
-		Options       *CreateInstanceOptions `json:"options,omitempty"`
-		DockerEnabled bool                   `json:"docker_enabled,omitempty"`
+		Name          string   `json:"name"`
+		Status        *status  `json:"status"`
+		Created       int64    `json:"created,omitempty"`
+		Options       *options `json:"options,omitempty"`
+		DockerEnabled bool     `json:"docker_enabled,omitempty"`
 	}{
 		Name:          i.Name,
 		Status:        i.status,
@@ -226,10 +232,10 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 func (i *Instance) UnmarshalJSON(data []byte) error {
 	// Explicitly deserialize to match MarshalJSON format
 	aux := &struct {
-		Name    string                 `json:"name"`
-		Status  *status                `json:"status"`
-		Created int64                  `json:"created,omitempty"`
-		Options *CreateInstanceOptions `json:"options,omitempty"`
+		Name    string   `json:"name"`
+		Status  *status  `json:"status"`
+		Created int64    `json:"created,omitempty"`
+		Options *options `json:"options,omitempty"`
 	}{}
 
 	if err := json.Unmarshal(data, aux); err != nil {
@@ -240,69 +246,79 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	i.Name = aux.Name
 	i.Created = aux.Created
 	i.status = aux.Status
+	i.options = aux.Options
 
 	// Handle options with validation and defaults
-	if aux.Options != nil {
-		aux.Options.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
-		i.options = aux.Options
+	if i.options != nil {
+		opts := i.options.Get()
+		if opts != nil {
+			opts.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
+		}
 	}
 
 	// Initialize fields that are not serialized or may be nil
 	if i.status == nil {
 		i.status = newStatus(Stopped)
 	}
-	if i.logger == nil && i.globalInstanceSettings != nil {
-		i.logger = NewLogger(i.Name, i.globalInstanceSettings.LogsDir)
+	if i.options == nil {
+		i.options = newOptions(&Options{})
 	}
-	if i.proxy == nil {
-		i.proxy = NewProxy(i)
+
+	// Only create logger and proxy for non-remote instances
+	// Remote instances are metadata only (no logger, proxy, or process)
+	if !i.IsRemote() {
+		if i.logger == nil && i.globalInstanceSettings != nil {
+			i.logger = NewLogger(i.Name, i.globalInstanceSettings.LogsDir)
+		}
+		if i.proxy == nil {
+			i.proxy = NewProxy(i)
+		}
 	}
 
 	return nil
 }
 
 func (i *Instance) IsRemote() bool {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	if i.options == nil {
+	opts := i.GetOptions()
+	if opts == nil {
 		return false
 	}
 
-	return len(i.options.Nodes) > 0
+	return len(opts.Nodes) > 0
 }
 
 func (i *Instance) GetLogs(num_lines int) (string, error) {
+	if i.logger == nil {
+		return "", fmt.Errorf("instance %s has no logger (remote instances don't have logs)", i.Name)
+	}
 	return i.logger.GetLogs(num_lines)
 }
 
 // getBackendHostPort extracts the host and port from instance options
 // Returns the configured host and port for the backend
 func (i *Instance) getBackendHostPort() (string, int) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	if i.options == nil {
+	opts := i.GetOptions()
+	if opts == nil {
 		return "localhost", 0
 	}
 
 	var host string
 	var port int
-	switch i.options.BackendType {
+	switch opts.BackendType {
 	case backends.BackendTypeLlamaCpp:
-		if i.options.LlamaServerOptions != nil {
-			host = i.options.LlamaServerOptions.Host
-			port = i.options.LlamaServerOptions.Port
+		if opts.LlamaServerOptions != nil {
+			host = opts.LlamaServerOptions.Host
+			port = opts.LlamaServerOptions.Port
 		}
 	case backends.BackendTypeMlxLm:
-		if i.options.MlxServerOptions != nil {
-			host = i.options.MlxServerOptions.Host
-			port = i.options.MlxServerOptions.Port
+		if opts.MlxServerOptions != nil {
+			host = opts.MlxServerOptions.Host
+			port = opts.MlxServerOptions.Port
 		}
 	case backends.BackendTypeVllm:
-		if i.options.VllmServerOptions != nil {
-			host = i.options.VllmServerOptions.Host
-			port = i.options.VllmServerOptions.Port
+		if opts.VllmServerOptions != nil {
+			host = opts.VllmServerOptions.Host
+			port = opts.VllmServerOptions.Port
 		}
 	}
 

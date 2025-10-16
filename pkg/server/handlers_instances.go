@@ -47,7 +47,7 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 // @Accept json
 // @Produces json
 // @Param name path string true "Instance Name"
-// @Param options body instance.CreateInstanceOptions true "Instance configuration options"
+// @Param options body instance.Options true "Instance configuration options"
 // @Success 201 {object} instance.Process "Created instance details"
 // @Failure 400 {string} string "Invalid request body"
 // @Failure 500 {string} string "Internal Server Error"
@@ -60,7 +60,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 			return
 		}
 
-		var options instance.CreateInstanceOptions
+		var options instance.Options
 		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
@@ -122,7 +122,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 // @Accept json
 // @Produces json
 // @Param name path string true "Instance Name"
-// @Param options body instance.CreateInstanceOptions true "Instance configuration options"
+// @Param options body instance.Options true "Instance configuration options"
 // @Success 200 {object} instance.Process "Updated instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
@@ -135,7 +135,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 			return
 		}
 
-		var options instance.CreateInstanceOptions
+		var options instance.Options
 		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return

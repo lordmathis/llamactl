@@ -46,7 +46,7 @@ func TestUpdateLastRequestTime(t *testing.T) {
 		LogsDir: "/tmp/test",
 	}
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -77,7 +77,7 @@ func TestShouldTimeout_NotRunning(t *testing.T) {
 	}
 
 	idleTimeout := 1 // 1 minute
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		IdleTimeout: &idleTimeout,
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -124,7 +124,7 @@ func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
 			// Mock onStatusChange function
 			mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-			options := &instance.CreateInstanceOptions{
+			options := &instance.Options{
 				IdleTimeout: tt.idleTimeout,
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -158,7 +158,7 @@ func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
 	}
 
 	idleTimeout := 5 // 5 minutes
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		IdleTimeout: &idleTimeout,
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -196,7 +196,7 @@ func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
 	}
 
 	idleTimeout := 1 // 1 minute
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		IdleTimeout: &idleTimeout,
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -252,7 +252,7 @@ func TestTimeoutConfiguration_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := &instance.CreateInstanceOptions{
+			options := &instance.Options{
 				IdleTimeout: tt.inputTimeout,
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &llamacpp.LlamaServerOptions{

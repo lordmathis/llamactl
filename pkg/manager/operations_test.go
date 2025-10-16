@@ -13,7 +13,7 @@ import (
 func TestCreateInstance_Success(t *testing.T) {
 	manager := createTestManager()
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -40,7 +40,7 @@ func TestCreateInstance_Success(t *testing.T) {
 func TestCreateInstance_ValidationAndLimits(t *testing.T) {
 	// Test duplicate names
 	mngr := createTestManager()
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -96,7 +96,7 @@ func TestPortManagement(t *testing.T) {
 	manager := createTestManager()
 
 	// Test auto port assignment
-	options1 := &instance.CreateInstanceOptions{
+	options1 := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -114,7 +114,7 @@ func TestPortManagement(t *testing.T) {
 	}
 
 	// Test port conflict detection
-	options2 := &instance.CreateInstanceOptions{
+	options2 := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model2.gguf",
@@ -132,7 +132,7 @@ func TestPortManagement(t *testing.T) {
 
 	// Test port release on deletion
 	specificPort := 8080
-	options3 := &instance.CreateInstanceOptions{
+	options3 := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -160,7 +160,7 @@ func TestPortManagement(t *testing.T) {
 func TestInstanceOperations(t *testing.T) {
 	manager := createTestManager()
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -183,7 +183,7 @@ func TestInstanceOperations(t *testing.T) {
 	}
 
 	// Update instance
-	newOptions := &instance.CreateInstanceOptions{
+	newOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",

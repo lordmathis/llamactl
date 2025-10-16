@@ -17,9 +17,9 @@ import (
 // InstanceManager defines the interface for managing instances of the llama server.
 type InstanceManager interface {
 	ListInstances() ([]*instance.Instance, error)
-	CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
+	CreateInstance(name string, options *instance.Options) (*instance.Instance, error)
 	GetInstance(name string) (*instance.Instance, error)
-	UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
+	UpdateInstance(name string, options *instance.Options) (*instance.Instance, error)
 	DeleteInstance(name string) error
 	StartInstance(name string) (*instance.Instance, error)
 	IsMaxRunningInstancesReached() bool
@@ -32,9 +32,9 @@ type InstanceManager interface {
 
 type RemoteManager interface {
 	ListRemoteInstances(node *config.NodeConfig) ([]*instance.Instance, error)
-	CreateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
+	CreateRemoteInstance(node *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error)
 	GetRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
-	UpdateRemoteInstance(node *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Instance, error)
+	UpdateRemoteInstance(node *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error)
 	DeleteRemoteInstance(node *config.NodeConfig, name string) error
 	StartRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
 	StopRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)

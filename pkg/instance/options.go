@@ -10,9 +10,11 @@ import (
 	"llamactl/pkg/config"
 	"log"
 	"maps"
+	"sync"
 )
 
-type CreateInstanceOptions struct {
+// Options contains the actual configuration (exported - this is the public API).
+type Options struct {
 	// Auto restart
 	AutoRestart  *bool `json:"auto_restart,omitempty"`
 	MaxRestarts  *int  `json:"max_restarts,omitempty"`
@@ -35,10 +37,55 @@ type CreateInstanceOptions struct {
 	VllmServerOptions  *vllm.VllmServerOptions      `json:"-"`
 }
 
-// UnmarshalJSON implements custom JSON unmarshaling for CreateInstanceOptions
-func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
+// options wraps Options with thread-safe access (unexported).
+type options struct {
+	mu   sync.RWMutex
+	opts *Options
+}
+
+// newOptions creates a new options wrapper with the given Options
+func newOptions(opts *Options) *options {
+	return &options{
+		opts: opts,
+	}
+}
+
+// Get returns a copy of the current options
+func (o *options) Get() *Options {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.opts
+}
+
+// Set updates the options
+func (o *options) Set(opts *Options) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.opts = opts
+}
+
+// MarshalJSON implements json.Marshaler for options wrapper
+func (o *options) MarshalJSON() ([]byte, error) {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.opts.MarshalJSON()
+}
+
+// UnmarshalJSON implements json.Unmarshaler for options wrapper
+func (o *options) UnmarshalJSON(data []byte) error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if o.opts == nil {
+		o.opts = &Options{}
+	}
+	return o.opts.UnmarshalJSON(data)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for Options
+func (c *Options) UnmarshalJSON(data []byte) error {
 	// Use anonymous struct to avoid recursion
-	type Alias CreateInstanceOptions
+	type Alias Options
 	aux := &struct {
 		*Alias
 	}{
@@ -95,10 +142,10 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalJSON implements custom JSON marshaling for CreateInstanceOptions
-func (c *CreateInstanceOptions) MarshalJSON() ([]byte, error) {
+// MarshalJSON implements custom JSON marshaling for Options
+func (c *Options) MarshalJSON() ([]byte, error) {
 	// Use anonymous struct to avoid recursion
-	type Alias CreateInstanceOptions
+	type Alias Options
 	aux := struct {
 		*Alias
 	}{
@@ -155,7 +202,7 @@ func (c *CreateInstanceOptions) MarshalJSON() ([]byte, error) {
 }
 
 // ValidateAndApplyDefaults validates the instance options and applies constraints
-func (c *CreateInstanceOptions) ValidateAndApplyDefaults(name string, globalSettings *config.InstancesConfig) {
+func (c *Options) ValidateAndApplyDefaults(name string, globalSettings *config.InstancesConfig) {
 	// Validate and apply constraints
 	if c.MaxRestarts != nil && *c.MaxRestarts < 0 {
 		log.Printf("Instance %s MaxRestarts value (%d) cannot be negative, setting to 0", name, *c.MaxRestarts)
@@ -193,7 +240,7 @@ func (c *CreateInstanceOptions) ValidateAndApplyDefaults(name string, globalSett
 	}
 }
 
-func (c *CreateInstanceOptions) GetCommand(backendConfig *config.BackendSettings) string {
+func (c *Options) GetCommand(backendConfig *config.BackendSettings) string {
 
 	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
 		return "docker"
@@ -203,7 +250,7 @@ func (c *CreateInstanceOptions) GetCommand(backendConfig *config.BackendSettings
 }
 
 // BuildCommandArgs builds command line arguments for the backend
-func (c *CreateInstanceOptions) BuildCommandArgs(backendConfig *config.BackendSettings) []string {
+func (c *Options) BuildCommandArgs(backendConfig *config.BackendSettings) []string {
 
 	var args []string
 
@@ -246,7 +293,7 @@ func (c *CreateInstanceOptions) BuildCommandArgs(backendConfig *config.BackendSe
 	return args
 }
 
-func (c *CreateInstanceOptions) BuildEnvironment(backendConfig *config.BackendSettings) map[string]string {
+func (c *Options) BuildEnvironment(backendConfig *config.BackendSettings) map[string]string {
 	env := map[string]string{}
 
 	if backendConfig.Environment != nil {

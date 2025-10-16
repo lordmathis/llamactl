@@ -12,7 +12,7 @@ import (
 
 // stripNodesFromOptions creates a copy of the instance options without the Nodes field
 // to prevent routing loops when sending requests to remote nodes
-func (im *instanceManager) stripNodesFromOptions(options *instance.CreateInstanceOptions) *instance.CreateInstanceOptions {
+func (im *instanceManager) stripNodesFromOptions(options *instance.Options) *instance.Options {
 	if options == nil {
 		return nil
 	}
@@ -31,7 +31,7 @@ func (im *instanceManager) makeRemoteRequest(nodeConfig *config.NodeConfig, meth
 	var reqBody io.Reader
 	if body != nil {
 		// Strip nodes from CreateInstanceOptions to prevent routing loops
-		if options, ok := body.(*instance.CreateInstanceOptions); ok {
+		if options, ok := body.(*instance.Options); ok {
 			body = im.stripNodesFromOptions(options)
 		}
 
@@ -102,7 +102,7 @@ func (im *instanceManager) ListRemoteInstances(nodeConfig *config.NodeConfig) ([
 }
 
 // CreateRemoteInstance creates a new instance on the remote node
-func (im *instanceManager) CreateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Instance, error) {
+func (im *instanceManager) CreateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/", name)
 
 	resp, err := im.makeRemoteRequest(nodeConfig, "POST", path, options)
@@ -135,7 +135,7 @@ func (im *instanceManager) GetRemoteInstance(nodeConfig *config.NodeConfig, name
 }
 
 // UpdateRemoteInstance updates an existing instance on the remote node
-func (im *instanceManager) UpdateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Instance, error) {
+func (im *instanceManager) UpdateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/", name)
 
 	resp, err := im.makeRemoteRequest(nodeConfig, "PUT", path, options)

@@ -33,7 +33,7 @@ func TestNewInstance(t *testing.T) {
 		DefaultRestartDelay: 5,
 	}
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -102,7 +102,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	maxRestarts := 10
 	restartDelay := 15
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		AutoRestart:  &autoRestart,
 		MaxRestarts:  &maxRestarts,
 		RestartDelay: &restartDelay,
@@ -153,7 +153,7 @@ func TestSetOptions(t *testing.T) {
 		DefaultRestartDelay: 5,
 	}
 
-	initialOptions := &instance.CreateInstanceOptions{
+	initialOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -167,7 +167,7 @@ func TestSetOptions(t *testing.T) {
 	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, mockOnStatusChange)
 
 	// Update options
-	newOptions := &instance.CreateInstanceOptions{
+	newOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",
@@ -211,7 +211,7 @@ func TestGetProxy(t *testing.T) {
 		LogsDir: "/tmp/test",
 	}
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Host: "localhost",
@@ -266,7 +266,7 @@ func TestMarshalJSON(t *testing.T) {
 		DefaultRestartDelay: 5,
 	}
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -434,7 +434,7 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := &instance.CreateInstanceOptions{
+			options := &instance.Options{
 				MaxRestarts:  tt.maxRestarts,
 				RestartDelay: tt.restartDelay,
 				BackendType:  backends.BackendTypeLlamaCpp,
