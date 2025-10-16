@@ -21,7 +21,7 @@ type Instance struct {
 	Created int64  `json:"created,omitempty"` // Unix timestamp when the instance was created
 
 	// Mutable state - each owns its own lock
-	status  *status                `json:"status"` // unexported - status owns its lock
+	status  *status                `json:"-"` // unexported - status owns its lock
 	options *CreateInstanceOptions `json:"-"`
 
 	// Global configuration (read-only, no lock needed)
