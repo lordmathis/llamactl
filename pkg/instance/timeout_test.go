@@ -54,7 +54,7 @@ func TestUpdateLastRequestTime(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
@@ -86,7 +86,7 @@ func TestShouldTimeout_NotRunning(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
@@ -122,7 +122,7 @@ func TestShouldTimeout_NoTimeoutConfigured(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Mock onStatusChange function
-			mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+			mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 			options := &instance.CreateInstanceOptions{
 				IdleTimeout: tt.idleTimeout,
@@ -167,7 +167,7 @@ func TestShouldTimeout_WithinTimeLimit(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 	inst.SetStatus(instance.Running)
@@ -205,7 +205,7 @@ func TestShouldTimeout_ExceedsTimeLimit(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 	inst.SetStatus(instance.Running)
@@ -261,7 +261,7 @@ func TestTimeoutConfiguration_Validation(t *testing.T) {
 			}
 
 			// Mock onStatusChange function
-			mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+			mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 			inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 			opts := inst.GetOptions()

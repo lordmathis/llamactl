@@ -6,27 +6,27 @@ import (
 )
 
 // Enum for instance status
-type InstanceStatus int
+type Status int
 
 const (
-	Stopped InstanceStatus = iota
+	Stopped Status = iota
 	Running
 	Failed
 )
 
-var nameToStatus = map[string]InstanceStatus{
+var nameToStatus = map[string]Status{
 	"stopped": Stopped,
 	"running": Running,
 	"failed":  Failed,
 }
 
-var statusToName = map[InstanceStatus]string{
+var statusToName = map[Status]string{
 	Stopped: "stopped",
 	Running: "running",
 	Failed:  "failed",
 }
 
-func (p *Instance) SetStatus(status InstanceStatus) {
+func (p *Instance) SetStatus(status Status) {
 	oldStatus := p.Status
 	p.Status = status
 
@@ -35,7 +35,7 @@ func (p *Instance) SetStatus(status InstanceStatus) {
 	}
 }
 
-func (p *Instance) GetStatus() InstanceStatus {
+func (p *Instance) GetStatus() Status {
 	return p.Status
 }
 
@@ -44,7 +44,7 @@ func (p *Instance) IsRunning() bool {
 	return p.Status == Running
 }
 
-func (s InstanceStatus) MarshalJSON() ([]byte, error) {
+func (s Status) MarshalJSON() ([]byte, error) {
 	name, ok := statusToName[s]
 	if !ok {
 		name = "stopped" // Default to "stopped" for unknown status
@@ -53,7 +53,7 @@ func (s InstanceStatus) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON implements json.Unmarshaler
-func (s *InstanceStatus) UnmarshalJSON(data []byte) error {
+func (s *Status) UnmarshalJSON(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
 		return err

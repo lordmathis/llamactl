@@ -276,10 +276,10 @@ func (im *instanceManager) loadInstance(name, path string) error {
 	// Check if this is a remote instance
 	isRemote := options != nil && len(options.Nodes) > 0
 
-	var statusCallback func(oldStatus, newStatus instance.InstanceStatus)
+	var statusCallback func(oldStatus, newStatus instance.Status)
 	if !isRemote {
 		// Only set status callback for local instances
-		statusCallback = func(oldStatus, newStatus instance.InstanceStatus) {
+		statusCallback = func(oldStatus, newStatus instance.Status) {
 			im.onStatusChange(persistedInstance.Name, oldStatus, newStatus)
 		}
 	}
@@ -361,7 +361,7 @@ func (im *instanceManager) autoStartInstances() {
 	}
 }
 
-func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus instance.InstanceStatus) {
+func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus instance.Status) {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 

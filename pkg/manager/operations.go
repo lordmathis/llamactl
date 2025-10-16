@@ -148,7 +148,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		return nil, err
 	}
 
-	statusCallback := func(oldStatus, newStatus instance.InstanceStatus) {
+	statusCallback := func(oldStatus, newStatus instance.Status) {
 		im.onStatusChange(name, oldStatus, newStatus)
 	}
 

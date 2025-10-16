@@ -42,7 +42,7 @@ func TestNewInstance(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
@@ -113,7 +113,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 	opts := instance.GetOptions()
@@ -162,7 +162,7 @@ func TestSetOptions(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, mockOnStatusChange)
 
@@ -220,7 +220,7 @@ func TestGetProxy(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
@@ -275,7 +275,7 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, mockOnStatusChange)
 
@@ -444,7 +444,7 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 			}
 
 			// Mock onStatusChange function
-			mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+			mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
 			instance := instance.NewInstance("test", backendConfig, globalSettings, options, mockOnStatusChange)
 			opts := instance.GetOptions()

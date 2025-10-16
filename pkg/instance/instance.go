@@ -22,8 +22,8 @@ type Instance struct {
 	globalBackendSettings  *config.BackendConfig
 
 	// Status
-	Status         InstanceStatus `json:"status"`
-	onStatusChange func(oldStatus, newStatus InstanceStatus)
+	Status         Status `json:"status"`
+	onStatusChange func(oldStatus, newStatus Status)
 
 	// Creation time
 	Created int64 `json:"created,omitempty"` // Unix timestamp when the instance was created
@@ -49,7 +49,7 @@ type Instance struct {
 }
 
 // NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus InstanceStatus)) *Instance {
+func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, options *CreateInstanceOptions, onStatusChange func(oldStatus, newStatus Status)) *Instance {
 	// Validate and copy options
 	options.ValidateAndApplyDefaults(name, globalInstanceSettings)
 
