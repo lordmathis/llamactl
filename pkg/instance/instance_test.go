@@ -191,6 +191,58 @@ func TestSetOptions(t *testing.T) {
 	}
 }
 
+func TestSetOptions_PreservesNodes(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{
+			Command: "llama-server",
+			Args:    []string{},
+		},
+	}
+
+	globalSettings := &config.InstancesConfig{
+		LogsDir:             "/tmp/test",
+		DefaultAutoRestart:  true,
+		DefaultMaxRestarts:  3,
+		DefaultRestartDelay: 5,
+	}
+
+	// Create instance with initial nodes
+	initialOptions := &instance.CreateInstanceOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		Nodes:       []string{"worker1"},
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+			Port:  8080,
+		},
+	}
+
+	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
+
+	// Try to update with different nodes
+	updatedOptions := &instance.CreateInstanceOptions{
+		BackendType: backends.BackendTypeLlamaCpp,
+		Nodes:       []string{"worker2"}, // Attempt to change node
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Model: "/path/to/new-model.gguf",
+			Port:  8081,
+		},
+	}
+
+	inst.SetOptions(updatedOptions)
+	opts := inst.GetOptions()
+
+	// Nodes should remain unchanged
+	if len(opts.Nodes) != 1 || opts.Nodes[0] != "worker1" {
+		t.Errorf("Expected nodes to remain ['worker1'], got %v", opts.Nodes)
+	}
+
+	// Other options should be updated
+	if opts.LlamaServerOptions.Model != "/path/to/new-model.gguf" {
+		t.Errorf("Expected updated model '/path/to/new-model.gguf', got %q", opts.LlamaServerOptions.Model)
+	}
+}
+
 func TestGetProxy(t *testing.T) {
 	backendConfig := &config.BackendConfig{
 		LlamaCpp: config.BackendSettings{

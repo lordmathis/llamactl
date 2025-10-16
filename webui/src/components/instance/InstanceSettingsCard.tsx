@@ -100,7 +100,8 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
             value={selectedNode}
             onChange={handleNodeChange}
             options={nodeOptions}
-            description="Select the node where the instance will run (default: main node)"
+            description={isEditing ? "Node cannot be changed after instance creation" : "Select the node where the instance will run"}
+            disabled={isEditing}
           />
         )}
 
