@@ -174,7 +174,7 @@ func (i *Process) GetProxy() (*httputil.ReverseProxy, error) {
 	}
 
 	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
-	if len(i.options.Nodes) > 0 {
+	if len(i.options.Nodes) > 0 && i.options.Nodes[0] != i.localNodeName {
 		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
 	}
 
