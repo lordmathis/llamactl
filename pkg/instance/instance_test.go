@@ -44,7 +44,7 @@ func TestNewInstance(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	if inst.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
@@ -115,7 +115,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	instance := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 	opts := instance.GetOptions()
 
 	// Check that explicit values override defaults
@@ -164,7 +164,7 @@ func TestSetOptions(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
 
 	// Update options
 	newOptions := &instance.Options{
@@ -217,7 +217,7 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 	}
 
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
 
 	// Try to update with different nodes
 	updatedOptions := &instance.Options{
@@ -274,7 +274,7 @@ func TestGetProxy(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	// Get proxy for the first time
 	proxy1, err := inst.GetProxy()
@@ -329,7 +329,7 @@ func TestMarshalJSON(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	instance := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	data, err := json.Marshal(instance)
 	if err != nil {
@@ -498,7 +498,7 @@ func TestCreateOptionsValidation(t *testing.T) {
 			// Mock onStatusChange function
 			mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-			instance := instance.NewInstance("test", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+			instance := instance.New("test", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 			opts := instance.GetOptions()
 
 			if opts.MaxRestarts == nil {

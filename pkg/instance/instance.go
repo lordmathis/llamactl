@@ -27,7 +27,7 @@ type Instance struct {
 	// Global configuration (read-only, no lock needed)
 	globalInstanceSettings *config.InstancesConfig
 	globalBackendSettings  *config.BackendConfig
-	localNodeName          string                 `json:"-"` // Name of the local node for remote detection
+	localNodeName          string `json:"-"` // Name of the local node for remote detection
 
 	// Components (can be nil for remote instances or when stopped)
 	logger *logger `json:"-"` // nil for remote instances
@@ -47,8 +47,8 @@ type Instance struct {
 	monitorDone   chan struct{}      `json:"-"` // Channel to signal monitor goroutine completion
 }
 
-// NewInstance creates a new instance with the given name, log path, and options
-func NewInstance(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, opts *Options, localNodeName string, onStatusChange func(oldStatus, newStatus Status)) *Instance {
+// New creates a new instance with the given name, log path, and options
+func New(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, opts *Options, localNodeName string, onStatusChange func(oldStatus, newStatus Status)) *Instance {
 	// Validate and copy options
 	opts.ValidateAndApplyDefaults(name, globalInstanceSettings)
 
