@@ -209,7 +209,7 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 	// Create instance with initial nodes
 	initialOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		Nodes:       []string{"worker1"},
+		Nodes:       map[string]struct{}{"worker1": {}},
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
@@ -222,7 +222,7 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 	// Try to update with different nodes
 	updatedOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		Nodes:       []string{"worker2"}, // Attempt to change node
+		Nodes:       map[string]struct{}{"worker2": {}}, // Attempt to change node
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",
 			Port:  8081,
@@ -233,8 +233,8 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 	opts := inst.GetOptions()
 
 	// Nodes should remain unchanged
-	if len(opts.Nodes) != 1 || opts.Nodes[0] != "worker1" {
-		t.Errorf("Expected nodes to remain ['worker1'], got %v", opts.Nodes)
+	if _, exists := opts.Nodes["worker1"]; len(opts.Nodes) != 1 || !exists {
+		t.Errorf("Expected nodes to contain 'worker1', got %v", opts.Nodes)
 	}
 
 	// Other options should be updated

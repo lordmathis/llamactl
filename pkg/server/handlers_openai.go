@@ -155,12 +155,21 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 func (h *Handler) RemoteOpenAIProxy(w http.ResponseWriter, r *http.Request, modelName string, inst *instance.Instance) {
 	// Get the node name from instance options
 	options := inst.GetOptions()
-	if options == nil || len(options.Nodes) == 0 {
-		http.Error(w, "Instance has no node configured", http.StatusInternalServerError)
+	if options == nil {
+		http.Error(w, "Instance has no options configured", http.StatusInternalServerError)
 		return
 	}
 
-	nodeName := options.Nodes[0]
+	// Get the first node from the set
+	var nodeName string
+	for node := range options.Nodes {
+		nodeName = node
+		break
+	}
+	if nodeName == "" {
+		http.Error(w, "Instance has no node configured", http.StatusInternalServerError)
+		return
+	}
 
 	// Check if we have a cached proxy for this node
 	h.remoteProxiesMu.RLock()

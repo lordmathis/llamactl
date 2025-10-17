@@ -275,9 +275,19 @@ func (im *instanceManager) loadInstance(name, path string) error {
 
 	options := persistedInstance.GetOptions()
 
-	// Check if this is a remote instance
-	// An instance is remote if Nodes is specified AND the first node is not the local node
-	isRemote := options != nil && len(options.Nodes) > 0 && options.Nodes[0] != im.localNodeName
+	// Check if this is a remote instance (local node not in the Nodes set)
+	var isRemote bool
+	var nodeName string
+	if options != nil {
+		if _, isLocal := options.Nodes[im.localNodeName]; !isLocal {
+			// Get the first node from the set
+			for node := range options.Nodes {
+				nodeName = node
+				isRemote = true
+				break
+			}
+		}
+	}
 
 	var statusCallback func(oldStatus, newStatus instance.Status)
 	if !isRemote {
@@ -296,7 +306,6 @@ func (im *instanceManager) loadInstance(name, path string) error {
 
 	// Handle remote instance mapping
 	if isRemote {
-		nodeName := options.Nodes[0]
 		nodeConfig, exists := im.nodeConfigMap[nodeName]
 		if !exists {
 			return fmt.Errorf("node %s not found for remote instance %s", nodeName, name)

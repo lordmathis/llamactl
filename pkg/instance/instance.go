@@ -193,8 +193,10 @@ func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 
 	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
 	opts := i.GetOptions()
-	if opts != nil && len(opts.Nodes) > 0 && opts.Nodes[0] != i.localNodeName {
-		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
+	if opts != nil && len(opts.Nodes) > 0 {
+		if _, isLocal := opts.Nodes[i.localNodeName]; !isLocal {
+			return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
+		}
 	}
 
 	return i.proxy.GetProxy()
@@ -303,8 +305,8 @@ func (i *Instance) IsRemote() bool {
 		return false
 	}
 
-	// If the first node is the local node, treat it as a local instance
-	if opts.Nodes[0] == i.localNodeName {
+	// If the local node is in the nodes map, treat it as a local instance
+	if _, isLocal := opts.Nodes[i.localNodeName]; isLocal {
 		return false
 	}
 

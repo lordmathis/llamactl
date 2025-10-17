@@ -3,7 +3,6 @@ package manager
 import (
 	"fmt"
 	"llamactl/pkg/backends"
-	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
 	"os"
@@ -27,10 +26,12 @@ func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Ins
 
 	// Preserve the Nodes field from the local instance
 	localOptions := localInst.GetOptions()
-	var preservedNodes []string
+	var preservedNodes map[string]struct{}
 	if localOptions != nil && len(localOptions.Nodes) > 0 {
-		preservedNodes = make([]string, len(localOptions.Nodes))
-		copy(preservedNodes, localOptions.Nodes)
+		preservedNodes = make(map[string]struct{}, len(localOptions.Nodes))
+		for node := range localOptions.Nodes {
+			preservedNodes[node] = struct{}{}
+		}
 	}
 
 	// Create a copy of remote options and restore the Nodes field
@@ -98,16 +99,17 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 		return nil, fmt.Errorf("instance with name %s already exists", name)
 	}
 
-	// Check if this is a remote instance
-	// An instance is remote if Nodes is specified AND the first node is not the local node
-	isRemote := len(options.Nodes) > 0 && options.Nodes[0] != im.localNodeName
-	var nodeConfig *config.NodeConfig
+	// Check if this is a remote instance (local node not in the Nodes set)
+	if _, isLocal := options.Nodes[im.localNodeName]; !isLocal && len(options.Nodes) > 0 {
+		// Get the first node from the set
+		var nodeName string
+		for node := range options.Nodes {
+			nodeName = node
+			break
+		}
 
-	if isRemote {
 		// Validate that the node exists
-		nodeName := options.Nodes[0] // Use first node for now
-		var exists bool
-		nodeConfig, exists = im.nodeConfigMap[nodeName]
+		nodeConfig, exists := im.nodeConfigMap[nodeName]
 		if !exists {
 			return nil, fmt.Errorf("node %s not found", nodeName)
 		}

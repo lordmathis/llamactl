@@ -10,6 +10,7 @@ import (
 	"llamactl/pkg/config"
 	"log"
 	"maps"
+	"slices"
 	"sync"
 )
 
@@ -29,7 +30,7 @@ type Options struct {
 	BackendType    backends.BackendType `json:"backend_type"`
 	BackendOptions map[string]any       `json:"backend_options,omitempty"`
 
-	Nodes []string `json:"nodes,omitempty"`
+	Nodes map[string]struct{} `json:"-"`
 
 	// Backend-specific options
 	LlamaServerOptions *llamacpp.LlamaServerOptions `json:"-"`
@@ -87,6 +88,7 @@ func (c *Options) UnmarshalJSON(data []byte) error {
 	// Use anonymous struct to avoid recursion
 	type Alias Options
 	aux := &struct {
+		Nodes []string `json:"nodes,omitempty"` // Accept JSON array
 		*Alias
 	}{
 		Alias: (*Alias)(c),
@@ -94,6 +96,14 @@ func (c *Options) UnmarshalJSON(data []byte) error {
 
 	if err := json.Unmarshal(data, aux); err != nil {
 		return err
+	}
+
+	// Convert nodes array to map
+	if len(aux.Nodes) > 0 {
+		c.Nodes = make(map[string]struct{}, len(aux.Nodes))
+		for _, node := range aux.Nodes {
+			c.Nodes[node] = struct{}{}
+		}
 	}
 
 	// Parse backend-specific options
@@ -147,9 +157,20 @@ func (c *Options) MarshalJSON() ([]byte, error) {
 	// Use anonymous struct to avoid recursion
 	type Alias Options
 	aux := struct {
+		Nodes []string `json:"nodes,omitempty"` // Output as JSON array
 		*Alias
 	}{
 		Alias: (*Alias)(c),
+	}
+
+	// Convert nodes map to array (sorted for consistency)
+	if len(c.Nodes) > 0 {
+		aux.Nodes = make([]string, 0, len(c.Nodes))
+		for node := range c.Nodes {
+			aux.Nodes = append(aux.Nodes, node)
+		}
+		// Sort for consistent output
+		slices.Sort(aux.Nodes)
 	}
 
 	// Convert backend-specific options back to BackendOptions map for JSON
