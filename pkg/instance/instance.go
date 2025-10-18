@@ -1,16 +1,12 @@
 package instance
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/config"
 	"log"
 	"net/http/httputil"
-	"os/exec"
-	"sync"
 	"time"
 )
 
@@ -30,21 +26,9 @@ type Instance struct {
 	localNodeName          string `json:"-"` // Name of the local node for remote detection
 
 	// Components (can be nil for remote instances or when stopped)
-	logger *logger `json:"-"` // nil for remote instances
-	proxy  *proxy  `json:"-"` // nil for remote instances
-
-	// internal
-	cmd      *exec.Cmd          `json:"-"` // Command to run the instance
-	ctx      context.Context    `json:"-"` // Context for managing the instance lifecycle
-	cancel   context.CancelFunc `json:"-"` // Function to cancel the context
-	stdout   io.ReadCloser      `json:"-"` // Standard output stream
-	stderr   io.ReadCloser      `json:"-"` // Standard error stream
-	mu       sync.RWMutex       `json:"-"` // RWMutex for better read/write separation
-	restarts int                `json:"-"` // Number of restarts
-
-	// Restart control
-	restartCancel context.CancelFunc `json:"-"` // Cancel function for pending restarts
-	monitorDone   chan struct{}      `json:"-"` // Channel to signal monitor goroutine completion
+	process *process `json:"-"` // nil for remote instances, nil when stopped
+	proxy   *proxy   `json:"-"` // nil for remote instances, created on demand
+	logger  *logger  `json:"-"` // nil for remote instances
 }
 
 // New creates a new instance with the given name, log path, and options
@@ -75,6 +59,9 @@ func New(name string, globalBackendSettings *config.BackendConfig, globalInstanc
 
 	// Create Proxy component
 	instance.proxy = NewProxy(instance)
+
+	// Create Process component (will be initialized on first Start)
+	instance.process = newProcess(instance)
 
 	return instance
 }
@@ -204,10 +191,6 @@ func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 
 // MarshalJSON implements json.Marshaler for Instance
 func (i *Instance) MarshalJSON() ([]byte, error) {
-	// Use read lock since we're only reading data
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
 	// Get options
 	opts := i.GetOptions()
 
@@ -280,7 +263,7 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 		i.options = newOptions(&Options{})
 	}
 
-	// Only create logger and proxy for non-remote instances
+	// Only create logger, proxy, and process for non-remote instances
 	// Remote instances are metadata only (no logger, proxy, or process)
 	if !i.IsRemote() {
 		if i.logger == nil && i.globalInstanceSettings != nil {
@@ -288,6 +271,9 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 		}
 		if i.proxy == nil {
 			i.proxy = NewProxy(i)
+		}
+		if i.process == nil {
+			i.process = newProcess(i)
 		}
 	}
 
@@ -319,6 +305,47 @@ func (i *Instance) GetLogs(num_lines int) (string, error) {
 		return "", fmt.Errorf("instance %s has no logger (remote instances don't have logs)", i.Name)
 	}
 	return i.logger.GetLogs(num_lines)
+}
+
+// Start starts the instance, delegating to process component
+func (i *Instance) Start() error {
+	if i.process == nil {
+		return fmt.Errorf("instance %s has no process component (remote instances cannot be started locally)", i.Name)
+	}
+	return i.process.Start()
+}
+
+// Stop stops the instance, delegating to process component
+func (i *Instance) Stop() error {
+	if i.process == nil {
+		return fmt.Errorf("instance %s has no process component (remote instances cannot be stopped locally)", i.Name)
+	}
+	return i.process.Stop()
+}
+
+// Restart restarts the instance, delegating to process component
+func (i *Instance) Restart() error {
+	if i.process == nil {
+		return fmt.Errorf("instance %s has no process component (remote instances cannot be restarted locally)", i.Name)
+	}
+	return i.process.Restart()
+}
+
+// WaitForHealthy waits for the instance to become healthy, delegating to process component
+func (i *Instance) WaitForHealthy(timeout int) error {
+	if i.process == nil {
+		return fmt.Errorf("instance %s has no process component (remote instances cannot be health checked locally)", i.Name)
+	}
+	return i.process.WaitForHealthy(timeout)
+}
+
+// LastRequestTime returns the last request time as a Unix timestamp
+// Delegates to the Proxy component
+func (i *Instance) LastRequestTime() int64 {
+	if i.proxy == nil {
+		return 0
+	}
+	return i.proxy.LastRequestTime()
 }
 
 // getBackendHostPort extracts the host and port from instance options
