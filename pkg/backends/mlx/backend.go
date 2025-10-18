@@ -30,8 +30,11 @@ func (b *MlxBackend) GetConfigKey() string {
 }
 
 // GetPort extracts the port from backend-specific options
-func (b *MlxBackend) GetPort(options any) int {
-	opts, ok := options.(*MlxServerOptions)
+func (b *MlxBackend) GetPort(options backends.BackendOptions) int {
+	if options == nil {
+		return 0
+	}
+	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
 	if !ok || opts == nil {
 		return 0
 	}
@@ -39,16 +42,22 @@ func (b *MlxBackend) GetPort(options any) int {
 }
 
 // SetPort sets the port in backend-specific options
-func (b *MlxBackend) SetPort(options any, port int) {
-	opts, ok := options.(*MlxServerOptions)
+func (b *MlxBackend) SetPort(options backends.BackendOptions, port int) {
+	if options == nil {
+		return
+	}
+	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
 	if ok && opts != nil {
 		opts.Port = port
 	}
 }
 
 // GetHost extracts the host from backend-specific options
-func (b *MlxBackend) GetHost(options any) string {
-	opts, ok := options.(*MlxServerOptions)
+func (b *MlxBackend) GetHost(options backends.BackendOptions) string {
+	if options == nil {
+		return ""
+	}
+	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
 	if !ok || opts == nil {
 		return ""
 	}
@@ -56,8 +65,11 @@ func (b *MlxBackend) GetHost(options any) string {
 }
 
 // BuildCommandArgs builds command line arguments
-func (b *MlxBackend) BuildCommandArgs(options any) []string {
-	opts, ok := options.(*MlxServerOptions)
+func (b *MlxBackend) BuildCommandArgs(options backends.BackendOptions) []string {
+	if options == nil {
+		return []string{}
+	}
+	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
 	if !ok || opts == nil {
 		return []string{}
 	}
@@ -66,13 +78,16 @@ func (b *MlxBackend) BuildCommandArgs(options any) []string {
 
 // BuildDockerArgs builds Docker-specific arguments
 // Note: MLX does not support Docker
-func (b *MlxBackend) BuildDockerArgs(options any) []string {
+func (b *MlxBackend) BuildDockerArgs(options backends.BackendOptions) []string {
 	return []string{}
 }
 
 // ValidateOptions validates backend-specific options
-func (b *MlxBackend) ValidateOptions(options any) error {
-	opts, ok := options.(*MlxServerOptions)
+func (b *MlxBackend) ValidateOptions(options backends.BackendOptions) error {
+	if options == nil {
+		return fmt.Errorf("MLX options cannot be nil")
+	}
+	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
 	if !ok {
 		return fmt.Errorf("invalid MLX options type")
 	}

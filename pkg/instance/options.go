@@ -76,7 +76,7 @@ func (o *options) getPort() int {
 	if err != nil {
 		return 0
 	}
-	return backend.GetPort(o.opts.GetBackendOptions())
+	return backend.GetPort(o.opts)
 }
 
 // setPort sets the port using the backend registry
@@ -90,7 +90,7 @@ func (o *options) setPort(port int) {
 	if err != nil {
 		return
 	}
-	backend.SetPort(o.opts.GetBackendOptions(), port)
+	backend.SetPort(o.opts, port)
 }
 
 // getHost returns the host using the backend registry
@@ -104,7 +104,7 @@ func (o *options) getHost() string {
 	if err != nil {
 		return ""
 	}
-	return backend.GetHost(o.opts.GetBackendOptions())
+	return backend.GetHost(o.opts)
 }
 
 // MarshalJSON implements json.Marshaler for options wrapper
@@ -325,17 +325,16 @@ func (c *Options) buildCommandArgs(backendConfig *config.BackendSettings) []stri
 	}
 
 	var args []string
-	backendOpts := c.GetBackendOptions()
 
 	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && backend.SupportsDocker() {
 		// For Docker, start with Docker args
 		args = append(args, backendConfig.Docker.Args...)
 		args = append(args, backendConfig.Docker.Image)
-		args = append(args, backend.BuildDockerArgs(backendOpts)...)
+		args = append(args, backend.BuildDockerArgs(c)...)
 	} else {
 		// For native execution, start with backend args
 		args = append(args, backendConfig.Args...)
-		args = append(args, backend.BuildCommandArgs(backendOpts)...)
+		args = append(args, backend.BuildCommandArgs(c)...)
 	}
 
 	return args
@@ -363,16 +362,22 @@ func (c *Options) buildEnvironment(backendConfig *config.BackendSettings) map[st
 	return env
 }
 
-// GetBackendOptions returns the typed backend options based on BackendType
-func (c *Options) GetBackendOptions() any {
-	switch c.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		return c.LlamaServerOptions
-	case backends.BackendTypeMlxLm:
-		return c.MlxServerOptions
-	case backends.BackendTypeVllm:
-		return c.VllmServerOptions
-	default:
-		return nil
-	}
+// GetBackendType implements backends.BackendOptions
+func (c *Options) GetBackendType() backends.BackendType {
+	return c.BackendType
+}
+
+// GetLlamaServerOptions implements backends.BackendOptions
+func (c *Options) GetLlamaServerOptions() any {
+	return c.LlamaServerOptions
+}
+
+// GetMlxServerOptions implements backends.BackendOptions
+func (c *Options) GetMlxServerOptions() any {
+	return c.MlxServerOptions
+}
+
+// GetVllmServerOptions implements backends.BackendOptions
+func (c *Options) GetVllmServerOptions() any {
+	return c.VllmServerOptions
 }

@@ -497,7 +497,7 @@ func (im *instanceManager) getPortFromOptions(options *instance.Options) int {
 	if err != nil {
 		return 0
 	}
-	return backend.GetPort(options.GetBackendOptions())
+	return backend.GetPort(options)
 }
 
 // setPortInOptions sets the port in backend-specific options
@@ -506,7 +506,7 @@ func (im *instanceManager) setPortInOptions(options *instance.Options, port int)
 	if err != nil {
 		return
 	}
-	backend.SetPort(options.GetBackendOptions(), port)
+	backend.SetPort(options, port)
 }
 
 // assignAndValidatePort assigns a port if not specified and validates it's not in use

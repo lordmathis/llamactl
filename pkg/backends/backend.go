@@ -14,6 +14,15 @@ const (
 	// BackendTypeMlxVlm BackendType = "mlx_vlm"  // Future expansion
 )
 
+// BackendOptions is a forward declaration to avoid circular imports
+// The actual type is defined in the instance package
+type BackendOptions interface {
+	GetBackendType() BackendType
+	GetLlamaServerOptions() any
+	GetMlxServerOptions() any
+	GetVllmServerOptions() any
+}
+
 // Backend represents a backend implementation
 type Backend interface {
 	// GetType returns the backend type
@@ -23,22 +32,22 @@ type Backend interface {
 	GetConfigKey() string
 
 	// GetPort extracts the port from backend-specific options
-	GetPort(options any) int
+	GetPort(options BackendOptions) int
 
 	// SetPort sets the port in backend-specific options
-	SetPort(options any, port int)
+	SetPort(options BackendOptions, port int)
 
 	// GetHost extracts the host from backend-specific options
-	GetHost(options any) string
+	GetHost(options BackendOptions) string
 
 	// BuildCommandArgs builds command line arguments
-	BuildCommandArgs(options any) []string
+	BuildCommandArgs(options BackendOptions) []string
 
 	// BuildDockerArgs builds Docker-specific arguments
-	BuildDockerArgs(options any) []string
+	BuildDockerArgs(options BackendOptions) []string
 
 	// ValidateOptions validates backend-specific options
-	ValidateOptions(options any) error
+	ValidateOptions(options BackendOptions) error
 
 	// ParseCommand parses a command string into options
 	ParseCommand(command string) (any, error)

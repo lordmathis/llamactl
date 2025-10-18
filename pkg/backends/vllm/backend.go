@@ -30,8 +30,11 @@ func (b *VllmBackend) GetConfigKey() string {
 }
 
 // GetPort extracts the port from backend-specific options
-func (b *VllmBackend) GetPort(options any) int {
-	opts, ok := options.(*VllmServerOptions)
+func (b *VllmBackend) GetPort(options backends.BackendOptions) int {
+	if options == nil {
+		return 0
+	}
+	opts, ok := options.GetVllmServerOptions().(*VllmServerOptions)
 	if !ok || opts == nil {
 		return 0
 	}
@@ -39,16 +42,22 @@ func (b *VllmBackend) GetPort(options any) int {
 }
 
 // SetPort sets the port in backend-specific options
-func (b *VllmBackend) SetPort(options any, port int) {
-	opts, ok := options.(*VllmServerOptions)
+func (b *VllmBackend) SetPort(options backends.BackendOptions, port int) {
+	if options == nil {
+		return
+	}
+	opts, ok := options.GetVllmServerOptions().(*VllmServerOptions)
 	if ok && opts != nil {
 		opts.Port = port
 	}
 }
 
 // GetHost extracts the host from backend-specific options
-func (b *VllmBackend) GetHost(options any) string {
-	opts, ok := options.(*VllmServerOptions)
+func (b *VllmBackend) GetHost(options backends.BackendOptions) string {
+	if options == nil {
+		return ""
+	}
+	opts, ok := options.GetVllmServerOptions().(*VllmServerOptions)
 	if !ok || opts == nil {
 		return ""
 	}
@@ -56,8 +65,11 @@ func (b *VllmBackend) GetHost(options any) string {
 }
 
 // BuildCommandArgs builds command line arguments
-func (b *VllmBackend) BuildCommandArgs(options any) []string {
-	opts, ok := options.(*VllmServerOptions)
+func (b *VllmBackend) BuildCommandArgs(options backends.BackendOptions) []string {
+	if options == nil {
+		return []string{}
+	}
+	opts, ok := options.GetVllmServerOptions().(*VllmServerOptions)
 	if !ok || opts == nil {
 		return []string{}
 	}
@@ -65,8 +77,11 @@ func (b *VllmBackend) BuildCommandArgs(options any) []string {
 }
 
 // BuildDockerArgs builds Docker-specific arguments
-func (b *VllmBackend) BuildDockerArgs(options any) []string {
-	opts, ok := options.(*VllmServerOptions)
+func (b *VllmBackend) BuildDockerArgs(options backends.BackendOptions) []string {
+	if options == nil {
+		return []string{}
+	}
+	opts, ok := options.GetVllmServerOptions().(*VllmServerOptions)
 	if !ok || opts == nil {
 		return []string{}
 	}
@@ -74,8 +89,11 @@ func (b *VllmBackend) BuildDockerArgs(options any) []string {
 }
 
 // ValidateOptions validates backend-specific options
-func (b *VllmBackend) ValidateOptions(options any) error {
-	opts, ok := options.(*VllmServerOptions)
+func (b *VllmBackend) ValidateOptions(options backends.BackendOptions) error {
+	if options == nil {
+		return fmt.Errorf("vLLM options cannot be nil")
+	}
+	opts, ok := options.GetVllmServerOptions().(*VllmServerOptions)
 	if !ok {
 		return fmt.Errorf("invalid vLLM options type")
 	}

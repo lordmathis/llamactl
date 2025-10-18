@@ -46,19 +46,13 @@ func ValidateInstanceOptions(options *instance.Options) error {
 		return ValidationError(err)
 	}
 
-	// Get backend-specific options
-	backendOpts := options.GetBackendOptions()
-	if backendOpts == nil {
-		return ValidationError(fmt.Errorf("backend options cannot be nil for backend type: %s", options.BackendType))
-	}
-
 	// Validate using backend-specific validation
-	if err := backend.ValidateOptions(backendOpts); err != nil {
+	if err := backend.ValidateOptions(options); err != nil {
 		return ValidationError(err)
 	}
 
 	// Validate for injection patterns
-	if err := validateStructStrings(backendOpts, ""); err != nil {
+	if err := validateStructStrings(options, ""); err != nil {
 		return err
 	}
 

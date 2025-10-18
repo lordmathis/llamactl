@@ -30,8 +30,11 @@ func (b *LlamaCppBackend) GetConfigKey() string {
 }
 
 // GetPort extracts the port from backend-specific options
-func (b *LlamaCppBackend) GetPort(options any) int {
-	opts, ok := options.(*LlamaServerOptions)
+func (b *LlamaCppBackend) GetPort(options backends.BackendOptions) int {
+	if options == nil {
+		return 0
+	}
+	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
 	if !ok || opts == nil {
 		return 0
 	}
@@ -39,16 +42,22 @@ func (b *LlamaCppBackend) GetPort(options any) int {
 }
 
 // SetPort sets the port in backend-specific options
-func (b *LlamaCppBackend) SetPort(options any, port int) {
-	opts, ok := options.(*LlamaServerOptions)
+func (b *LlamaCppBackend) SetPort(options backends.BackendOptions, port int) {
+	if options == nil {
+		return
+	}
+	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
 	if ok && opts != nil {
 		opts.Port = port
 	}
 }
 
 // GetHost extracts the host from backend-specific options
-func (b *LlamaCppBackend) GetHost(options any) string {
-	opts, ok := options.(*LlamaServerOptions)
+func (b *LlamaCppBackend) GetHost(options backends.BackendOptions) string {
+	if options == nil {
+		return ""
+	}
+	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
 	if !ok || opts == nil {
 		return ""
 	}
@@ -56,8 +65,11 @@ func (b *LlamaCppBackend) GetHost(options any) string {
 }
 
 // BuildCommandArgs builds command line arguments
-func (b *LlamaCppBackend) BuildCommandArgs(options any) []string {
-	opts, ok := options.(*LlamaServerOptions)
+func (b *LlamaCppBackend) BuildCommandArgs(options backends.BackendOptions) []string {
+	if options == nil {
+		return []string{}
+	}
+	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
 	if !ok || opts == nil {
 		return []string{}
 	}
@@ -65,8 +77,11 @@ func (b *LlamaCppBackend) BuildCommandArgs(options any) []string {
 }
 
 // BuildDockerArgs builds Docker-specific arguments
-func (b *LlamaCppBackend) BuildDockerArgs(options any) []string {
-	opts, ok := options.(*LlamaServerOptions)
+func (b *LlamaCppBackend) BuildDockerArgs(options backends.BackendOptions) []string {
+	if options == nil {
+		return []string{}
+	}
+	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
 	if !ok || opts == nil {
 		return []string{}
 	}
@@ -74,8 +89,11 @@ func (b *LlamaCppBackend) BuildDockerArgs(options any) []string {
 }
 
 // ValidateOptions validates backend-specific options
-func (b *LlamaCppBackend) ValidateOptions(options any) error {
-	opts, ok := options.(*LlamaServerOptions)
+func (b *LlamaCppBackend) ValidateOptions(options backends.BackendOptions) error {
+	if options == nil {
+		return fmt.Errorf("llama.cpp options cannot be nil")
+	}
+	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
 	if !ok {
 		return fmt.Errorf("invalid llama.cpp options type")
 	}
