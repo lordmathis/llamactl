@@ -12,9 +12,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"llamactl/pkg/backends"
-	"llamactl/pkg/config"
 )
 
 // process manages the OS process lifecycle for a local instance.
@@ -393,7 +390,7 @@ func (p *process) buildCommand() (*exec.Cmd, error) {
 	}
 
 	// Get backend configuration
-	backendConfig, err := p.getBackendConfig()
+	backendConfig, err := p.instance.getGlobalBackendConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -419,28 +416,4 @@ func (p *process) buildCommand() (*exec.Cmd, error) {
 	}
 
 	return cmd, nil
-}
-
-// getBackendConfig resolves the backend configuration for the current instance
-func (p *process) getBackendConfig() (*config.BackendSettings, error) {
-	opts := p.instance.GetOptions()
-	if opts == nil {
-		return nil, fmt.Errorf("instance options are nil")
-	}
-
-	var backendTypeStr string
-
-	switch opts.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		backendTypeStr = "llama-cpp"
-	case backends.BackendTypeMlxLm:
-		backendTypeStr = "mlx"
-	case backends.BackendTypeVllm:
-		backendTypeStr = "vllm"
-	default:
-		return nil, fmt.Errorf("unsupported backend type: %s", opts.BackendType)
-	}
-
-	settings := p.instance.globalBackendSettings.GetBackendSettings(backendTypeStr)
-	return &settings, nil
 }

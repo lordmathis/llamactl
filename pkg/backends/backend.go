@@ -1,5 +1,10 @@
 package backends
 
+import (
+	"fmt"
+	"llamactl/pkg/config"
+)
+
 type BackendType string
 
 const (
@@ -8,3 +13,76 @@ const (
 	BackendTypeVllm     BackendType = "vllm"
 	// BackendTypeMlxVlm BackendType = "mlx_vlm"  // Future expansion
 )
+
+// Backend represents a backend implementation
+type Backend interface {
+	// GetType returns the backend type
+	GetType() BackendType
+
+	// GetConfigKey returns the string key used to look up backend settings in config
+	GetConfigKey() string
+
+	// GetPort extracts the port from backend-specific options
+	GetPort(options any) int
+
+	// SetPort sets the port in backend-specific options
+	SetPort(options any, port int)
+
+	// GetHost extracts the host from backend-specific options
+	GetHost(options any) string
+
+	// BuildCommandArgs builds command line arguments
+	BuildCommandArgs(options any) []string
+
+	// BuildDockerArgs builds Docker-specific arguments
+	BuildDockerArgs(options any) []string
+
+	// ValidateOptions validates backend-specific options
+	ValidateOptions(options any) error
+
+	// ParseCommand parses a command string into options
+	ParseCommand(command string) (any, error)
+
+	// SupportsDocker returns true if the backend supports Docker
+	SupportsDocker() bool
+
+	// GetResponseHeaders returns the response headers configuration for the backend
+	GetResponseHeaders(backendConfig *config.BackendSettings) map[string]string
+}
+
+// BackendRegistry manages available backends
+type BackendRegistry struct {
+	backends map[BackendType]Backend
+}
+
+var defaultRegistry *BackendRegistry
+
+// NewBackendRegistry creates a new registry with all backends
+func NewBackendRegistry() *BackendRegistry {
+	return &BackendRegistry{
+		backends: make(map[BackendType]Backend),
+	}
+}
+
+// GetDefaultRegistry returns the default backend registry
+// The registry is lazily initialized on first call
+func GetDefaultRegistry() *BackendRegistry {
+	if defaultRegistry == nil {
+		defaultRegistry = NewBackendRegistry()
+	}
+	return defaultRegistry
+}
+
+// Register adds a backend to the registry
+func (r *BackendRegistry) Register(backend Backend) {
+	r.backends[backend.GetType()] = backend
+}
+
+// Get retrieves a backend by type
+func (r *BackendRegistry) Get(backendType BackendType) (Backend, error) {
+	backend, exists := r.backends[backendType]
+	if !exists {
+		return nil, fmt.Errorf("unsupported backend type: %s", backendType)
+	}
+	return backend, nil
+}

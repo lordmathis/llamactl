@@ -65,6 +65,48 @@ func (o *options) set(opts *Options) {
 	o.opts = opts
 }
 
+// getPort returns the port using the backend registry
+func (o *options) getPort() int {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	if o.opts == nil {
+		return 0
+	}
+	backend, err := backends.GetDefaultRegistry().Get(o.opts.BackendType)
+	if err != nil {
+		return 0
+	}
+	return backend.GetPort(o.opts.GetBackendOptions())
+}
+
+// setPort sets the port using the backend registry
+func (o *options) setPort(port int) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if o.opts == nil {
+		return
+	}
+	backend, err := backends.GetDefaultRegistry().Get(o.opts.BackendType)
+	if err != nil {
+		return
+	}
+	backend.SetPort(o.opts.GetBackendOptions(), port)
+}
+
+// getHost returns the host using the backend registry
+func (o *options) getHost() string {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	if o.opts == nil {
+		return ""
+	}
+	backend, err := backends.GetDefaultRegistry().Get(o.opts.BackendType)
+	if err != nil {
+		return ""
+	}
+	return backend.GetHost(o.opts.GetBackendOptions())
+}
+
 // MarshalJSON implements json.Marshaler for options wrapper
 func (o *options) MarshalJSON() ([]byte, error) {
 	o.mu.RLock()
@@ -263,8 +305,12 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 
 // getCommand builds the command to run the backend
 func (c *Options) getCommand(backendConfig *config.BackendSettings) string {
+	backend, err := backends.GetDefaultRegistry().Get(c.BackendType)
+	if err != nil {
+		return backendConfig.Command
+	}
 
-	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
+	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && backend.SupportsDocker() {
 		return "docker"
 	}
 
@@ -273,43 +319,23 @@ func (c *Options) getCommand(backendConfig *config.BackendSettings) string {
 
 // buildCommandArgs builds command line arguments for the backend
 func (c *Options) buildCommandArgs(backendConfig *config.BackendSettings) []string {
+	backend, err := backends.GetDefaultRegistry().Get(c.BackendType)
+	if err != nil {
+		return []string{}
+	}
 
 	var args []string
+	backendOpts := c.GetBackendOptions()
 
-	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
+	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && backend.SupportsDocker() {
 		// For Docker, start with Docker args
 		args = append(args, backendConfig.Docker.Args...)
 		args = append(args, backendConfig.Docker.Image)
-
-		switch c.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if c.LlamaServerOptions != nil {
-				args = append(args, c.LlamaServerOptions.BuildDockerArgs()...)
-			}
-		case backends.BackendTypeVllm:
-			if c.VllmServerOptions != nil {
-				args = append(args, c.VllmServerOptions.BuildDockerArgs()...)
-			}
-		}
-
+		args = append(args, backend.BuildDockerArgs(backendOpts)...)
 	} else {
 		// For native execution, start with backend args
 		args = append(args, backendConfig.Args...)
-
-		switch c.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if c.LlamaServerOptions != nil {
-				args = append(args, c.LlamaServerOptions.BuildCommandArgs()...)
-			}
-		case backends.BackendTypeMlxLm:
-			if c.MlxServerOptions != nil {
-				args = append(args, c.MlxServerOptions.BuildCommandArgs()...)
-			}
-		case backends.BackendTypeVllm:
-			if c.VllmServerOptions != nil {
-				args = append(args, c.VllmServerOptions.BuildCommandArgs()...)
-			}
-		}
+		args = append(args, backend.BuildCommandArgs(backendOpts)...)
 	}
 
 	return args
@@ -323,7 +349,8 @@ func (c *Options) buildEnvironment(backendConfig *config.BackendSettings) map[st
 		maps.Copy(env, backendConfig.Environment)
 	}
 
-	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
+	backend, err := backends.GetDefaultRegistry().Get(c.BackendType)
+	if err == nil && backendConfig.Docker != nil && backendConfig.Docker.Enabled && backend.SupportsDocker() {
 		if backendConfig.Docker.Environment != nil {
 			maps.Copy(env, backendConfig.Docker.Environment)
 		}
@@ -334,4 +361,18 @@ func (c *Options) buildEnvironment(backendConfig *config.BackendSettings) map[st
 	}
 
 	return env
+}
+
+// GetBackendOptions returns the typed backend options based on BackendType
+func (c *Options) GetBackendOptions() any {
+	switch c.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		return c.LlamaServerOptions
+	case backends.BackendTypeMlxLm:
+		return c.MlxServerOptions
+	case backends.BackendTypeVllm:
+		return c.VllmServerOptions
+	default:
+		return nil
+	}
 }

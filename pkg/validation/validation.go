@@ -40,70 +40,26 @@ func ValidateInstanceOptions(options *instance.Options) error {
 		return ValidationError(fmt.Errorf("options cannot be nil"))
 	}
 
-	// Validate based on backend type
-	switch options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		return validateLlamaCppOptions(options)
-	case backends.BackendTypeMlxLm:
-		return validateMlxOptions(options)
-	case backends.BackendTypeVllm:
-		return validateVllmOptions(options)
-	default:
-		return ValidationError(fmt.Errorf("unsupported backend type: %s", options.BackendType))
-	}
-}
-
-// validateLlamaCppOptions validates llama.cpp specific options
-func validateLlamaCppOptions(options *instance.Options) error {
-	if options.LlamaServerOptions == nil {
-		return ValidationError(fmt.Errorf("llama server options cannot be nil for llama.cpp backend"))
+	// Get the backend from the registry
+	backend, err := backends.GetDefaultRegistry().Get(options.BackendType)
+	if err != nil {
+		return ValidationError(err)
 	}
 
-	// Use reflection to check all string fields for injection patterns
-	if err := validateStructStrings(options.LlamaServerOptions, ""); err != nil {
+	// Get backend-specific options
+	backendOpts := options.GetBackendOptions()
+	if backendOpts == nil {
+		return ValidationError(fmt.Errorf("backend options cannot be nil for backend type: %s", options.BackendType))
+	}
+
+	// Validate using backend-specific validation
+	if err := backend.ValidateOptions(backendOpts); err != nil {
+		return ValidationError(err)
+	}
+
+	// Validate for injection patterns
+	if err := validateStructStrings(backendOpts, ""); err != nil {
 		return err
-	}
-
-	// Basic network validation for port
-	if options.LlamaServerOptions.Port < 0 || options.LlamaServerOptions.Port > 65535 {
-		return ValidationError(fmt.Errorf("invalid port range: %d", options.LlamaServerOptions.Port))
-	}
-
-	return nil
-}
-
-// validateMlxOptions validates MLX backend specific options
-func validateMlxOptions(options *instance.Options) error {
-	if options.MlxServerOptions == nil {
-		return ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
-	}
-
-	if err := validateStructStrings(options.MlxServerOptions, ""); err != nil {
-		return err
-	}
-
-	// Basic network validation for port
-	if options.MlxServerOptions.Port < 0 || options.MlxServerOptions.Port > 65535 {
-		return ValidationError(fmt.Errorf("invalid port range: %d", options.MlxServerOptions.Port))
-	}
-
-	return nil
-}
-
-// validateVllmOptions validates vLLM backend specific options
-func validateVllmOptions(options *instance.Options) error {
-	if options.VllmServerOptions == nil {
-		return ValidationError(fmt.Errorf("vLLM server options cannot be nil for vLLM backend"))
-	}
-
-	// Use reflection to check all string fields for injection patterns
-	if err := validateStructStrings(options.VllmServerOptions, ""); err != nil {
-		return err
-	}
-
-	// Basic network validation for port
-	if options.VllmServerOptions.Port < 0 || options.VllmServerOptions.Port > 65535 {
-		return ValidationError(fmt.Errorf("invalid port range: %d", options.VllmServerOptions.Port))
 	}
 
 	return nil

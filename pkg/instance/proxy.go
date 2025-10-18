@@ -77,15 +77,14 @@ func (p *proxy) build() (*httputil.ReverseProxy, error) {
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 
-	// Get response headers from backend config
+	// Get response headers from backend config using registry
 	var responseHeaders map[string]string
-	switch options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		responseHeaders = p.instance.globalBackendSettings.LlamaCpp.ResponseHeaders
-	case backends.BackendTypeVllm:
-		responseHeaders = p.instance.globalBackendSettings.VLLM.ResponseHeaders
-	case backends.BackendTypeMlxLm:
-		responseHeaders = p.instance.globalBackendSettings.MLX.ResponseHeaders
+	backend, err := backends.GetDefaultRegistry().Get(options.BackendType)
+	if err == nil {
+		backendConfig, err := p.instance.getGlobalBackendConfig()
+		if err == nil && backendConfig != nil {
+			responseHeaders = backend.GetResponseHeaders(backendConfig)
+		}
 	}
 
 	proxy.ModifyResponse = func(resp *http.Response) error {

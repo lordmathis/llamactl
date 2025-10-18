@@ -493,39 +493,20 @@ func (im *instanceManager) GetInstanceLogs(name string, numLines int) (string, e
 
 // getPortFromOptions extracts the port from backend-specific options
 func (im *instanceManager) getPortFromOptions(options *instance.Options) int {
-	switch options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if options.LlamaServerOptions != nil {
-			return options.LlamaServerOptions.Port
-		}
-	case backends.BackendTypeMlxLm:
-		if options.MlxServerOptions != nil {
-			return options.MlxServerOptions.Port
-		}
-	case backends.BackendTypeVllm:
-		if options.VllmServerOptions != nil {
-			return options.VllmServerOptions.Port
-		}
+	backend, err := backends.GetDefaultRegistry().Get(options.BackendType)
+	if err != nil {
+		return 0
 	}
-	return 0
+	return backend.GetPort(options.GetBackendOptions())
 }
 
 // setPortInOptions sets the port in backend-specific options
 func (im *instanceManager) setPortInOptions(options *instance.Options, port int) {
-	switch options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if options.LlamaServerOptions != nil {
-			options.LlamaServerOptions.Port = port
-		}
-	case backends.BackendTypeMlxLm:
-		if options.MlxServerOptions != nil {
-			options.MlxServerOptions.Port = port
-		}
-	case backends.BackendTypeVllm:
-		if options.VllmServerOptions != nil {
-			options.VllmServerOptions.Port = port
-		}
+	backend, err := backends.GetDefaultRegistry().Get(options.BackendType)
+	if err != nil {
+		return
 	}
+	backend.SetPort(options.GetBackendOptions(), port)
 }
 
 // assignAndValidatePort assigns a port if not specified and validates it's not in use

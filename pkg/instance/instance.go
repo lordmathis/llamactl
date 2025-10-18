@@ -125,45 +125,17 @@ func (i *Instance) IsRunning() bool {
 }
 
 func (i *Instance) GetPort() int {
-	opts := i.GetOptions()
-	if opts != nil {
-		switch opts.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if opts.LlamaServerOptions != nil {
-				return opts.LlamaServerOptions.Port
-			}
-		case backends.BackendTypeMlxLm:
-			if opts.MlxServerOptions != nil {
-				return opts.MlxServerOptions.Port
-			}
-		case backends.BackendTypeVllm:
-			if opts.VllmServerOptions != nil {
-				return opts.VllmServerOptions.Port
-			}
-		}
+	if i.options == nil {
+		return 0
 	}
-	return 0
+	return i.options.getPort()
 }
 
 func (i *Instance) GetHost() string {
-	opts := i.GetOptions()
-	if opts != nil {
-		switch opts.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if opts.LlamaServerOptions != nil {
-				return opts.LlamaServerOptions.Host
-			}
-		case backends.BackendTypeMlxLm:
-			if opts.MlxServerOptions != nil {
-				return opts.MlxServerOptions.Host
-			}
-		case backends.BackendTypeVllm:
-			if opts.VllmServerOptions != nil {
-				return opts.VllmServerOptions.Host
-			}
-		}
+	if i.options == nil {
+		return ""
 	}
-	return ""
+	return i.options.getHost()
 }
 
 // SetOptions sets the options
@@ -269,36 +241,37 @@ func (i *Instance) ShouldTimeout() bool {
 // getBackendHostPort extracts the host and port from instance options
 // Returns the configured host and port for the backend
 func (i *Instance) getBackendHostPort() (string, int) {
-	opts := i.GetOptions()
-	if opts == nil {
+	if i.options == nil {
 		return "localhost", 0
 	}
 
-	var host string
-	var port int
-	switch opts.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if opts.LlamaServerOptions != nil {
-			host = opts.LlamaServerOptions.Host
-			port = opts.LlamaServerOptions.Port
-		}
-	case backends.BackendTypeMlxLm:
-		if opts.MlxServerOptions != nil {
-			host = opts.MlxServerOptions.Host
-			port = opts.MlxServerOptions.Port
-		}
-	case backends.BackendTypeVllm:
-		if opts.VllmServerOptions != nil {
-			host = opts.VllmServerOptions.Host
-			port = opts.VllmServerOptions.Port
-		}
-	}
+	host := i.options.getHost()
+	port := i.options.getPort()
 
 	if host == "" {
 		host = "localhost"
 	}
 
 	return host, port
+}
+
+// getGlobalBackendConfig resolves the backend configuration for the current instance
+func (i *Instance) getGlobalBackendConfig() (*config.BackendSettings, error) {
+	opts := i.GetOptions()
+	if opts == nil {
+		return nil, fmt.Errorf("instance options are nil")
+	}
+	if i.globalBackendSettings == nil {
+		return nil, fmt.Errorf("global backend settings are nil")
+	}
+
+	backend, err := backends.GetDefaultRegistry().Get(opts.BackendType)
+	if err != nil {
+		return nil, err
+	}
+
+	settings := i.globalBackendSettings.GetBackendSettings(backend.GetConfigKey())
+	return &settings, nil
 }
 
 // MarshalJSON implements json.Marshaler for Instance
@@ -309,17 +282,12 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 	// Determine if docker is enabled for this instance's backend
 	var dockerEnabled bool
 	if opts != nil {
-		switch opts.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if i.globalBackendSettings != nil && i.globalBackendSettings.LlamaCpp.Docker != nil && i.globalBackendSettings.LlamaCpp.Docker.Enabled {
+		backend, err := backends.GetDefaultRegistry().Get(opts.BackendType)
+		if err == nil && backend.SupportsDocker() {
+			backendConfig, err := i.getGlobalBackendConfig()
+			if err == nil && backendConfig != nil && backendConfig.Docker != nil && backendConfig.Docker.Enabled {
 				dockerEnabled = true
 			}
-		case backends.BackendTypeVllm:
-			if i.globalBackendSettings != nil && i.globalBackendSettings.VLLM.Docker != nil && i.globalBackendSettings.VLLM.Docker.Enabled {
-				dockerEnabled = true
-			}
-		case backends.BackendTypeMlxLm:
-			// MLX does not support docker currently
 		}
 	}
 
