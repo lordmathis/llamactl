@@ -106,7 +106,7 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param request body ParseCommandRequest true "Command to parse"
-// @Success 200 {object} instance.CreateInstanceOptions "Parsed options"
+// @Success 200 {object} instance.Options "Parsed options"
 // @Failure 400 {object} map[string]string "Invalid request or command"
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /backends/llama-cpp/parse-command [post]
@@ -135,7 +135,7 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
 			return
 		}
-		options := &instance.CreateInstanceOptions{
+		options := &instance.Options{
 			BackendType:        backends.BackendTypeLlamaCpp,
 			LlamaServerOptions: llamaOptions,
 		}
@@ -154,7 +154,7 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param request body ParseCommandRequest true "Command to parse"
-// @Success 200 {object} instance.CreateInstanceOptions "Parsed options"
+// @Success 200 {object} instance.Options "Parsed options"
 // @Failure 400 {object} map[string]string "Invalid request or command"
 // @Router /backends/mlx/parse-command [post]
 func (h *Handler) ParseMlxCommand() http.HandlerFunc {
@@ -188,7 +188,7 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 		// Currently only support mlx_lm backend type
 		backendType := backends.BackendTypeMlxLm
 
-		options := &instance.CreateInstanceOptions{
+		options := &instance.Options{
 			BackendType:      backendType,
 			MlxServerOptions: mlxOptions,
 		}
@@ -208,7 +208,7 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param request body ParseCommandRequest true "Command to parse"
-// @Success 200 {object} instance.CreateInstanceOptions "Parsed options"
+// @Success 200 {object} instance.Options "Parsed options"
 // @Failure 400 {object} map[string]string "Invalid request or command"
 // @Router /backends/vllm/parse-command [post]
 func (h *Handler) ParseVllmCommand() http.HandlerFunc {
@@ -241,7 +241,7 @@ func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 
 		backendType := backends.BackendTypeVllm
 
-		options := &instance.CreateInstanceOptions{
+		options := &instance.Options{
 			BackendType:       backendType,
 			VllmServerOptions: vllmOptions,
 		}

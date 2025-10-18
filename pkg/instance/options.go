@@ -10,9 +10,12 @@ import (
 	"llamactl/pkg/config"
 	"log"
 	"maps"
+	"slices"
+	"sync"
 )
 
-type CreateInstanceOptions struct {
+// Options contains the actual configuration (exported - this is the public API).
+type Options struct {
 	// Auto restart
 	AutoRestart  *bool `json:"auto_restart,omitempty"`
 	MaxRestarts  *int  `json:"max_restarts,omitempty"`
@@ -27,7 +30,7 @@ type CreateInstanceOptions struct {
 	BackendType    backends.BackendType `json:"backend_type"`
 	BackendOptions map[string]any       `json:"backend_options,omitempty"`
 
-	Nodes []string `json:"nodes,omitempty"`
+	Nodes map[string]struct{} `json:"-"`
 
 	// Backend-specific options
 	LlamaServerOptions *llamacpp.LlamaServerOptions `json:"-"`
@@ -35,11 +38,57 @@ type CreateInstanceOptions struct {
 	VllmServerOptions  *vllm.VllmServerOptions      `json:"-"`
 }
 
-// UnmarshalJSON implements custom JSON unmarshaling for CreateInstanceOptions
-func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
+// options wraps Options with thread-safe access (unexported).
+type options struct {
+	mu   sync.RWMutex
+	opts *Options
+}
+
+// newOptions creates a new options wrapper with the given Options
+func newOptions(opts *Options) *options {
+	return &options{
+		opts: opts,
+	}
+}
+
+// get returns a copy of the current options
+func (o *options) get() *Options {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.opts
+}
+
+// set updates the options
+func (o *options) set(opts *Options) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.opts = opts
+}
+
+// MarshalJSON implements json.Marshaler for options wrapper
+func (o *options) MarshalJSON() ([]byte, error) {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.opts.MarshalJSON()
+}
+
+// UnmarshalJSON implements json.Unmarshaler for options wrapper
+func (o *options) UnmarshalJSON(data []byte) error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if o.opts == nil {
+		o.opts = &Options{}
+	}
+	return o.opts.UnmarshalJSON(data)
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for Options
+func (c *Options) UnmarshalJSON(data []byte) error {
 	// Use anonymous struct to avoid recursion
-	type Alias CreateInstanceOptions
+	type Alias Options
 	aux := &struct {
+		Nodes []string `json:"nodes,omitempty"` // Accept JSON array
 		*Alias
 	}{
 		Alias: (*Alias)(c),
@@ -47,6 +96,14 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 
 	if err := json.Unmarshal(data, aux); err != nil {
 		return err
+	}
+
+	// Convert nodes array to map
+	if len(aux.Nodes) > 0 {
+		c.Nodes = make(map[string]struct{}, len(aux.Nodes))
+		for _, node := range aux.Nodes {
+			c.Nodes[node] = struct{}{}
+		}
 	}
 
 	// Parse backend-specific options
@@ -95,14 +152,25 @@ func (c *CreateInstanceOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalJSON implements custom JSON marshaling for CreateInstanceOptions
-func (c *CreateInstanceOptions) MarshalJSON() ([]byte, error) {
+// MarshalJSON implements custom JSON marshaling for Options
+func (c *Options) MarshalJSON() ([]byte, error) {
 	// Use anonymous struct to avoid recursion
-	type Alias CreateInstanceOptions
+	type Alias Options
 	aux := struct {
+		Nodes []string `json:"nodes,omitempty"` // Output as JSON array
 		*Alias
 	}{
 		Alias: (*Alias)(c),
+	}
+
+	// Convert nodes map to array (sorted for consistency)
+	if len(c.Nodes) > 0 {
+		aux.Nodes = make([]string, 0, len(c.Nodes))
+		for node := range c.Nodes {
+			aux.Nodes = append(aux.Nodes, node)
+		}
+		// Sort for consistent output
+		slices.Sort(aux.Nodes)
 	}
 
 	// Convert backend-specific options back to BackendOptions map for JSON
@@ -154,8 +222,8 @@ func (c *CreateInstanceOptions) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
-// ValidateAndApplyDefaults validates the instance options and applies constraints
-func (c *CreateInstanceOptions) ValidateAndApplyDefaults(name string, globalSettings *config.InstancesConfig) {
+// validateAndApplyDefaults validates the instance options and applies constraints
+func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.InstancesConfig) {
 	// Validate and apply constraints
 	if c.MaxRestarts != nil && *c.MaxRestarts < 0 {
 		log.Printf("Instance %s MaxRestarts value (%d) cannot be negative, setting to 0", name, *c.MaxRestarts)
@@ -193,7 +261,8 @@ func (c *CreateInstanceOptions) ValidateAndApplyDefaults(name string, globalSett
 	}
 }
 
-func (c *CreateInstanceOptions) GetCommand(backendConfig *config.BackendSettings) string {
+// getCommand builds the command to run the backend
+func (c *Options) getCommand(backendConfig *config.BackendSettings) string {
 
 	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
 		return "docker"
@@ -202,8 +271,8 @@ func (c *CreateInstanceOptions) GetCommand(backendConfig *config.BackendSettings
 	return backendConfig.Command
 }
 
-// BuildCommandArgs builds command line arguments for the backend
-func (c *CreateInstanceOptions) BuildCommandArgs(backendConfig *config.BackendSettings) []string {
+// buildCommandArgs builds command line arguments for the backend
+func (c *Options) buildCommandArgs(backendConfig *config.BackendSettings) []string {
 
 	var args []string
 
@@ -246,7 +315,8 @@ func (c *CreateInstanceOptions) BuildCommandArgs(backendConfig *config.BackendSe
 	return args
 }
 
-func (c *CreateInstanceOptions) BuildEnvironment(backendConfig *config.BackendSettings) map[string]string {
+// buildEnvironment builds the environment variables for the backend process
+func (c *Options) buildEnvironment(backendConfig *config.BackendSettings) map[string]string {
 	env := map[string]string{}
 
 	if backendConfig.Environment != nil {

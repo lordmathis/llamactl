@@ -66,13 +66,13 @@ func parseRemoteResponse(resp *http.Response, result any) error {
 }
 
 // ListRemoteInstances lists all instances on the remote node
-func (im *instanceManager) ListRemoteInstances(nodeConfig *config.NodeConfig) ([]*instance.Process, error) {
+func (im *instanceManager) ListRemoteInstances(nodeConfig *config.NodeConfig) ([]*instance.Instance, error) {
 	resp, err := im.makeRemoteRequest(nodeConfig, "GET", "/api/v1/instances/", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var instances []*instance.Process
+	var instances []*instance.Instance
 	if err := parseRemoteResponse(resp, &instances); err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (im *instanceManager) ListRemoteInstances(nodeConfig *config.NodeConfig) ([
 }
 
 // CreateRemoteInstance creates a new instance on the remote node
-func (im *instanceManager) CreateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
+func (im *instanceManager) CreateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/", name)
 
 	resp, err := im.makeRemoteRequest(nodeConfig, "POST", path, options)
@@ -89,7 +89,7 @@ func (im *instanceManager) CreateRemoteInstance(nodeConfig *config.NodeConfig, n
 		return nil, err
 	}
 
-	var inst instance.Process
+	var inst instance.Instance
 	if err := parseRemoteResponse(resp, &inst); err != nil {
 		return nil, err
 	}
@@ -98,14 +98,14 @@ func (im *instanceManager) CreateRemoteInstance(nodeConfig *config.NodeConfig, n
 }
 
 // GetRemoteInstance retrieves an instance by name from the remote node
-func (im *instanceManager) GetRemoteInstance(nodeConfig *config.NodeConfig, name string) (*instance.Process, error) {
+func (im *instanceManager) GetRemoteInstance(nodeConfig *config.NodeConfig, name string) (*instance.Instance, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/", name)
 	resp, err := im.makeRemoteRequest(nodeConfig, "GET", path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var inst instance.Process
+	var inst instance.Instance
 	if err := parseRemoteResponse(resp, &inst); err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (im *instanceManager) GetRemoteInstance(nodeConfig *config.NodeConfig, name
 }
 
 // UpdateRemoteInstance updates an existing instance on the remote node
-func (im *instanceManager) UpdateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
+func (im *instanceManager) UpdateRemoteInstance(nodeConfig *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/", name)
 
 	resp, err := im.makeRemoteRequest(nodeConfig, "PUT", path, options)
@@ -122,7 +122,7 @@ func (im *instanceManager) UpdateRemoteInstance(nodeConfig *config.NodeConfig, n
 		return nil, err
 	}
 
-	var inst instance.Process
+	var inst instance.Instance
 	if err := parseRemoteResponse(resp, &inst); err != nil {
 		return nil, err
 	}
@@ -142,14 +142,14 @@ func (im *instanceManager) DeleteRemoteInstance(nodeConfig *config.NodeConfig, n
 }
 
 // StartRemoteInstance starts an instance on the remote node
-func (im *instanceManager) StartRemoteInstance(nodeConfig *config.NodeConfig, name string) (*instance.Process, error) {
+func (im *instanceManager) StartRemoteInstance(nodeConfig *config.NodeConfig, name string) (*instance.Instance, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/start", name)
 	resp, err := im.makeRemoteRequest(nodeConfig, "POST", path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var inst instance.Process
+	var inst instance.Instance
 	if err := parseRemoteResponse(resp, &inst); err != nil {
 		return nil, err
 	}
@@ -158,14 +158,14 @@ func (im *instanceManager) StartRemoteInstance(nodeConfig *config.NodeConfig, na
 }
 
 // StopRemoteInstance stops an instance on the remote node
-func (im *instanceManager) StopRemoteInstance(nodeConfig *config.NodeConfig, name string) (*instance.Process, error) {
+func (im *instanceManager) StopRemoteInstance(nodeConfig *config.NodeConfig, name string) (*instance.Instance, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/stop", name)
 	resp, err := im.makeRemoteRequest(nodeConfig, "POST", path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var inst instance.Process
+	var inst instance.Instance
 	if err := parseRemoteResponse(resp, &inst); err != nil {
 		return nil, err
 	}
@@ -174,14 +174,14 @@ func (im *instanceManager) StopRemoteInstance(nodeConfig *config.NodeConfig, nam
 }
 
 // RestartRemoteInstance restarts an instance on the remote node
-func (im *instanceManager) RestartRemoteInstance(nodeConfig *config.NodeConfig, name string) (*instance.Process, error) {
+func (im *instanceManager) RestartRemoteInstance(nodeConfig *config.NodeConfig, name string) (*instance.Instance, error) {
 	path := fmt.Sprintf("/api/v1/instances/%s/restart", name)
 	resp, err := im.makeRemoteRequest(nodeConfig, "POST", path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var inst instance.Process
+	var inst instance.Instance
 	if err := parseRemoteResponse(resp, &inst); err != nil {
 		return nil, err
 	}

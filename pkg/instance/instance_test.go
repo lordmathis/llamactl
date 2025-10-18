@@ -8,6 +8,7 @@ import (
 	"llamactl/pkg/instance"
 	"llamactl/pkg/testutil"
 	"testing"
+	"time"
 )
 
 func TestNewInstance(t *testing.T) {
@@ -33,7 +34,7 @@ func TestNewInstance(t *testing.T) {
 		DefaultRestartDelay: 5,
 	}
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -42,9 +43,9 @@ func TestNewInstance(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	if inst.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
@@ -102,7 +103,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	maxRestarts := 10
 	restartDelay := 15
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		AutoRestart:  &autoRestart,
 		MaxRestarts:  &maxRestarts,
 		RestartDelay: &restartDelay,
@@ -113,9 +114,9 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	instance := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 	opts := instance.GetOptions()
 
 	// Check that explicit values override defaults
@@ -153,7 +154,7 @@ func TestSetOptions(t *testing.T) {
 		DefaultRestartDelay: 5,
 	}
 
-	initialOptions := &instance.CreateInstanceOptions{
+	initialOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -162,12 +163,12 @@ func TestSetOptions(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
 
 	// Update options
-	newOptions := &instance.CreateInstanceOptions{
+	newOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",
@@ -207,22 +208,22 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 	}
 
 	// Create instance with initial nodes
-	initialOptions := &instance.CreateInstanceOptions{
+	initialOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		Nodes:       []string{"worker1"},
+		Nodes:       map[string]struct{}{"worker1": {}},
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
 	}
 
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
+	inst := instance.New("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
 
 	// Try to update with different nodes
-	updatedOptions := &instance.CreateInstanceOptions{
+	updatedOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		Nodes:       []string{"worker2"}, // Attempt to change node
+		Nodes:       map[string]struct{}{"worker2": {}}, // Attempt to change node
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",
 			Port:  8081,
@@ -233,8 +234,8 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 	opts := inst.GetOptions()
 
 	// Nodes should remain unchanged
-	if len(opts.Nodes) != 1 || opts.Nodes[0] != "worker1" {
-		t.Errorf("Expected nodes to remain ['worker1'], got %v", opts.Nodes)
+	if _, exists := opts.Nodes["worker1"]; len(opts.Nodes) != 1 || !exists {
+		t.Errorf("Expected nodes to contain 'worker1', got %v", opts.Nodes)
 	}
 
 	// Other options should be updated
@@ -263,7 +264,7 @@ func TestGetProxy(t *testing.T) {
 		LogsDir: "/tmp/test",
 	}
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Host: "localhost",
@@ -272,9 +273,9 @@ func TestGetProxy(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	// Get proxy for the first time
 	proxy1, err := inst.GetProxy()
@@ -318,7 +319,7 @@ func TestMarshalJSON(t *testing.T) {
 		DefaultRestartDelay: 5,
 	}
 
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -327,9 +328,9 @@ func TestMarshalJSON(t *testing.T) {
 	}
 
 	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	instance := instance.NewInstance("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	instance := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 
 	data, err := json.Marshal(instance)
 	if err != nil {
@@ -397,7 +398,7 @@ func TestUnmarshalJSON(t *testing.T) {
 		}
 	}`
 
-	var inst instance.Process
+	var inst instance.Instance
 	err := json.Unmarshal([]byte(jsonData), &inst)
 	if err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
@@ -434,7 +435,7 @@ func TestUnmarshalJSON(t *testing.T) {
 	}
 }
 
-func TestCreateInstanceOptionsValidation(t *testing.T) {
+func TestCreateOptionsValidation(t *testing.T) {
 	tests := []struct {
 		name          string
 		maxRestarts   *int
@@ -486,7 +487,7 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := &instance.CreateInstanceOptions{
+			options := &instance.Options{
 				MaxRestarts:  tt.maxRestarts,
 				RestartDelay: tt.restartDelay,
 				BackendType:  backends.BackendTypeLlamaCpp,
@@ -496,9 +497,9 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 			}
 
 			// Mock onStatusChange function
-			mockOnStatusChange := func(oldStatus, newStatus instance.InstanceStatus) {}
+			mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-			instance := instance.NewInstance("test", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+			instance := instance.New("test", backendConfig, globalSettings, options, "main", mockOnStatusChange)
 			opts := instance.GetOptions()
 
 			if opts.MaxRestarts == nil {
@@ -514,4 +515,304 @@ func TestCreateInstanceOptionsValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStatusChangeCallback(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	}
+	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
+	options := &instance.Options{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+		},
+	}
+
+	var callbackOldStatus, callbackNewStatus instance.Status
+	callbackCalled := false
+
+	onStatusChange := func(oldStatus, newStatus instance.Status) {
+		callbackOldStatus = oldStatus
+		callbackNewStatus = newStatus
+		callbackCalled = true
+	}
+
+	inst := instance.New("test", backendConfig, globalSettings, options, "main", onStatusChange)
+
+	inst.SetStatus(instance.Running)
+
+	if !callbackCalled {
+		t.Error("Expected status change callback to be called")
+	}
+	if callbackOldStatus != instance.Stopped {
+		t.Errorf("Expected old status Stopped, got %v", callbackOldStatus)
+	}
+	if callbackNewStatus != instance.Running {
+		t.Errorf("Expected new status Running, got %v", callbackNewStatus)
+	}
+}
+
+func TestSetOptions_NodesPreserved(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	}
+	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
+
+	tests := []struct {
+		name          string
+		initialNodes  map[string]struct{}
+		updateNodes   map[string]struct{}
+		expectedNodes map[string]struct{}
+	}{
+		{
+			name:          "nil nodes preserved as nil",
+			initialNodes:  nil,
+			updateNodes:   map[string]struct{}{"worker1": {}},
+			expectedNodes: nil,
+		},
+		{
+			name:          "empty nodes preserved as empty",
+			initialNodes:  map[string]struct{}{},
+			updateNodes:   map[string]struct{}{"worker1": {}},
+			expectedNodes: map[string]struct{}{},
+		},
+		{
+			name:          "existing nodes preserved",
+			initialNodes:  map[string]struct{}{"worker1": {}, "worker2": {}},
+			updateNodes:   map[string]struct{}{"worker3": {}},
+			expectedNodes: map[string]struct{}{"worker1": {}, "worker2": {}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			options := &instance.Options{
+				BackendType: backends.BackendTypeLlamaCpp,
+				Nodes:       tt.initialNodes,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+					Model: "/path/to/model.gguf",
+				},
+			}
+
+			inst := instance.New("test", backendConfig, globalSettings, options, "main", nil)
+
+			// Attempt to update nodes (should be ignored)
+			updateOptions := &instance.Options{
+				BackendType: backends.BackendTypeLlamaCpp,
+				Nodes:       tt.updateNodes,
+				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+					Model: "/path/to/new-model.gguf",
+				},
+			}
+			inst.SetOptions(updateOptions)
+
+			opts := inst.GetOptions()
+
+			// Verify nodes are preserved
+			if len(opts.Nodes) != len(tt.expectedNodes) {
+				t.Errorf("Expected %d nodes, got %d", len(tt.expectedNodes), len(opts.Nodes))
+			}
+			for node := range tt.expectedNodes {
+				if _, exists := opts.Nodes[node]; !exists {
+					t.Errorf("Expected node %s to exist", node)
+				}
+			}
+
+			// Verify other options were updated
+			if opts.LlamaServerOptions.Model != "/path/to/new-model.gguf" {
+				t.Errorf("Expected model to be updated to '/path/to/new-model.gguf', got %q", opts.LlamaServerOptions.Model)
+			}
+		})
+	}
+}
+
+func TestProcessErrorCases(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	}
+	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
+	options := &instance.Options{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+		},
+	}
+
+	inst := instance.New("test", backendConfig, globalSettings, options, "main", nil)
+
+	// Stop when not running should return error
+	err := inst.Stop()
+	if err == nil {
+		t.Error("Expected error when stopping non-running instance")
+	}
+
+	// Simulate running state
+	inst.SetStatus(instance.Running)
+
+	// Start when already running should return error
+	err = inst.Start()
+	if err == nil {
+		t.Error("Expected error when starting already running instance")
+	}
+}
+
+func TestRemoteInstanceOperations(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	}
+	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
+	options := &instance.Options{
+		BackendType: backends.BackendTypeLlamaCpp,
+		Nodes:       map[string]struct{}{"remote-node": {}}, // Remote instance
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+		},
+	}
+
+	inst := instance.New("remote-test", backendConfig, globalSettings, options, "main", nil)
+
+	if !inst.IsRemote() {
+		t.Error("Expected instance to be remote")
+	}
+
+	// Start should fail for remote instance
+	if err := inst.Start(); err == nil {
+		t.Error("Expected error when starting remote instance")
+	}
+
+	// Stop should fail for remote instance
+	if err := inst.Stop(); err == nil {
+		t.Error("Expected error when stopping remote instance")
+	}
+
+	// Restart should fail for remote instance
+	if err := inst.Restart(); err == nil {
+		t.Error("Expected error when restarting remote instance")
+	}
+
+	// GetProxy should fail for remote instance
+	if _, err := inst.GetProxy(); err == nil {
+		t.Error("Expected error when getting proxy for remote instance")
+	}
+
+	// GetLogs should fail for remote instance
+	if _, err := inst.GetLogs(10); err == nil {
+		t.Error("Expected error when getting logs for remote instance")
+	}
+}
+
+func TestProxyClearOnOptionsChange(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	}
+	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
+	options := &instance.Options{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Host: "localhost",
+			Port: 8080,
+		},
+	}
+
+	inst := instance.New("test", backendConfig, globalSettings, options, "main", nil)
+
+	// Get initial proxy
+	proxy1, err := inst.GetProxy()
+	if err != nil {
+		t.Fatalf("Failed to get initial proxy: %v", err)
+	}
+
+	// Update options (should clear proxy)
+	newOptions := &instance.Options{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			Host: "localhost",
+			Port: 8081, // Different port
+		},
+	}
+	inst.SetOptions(newOptions)
+
+	// Get proxy again - should be recreated with new port
+	proxy2, err := inst.GetProxy()
+	if err != nil {
+		t.Fatalf("Failed to get proxy after options change: %v", err)
+	}
+
+	// Proxies should be different instances (recreated)
+	if proxy1 == proxy2 {
+		t.Error("Expected proxy to be recreated after options change")
+	}
+}
+
+func TestIdleTimeout(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	}
+	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
+
+	t.Run("not running never times out", func(t *testing.T) {
+		timeout := 1
+		inst := instance.New("test", backendConfig, globalSettings, &instance.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			IdleTimeout: &timeout,
+			LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
+		}, "main", nil)
+
+		if inst.ShouldTimeout() {
+			t.Error("Non-running instance should never timeout")
+		}
+	})
+
+	t.Run("no timeout configured", func(t *testing.T) {
+		inst := instance.New("test", backendConfig, globalSettings, &instance.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			IdleTimeout: nil, // No timeout
+			LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
+		}, "main", nil)
+		inst.SetStatus(instance.Running)
+
+		if inst.ShouldTimeout() {
+			t.Error("Instance with no timeout configured should not timeout")
+		}
+	})
+
+	t.Run("timeout exceeded", func(t *testing.T) {
+		timeout := 1 // 1 minute
+		inst := instance.New("test", backendConfig, globalSettings, &instance.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			IdleTimeout: &timeout,
+			LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
+		}, "main", nil)
+		inst.SetStatus(instance.Running)
+
+		// Use mock time provider
+		mockTime := &mockTimeProvider{currentTime: time.Now().Unix()}
+		inst.SetTimeProvider(mockTime)
+
+		// Set last request time to now
+		inst.UpdateLastRequestTime()
+
+		// Advance time by 2 minutes (exceeds 1 minute timeout)
+		mockTime.currentTime = time.Now().Add(2 * time.Minute).Unix()
+
+		if !inst.ShouldTimeout() {
+			t.Error("Instance should timeout when idle time exceeds configured timeout")
+		}
+	})
+}
+
+// mockTimeProvider for timeout testing
+type mockTimeProvider struct {
+	currentTime int64 // Unix timestamp
+}
+
+func (m *mockTimeProvider) Now() time.Time {
+	return time.Unix(m.currentTime, 0)
 }

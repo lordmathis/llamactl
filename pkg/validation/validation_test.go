@@ -83,7 +83,7 @@ func TestValidateInstanceOptions_PortValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := &instance.CreateInstanceOptions{
+			options := &instance.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Port: tt.port,
@@ -137,7 +137,7 @@ func TestValidateInstanceOptions_StringInjection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test with Model field (string field)
-			options := &instance.CreateInstanceOptions{
+			options := &instance.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model: tt.value,
@@ -175,7 +175,7 @@ func TestValidateInstanceOptions_ArrayInjection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test with Lora field (array field)
-			options := &instance.CreateInstanceOptions{
+			options := &instance.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Lora: tt.array,
@@ -194,12 +194,12 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 	// Test that injection in any field is caught
 	tests := []struct {
 		name    string
-		options *instance.CreateInstanceOptions
+		options *instance.Options
 		wantErr bool
 	}{
 		{
 			name: "injection in model field",
-			options: &instance.CreateInstanceOptions{
+			options: &instance.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model:  "safe.gguf",
@@ -210,7 +210,7 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		},
 		{
 			name: "injection in log file",
-			options: &instance.CreateInstanceOptions{
+			options: &instance.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model:   "safe.gguf",
@@ -221,7 +221,7 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		},
 		{
 			name: "all safe fields",
-			options: &instance.CreateInstanceOptions{
+			options: &instance.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model:   "/path/to/model.gguf",
@@ -247,7 +247,7 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 
 func TestValidateInstanceOptions_NonStringFields(t *testing.T) {
 	// Test that non-string fields don't interfere with validation
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		AutoRestart:  testutil.BoolPtr(true),
 		MaxRestarts:  testutil.IntPtr(5),
 		RestartDelay: testutil.IntPtr(10),

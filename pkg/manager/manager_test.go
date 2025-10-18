@@ -70,7 +70,7 @@ func TestPersistence(t *testing.T) {
 
 	// Test instance persistence on creation
 	manager1 := manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -132,7 +132,7 @@ func TestConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			options := &instance.CreateInstanceOptions{
+			options := &instance.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &llamacpp.LlamaServerOptions{
 					Model: "/path/to/model.gguf",
@@ -169,7 +169,7 @@ func TestShutdown(t *testing.T) {
 	mgr := createTestManager()
 
 	// Create test instance
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -230,7 +230,7 @@ func TestAutoRestartDisabledInstanceStatus(t *testing.T) {
 	manager1 := manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
 
 	autoRestart := false
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		AutoRestart: &autoRestart,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{

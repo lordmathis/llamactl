@@ -3,7 +3,6 @@ package manager
 import (
 	"fmt"
 	"llamactl/pkg/backends"
-	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
 	"os"
@@ -14,7 +13,7 @@ type MaxRunningInstancesError error
 
 // updateLocalInstanceFromRemote updates the local stub instance with data from the remote instance
 // while preserving the Nodes field to maintain remote instance tracking
-func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Process, remoteInst *instance.Process) {
+func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Instance, remoteInst *instance.Instance) {
 	if localInst == nil || remoteInst == nil {
 		return
 	}
@@ -27,10 +26,12 @@ func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Pro
 
 	// Preserve the Nodes field from the local instance
 	localOptions := localInst.GetOptions()
-	var preservedNodes []string
+	var preservedNodes map[string]struct{}
 	if localOptions != nil && len(localOptions.Nodes) > 0 {
-		preservedNodes = make([]string, len(localOptions.Nodes))
-		copy(preservedNodes, localOptions.Nodes)
+		preservedNodes = make(map[string]struct{}, len(localOptions.Nodes))
+		for node := range localOptions.Nodes {
+			preservedNodes[node] = struct{}{}
+		}
 	}
 
 	// Create a copy of remote options and restore the Nodes field
@@ -39,15 +40,15 @@ func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Pro
 
 	// Update the local instance with all remote data
 	localInst.SetOptions(&updatedOptions)
-	localInst.Status = remoteInst.Status
+	localInst.SetStatus(remoteInst.GetStatus())
 	localInst.Created = remoteInst.Created
 }
 
 // ListInstances returns a list of all instances managed by the instance manager.
 // For remote instances, this fetches the live state from remote nodes and updates local stubs.
-func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
+func (im *instanceManager) ListInstances() ([]*instance.Instance, error) {
 	im.mu.RLock()
-	localInstances := make([]*instance.Process, 0, len(im.instances))
+	localInstances := make([]*instance.Instance, 0, len(im.instances))
 	for _, inst := range im.instances {
 		localInstances = append(localInstances, inst)
 	}
@@ -75,7 +76,7 @@ func (im *instanceManager) ListInstances() ([]*instance.Process, error) {
 
 // CreateInstance creates a new instance with the given options and returns it.
 // The instance is initially in a "stopped" state.
-func (im *instanceManager) CreateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
+func (im *instanceManager) CreateInstance(name string, options *instance.Options) (*instance.Instance, error) {
 	if options == nil {
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
@@ -98,16 +99,17 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		return nil, fmt.Errorf("instance with name %s already exists", name)
 	}
 
-	// Check if this is a remote instance
-	// An instance is remote if Nodes is specified AND the first node is not the local node
-	isRemote := len(options.Nodes) > 0 && options.Nodes[0] != im.localNodeName
-	var nodeConfig *config.NodeConfig
+	// Check if this is a remote instance (local node not in the Nodes set)
+	if _, isLocal := options.Nodes[im.localNodeName]; !isLocal && len(options.Nodes) > 0 {
+		// Get the first node from the set
+		var nodeName string
+		for node := range options.Nodes {
+			nodeName = node
+			break
+		}
 
-	if isRemote {
 		// Validate that the node exists
-		nodeName := options.Nodes[0] // Use first node for now
-		var exists bool
-		nodeConfig, exists = im.nodeConfigMap[nodeName]
+		nodeConfig, exists := im.nodeConfigMap[nodeName]
 		if !exists {
 			return nil, fmt.Errorf("node %s not found", nodeName)
 		}
@@ -120,7 +122,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 
 		// Create a local stub that preserves the Nodes field for tracking
 		// We keep the original options (with Nodes) so IsRemote() works correctly
-		inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, nil)
+		inst := instance.New(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, nil)
 
 		// Update the local stub with all remote data (preserving Nodes)
 		im.updateLocalInstanceFromRemote(inst, remoteInst)
@@ -149,11 +151,11 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 		return nil, err
 	}
 
-	statusCallback := func(oldStatus, newStatus instance.InstanceStatus) {
+	statusCallback := func(oldStatus, newStatus instance.Status) {
 		im.onStatusChange(name, oldStatus, newStatus)
 	}
 
-	inst := instance.NewInstance(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, statusCallback)
+	inst := instance.New(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, statusCallback)
 	im.instances[inst.Name] = inst
 
 	if err := im.persistInstance(inst); err != nil {
@@ -165,7 +167,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.CreateI
 
 // GetInstance retrieves an instance by its name.
 // For remote instances, this fetches the live state from the remote node and updates the local stub.
-func (im *instanceManager) GetInstance(name string) (*instance.Process, error) {
+func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -195,7 +197,7 @@ func (im *instanceManager) GetInstance(name string) (*instance.Process, error) {
 
 // UpdateInstance updates the options of an existing instance and returns it.
 // If the instance is running, it will be restarted to apply the new options.
-func (im *instanceManager) UpdateInstance(name string, options *instance.CreateInstanceOptions) (*instance.Process, error) {
+func (im *instanceManager) UpdateInstance(name string, options *instance.Options) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -327,7 +329,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 
 // StartInstance starts a stopped instance and returns it.
 // If the instance is already running, it returns an error.
-func (im *instanceManager) StartInstance(name string) (*instance.Process, error) {
+func (im *instanceManager) StartInstance(name string) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -396,7 +398,7 @@ func (im *instanceManager) IsMaxRunningInstancesReached() bool {
 }
 
 // StopInstance stops a running instance and returns it.
-func (im *instanceManager) StopInstance(name string) (*instance.Process, error) {
+func (im *instanceManager) StopInstance(name string) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -439,7 +441,7 @@ func (im *instanceManager) StopInstance(name string) (*instance.Process, error) 
 }
 
 // RestartInstance stops and then starts an instance, returning the updated instance.
-func (im *instanceManager) RestartInstance(name string) (*instance.Process, error) {
+func (im *instanceManager) RestartInstance(name string) (*instance.Instance, error) {
 	im.mu.RLock()
 	inst, exists := im.instances[name]
 	im.mu.RUnlock()
@@ -490,7 +492,7 @@ func (im *instanceManager) GetInstanceLogs(name string, numLines int) (string, e
 }
 
 // getPortFromOptions extracts the port from backend-specific options
-func (im *instanceManager) getPortFromOptions(options *instance.CreateInstanceOptions) int {
+func (im *instanceManager) getPortFromOptions(options *instance.Options) int {
 	switch options.BackendType {
 	case backends.BackendTypeLlamaCpp:
 		if options.LlamaServerOptions != nil {
@@ -509,7 +511,7 @@ func (im *instanceManager) getPortFromOptions(options *instance.CreateInstanceOp
 }
 
 // setPortInOptions sets the port in backend-specific options
-func (im *instanceManager) setPortInOptions(options *instance.CreateInstanceOptions, port int) {
+func (im *instanceManager) setPortInOptions(options *instance.Options, port int) {
 	switch options.BackendType {
 	case backends.BackendTypeLlamaCpp:
 		if options.LlamaServerOptions != nil {
@@ -527,7 +529,7 @@ func (im *instanceManager) setPortInOptions(options *instance.CreateInstanceOpti
 }
 
 // assignAndValidatePort assigns a port if not specified and validates it's not in use
-func (im *instanceManager) assignAndValidatePort(options *instance.CreateInstanceOptions) error {
+func (im *instanceManager) assignAndValidatePort(options *instance.Options) error {
 	currentPort := im.getPortFromOptions(options)
 
 	if currentPort == 0 {

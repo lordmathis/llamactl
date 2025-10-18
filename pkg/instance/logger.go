@@ -6,25 +6,30 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
-type InstanceLogger struct {
+type logger struct {
 	name        string
 	logDir      string
 	logFile     *os.File
 	logFilePath string
+	mu          sync.RWMutex
 }
 
-func NewInstanceLogger(name string, logDir string) *InstanceLogger {
-	return &InstanceLogger{
+func newLogger(name string, logDir string) *logger {
+	return &logger{
 		name:   name,
 		logDir: logDir,
 	}
 }
 
-// Create creates and opens the log files for stdout and stderr
-func (i *InstanceLogger) Create() error {
+// create creates and opens the log files for stdout and stderr
+func (i *logger) create() error {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	if i.logDir == "" {
 		return fmt.Errorf("logDir is empty for instance %s", i.name)
 	}
@@ -51,17 +56,16 @@ func (i *InstanceLogger) Create() error {
 	return nil
 }
 
-// GetLogs retrieves the last n lines of logs from the instance
-func (i *Process) GetLogs(num_lines int) (string, error) {
+// getLogs retrieves the last n lines of logs from the instance
+func (i *logger) getLogs(num_lines int) (string, error) {
 	i.mu.RLock()
-	logFileName := i.logger.logFilePath
-	i.mu.RUnlock()
+	defer i.mu.RUnlock()
 
-	if logFileName == "" {
-		return "", fmt.Errorf("log file not created for instance %s", i.Name)
+	if i.logFilePath == "" {
+		return "", fmt.Errorf("log file not created for instance %s", i.name)
 	}
 
-	file, err := os.Open(logFileName)
+	file, err := os.Open(i.logFilePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open log file: %w", err)
 	}
@@ -93,8 +97,11 @@ func (i *Process) GetLogs(num_lines int) (string, error) {
 	return strings.Join(lines[start:], "\n"), nil
 }
 
-// closeLogFile closes the log files
-func (i *InstanceLogger) Close() {
+// close closes the log files
+func (i *logger) close() {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	if i.logFile != nil {
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
 		fmt.Fprintf(i.logFile, "=== Instance %s stopped at %s ===\n\n", i.name, timestamp)
@@ -104,7 +111,7 @@ func (i *InstanceLogger) Close() {
 }
 
 // readOutput reads from the given reader and writes lines to the log file
-func (i *InstanceLogger) readOutput(reader io.ReadCloser) {
+func (i *logger) readOutput(reader io.ReadCloser) {
 	defer reader.Close()
 
 	scanner := bufio.NewScanner(reader)

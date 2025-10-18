@@ -34,7 +34,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 	defer testManager.Shutdown()
 
 	idleTimeout := 1 // 1 minute
-	options := &instance.CreateInstanceOptions{
+	options := &instance.Options{
 		IdleTimeout: &idleTimeout,
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
@@ -84,7 +84,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 	inst.SetStatus(instance.Stopped)
 
 	// Test that instance without timeout doesn't timeout
-	noTimeoutOptions := &instance.CreateInstanceOptions{
+	noTimeoutOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
@@ -115,21 +115,21 @@ func TestEvictLRUInstance_Success(t *testing.T) {
 	// Don't defer manager.Shutdown() - we'll handle cleanup manually
 
 	// Create 3 instances with idle timeout enabled (value doesn't matter for LRU logic)
-	options1 := &instance.CreateInstanceOptions{
+	options1 := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model1.gguf",
 		},
 		IdleTimeout: func() *int { timeout := 1; return &timeout }(), // Any value > 0
 	}
-	options2 := &instance.CreateInstanceOptions{
+	options2 := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model2.gguf",
 		},
 		IdleTimeout: func() *int { timeout := 1; return &timeout }(), // Any value > 0
 	}
-	options3 := &instance.CreateInstanceOptions{
+	options3 := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		LlamaServerOptions: &llamacpp.LlamaServerOptions{
 			Model: "/path/to/model3.gguf",
@@ -196,8 +196,8 @@ func TestEvictLRUInstance_Success(t *testing.T) {
 
 func TestEvictLRUInstance_NoEligibleInstances(t *testing.T) {
 	// Helper function to create instances with different timeout configurations
-	createInstanceWithTimeout := func(manager manager.InstanceManager, name, model string, timeout *int) *instance.Process {
-		options := &instance.CreateInstanceOptions{
+	createInstanceWithTimeout := func(manager manager.InstanceManager, name, model string, timeout *int) *instance.Instance {
+		options := &instance.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
 			LlamaServerOptions: &llamacpp.LlamaServerOptions{
 				Model: model,
@@ -236,7 +236,7 @@ func TestEvictLRUInstance_NoEligibleInstances(t *testing.T) {
 		inst3 := createInstanceWithTimeout(manager, "no-timeout-3", "/path/to/model3.gguf", nil)
 
 		// Set instances to running
-		instances := []*instance.Process{inst1, inst2, inst3}
+		instances := []*instance.Instance{inst1, inst2, inst3}
 		for _, inst := range instances {
 			inst.SetStatus(instance.Running)
 		}
@@ -276,7 +276,7 @@ func TestEvictLRUInstance_NoEligibleInstances(t *testing.T) {
 		instNoTimeout2 := createInstanceWithTimeout(manager, "no-timeout-2", "/path/to/model-no-timeout2.gguf", nil)
 
 		// Set all instances to running
-		instances := []*instance.Process{instWithTimeout, instNoTimeout1, instNoTimeout2}
+		instances := []*instance.Instance{instWithTimeout, instNoTimeout1, instNoTimeout2}
 		for _, inst := range instances {
 			inst.SetStatus(instance.Running)
 			inst.UpdateLastRequestTime()
