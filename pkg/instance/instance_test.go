@@ -3,7 +3,6 @@ package instance_test
 import (
 	"encoding/json"
 	"llamactl/pkg/backends"
-	"llamactl/pkg/backends/llamacpp"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/testutil"
@@ -36,7 +35,7 @@ func TestNewInstance(t *testing.T) {
 
 	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
@@ -108,7 +107,7 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 		MaxRestarts:  &maxRestarts,
 		RestartDelay: &restartDelay,
 		BackendType:  backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -156,7 +155,7 @@ func TestSetOptions(t *testing.T) {
 
 	initialOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
@@ -170,7 +169,7 @@ func TestSetOptions(t *testing.T) {
 	// Update options
 	newOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",
 			Port:  8081,
 		},
@@ -211,7 +210,7 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 	initialOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		Nodes:       map[string]struct{}{"worker1": {}},
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
@@ -224,7 +223,7 @@ func TestSetOptions_PreservesNodes(t *testing.T) {
 	updatedOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		Nodes:       map[string]struct{}{"worker2": {}}, // Attempt to change node
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/new-model.gguf",
 			Port:  8081,
 		},
@@ -266,7 +265,7 @@ func TestGetProxy(t *testing.T) {
 
 	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Host: "localhost",
 			Port: 8080,
 		},
@@ -321,7 +320,7 @@ func TestMarshalJSON(t *testing.T) {
 
 	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 			Port:  8080,
 		},
@@ -491,7 +490,7 @@ func TestCreateOptionsValidation(t *testing.T) {
 				MaxRestarts:  tt.maxRestarts,
 				RestartDelay: tt.restartDelay,
 				BackendType:  backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				LlamaServerOptions: &backends.LlamaServerOptions{
 					Model: "/path/to/model.gguf",
 				},
 			}
@@ -524,7 +523,7 @@ func TestStatusChangeCallback(t *testing.T) {
 	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -590,7 +589,7 @@ func TestSetOptions_NodesPreserved(t *testing.T) {
 			options := &instance.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				Nodes:       tt.initialNodes,
-				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				LlamaServerOptions: &backends.LlamaServerOptions{
 					Model: "/path/to/model.gguf",
 				},
 			}
@@ -601,7 +600,7 @@ func TestSetOptions_NodesPreserved(t *testing.T) {
 			updateOptions := &instance.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				Nodes:       tt.updateNodes,
-				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				LlamaServerOptions: &backends.LlamaServerOptions{
 					Model: "/path/to/new-model.gguf",
 				},
 			}
@@ -634,7 +633,7 @@ func TestProcessErrorCases(t *testing.T) {
 	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -665,7 +664,7 @@ func TestRemoteInstanceOperations(t *testing.T) {
 	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
 		Nodes:       map[string]struct{}{"remote-node": {}}, // Remote instance
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -709,7 +708,7 @@ func TestProxyClearOnOptionsChange(t *testing.T) {
 	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 	options := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Host: "localhost",
 			Port: 8080,
 		},
@@ -726,7 +725,7 @@ func TestProxyClearOnOptionsChange(t *testing.T) {
 	// Update options (should clear proxy)
 	newOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Host: "localhost",
 			Port: 8081, // Different port
 		},
@@ -756,7 +755,7 @@ func TestIdleTimeout(t *testing.T) {
 		inst := instance.New("test", backendConfig, globalSettings, &instance.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
 			IdleTimeout: &timeout,
-			LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			LlamaServerOptions: &backends.LlamaServerOptions{
 				Model: "/path/to/model.gguf",
 			},
 		}, "main", nil)
@@ -770,7 +769,7 @@ func TestIdleTimeout(t *testing.T) {
 		inst := instance.New("test", backendConfig, globalSettings, &instance.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
 			IdleTimeout: nil, // No timeout
-			LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			LlamaServerOptions: &backends.LlamaServerOptions{
 				Model: "/path/to/model.gguf",
 			},
 		}, "main", nil)
@@ -786,7 +785,7 @@ func TestIdleTimeout(t *testing.T) {
 		inst := instance.New("test", backendConfig, globalSettings, &instance.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
 			IdleTimeout: &timeout,
-			LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			LlamaServerOptions: &backends.LlamaServerOptions{
 				Model: "/path/to/model.gguf",
 			},
 		}, "main", nil)

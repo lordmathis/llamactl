@@ -1,7 +1,7 @@
-package vllm_test
+package backends_test
 
 import (
-	"llamactl/pkg/backends/vllm"
+	"llamactl/pkg/backends"
 	"slices"
 	"testing"
 )
@@ -46,7 +46,7 @@ func TestParseVllmCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := vllm.ParseVllmCommand(tt.command)
+			result, err := backends.ParseVllmCommand(tt.command)
 
 			if tt.expectErr {
 				if err == nil {
@@ -69,7 +69,7 @@ func TestParseVllmCommand(t *testing.T) {
 
 func TestParseVllmCommandValues(t *testing.T) {
 	command := "vllm serve test-model --tensor-parallel-size 4 --gpu-memory-utilization 0.8 --enable-log-outputs"
-	result, err := vllm.ParseVllmCommand(command)
+	result, err := backends.ParseVllmCommand(command)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -89,8 +89,8 @@ func TestParseVllmCommandValues(t *testing.T) {
 	}
 }
 
-func TestBuildCommandArgs(t *testing.T) {
-	options := vllm.VllmServerOptions{
+func TestBuildCommandArgs_Vllm(t *testing.T) {
+	options := backends.VllmServerOptions{
 		Model:                "microsoft/DialoGPT-medium",
 		Port:                 8080,
 		Host:                 "localhost",
@@ -108,21 +108,21 @@ func TestBuildCommandArgs(t *testing.T) {
 	}
 
 	// Check that --model flag is NOT present (since model should be positional)
-	if contains(args, "--model") {
+	if vllmContains(args, "--model") {
 		t.Errorf("Found --model flag, but model should be positional argument in args: %v", args)
 	}
 
 	// Check other flags
-	if !containsFlagWithValue(args, "--tensor-parallel-size", "2") {
+	if !vllmContainsFlagWithValue(args, "--tensor-parallel-size", "2") {
 		t.Errorf("Expected --tensor-parallel-size 2 not found in %v", args)
 	}
-	if !contains(args, "--enable-log-outputs") {
+	if !vllmContains(args, "--enable-log-outputs") {
 		t.Errorf("Expected --enable-log-outputs not found in %v", args)
 	}
-	if !contains(args, "--host") {
+	if !vllmContains(args, "--host") {
 		t.Errorf("Expected --host not found in %v", args)
 	}
-	if !contains(args, "--port") {
+	if !vllmContains(args, "--port") {
 		t.Errorf("Expected --port not found in %v", args)
 	}
 
@@ -139,11 +139,11 @@ func TestBuildCommandArgs(t *testing.T) {
 }
 
 // Helper functions
-func contains(slice []string, item string) bool {
+func vllmContains(slice []string, item string) bool {
 	return slices.Contains(slice, item)
 }
 
-func containsFlagWithValue(args []string, flag, value string) bool {
+func vllmContainsFlagWithValue(args []string, flag, value string) bool {
 	for i, arg := range args {
 		if arg == flag && i+1 < len(args) && args[i+1] == value {
 			return true

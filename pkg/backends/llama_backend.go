@@ -1,14 +1,19 @@
-package llamacpp
+package backends
 
 import (
 	"fmt"
-	"llamactl/pkg/backends"
 	"llamactl/pkg/config"
 )
 
 func init() {
 	// Register this backend with the default registry
-	backends.GetDefaultRegistry().Register(NewLlamaCppBackend())
+	GetDefaultRegistry().Register(NewLlamaCppBackend())
+}
+
+// llamaOptionsProvider is a local interface to access LlamaServerOptions
+// without importing the instance package (avoiding circular dependency)
+type llamaOptionsProvider interface {
+	GetLlamaServerOptions() *LlamaServerOptions
 }
 
 // LlamaCppBackend implements the Backend interface for llama.cpp
@@ -20,8 +25,8 @@ func NewLlamaCppBackend() *LlamaCppBackend {
 }
 
 // GetType returns the backend type
-func (b *LlamaCppBackend) GetType() backends.BackendType {
-	return backends.BackendTypeLlamaCpp
+func (b *LlamaCppBackend) GetType() BackendType {
+	return BackendTypeLlamaCpp
 }
 
 // GetConfigKey returns the config key for llama.cpp
@@ -30,73 +35,94 @@ func (b *LlamaCppBackend) GetConfigKey() string {
 }
 
 // GetPort extracts the port from backend-specific options
-func (b *LlamaCppBackend) GetPort(options backends.BackendOptions) int {
+func (b *LlamaCppBackend) GetPort(options any) int {
 	if options == nil {
 		return 0
 	}
-	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
-	if !ok || opts == nil {
+	provider, ok := options.(llamaOptionsProvider)
+	if !ok {
+		return 0
+	}
+	opts := provider.GetLlamaServerOptions()
+	if opts == nil {
 		return 0
 	}
 	return opts.Port
 }
 
 // SetPort sets the port in backend-specific options
-func (b *LlamaCppBackend) SetPort(options backends.BackendOptions, port int) {
+func (b *LlamaCppBackend) SetPort(options any, port int) {
 	if options == nil {
 		return
 	}
-	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
-	if ok && opts != nil {
+	provider, ok := options.(llamaOptionsProvider)
+	if !ok {
+		return
+	}
+	opts := provider.GetLlamaServerOptions()
+	if opts != nil {
 		opts.Port = port
 	}
 }
 
 // GetHost extracts the host from backend-specific options
-func (b *LlamaCppBackend) GetHost(options backends.BackendOptions) string {
+func (b *LlamaCppBackend) GetHost(options any) string {
 	if options == nil {
 		return ""
 	}
-	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
-	if !ok || opts == nil {
+	provider, ok := options.(llamaOptionsProvider)
+	if !ok {
+		return ""
+	}
+	opts := provider.GetLlamaServerOptions()
+	if opts == nil {
 		return ""
 	}
 	return opts.Host
 }
 
 // BuildCommandArgs builds command line arguments
-func (b *LlamaCppBackend) BuildCommandArgs(options backends.BackendOptions) []string {
+func (b *LlamaCppBackend) BuildCommandArgs(options any) []string {
 	if options == nil {
 		return []string{}
 	}
-	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
-	if !ok || opts == nil {
+	provider, ok := options.(llamaOptionsProvider)
+	if !ok {
+		return []string{}
+	}
+	opts := provider.GetLlamaServerOptions()
+	if opts == nil {
 		return []string{}
 	}
 	return opts.BuildCommandArgs()
 }
 
 // BuildDockerArgs builds Docker-specific arguments
-func (b *LlamaCppBackend) BuildDockerArgs(options backends.BackendOptions) []string {
+func (b *LlamaCppBackend) BuildDockerArgs(options any) []string {
 	if options == nil {
 		return []string{}
 	}
-	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
-	if !ok || opts == nil {
+	provider, ok := options.(llamaOptionsProvider)
+	if !ok {
+		return []string{}
+	}
+	opts := provider.GetLlamaServerOptions()
+	if opts == nil {
 		return []string{}
 	}
 	return opts.BuildDockerArgs()
 }
 
 // ValidateOptions validates backend-specific options
-func (b *LlamaCppBackend) ValidateOptions(options backends.BackendOptions) error {
+func (b *LlamaCppBackend) ValidateOptions(options any) error {
 	if options == nil {
 		return fmt.Errorf("llama.cpp options cannot be nil")
 	}
-	opts, ok := options.GetLlamaServerOptions().(*LlamaServerOptions)
+	provider, ok := options.(llamaOptionsProvider)
 	if !ok {
 		return fmt.Errorf("invalid llama.cpp options type")
 	}
+	opts := provider.GetLlamaServerOptions()
 	if opts == nil {
 		return fmt.Errorf("llama.cpp options cannot be nil")
 	}

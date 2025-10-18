@@ -99,6 +99,14 @@ func validateStructStrings(v any, fieldPath string) error {
 				}
 			}
 
+		case reflect.Pointer:
+			// Recursively validate pointer to struct
+			if !field.IsNil() && field.Elem().Kind() == reflect.Struct {
+				if err := validateStructStrings(field.Interface(), fieldName); err != nil {
+					return err
+				}
+			}
+
 		case reflect.Struct:
 			if err := validateStructStrings(field.Interface(), fieldName); err != nil {
 				return err

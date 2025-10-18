@@ -1,14 +1,19 @@
-package mlx
+package backends
 
 import (
 	"fmt"
-	"llamactl/pkg/backends"
 	"llamactl/pkg/config"
 )
 
 func init() {
 	// Register this backend with the default registry
-	backends.GetDefaultRegistry().Register(NewMlxBackend())
+	GetDefaultRegistry().Register(NewMlxBackend())
+}
+
+// mlxOptionsProvider is a local interface to access MlxServerOptions
+// without importing the instance package (avoiding circular dependency)
+type mlxOptionsProvider interface {
+	GetMlxServerOptions() *MlxServerOptions
 }
 
 // MlxBackend implements the Backend interface for MLX LM
@@ -20,8 +25,8 @@ func NewMlxBackend() *MlxBackend {
 }
 
 // GetType returns the backend type
-func (b *MlxBackend) GetType() backends.BackendType {
-	return backends.BackendTypeMlxLm
+func (b *MlxBackend) GetType() BackendType {
+	return BackendTypeMlxLm
 }
 
 // GetConfigKey returns the config key for MLX
@@ -30,47 +35,63 @@ func (b *MlxBackend) GetConfigKey() string {
 }
 
 // GetPort extracts the port from backend-specific options
-func (b *MlxBackend) GetPort(options backends.BackendOptions) int {
+func (b *MlxBackend) GetPort(options any) int {
 	if options == nil {
 		return 0
 	}
-	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
-	if !ok || opts == nil {
+	provider, ok := options.(mlxOptionsProvider)
+	if !ok {
+		return 0
+	}
+	opts := provider.GetMlxServerOptions()
+	if opts == nil {
 		return 0
 	}
 	return opts.Port
 }
 
 // SetPort sets the port in backend-specific options
-func (b *MlxBackend) SetPort(options backends.BackendOptions, port int) {
+func (b *MlxBackend) SetPort(options any, port int) {
 	if options == nil {
 		return
 	}
-	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
-	if ok && opts != nil {
+	provider, ok := options.(mlxOptionsProvider)
+	if !ok {
+		return
+	}
+	opts := provider.GetMlxServerOptions()
+	if opts != nil {
 		opts.Port = port
 	}
 }
 
 // GetHost extracts the host from backend-specific options
-func (b *MlxBackend) GetHost(options backends.BackendOptions) string {
+func (b *MlxBackend) GetHost(options any) string {
 	if options == nil {
 		return ""
 	}
-	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
-	if !ok || opts == nil {
+	provider, ok := options.(mlxOptionsProvider)
+	if !ok {
+		return ""
+	}
+	opts := provider.GetMlxServerOptions()
+	if opts == nil {
 		return ""
 	}
 	return opts.Host
 }
 
 // BuildCommandArgs builds command line arguments
-func (b *MlxBackend) BuildCommandArgs(options backends.BackendOptions) []string {
+func (b *MlxBackend) BuildCommandArgs(options any) []string {
 	if options == nil {
 		return []string{}
 	}
-	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
-	if !ok || opts == nil {
+	provider, ok := options.(mlxOptionsProvider)
+	if !ok {
+		return []string{}
+	}
+	opts := provider.GetMlxServerOptions()
+	if opts == nil {
 		return []string{}
 	}
 	return opts.BuildCommandArgs()
@@ -78,19 +99,20 @@ func (b *MlxBackend) BuildCommandArgs(options backends.BackendOptions) []string 
 
 // BuildDockerArgs builds Docker-specific arguments
 // Note: MLX does not support Docker
-func (b *MlxBackend) BuildDockerArgs(options backends.BackendOptions) []string {
+func (b *MlxBackend) BuildDockerArgs(options any) []string {
 	return []string{}
 }
 
 // ValidateOptions validates backend-specific options
-func (b *MlxBackend) ValidateOptions(options backends.BackendOptions) error {
+func (b *MlxBackend) ValidateOptions(options any) error {
 	if options == nil {
 		return fmt.Errorf("MLX options cannot be nil")
 	}
-	opts, ok := options.GetMlxServerOptions().(*MlxServerOptions)
+	provider, ok := options.(mlxOptionsProvider)
 	if !ok {
 		return fmt.Errorf("invalid MLX options type")
 	}
+	opts := provider.GetMlxServerOptions()
 	if opts == nil {
 		return fmt.Errorf("MLX options cannot be nil")
 	}

@@ -1,11 +1,10 @@
-package vllm
+package backends
 
 import (
-	"llamactl/pkg/backends"
 )
 
-// multiValuedFlags defines flags that should be repeated for each value rather than comma-separated
-var multiValuedFlags = map[string]bool{
+// vllmMultiValuedFlags defines flags that should be repeated for each value rather than comma-separated
+var vllmMultiValuedFlags = map[string]bool{
 	"api-key":         true,
 	"allowed-origins": true,
 	"allowed-methods": true,
@@ -155,7 +154,7 @@ func (o *VllmServerOptions) BuildCommandArgs() []string {
 
 	// Use package-level multipleFlags variable
 
-	flagArgs := backends.BuildCommandArgs(&optionsCopy, multiValuedFlags)
+	flagArgs := BuildCommandArgs(&optionsCopy, vllmMultiValuedFlags)
 	args = append(args, flagArgs...)
 
 	return args
@@ -165,7 +164,7 @@ func (o *VllmServerOptions) BuildDockerArgs() []string {
 	var args []string
 
 	// Use package-level multipleFlags variable
-	flagArgs := backends.BuildCommandArgs(o, multiValuedFlags)
+	flagArgs := BuildCommandArgs(o, vllmMultiValuedFlags)
 	args = append(args, flagArgs...)
 
 	return args
@@ -181,7 +180,7 @@ func (o *VllmServerOptions) BuildDockerArgs() []string {
 func ParseVllmCommand(command string) (*VllmServerOptions, error) {
 	executableNames := []string{"vllm"}
 	subcommandNames := []string{"serve"}
-	multiValuedFlags := map[string]bool{
+	vllmMultiValuedFlags := map[string]bool{
 		"middleware":      true,
 		"api_key":         true,
 		"allowed_origins": true,
@@ -192,7 +191,7 @@ func ParseVllmCommand(command string) (*VllmServerOptions, error) {
 	}
 
 	var vllmOptions VllmServerOptions
-	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &vllmOptions); err != nil {
+	if err := ParseCommand(command, executableNames, subcommandNames, vllmMultiValuedFlags, &vllmOptions); err != nil {
 		return nil, err
 	}
 
