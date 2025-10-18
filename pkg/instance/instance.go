@@ -36,9 +36,6 @@ func New(name string, globalBackendSettings *config.BackendConfig, globalInstanc
 	// Validate and copy options
 	opts.ValidateAndApplyDefaults(name, globalInstanceSettings)
 
-	// Create the instance logger
-	logger := NewLogger(name, globalInstanceSettings.LogsDir)
-
 	// Create status wrapper
 	status := newStatus(Stopped)
 	status.onStatusChange = onStatusChange
@@ -52,16 +49,17 @@ func New(name string, globalBackendSettings *config.BackendConfig, globalInstanc
 		globalInstanceSettings: globalInstanceSettings,
 		globalBackendSettings:  globalBackendSettings,
 		localNodeName:          localNodeName,
-		logger:                 logger,
 		Created:                time.Now().Unix(),
 		status:                 status,
 	}
 
-	// Create Proxy component
-	instance.proxy = NewProxy(instance)
-
-	// Create Process component (will be initialized on first Start)
-	instance.process = newProcess(instance)
+	// Only create logger, proxy, and process for local instances
+	// Remote instances are metadata only (no logger, proxy, or process)
+	if !instance.IsRemote() {
+		instance.logger = NewLogger(name, globalInstanceSettings.LogsDir)
+		instance.proxy = NewProxy(instance)
+		instance.process = newProcess(instance)
+	}
 
 	return instance
 }
