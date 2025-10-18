@@ -174,7 +174,7 @@ func (i *Instance) SetOptions(opts *Options) {
 	}
 
 	// Preserve the original nodes to prevent changing instance location
-	if i.options != nil && i.options.get() != nil && i.options.get().Nodes != nil {
+	if i.options != nil && i.options.get() != nil {
 		opts.Nodes = i.options.get().Nodes
 	}
 
