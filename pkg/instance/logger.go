@@ -18,15 +18,15 @@ type logger struct {
 	mu          sync.RWMutex
 }
 
-func NewLogger(name string, logDir string) *logger {
+func newLogger(name string, logDir string) *logger {
 	return &logger{
 		name:   name,
 		logDir: logDir,
 	}
 }
 
-// Create creates and opens the log files for stdout and stderr
-func (i *logger) Create() error {
+// create creates and opens the log files for stdout and stderr
+func (i *logger) create() error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -56,8 +56,8 @@ func (i *logger) Create() error {
 	return nil
 }
 
-// GetLogs retrieves the last n lines of logs from the instance
-func (i *logger) GetLogs(num_lines int) (string, error) {
+// getLogs retrieves the last n lines of logs from the instance
+func (i *logger) getLogs(num_lines int) (string, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
@@ -97,8 +97,8 @@ func (i *logger) GetLogs(num_lines int) (string, error) {
 	return strings.Join(lines[start:], "\n"), nil
 }
 
-// closeLogFile closes the log files
-func (i *logger) Close() {
+// close closes the log files
+func (i *logger) close() {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 

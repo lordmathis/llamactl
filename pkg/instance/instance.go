@@ -12,29 +12,27 @@ import (
 
 // Instance represents a running instance of the llama server
 type Instance struct {
-	// Immutable identity (no locking needed after creation)
 	Name    string `json:"name"`
 	Created int64  `json:"created,omitempty"` // Unix timestamp when the instance was created
 
-	// Mutable state - each owns its own lock
-	status  *status  `json:"-"` // unexported - status owns its lock
-	options *options `json:"-"` // unexported - options owns its lock
-
-	// Global configuration (read-only, no lock needed)
+	// Global configuration
 	globalInstanceSettings *config.InstancesConfig
 	globalBackendSettings  *config.BackendConfig
 	localNodeName          string `json:"-"` // Name of the local node for remote detection
 
-	// Components (can be nil for remote instances or when stopped)
-	process *process `json:"-"` // nil for remote instances, nil when stopped
-	proxy   *proxy   `json:"-"` // nil for remote instances, created on demand
-	logger  *logger  `json:"-"` // nil for remote instances
+	status  *status  `json:"-"`
+	options *options `json:"-"`
+
+	// Components (can be nil for remote instances)
+	process *process `json:"-"`
+	proxy   *proxy   `json:"-"`
+	logger  *logger  `json:"-"`
 }
 
-// New creates a new instance with the given name, log path, and options
+// New creates a new instance with the given name, log path, options and local node name
 func New(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, opts *Options, localNodeName string, onStatusChange func(oldStatus, newStatus Status)) *Instance {
 	// Validate and copy options
-	opts.ValidateAndApplyDefaults(name, globalInstanceSettings)
+	opts.validateAndApplyDefaults(name, globalInstanceSettings)
 
 	// Create status wrapper
 	status := newStatus(Stopped)
@@ -54,45 +52,76 @@ func New(name string, globalBackendSettings *config.BackendConfig, globalInstanc
 	}
 
 	// Only create logger, proxy, and process for local instances
-	// Remote instances are metadata only (no logger, proxy, or process)
 	if !instance.IsRemote() {
-		instance.logger = NewLogger(name, globalInstanceSettings.LogsDir)
-		instance.proxy = NewProxy(instance)
+		instance.logger = newLogger(name, globalInstanceSettings.LogsDir)
+		instance.proxy = newProxy(instance)
 		instance.process = newProcess(instance)
 	}
 
 	return instance
 }
 
-// GetOptions returns the current options, delegating to options component
+// Start starts the instance
+func (i *Instance) Start() error {
+	if i.process == nil {
+		return fmt.Errorf("instance %s has no process component (remote instances cannot be started locally)", i.Name)
+	}
+	return i.process.start()
+}
+
+// Stop stops the instance
+func (i *Instance) Stop() error {
+	if i.process == nil {
+		return fmt.Errorf("instance %s has no process component (remote instances cannot be stopped locally)", i.Name)
+	}
+	return i.process.stop()
+}
+
+// Restart restarts the instance
+func (i *Instance) Restart() error {
+	if i.process == nil {
+		return fmt.Errorf("instance %s has no process component (remote instances cannot be restarted locally)", i.Name)
+	}
+	return i.process.restart()
+}
+
+// WaitForHealthy waits for the instance to become healthy
+func (i *Instance) WaitForHealthy(timeout int) error {
+	if i.process == nil {
+		return fmt.Errorf("instance %s has no process component (remote instances cannot be health checked locally)", i.Name)
+	}
+	return i.process.waitForHealthy(timeout)
+}
+
+// GetOptions returns the current options
 func (i *Instance) GetOptions() *Options {
 	if i.options == nil {
 		return nil
 	}
-	return i.options.Get()
+	return i.options.get()
 }
 
-// GetStatus returns the current status, delegating to status component
+// GetStatus returns the current status
 func (i *Instance) GetStatus() Status {
 	if i.status == nil {
 		return Stopped
 	}
-	return i.status.Get()
+	return i.status.get()
 }
 
-// SetStatus sets the status, delegating to status component
+// SetStatus sets the status
 func (i *Instance) SetStatus(s Status) {
 	if i.status != nil {
-		i.status.Set(s)
+		i.status.set(s)
 	}
 }
 
-// IsRunning returns true if the status is Running, delegating to status component
+// IsRunning returns true if the status is Running
 func (i *Instance) IsRunning() bool {
 	if i.status == nil {
 		return false
 	}
-	return i.status.IsRunning()
+	return i.status.isRunning()
 }
 
 func (i *Instance) GetPort() int {
@@ -137,7 +166,7 @@ func (i *Instance) GetHost() string {
 	return ""
 }
 
-// SetOptions sets the options, delegating to options component
+// SetOptions sets the options
 func (i *Instance) SetOptions(opts *Options) {
 	if opts == nil {
 		log.Println("Warning: Attempted to set nil options on instance", i.Name)
@@ -145,32 +174,31 @@ func (i *Instance) SetOptions(opts *Options) {
 	}
 
 	// Preserve the original nodes to prevent changing instance location
-	if i.options != nil && i.options.Get() != nil && i.options.Get().Nodes != nil {
-		opts.Nodes = i.options.Get().Nodes
+	if i.options != nil && i.options.get() != nil && i.options.get().Nodes != nil {
+		opts.Nodes = i.options.get().Nodes
 	}
 
 	// Validate and copy options
-	opts.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
+	opts.validateAndApplyDefaults(i.Name, i.globalInstanceSettings)
 
 	if i.options != nil {
-		i.options.Set(opts)
+		i.options.set(opts)
 	}
 
 	// Clear the proxy so it gets recreated with new options
 	if i.proxy != nil {
-		i.proxy.clearProxy()
+		i.proxy.clear()
 	}
 }
 
 // SetTimeProvider sets a custom time provider for testing
-// Delegates to the Proxy component
 func (i *Instance) SetTimeProvider(tp TimeProvider) {
 	if i.proxy != nil {
-		i.proxy.SetTimeProvider(tp)
+		i.proxy.setTimeProvider(tp)
 	}
 }
 
-// GetProxy returns the reverse proxy for this instance, delegating to Proxy component
+// GetProxy returns the reverse proxy for this instance
 func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 	if i.proxy == nil {
 		return nil, fmt.Errorf("instance %s has no proxy component", i.Name)
@@ -184,7 +212,93 @@ func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 		}
 	}
 
-	return i.proxy.GetProxy()
+	return i.proxy.get()
+}
+
+func (i *Instance) IsRemote() bool {
+	opts := i.GetOptions()
+	if opts == nil {
+		return false
+	}
+
+	// If no nodes specified, it's a local instance
+	if len(opts.Nodes) == 0 {
+		return false
+	}
+
+	// If the local node is in the nodes map, treat it as a local instance
+	if _, isLocal := opts.Nodes[i.localNodeName]; isLocal {
+		return false
+	}
+
+	// Otherwise, it's a remote instance
+	return true
+}
+
+// GetLogs retrieves the last n lines of logs from the instance
+func (i *Instance) GetLogs(num_lines int) (string, error) {
+	if i.logger == nil {
+		return "", fmt.Errorf("instance %s has no logger (remote instances don't have logs)", i.Name)
+	}
+	return i.logger.getLogs(num_lines)
+}
+
+// LastRequestTime returns the last request time as a Unix timestamp
+func (i *Instance) LastRequestTime() int64 {
+	if i.proxy == nil {
+		return 0
+	}
+	return i.proxy.getLastRequestTime()
+}
+
+// UpdateLastRequestTime updates the last request access time for the instance via proxy
+func (i *Instance) UpdateLastRequestTime() {
+	if i.proxy != nil {
+		i.proxy.updateLastRequestTime()
+	}
+}
+
+// ShouldTimeout checks if the instance should timeout based on idle time
+func (i *Instance) ShouldTimeout() bool {
+	if i.proxy == nil {
+		return false
+	}
+	return i.proxy.shouldTimeout()
+}
+
+// getBackendHostPort extracts the host and port from instance options
+// Returns the configured host and port for the backend
+func (i *Instance) getBackendHostPort() (string, int) {
+	opts := i.GetOptions()
+	if opts == nil {
+		return "localhost", 0
+	}
+
+	var host string
+	var port int
+	switch opts.BackendType {
+	case backends.BackendTypeLlamaCpp:
+		if opts.LlamaServerOptions != nil {
+			host = opts.LlamaServerOptions.Host
+			port = opts.LlamaServerOptions.Port
+		}
+	case backends.BackendTypeMlxLm:
+		if opts.MlxServerOptions != nil {
+			host = opts.MlxServerOptions.Host
+			port = opts.MlxServerOptions.Port
+		}
+	case backends.BackendTypeVllm:
+		if opts.VllmServerOptions != nil {
+			host = opts.VllmServerOptions.Host
+			port = opts.VllmServerOptions.Port
+		}
+	}
+
+	if host == "" {
+		host = "localhost"
+	}
+
+	return host, port
 }
 
 // MarshalJSON implements json.Marshaler for Instance
@@ -209,7 +323,6 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	// Explicitly serialize to maintain backward compatible JSON format
 	return json.Marshal(&struct {
 		Name          string   `json:"name"`
 		Status        *status  `json:"status"`
@@ -247,9 +360,9 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 
 	// Handle options with validation and defaults
 	if i.options != nil {
-		opts := i.options.Get()
+		opts := i.options.get()
 		if opts != nil {
-			opts.ValidateAndApplyDefaults(i.Name, i.globalInstanceSettings)
+			opts.validateAndApplyDefaults(i.Name, i.globalInstanceSettings)
 		}
 	}
 
@@ -262,13 +375,12 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	}
 
 	// Only create logger, proxy, and process for non-remote instances
-	// Remote instances are metadata only (no logger, proxy, or process)
 	if !i.IsRemote() {
 		if i.logger == nil && i.globalInstanceSettings != nil {
-			i.logger = NewLogger(i.Name, i.globalInstanceSettings.LogsDir)
+			i.logger = newLogger(i.Name, i.globalInstanceSettings.LogsDir)
 		}
 		if i.proxy == nil {
-			i.proxy = NewProxy(i)
+			i.proxy = newProxy(i)
 		}
 		if i.process == nil {
 			i.process = newProcess(i)
@@ -276,107 +388,4 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-}
-
-func (i *Instance) IsRemote() bool {
-	opts := i.GetOptions()
-	if opts == nil {
-		return false
-	}
-
-	// If no nodes specified, it's a local instance
-	if len(opts.Nodes) == 0 {
-		return false
-	}
-
-	// If the local node is in the nodes map, treat it as a local instance
-	if _, isLocal := opts.Nodes[i.localNodeName]; isLocal {
-		return false
-	}
-
-	// Otherwise, it's a remote instance
-	return true
-}
-
-func (i *Instance) GetLogs(num_lines int) (string, error) {
-	if i.logger == nil {
-		return "", fmt.Errorf("instance %s has no logger (remote instances don't have logs)", i.Name)
-	}
-	return i.logger.GetLogs(num_lines)
-}
-
-// Start starts the instance, delegating to process component
-func (i *Instance) Start() error {
-	if i.process == nil {
-		return fmt.Errorf("instance %s has no process component (remote instances cannot be started locally)", i.Name)
-	}
-	return i.process.Start()
-}
-
-// Stop stops the instance, delegating to process component
-func (i *Instance) Stop() error {
-	if i.process == nil {
-		return fmt.Errorf("instance %s has no process component (remote instances cannot be stopped locally)", i.Name)
-	}
-	return i.process.Stop()
-}
-
-// Restart restarts the instance, delegating to process component
-func (i *Instance) Restart() error {
-	if i.process == nil {
-		return fmt.Errorf("instance %s has no process component (remote instances cannot be restarted locally)", i.Name)
-	}
-	return i.process.Restart()
-}
-
-// WaitForHealthy waits for the instance to become healthy, delegating to process component
-func (i *Instance) WaitForHealthy(timeout int) error {
-	if i.process == nil {
-		return fmt.Errorf("instance %s has no process component (remote instances cannot be health checked locally)", i.Name)
-	}
-	return i.process.WaitForHealthy(timeout)
-}
-
-// LastRequestTime returns the last request time as a Unix timestamp
-// Delegates to the Proxy component
-func (i *Instance) LastRequestTime() int64 {
-	if i.proxy == nil {
-		return 0
-	}
-	return i.proxy.LastRequestTime()
-}
-
-// getBackendHostPort extracts the host and port from instance options
-// Returns the configured host and port for the backend
-func (i *Instance) getBackendHostPort() (string, int) {
-	opts := i.GetOptions()
-	if opts == nil {
-		return "localhost", 0
-	}
-
-	var host string
-	var port int
-	switch opts.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if opts.LlamaServerOptions != nil {
-			host = opts.LlamaServerOptions.Host
-			port = opts.LlamaServerOptions.Port
-		}
-	case backends.BackendTypeMlxLm:
-		if opts.MlxServerOptions != nil {
-			host = opts.MlxServerOptions.Host
-			port = opts.MlxServerOptions.Port
-		}
-	case backends.BackendTypeVllm:
-		if opts.VllmServerOptions != nil {
-			host = opts.VllmServerOptions.Host
-			port = opts.VllmServerOptions.Port
-		}
-	}
-
-	if host == "" {
-		host = "localhost"
-	}
-
-	return host, port
 }

@@ -25,7 +25,7 @@ func (realTimeProvider) Now() time.Time {
 
 // proxy manages HTTP reverse proxy and request tracking for an instance.
 type proxy struct {
-	process *Instance // Owner reference - Proxy is owned by Process
+	instance *Instance
 
 	mu              sync.RWMutex
 	proxy           *httputil.ReverseProxy
@@ -35,44 +35,44 @@ type proxy struct {
 	timeProvider    TimeProvider
 }
 
-// NewProxy creates a new Proxy for the given process
-func NewProxy(process *Instance) *proxy {
+// newProxy creates a new Proxy for the given instance
+func newProxy(instance *Instance) *proxy {
 	return &proxy{
-		process:      process,
+		instance:     instance,
 		timeProvider: realTimeProvider{},
 	}
 }
 
-// GetProxy returns the reverse proxy for this instance, creating it if needed.
+// get returns the reverse proxy for this instance, creating it if needed.
 // Uses sync.Once to ensure thread-safe one-time initialization.
-func (p *proxy) GetProxy() (*httputil.ReverseProxy, error) {
+func (p *proxy) get() (*httputil.ReverseProxy, error) {
 	// sync.Once guarantees buildProxy() is called exactly once
 	// Other callers block until first initialization completes
 	p.proxyOnce.Do(func() {
-		p.proxy, p.proxyErr = p.buildProxy()
+		p.proxy, p.proxyErr = p.build()
 	})
 
 	return p.proxy, p.proxyErr
 }
 
-// buildProxy creates the reverse proxy based on instance options
-func (p *proxy) buildProxy() (*httputil.ReverseProxy, error) {
-	options := p.process.GetOptions()
+// build creates the reverse proxy based on instance options
+func (p *proxy) build() (*httputil.ReverseProxy, error) {
+	options := p.instance.GetOptions()
 	if options == nil {
-		return nil, fmt.Errorf("instance %s has no options set", p.process.Name)
+		return nil, fmt.Errorf("instance %s has no options set", p.instance.Name)
 	}
 
 	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
 	if len(options.Nodes) > 0 {
-		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", p.process.Name)
+		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", p.instance.Name)
 	}
 
 	// Get host/port from process
-	host, port := p.process.getBackendHostPort()
+	host, port := p.instance.getBackendHostPort()
 
 	targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", host, port))
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", p.process.Name, err)
+		return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", p.instance.Name, err)
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
@@ -81,11 +81,11 @@ func (p *proxy) buildProxy() (*httputil.ReverseProxy, error) {
 	var responseHeaders map[string]string
 	switch options.BackendType {
 	case backends.BackendTypeLlamaCpp:
-		responseHeaders = p.process.globalBackendSettings.LlamaCpp.ResponseHeaders
+		responseHeaders = p.instance.globalBackendSettings.LlamaCpp.ResponseHeaders
 	case backends.BackendTypeVllm:
-		responseHeaders = p.process.globalBackendSettings.VLLM.ResponseHeaders
+		responseHeaders = p.instance.globalBackendSettings.VLLM.ResponseHeaders
 	case backends.BackendTypeMlxLm:
-		responseHeaders = p.process.globalBackendSettings.MLX.ResponseHeaders
+		responseHeaders = p.instance.globalBackendSettings.MLX.ResponseHeaders
 	}
 
 	proxy.ModifyResponse = func(resp *http.Response) error {
@@ -107,9 +107,8 @@ func (p *proxy) buildProxy() (*httputil.ReverseProxy, error) {
 	return proxy, nil
 }
 
-// clearProxy resets the proxy, allowing it to be recreated when options change.
-// This resets the sync.Once so the next GetProxy call will rebuild the proxy.
-func (p *proxy) clearProxy() {
+// clear resets the proxy, allowing it to be recreated when options change.
+func (p *proxy) clear() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -118,24 +117,24 @@ func (p *proxy) clearProxy() {
 	p.proxyOnce = sync.Once{} // Reset Once for next GetProxy call
 }
 
-// UpdateLastRequestTime updates the last request access time for the instance
-func (p *proxy) UpdateLastRequestTime() {
+// updateLastRequestTime updates the last request access time for the instance
+func (p *proxy) updateLastRequestTime() {
 	lastRequestTime := p.timeProvider.Now().Unix()
 	p.lastRequestTime.Store(lastRequestTime)
 }
 
-// LastRequestTime returns the last request time as a Unix timestamp
-func (p *proxy) LastRequestTime() int64 {
+// getLastRequestTime returns the last request time as a Unix timestamp
+func (p *proxy) getLastRequestTime() int64 {
 	return p.lastRequestTime.Load()
 }
 
-// ShouldTimeout checks if the instance should timeout based on idle time
-func (p *proxy) ShouldTimeout() bool {
-	if !p.process.IsRunning() {
+// shouldTimeout checks if the instance should timeout based on idle time
+func (p *proxy) shouldTimeout() bool {
+	if !p.instance.IsRunning() {
 		return false
 	}
 
-	options := p.process.GetOptions()
+	options := p.instance.GetOptions()
 	if options == nil || options.IdleTimeout == nil || *options.IdleTimeout <= 0 {
 		return false
 	}
@@ -150,7 +149,7 @@ func (p *proxy) ShouldTimeout() bool {
 	return (p.timeProvider.Now().Unix() - lastRequest) > idleTimeoutSeconds
 }
 
-// SetTimeProvider sets a custom time provider for testing
-func (p *proxy) SetTimeProvider(tp TimeProvider) {
+// setTimeProvider sets a custom time provider for testing
+func (p *proxy) setTimeProvider(tp TimeProvider) {
 	p.timeProvider = tp
 }

@@ -51,15 +51,15 @@ func newOptions(opts *Options) *options {
 	}
 }
 
-// Get returns a copy of the current options
-func (o *options) Get() *Options {
+// get returns a copy of the current options
+func (o *options) get() *Options {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
 	return o.opts
 }
 
-// Set updates the options
-func (o *options) Set(opts *Options) {
+// set updates the options
+func (o *options) set(opts *Options) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	o.opts = opts
@@ -222,8 +222,8 @@ func (c *Options) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
-// ValidateAndApplyDefaults validates the instance options and applies constraints
-func (c *Options) ValidateAndApplyDefaults(name string, globalSettings *config.InstancesConfig) {
+// validateAndApplyDefaults validates the instance options and applies constraints
+func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.InstancesConfig) {
 	// Validate and apply constraints
 	if c.MaxRestarts != nil && *c.MaxRestarts < 0 {
 		log.Printf("Instance %s MaxRestarts value (%d) cannot be negative, setting to 0", name, *c.MaxRestarts)
@@ -261,7 +261,8 @@ func (c *Options) ValidateAndApplyDefaults(name string, globalSettings *config.I
 	}
 }
 
-func (c *Options) GetCommand(backendConfig *config.BackendSettings) string {
+// getCommand builds the command to run the backend
+func (c *Options) getCommand(backendConfig *config.BackendSettings) string {
 
 	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
 		return "docker"
@@ -270,8 +271,8 @@ func (c *Options) GetCommand(backendConfig *config.BackendSettings) string {
 	return backendConfig.Command
 }
 
-// BuildCommandArgs builds command line arguments for the backend
-func (c *Options) BuildCommandArgs(backendConfig *config.BackendSettings) []string {
+// buildCommandArgs builds command line arguments for the backend
+func (c *Options) buildCommandArgs(backendConfig *config.BackendSettings) []string {
 
 	var args []string
 
@@ -314,7 +315,8 @@ func (c *Options) BuildCommandArgs(backendConfig *config.BackendSettings) []stri
 	return args
 }
 
-func (c *Options) BuildEnvironment(backendConfig *config.BackendSettings) map[string]string {
+// buildEnvironment builds the environment variables for the backend process
+func (c *Options) buildEnvironment(backendConfig *config.BackendSettings) map[string]string {
 	env := map[string]string{}
 
 	if backendConfig.Environment != nil {

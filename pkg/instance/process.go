@@ -17,7 +17,7 @@ import (
 	"llamactl/pkg/config"
 )
 
-// process manages the OS process lifecycle for a local instance (unexported).
+// process manages the OS process lifecycle for a local instance.
 // process owns its complete lifecycle including auto-restart logic.
 type process struct {
 	instance *Instance // Back-reference for SetStatus, GetOptions
@@ -28,7 +28,7 @@ type process struct {
 	cancel        context.CancelFunc
 	stdout        io.ReadCloser
 	stderr        io.ReadCloser
-	restarts      int               // process owns restart counter
+	restarts      int
 	restartCancel context.CancelFunc
 	monitorDone   chan struct{}
 }
@@ -40,8 +40,8 @@ func newProcess(instance *Instance) *process {
 	}
 }
 
-// Start starts the OS process and returns an error if it fails.
-func (p *process) Start() error {
+// start starts the OS process and returns an error if it fails.
+func (p *process) start() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -62,14 +62,14 @@ func (p *process) Start() error {
 
 	// Initialize last request time to current time when starting
 	if p.instance.proxy != nil {
-		p.instance.proxy.UpdateLastRequestTime()
+		p.instance.proxy.updateLastRequestTime()
 	}
 
 	// Create context before building command (needed for CommandContext)
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
 	// Create log files
-	if err := p.instance.logger.Create(); err != nil {
+	if err := p.instance.logger.create(); err != nil {
 		return fmt.Errorf("failed to create log files: %w", err)
 	}
 
@@ -87,13 +87,13 @@ func (p *process) Start() error {
 	var err error
 	p.stdout, err = p.cmd.StdoutPipe()
 	if err != nil {
-		p.instance.logger.Close()
+		p.instance.logger.close()
 		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 	p.stderr, err = p.cmd.StderrPipe()
 	if err != nil {
 		p.stdout.Close()
-		p.instance.logger.Close()
+		p.instance.logger.close()
 		return fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
@@ -114,8 +114,8 @@ func (p *process) Start() error {
 	return nil
 }
 
-// Stop terminates the subprocess without restarting
-func (p *process) Stop() error {
+// stop terminates the subprocess without restarting
+func (p *process) stop() error {
 	p.mu.Lock()
 
 	if !p.instance.IsRunning() {
@@ -152,7 +152,7 @@ func (p *process) Stop() error {
 
 	// If no process exists, we can return immediately
 	if p.cmd == nil || monitorDone == nil {
-		p.instance.logger.Close()
+		p.instance.logger.close()
 		return nil
 	}
 
@@ -178,15 +178,15 @@ func (p *process) Stop() error {
 		}
 	}
 
-	p.instance.logger.Close()
+	p.instance.logger.close()
 
 	return nil
 }
 
-// Restart manually restarts the process (resets restart counter)
-func (p *process) Restart() error {
+// restart manually restarts the process (resets restart counter)
+func (p *process) restart() error {
 	// Stop the process first
-	if err := p.Stop(); err != nil {
+	if err := p.stop(); err != nil {
 		// If it's not running, that's ok - we'll just start it
 		if err.Error() != fmt.Sprintf("instance %s is not running", p.instance.Name) {
 			return fmt.Errorf("failed to stop instance during restart: %w", err)
@@ -199,11 +199,11 @@ func (p *process) Restart() error {
 	p.mu.Unlock()
 
 	// Start the process
-	return p.Start()
+	return p.start()
 }
 
-// WaitForHealthy waits for the process to become healthy
-func (p *process) WaitForHealthy(timeout int) error {
+// waitForHealthy waits for the process to become healthy
+func (p *process) waitForHealthy(timeout int) error {
 	if !p.instance.IsRunning() {
 		return fmt.Errorf("instance %s is not running", p.instance.Name)
 	}
@@ -284,7 +284,7 @@ func (p *process) monitorProcess() {
 	}
 
 	p.instance.SetStatus(Stopped)
-	p.instance.logger.Close()
+	p.instance.logger.close()
 
 	// Cancel any existing restart context since we're handling a new exit
 	if p.restartCancel != nil {
@@ -373,7 +373,7 @@ func (p *process) handleAutoRestart(err error) {
 	}
 
 	// Restart the instance
-	if err := p.Start(); err != nil {
+	if err := p.start(); err != nil {
 		log.Printf("Failed to restart instance %s: %v", p.instance.Name, err)
 	} else {
 		log.Printf("Successfully restarted instance %s", p.instance.Name)
@@ -399,13 +399,13 @@ func (p *process) buildCommand() (*exec.Cmd, error) {
 	}
 
 	// Build the environment variables
-	env := opts.BuildEnvironment(backendConfig)
+	env := opts.buildEnvironment(backendConfig)
 
 	// Get the command to execute
-	command := opts.GetCommand(backendConfig)
+	command := opts.getCommand(backendConfig)
 
 	// Build command arguments
-	args := opts.BuildCommandArgs(backendConfig)
+	args := opts.buildCommandArgs(backendConfig)
 
 	// Create the exec.Cmd
 	cmd := exec.CommandContext(p.ctx, command, args...)

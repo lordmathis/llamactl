@@ -69,15 +69,15 @@ func newStatus(initial Status) *status {
 	}
 }
 
-// Get returns the current status
-func (st *status) Get() Status {
+// get returns the current status
+func (st *status) get() Status {
 	st.mu.RLock()
 	defer st.mu.RUnlock()
 	return st.s
 }
 
-// Set updates the status and triggers the onStatusChange callback if set
-func (st *status) Set(newStatus Status) {
+// set updates the status and triggers the onStatusChange callback if set
+func (st *status) set(newStatus Status) {
 	st.mu.Lock()
 	oldStatus := st.s
 	st.s = newStatus
@@ -90,8 +90,8 @@ func (st *status) Set(newStatus Status) {
 	}
 }
 
-// IsRunning returns true if the status is Running
-func (st *status) IsRunning() bool {
+// isRunning returns true if the status is Running
+func (st *status) isRunning() bool {
 	st.mu.RLock()
 	defer st.mu.RUnlock()
 	return st.s == Running
