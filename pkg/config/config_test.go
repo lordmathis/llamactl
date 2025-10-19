@@ -566,8 +566,8 @@ nodes:
 		}
 
 		// Verify nodes map (includes default "main" + worker1 + worker2)
-		if len(cfg.Nodes) != 3 {
-			t.Errorf("Expected 3 nodes (default main + worker1 + worker2), got %d", len(cfg.Nodes))
+		if len(cfg.Nodes) != 2 {
+			t.Errorf("Expected 2 nodes (default worker1 + worker2), got %d", len(cfg.Nodes))
 		}
 
 		// Verify local node exists and is empty
@@ -593,8 +593,8 @@ nodes:
 
 		// Verify default main node still exists
 		_, exists = cfg.Nodes["main"]
-		if !exists {
-			t.Error("Expected default 'main' node to still exist in nodes map")
+		if exists {
+			t.Error("Default 'main' node should not exist when local_node is overridden")
 		}
 	})
 
@@ -626,8 +626,8 @@ nodes:
 		}
 
 		// Verify nodes map includes default "main" + primary + worker1
-		if len(cfg.Nodes) != 3 {
-			t.Errorf("Expected 3 nodes (default main + primary + worker1), got %d", len(cfg.Nodes))
+		if len(cfg.Nodes) != 2 {
+			t.Errorf("Expected 2 nodes (primary + worker1), got %d", len(cfg.Nodes))
 		}
 
 		localNode, exists := cfg.Nodes["primary"]
