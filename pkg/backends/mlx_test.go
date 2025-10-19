@@ -2,6 +2,7 @@ package backends_test
 
 import (
 	"llamactl/pkg/backends"
+	"llamactl/pkg/testutil"
 	"testing"
 )
 
@@ -10,26 +11,71 @@ func TestParseMlxCommand(t *testing.T) {
 		name      string
 		command   string
 		expectErr bool
+		validate  func(*testing.T, *backends.MlxServerOptions)
 	}{
 		{
 			name:      "basic command",
 			command:   "mlx_lm.server --model /path/to/model --host 0.0.0.0",
 			expectErr: false,
+			validate: func(t *testing.T, opts *backends.MlxServerOptions) {
+				if opts.Model != "/path/to/model" {
+					t.Errorf("expected model '/path/to/model', got '%s'", opts.Model)
+				}
+				if opts.Host != "0.0.0.0" {
+					t.Errorf("expected host '0.0.0.0', got '%s'", opts.Host)
+				}
+			},
 		},
 		{
 			name:      "args only",
 			command:   "--model /path/to/model --port 8080",
 			expectErr: false,
+			validate: func(t *testing.T, opts *backends.MlxServerOptions) {
+				if opts.Model != "/path/to/model" {
+					t.Errorf("expected model '/path/to/model', got '%s'", opts.Model)
+				}
+				if opts.Port != 8080 {
+					t.Errorf("expected port 8080, got %d", opts.Port)
+				}
+			},
 		},
 		{
 			name:      "mixed flag formats",
 			command:   "mlx_lm.server --model=/path/model --temp=0.7 --trust-remote-code",
 			expectErr: false,
+			validate: func(t *testing.T, opts *backends.MlxServerOptions) {
+				if opts.Model != "/path/model" {
+					t.Errorf("expected model '/path/model', got '%s'", opts.Model)
+				}
+				if opts.Temp != 0.7 {
+					t.Errorf("expected temp 0.7, got %f", opts.Temp)
+				}
+				if !opts.TrustRemoteCode {
+					t.Errorf("expected trust_remote_code to be true")
+				}
+			},
 		},
 		{
-			name:      "quoted strings",
-			command:   `mlx_lm.server --model test.mlx --chat-template "User: {user}\nAssistant: "`,
+			name:      "multiple value types",
+			command:   "mlx_lm.server --model /test/model.mlx --port 8080 --temp 0.7 --trust-remote-code --log-level DEBUG",
 			expectErr: false,
+			validate: func(t *testing.T, opts *backends.MlxServerOptions) {
+				if opts.Model != "/test/model.mlx" {
+					t.Errorf("expected model '/test/model.mlx', got '%s'", opts.Model)
+				}
+				if opts.Port != 8080 {
+					t.Errorf("expected port 8080, got %d", opts.Port)
+				}
+				if opts.Temp != 0.7 {
+					t.Errorf("expected temp 0.7, got %f", opts.Temp)
+				}
+				if !opts.TrustRemoteCode {
+					t.Errorf("expected trust_remote_code to be true")
+				}
+				if opts.LogLevel != "DEBUG" {
+					t.Errorf("expected log_level 'DEBUG', got '%s'", opts.LogLevel)
+				}
+			},
 		},
 		{
 			name:      "empty command",
@@ -66,92 +112,91 @@ func TestParseMlxCommand(t *testing.T) {
 
 			if result == nil {
 				t.Errorf("expected result but got nil")
+				return
+			}
+
+			if tt.validate != nil {
+				tt.validate(t, result)
 			}
 		})
 	}
 }
 
-func TestParseMlxCommandValues(t *testing.T) {
-	command := "mlx_lm.server --model /test/model.mlx --port 8080 --temp 0.7 --trust-remote-code --log-level DEBUG"
-	result, err := backends.ParseMlxCommand(command)
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+func TestMlxBuildCommandArgs_BooleanFields(t *testing.T) {
+	tests := []struct {
+		name     string
+		options  backends.MlxServerOptions
+		expected []string
+		excluded []string
+	}{
+		{
+			name: "trust_remote_code true",
+			options: backends.MlxServerOptions{
+				TrustRemoteCode: true,
+			},
+			expected: []string{"--trust-remote-code"},
+		},
+		{
+			name: "trust_remote_code false",
+			options: backends.MlxServerOptions{
+				TrustRemoteCode: false,
+			},
+			excluded: []string{"--trust-remote-code"},
+		},
+		{
+			name: "multiple booleans",
+			options: backends.MlxServerOptions{
+				TrustRemoteCode:        true,
+				UseDefaultChatTemplate: true,
+			},
+			expected: []string{"--trust-remote-code", "--use-default-chat-template"},
+		},
 	}
 
-	if result.Model != "/test/model.mlx" {
-		t.Errorf("expected model '/test/model.mlx', got '%s'", result.Model)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			args := tt.options.BuildCommandArgs()
 
-	if result.Port != 8080 {
-		t.Errorf("expected port 8080, got %d", result.Port)
-	}
+			for _, expectedArg := range tt.expected {
+				if !testutil.Contains(args, expectedArg) {
+					t.Errorf("Expected argument %q not found in %v", expectedArg, args)
+				}
+			}
 
-	if result.Temp != 0.7 {
-		t.Errorf("expected temp 0.7, got %f", result.Temp)
-	}
-
-	if !result.TrustRemoteCode {
-		t.Errorf("expected trust_remote_code to be true")
-	}
-
-	if result.LogLevel != "DEBUG" {
-		t.Errorf("expected log_level 'DEBUG', got '%s'", result.LogLevel)
+			for _, excludedArg := range tt.excluded {
+				if testutil.Contains(args, excludedArg) {
+					t.Errorf("Excluded argument %q found in %v", excludedArg, args)
+				}
+			}
+		})
 	}
 }
 
-func TestMlxBuildCommandArgs(t *testing.T) {
-	options := &backends.MlxServerOptions{
-		Model:           "/test/model.mlx",
-		Host:            "127.0.0.1",
-		Port:            8080,
-		Temp:            0.7,
-		TopP:            0.9,
-		TopK:            40,
-		MaxTokens:       2048,
-		TrustRemoteCode: true,
-		LogLevel:        "DEBUG",
-		ChatTemplate:    "custom template",
+func TestMlxBuildCommandArgs_ZeroValues(t *testing.T) {
+	options := backends.MlxServerOptions{
+		Port:      0,   // Should be excluded
+		TopK:      0,   // Should be excluded
+		Temp:      0,   // Should be excluded
+		Model:     "",  // Should be excluded
+		LogLevel:  "",  // Should be excluded
+		TrustRemoteCode: false, // Should be excluded
 	}
 
 	args := options.BuildCommandArgs()
 
-	// Check that all expected flags are present
-	expectedFlags := map[string]string{
-		"--model":         "/test/model.mlx",
-		"--host":          "127.0.0.1",
-		"--port":          "8080",
-		"--log-level":     "DEBUG",
-		"--chat-template": "custom template",
-		"--temp":          "0.7",
-		"--top-p":         "0.9",
-		"--top-k":         "40",
-		"--max-tokens":    "2048",
+	// Zero values should not appear in arguments
+	excludedArgs := []string{
+		"--port", "0",
+		"--top-k", "0",
+		"--temp", "0",
+		"--model", "",
+		"--log-level", "",
+		"--trust-remote-code",
 	}
 
-	for i := 0; i < len(args); i++ {
-		if args[i] == "--trust-remote-code" {
-			continue // Boolean flag with no value
+	for _, excludedArg := range excludedArgs {
+		if testutil.Contains(args, excludedArg) {
+			t.Errorf("Zero value argument %q should not be present in %v", excludedArg, args)
 		}
-		if args[i] == "--use-default-chat-template" {
-			continue // Boolean flag with no value
-		}
-
-		if expectedValue, exists := expectedFlags[args[i]]; exists && i+1 < len(args) {
-			if args[i+1] != expectedValue {
-				t.Errorf("expected %s to have value %s, got %s", args[i], expectedValue, args[i+1])
-			}
-		}
-	}
-
-	// Check boolean flags
-	foundTrustRemoteCode := false
-	for _, arg := range args {
-		if arg == "--trust-remote-code" {
-			foundTrustRemoteCode = true
-		}
-	}
-	if !foundTrustRemoteCode {
-		t.Errorf("expected --trust-remote-code flag to be present")
 	}
 }

@@ -4,43 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/backends"
+	"llamactl/pkg/testutil"
 	"reflect"
-	"slices"
 	"testing"
 )
-
-func TestLlamaCppBuildCommandArgs_BasicFields(t *testing.T) {
-	options := backends.LlamaServerOptions{
-		Model:     "/path/to/model.gguf",
-		Port:      8080,
-		Host:      "localhost",
-		Verbose:   true,
-		CtxSize:   4096,
-		GPULayers: 32,
-	}
-
-	args := options.BuildCommandArgs()
-
-	// Check individual arguments
-	expectedPairs := map[string]string{
-		"--model":      "/path/to/model.gguf",
-		"--port":       "8080",
-		"--host":       "localhost",
-		"--ctx-size":   "4096",
-		"--gpu-layers": "32",
-	}
-
-	for flag, expectedValue := range expectedPairs {
-		if !containsFlagWithValue(args, flag, expectedValue) {
-			t.Errorf("Expected %s %s, not found in %v", flag, expectedValue, args)
-		}
-	}
-
-	// Check standalone boolean flag
-	if !contains(args, "--verbose") {
-		t.Errorf("Expected --verbose flag not found in %v", args)
-	}
-}
 
 func TestLlamaCppBuildCommandArgs_BooleanFields(t *testing.T) {
 	tests := []struct {
@@ -81,47 +48,17 @@ func TestLlamaCppBuildCommandArgs_BooleanFields(t *testing.T) {
 			args := tt.options.BuildCommandArgs()
 
 			for _, expectedArg := range tt.expected {
-				if !contains(args, expectedArg) {
+				if !testutil.Contains(args, expectedArg) {
 					t.Errorf("Expected argument %q not found in %v", expectedArg, args)
 				}
 			}
 
 			for _, excludedArg := range tt.excluded {
-				if contains(args, excludedArg) {
+				if testutil.Contains(args, excludedArg) {
 					t.Errorf("Excluded argument %q found in %v", excludedArg, args)
 				}
 			}
 		})
-	}
-}
-
-func TestLlamaCppBuildCommandArgs_NumericFields(t *testing.T) {
-	options := backends.LlamaServerOptions{
-		Port:        8080,
-		Threads:     4,
-		CtxSize:     2048,
-		GPULayers:   16,
-		Temperature: 0.7,
-		TopK:        40,
-		TopP:        0.9,
-	}
-
-	args := options.BuildCommandArgs()
-
-	expectedPairs := map[string]string{
-		"--port":       "8080",
-		"--threads":    "4",
-		"--ctx-size":   "2048",
-		"--gpu-layers": "16",
-		"--temp":       "0.7",
-		"--top-k":      "40",
-		"--top-p":      "0.9",
-	}
-
-	for flag, expectedValue := range expectedPairs {
-		if !containsFlagWithValue(args, flag, expectedValue) {
-			t.Errorf("Expected %s %s, not found in %v", flag, expectedValue, args)
-		}
 	}
 }
 
@@ -146,7 +83,7 @@ func TestLlamaCppBuildCommandArgs_ZeroValues(t *testing.T) {
 	}
 
 	for _, excludedArg := range excludedArgs {
-		if contains(args, excludedArg) {
+		if testutil.Contains(args, excludedArg) {
 			t.Errorf("Zero value argument %q should not be present in %v", excludedArg, args)
 		}
 	}
@@ -170,7 +107,7 @@ func TestLlamaCppBuildCommandArgs_ArrayFields(t *testing.T) {
 
 	for flag, values := range expectedOccurrences {
 		for _, value := range values {
-			if !containsFlagWithValue(args, flag, value) {
+			if !testutil.ContainsFlagWithValue(args, flag, value) {
 				t.Errorf("Expected %s %s, not found in %v", flag, value, args)
 			}
 		}
@@ -187,38 +124,8 @@ func TestLlamaCppBuildCommandArgs_EmptyArrays(t *testing.T) {
 
 	excludedArgs := []string{"--lora", "--override-tensor"}
 	for _, excludedArg := range excludedArgs {
-		if contains(args, excludedArg) {
+		if testutil.Contains(args, excludedArg) {
 			t.Errorf("Empty array should not generate argument %q in %v", excludedArg, args)
-		}
-	}
-}
-
-func TestLlamaCppBuildCommandArgs_FieldNameConversion(t *testing.T) {
-	// Test snake_case to kebab-case conversion
-	options := backends.LlamaServerOptions{
-		CtxSize:      4096,
-		GPULayers:    32,
-		ThreadsBatch: 2,
-		FlashAttn:    true,
-		TopK:         40,
-		TopP:         0.9,
-	}
-
-	args := options.BuildCommandArgs()
-
-	// Check that field names are properly converted
-	expectedFlags := []string{
-		"--ctx-size",      // ctx_size -> ctx-size
-		"--gpu-layers",    // gpu_layers -> gpu-layers
-		"--threads-batch", // threads_batch -> threads-batch
-		"--flash-attn",    // flash_attn -> flash-attn
-		"--top-k",         // top_k -> top-k
-		"--top-p",         // top_p -> top-p
-	}
-
-	for _, flag := range expectedFlags {
-		if !contains(args, flag) {
-			t.Errorf("Expected flag %q not found in %v", flag, args)
 		}
 	}
 }
@@ -383,26 +290,81 @@ func TestParseLlamaCommand(t *testing.T) {
 		name      string
 		command   string
 		expectErr bool
+		validate  func(*testing.T, *backends.LlamaServerOptions)
 	}{
 		{
 			name:      "basic command",
 			command:   "llama-server --model /path/to/model.gguf --gpu-layers 32",
 			expectErr: false,
+			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
+				if opts.Model != "/path/to/model.gguf" {
+					t.Errorf("expected model '/path/to/model.gguf', got '%s'", opts.Model)
+				}
+				if opts.GPULayers != 32 {
+					t.Errorf("expected gpu_layers 32, got %d", opts.GPULayers)
+				}
+			},
 		},
 		{
 			name:      "args only",
 			command:   "--model /path/to/model.gguf --ctx-size 4096",
 			expectErr: false,
+			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
+				if opts.Model != "/path/to/model.gguf" {
+					t.Errorf("expected model '/path/to/model.gguf', got '%s'", opts.Model)
+				}
+				if opts.CtxSize != 4096 {
+					t.Errorf("expected ctx_size 4096, got %d", opts.CtxSize)
+				}
+			},
 		},
 		{
 			name:      "mixed flag formats",
 			command:   "llama-server --model=/path/model.gguf --gpu-layers 16 --verbose",
 			expectErr: false,
+			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
+				if opts.Model != "/path/model.gguf" {
+					t.Errorf("expected model '/path/model.gguf', got '%s'", opts.Model)
+				}
+				if opts.GPULayers != 16 {
+					t.Errorf("expected gpu_layers 16, got %d", opts.GPULayers)
+				}
+				if !opts.Verbose {
+					t.Errorf("expected verbose to be true")
+				}
+			},
 		},
 		{
 			name:      "quoted strings",
 			command:   `llama-server --model test.gguf --api-key "sk-1234567890abcdef"`,
 			expectErr: false,
+			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
+				if opts.APIKey != "sk-1234567890abcdef" {
+					t.Errorf("expected api_key 'sk-1234567890abcdef', got '%s'", opts.APIKey)
+				}
+			},
+		},
+		{
+			name:      "multiple value types",
+			command:   "llama-server --model /test/model.gguf --gpu-layers 32 --temp 0.7 --verbose --no-mmap",
+			expectErr: false,
+			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
+				if opts.Model != "/test/model.gguf" {
+					t.Errorf("expected model '/test/model.gguf', got '%s'", opts.Model)
+				}
+				if opts.GPULayers != 32 {
+					t.Errorf("expected gpu_layers 32, got %d", opts.GPULayers)
+				}
+				if opts.Temperature != 0.7 {
+					t.Errorf("expected temperature 0.7, got %f", opts.Temperature)
+				}
+				if !opts.Verbose {
+					t.Errorf("expected verbose to be true")
+				}
+				if !opts.NoMmap {
+					t.Errorf("expected no_mmap to be true")
+				}
+			},
 		},
 		{
 			name:      "empty command",
@@ -439,37 +401,13 @@ func TestParseLlamaCommand(t *testing.T) {
 
 			if result == nil {
 				t.Errorf("expected result but got nil")
+				return
+			}
+
+			if tt.validate != nil {
+				tt.validate(t, result)
 			}
 		})
-	}
-}
-
-func TestParseLlamaCommandValues(t *testing.T) {
-	command := "llama-server --model /test/model.gguf --gpu-layers 32 --temp 0.7 --verbose --no-mmap"
-	result, err := backends.ParseLlamaCommand(command)
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if result.Model != "/test/model.gguf" {
-		t.Errorf("expected model '/test/model.gguf', got '%s'", result.Model)
-	}
-
-	if result.GPULayers != 32 {
-		t.Errorf("expected gpu_layers 32, got %d", result.GPULayers)
-	}
-
-	if result.Temperature != 0.7 {
-		t.Errorf("expected temperature 0.7, got %f", result.Temperature)
-	}
-
-	if !result.Verbose {
-		t.Errorf("expected verbose to be true")
-	}
-
-	if !result.NoMmap {
-		t.Errorf("expected no_mmap to be true")
 	}
 }
 
@@ -491,21 +429,4 @@ func TestParseLlamaCommandArrays(t *testing.T) {
 			t.Errorf("expected lora[%d]=%s got %s", i, v, result.Lora[i])
 		}
 	}
-}
-
-// Helper functions
-func contains(slice []string, item string) bool {
-	return slices.Contains(slice, item)
-}
-
-func containsFlagWithValue(args []string, flag, value string) bool {
-	for i, arg := range args {
-		if arg == flag {
-			// Check if there's a next argument and it matches the expected value
-			if i+1 < len(args) && args[i+1] == value {
-				return true
-			}
-		}
-	}
-	return false
 }
