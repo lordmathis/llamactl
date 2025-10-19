@@ -7,6 +7,20 @@ import (
 	"testing"
 )
 
+// GetBackendSettings resolves backend settings
+func getBackendSettings(bc *config.BackendConfig, backendType string) config.BackendSettings {
+	switch backendType {
+	case "llama-cpp":
+		return bc.LlamaCpp
+	case "vllm":
+		return bc.VLLM
+	case "mlx":
+		return bc.MLX
+	default:
+		return config.BackendSettings{}
+	}
+}
+
 func TestLoadConfig_Defaults(t *testing.T) {
 	// Test loading config when no file exists and no env vars set
 	cfg, err := config.LoadConfig("nonexistent-file.yaml")
@@ -372,7 +386,7 @@ func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
 	}
 
 	// Test llama-cpp with Docker
-	settings := bc.GetBackendSettings("llama-cpp")
+	settings := getBackendSettings(bc, "llama-cpp")
 	if settings.Command != "custom-llama" {
 		t.Errorf("Expected command 'custom-llama', got %q", settings.Command)
 	}
@@ -387,7 +401,7 @@ func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
 	}
 
 	// Test vLLM without Docker
-	settings = bc.GetBackendSettings("vllm")
+	settings = getBackendSettings(bc, "vllm")
 	if settings.Command != "custom-vllm" {
 		t.Errorf("Expected command 'custom-vllm', got %q", settings.Command)
 	}
@@ -399,7 +413,7 @@ func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
 	}
 
 	// Test MLX
-	settings = bc.GetBackendSettings("mlx")
+	settings = getBackendSettings(bc, "mlx")
 	if settings.Command != "custom-mlx" {
 		t.Errorf("Expected command 'custom-mlx', got %q", settings.Command)
 	}
@@ -409,19 +423,19 @@ func TestGetBackendSettings_EmptyConfig(t *testing.T) {
 	bc := &config.BackendConfig{}
 
 	// Test empty llama-cpp
-	settings := bc.GetBackendSettings("llama-cpp")
+	settings := getBackendSettings(bc, "llama-cpp")
 	if settings.Command != "" {
 		t.Errorf("Expected empty command, got %q", settings.Command)
 	}
 
 	// Test empty vLLM
-	settings = bc.GetBackendSettings("vllm")
+	settings = getBackendSettings(bc, "vllm")
 	if settings.Command != "" {
 		t.Errorf("Expected empty command, got %q", settings.Command)
 	}
 
 	// Test empty MLX
-	settings = bc.GetBackendSettings("mlx")
+	settings = getBackendSettings(bc, "mlx")
 	if settings.Command != "" {
 		t.Errorf("Expected empty command, got %q", settings.Command)
 	}
@@ -505,7 +519,7 @@ func TestGetBackendSettings_InvalidBackendType(t *testing.T) {
 	}
 
 	// Test invalid backend type returns empty settings
-	settings := bc.GetBackendSettings("invalid-backend")
+	settings := getBackendSettings(bc, "invalid-backend")
 	if settings.Command != "" {
 		t.Errorf("Expected empty command for invalid backend, got %q", settings.Command)
 	}

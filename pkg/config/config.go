@@ -601,17 +601,3 @@ func getDefaultConfigLocations() []string {
 
 	return locations
 }
-
-// GetBackendSettings resolves backend settings
-func (bc *BackendConfig) GetBackendSettings(backendType string) BackendSettings {
-	switch backendType {
-	case "llama-cpp":
-		return bc.LlamaCpp
-	case "vllm":
-		return bc.VLLM
-	case "mlx":
-		return bc.MLX
-	default:
-		return BackendSettings{}
-	}
-}
