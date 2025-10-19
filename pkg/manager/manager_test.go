@@ -70,10 +70,12 @@ func TestPersistence(t *testing.T) {
 	// Test instance persistence on creation
 	manager1 := manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
 	options := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &backends.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-			Port:  8080,
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+				Port:  8080,
+			},
 		},
 	}
 
@@ -132,9 +134,11 @@ func TestConcurrentAccess(t *testing.T) {
 		go func(index int) {
 			defer wg.Done()
 			options := &instance.Options{
-				BackendType: backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: &backends.LlamaServerOptions{
-					Model: "/path/to/model.gguf",
+				BackendOptions: backends.Options{
+					BackendType: backends.BackendTypeLlamaCpp,
+					LlamaServerOptions: &backends.LlamaServerOptions{
+						Model: "/path/to/model.gguf",
+					},
 				},
 			}
 			instanceName := fmt.Sprintf("concurrent-test-%d", index)
@@ -169,9 +173,11 @@ func TestShutdown(t *testing.T) {
 
 	// Create test instance
 	options := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &backends.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
 		},
 	}
 	_, err := mgr.CreateInstance("test-instance", options)
@@ -230,11 +236,13 @@ func TestAutoRestartDisabledInstanceStatus(t *testing.T) {
 
 	autoRestart := false
 	options := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
 		AutoRestart: &autoRestart,
-		LlamaServerOptions: &backends.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-			Port:  8080,
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+				Port:  8080,
+			},
 		},
 	}
 

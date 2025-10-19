@@ -40,7 +40,7 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 			return
 		}
 
-		if options.BackendType != backends.BackendTypeLlamaCpp {
+		if options.BackendOptions.BackendType != backends.BackendTypeLlamaCpp {
 			http.Error(w, "Instance is not a llama.cpp server.", http.StatusBadRequest)
 			return
 		}
@@ -133,8 +133,10 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 			return
 		}
 		options := &instance.Options{
-			BackendType:        backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: llamaOptions,
+			BackendOptions: backends.Options{
+				BackendType:        backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: llamaOptions,
+			},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(options); err != nil {
@@ -186,8 +188,10 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 		backendType := backends.BackendTypeMlxLm
 
 		options := &instance.Options{
-			BackendType:      backendType,
-			MlxServerOptions: mlxOptions,
+			BackendOptions: backends.Options{
+				BackendType:      backendType,
+				MlxServerOptions: mlxOptions,
+			},
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -239,8 +243,10 @@ func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 		backendType := backends.BackendTypeVllm
 
 		options := &instance.Options{
-			BackendType:       backendType,
-			VllmServerOptions: vllmOptions,
+			BackendOptions: backends.Options{
+				BackendType:       backendType,
+				VllmServerOptions: vllmOptions,
+			},
 		}
 
 		w.Header().Set("Content-Type", "application/json")
