@@ -150,9 +150,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			EnableSwagger:  false,
 		},
 		LocalNode: "main",
-		Nodes: map[string]NodeConfig{
-			"main": {}, // Local node with empty config
-		},
+		Nodes:     map[string]NodeConfig{},
 		Backends: BackendConfig{
 			LlamaCpp: BackendSettings{
 				Command:     "llama-server",
@@ -215,6 +213,11 @@ func LoadConfig(configPath string) (AppConfig, error) {
 	// 2. Load from config file
 	if err := loadConfigFile(&cfg, configPath); err != nil {
 		return cfg, err
+	}
+
+	// If local node is not defined in nodes, add it with default config
+	if _, ok := cfg.Nodes[cfg.LocalNode]; !ok {
+		cfg.Nodes[cfg.LocalNode] = NodeConfig{}
 	}
 
 	// 3. Override with environment variables
