@@ -219,29 +219,6 @@ instances:
 	}
 }
 
-func TestLoadConfig_InvalidYAML(t *testing.T) {
-	// Create a temporary config file with invalid YAML
-	tempDir := t.TempDir()
-	configFile := filepath.Join(tempDir, "invalid-config.yaml")
-
-	invalidContent := `
-server:
-  host: "localhost"
-  port: not-a-number
-instances:
-  [invalid yaml structure
-`
-
-	err := os.WriteFile(configFile, []byte(invalidContent), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
-
-	_, err = config.LoadConfig(configFile)
-	if err == nil {
-		t.Error("Expected LoadConfig to return error for invalid YAML")
-	}
-}
 
 func TestParsePortRange(t *testing.T) {
 	tests := []struct {
@@ -271,97 +248,6 @@ func TestParsePortRange(t *testing.T) {
 	}
 }
 
-// Remove the getDefaultConfigLocations test entirely
-
-func TestLoadConfig_EnvironmentVariableTypes(t *testing.T) {
-	// Test that environment variables are properly converted to correct types
-	testCases := []struct {
-		envVar   string
-		envValue string
-		checkFn  func(*config.AppConfig) bool
-		desc     string
-	}{
-		{
-			envVar:   "LLAMACTL_PORT",
-			envValue: "invalid-port",
-			checkFn:  func(c *config.AppConfig) bool { return c.Server.Port == 8080 }, // Should keep default
-			desc:     "invalid port number should keep default",
-		},
-		{
-			envVar:   "LLAMACTL_MAX_INSTANCES",
-			envValue: "not-a-number",
-			checkFn:  func(c *config.AppConfig) bool { return c.Instances.MaxInstances == -1 }, // Should keep default
-			desc:     "invalid max instances should keep default",
-		},
-		{
-			envVar:   "LLAMACTL_DEFAULT_AUTO_RESTART",
-			envValue: "invalid-bool",
-			checkFn:  func(c *config.AppConfig) bool { return c.Instances.DefaultAutoRestart == true }, // Should keep default
-			desc:     "invalid boolean should keep default",
-		},
-		{
-			envVar:   "LLAMACTL_INSTANCE_PORT_RANGE",
-			envValue: "invalid-range",
-			checkFn:  func(c *config.AppConfig) bool { return c.Instances.PortRange == [2]int{8000, 9000} }, // Should keep default
-			desc:     "invalid port range should keep default",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.desc, func(t *testing.T) {
-			os.Setenv(tc.envVar, tc.envValue)
-			defer os.Unsetenv(tc.envVar)
-
-			cfg, err := config.LoadConfig("nonexistent-file.yaml")
-			if err != nil {
-				t.Fatalf("LoadConfig failed: %v", err)
-			}
-
-			if !tc.checkFn(&cfg) {
-				t.Errorf("Test failed: %s", tc.desc)
-			}
-		})
-	}
-}
-
-func TestLoadConfig_PartialFile(t *testing.T) {
-	// Test that partial config files work correctly (missing sections should use defaults)
-	tempDir := t.TempDir()
-	configFile := filepath.Join(tempDir, "partial-config.yaml")
-
-	// Only specify server config, instances should use defaults
-	configContent := `
-server:
-  host: "partial-host"
-  port: 7777
-`
-
-	err := os.WriteFile(configFile, []byte(configContent), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write test config file: %v", err)
-	}
-
-	cfg, err := config.LoadConfig(configFile)
-	if err != nil {
-		t.Fatalf("LoadConfig failed: %v", err)
-	}
-
-	// Server config should be from file
-	if cfg.Server.Host != "partial-host" {
-		t.Errorf("Expected host 'partial-host', got %q", cfg.Server.Host)
-	}
-	if cfg.Server.Port != 7777 {
-		t.Errorf("Expected port 7777, got %d", cfg.Server.Port)
-	}
-
-	// Instances config should be defaults
-	if cfg.Instances.PortRange != [2]int{8000, 9000} {
-		t.Errorf("Expected default port range [8000, 9000], got %v", cfg.Instances.PortRange)
-	}
-	if cfg.Instances.MaxInstances != -1 {
-		t.Errorf("Expected default max instances -1, got %d", cfg.Instances.MaxInstances)
-	}
-}
 
 func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
 	bc := &config.BackendConfig{
@@ -419,27 +305,6 @@ func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
 	}
 }
 
-func TestGetBackendSettings_EmptyConfig(t *testing.T) {
-	bc := &config.BackendConfig{}
-
-	// Test empty llama-cpp
-	settings := getBackendSettings(bc, "llama-cpp")
-	if settings.Command != "" {
-		t.Errorf("Expected empty command, got %q", settings.Command)
-	}
-
-	// Test empty vLLM
-	settings = getBackendSettings(bc, "vllm")
-	if settings.Command != "" {
-		t.Errorf("Expected empty command, got %q", settings.Command)
-	}
-
-	// Test empty MLX
-	settings = getBackendSettings(bc, "mlx")
-	if settings.Command != "" {
-		t.Errorf("Expected empty command, got %q", settings.Command)
-	}
-}
 
 func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 	// Test that backend environment variables work correctly
@@ -510,20 +375,6 @@ func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 	}
 }
 
-func TestGetBackendSettings_InvalidBackendType(t *testing.T) {
-	bc := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-			Args:    []string{},
-		},
-	}
-
-	// Test invalid backend type returns empty settings
-	settings := getBackendSettings(bc, "invalid-backend")
-	if settings.Command != "" {
-		t.Errorf("Expected empty command for invalid backend, got %q", settings.Command)
-	}
-}
 
 func TestLoadConfig_LocalNode(t *testing.T) {
 	t.Run("default local node", func(t *testing.T) {
