@@ -40,3 +40,6 @@ site/
 
 # Dev config
 llamactl.dev.yaml
+
+# Debug files
+__debug*
