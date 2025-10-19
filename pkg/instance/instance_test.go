@@ -276,6 +276,7 @@ func TestGetProxy(t *testing.T) {
 	}
 
 	options := &instance.Options{
+		Nodes: map[string]struct{}{"main": {}},
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
 			LlamaServerOptions: &backends.LlamaServerOptions{
@@ -738,6 +739,7 @@ func TestProxyClearOnOptionsChange(t *testing.T) {
 	}
 	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 	options := &instance.Options{
+		Nodes: map[string]struct{}{"main": {}},
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
 			LlamaServerOptions: &backends.LlamaServerOptions{
