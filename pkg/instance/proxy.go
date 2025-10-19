@@ -62,7 +62,7 @@ func (p *proxy) build() (*httputil.ReverseProxy, error) {
 	}
 
 	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
-	if len(options.Nodes) > 0 {
+	if _, isLocal := options.Nodes[p.instance.localNodeName]; !isLocal {
 		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", p.instance.Name)
 	}
 
