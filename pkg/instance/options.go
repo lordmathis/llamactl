@@ -4,12 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/backends"
-	"llamactl/pkg/backends/llamacpp"
-	"llamactl/pkg/backends/mlx"
-	"llamactl/pkg/backends/vllm"
 	"llamactl/pkg/config"
 	"log"
-	"maps"
 	"slices"
 	"sync"
 )
@@ -24,18 +20,12 @@ type Options struct {
 	OnDemandStart *bool `json:"on_demand_start,omitempty"`
 	// Idle timeout
 	IdleTimeout *int `json:"idle_timeout,omitempty"` // minutes
-	//Environment variables
+	// Environment variables
 	Environment map[string]string `json:"environment,omitempty"`
-
-	BackendType    backends.BackendType `json:"backend_type"`
-	BackendOptions map[string]any       `json:"backend_options,omitempty"`
-
+	// Assigned nodes
 	Nodes map[string]struct{} `json:"-"`
-
-	// Backend-specific options
-	LlamaServerOptions *llamacpp.LlamaServerOptions `json:"-"`
-	MlxServerOptions   *mlx.MlxServerOptions        `json:"-"`
-	VllmServerOptions  *vllm.VllmServerOptions      `json:"-"`
+	// Backend options
+	BackendOptions backends.Options `json:"-"`
 }
 
 // options wraps Options with thread-safe access (unexported).
@@ -65,6 +55,18 @@ func (o *options) set(opts *Options) {
 	o.opts = opts
 }
 
+func (o *options) GetHost() string {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.opts.BackendOptions.GetHost()
+}
+
+func (o *options) GetPort() int {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	return o.opts.BackendOptions.GetPort()
+}
+
 // MarshalJSON implements json.Marshaler for options wrapper
 func (o *options) MarshalJSON() ([]byte, error) {
 	o.mu.RLock()
@@ -88,7 +90,9 @@ func (c *Options) UnmarshalJSON(data []byte) error {
 	// Use anonymous struct to avoid recursion
 	type Alias Options
 	aux := &struct {
-		Nodes []string `json:"nodes,omitempty"` // Accept JSON array
+		Nodes          []string             `json:"nodes,omitempty"`
+		BackendType    backends.BackendType `json:"backend_type"`
+		BackendOptions map[string]any       `json:"backend_options,omitempty"`
 		*Alias
 	}{
 		Alias: (*Alias)(c),
@@ -106,47 +110,27 @@ func (c *Options) UnmarshalJSON(data []byte) error {
 		}
 	}
 
-	// Parse backend-specific options
-	switch c.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if c.BackendOptions != nil {
-			// Convert map to JSON and then unmarshal to LlamaServerOptions
-			optionsData, err := json.Marshal(c.BackendOptions)
-			if err != nil {
-				return fmt.Errorf("failed to marshal backend options: %w", err)
-			}
+	// Create backend options struct and unmarshal
+	c.BackendOptions = backends.Options{
+		BackendType:    aux.BackendType,
+		BackendOptions: aux.BackendOptions,
+	}
 
-			c.LlamaServerOptions = &llamacpp.LlamaServerOptions{}
-			if err := json.Unmarshal(optionsData, c.LlamaServerOptions); err != nil {
-				return fmt.Errorf("failed to unmarshal llama.cpp options: %w", err)
-			}
-		}
-	case backends.BackendTypeMlxLm:
-		if c.BackendOptions != nil {
-			optionsData, err := json.Marshal(c.BackendOptions)
-			if err != nil {
-				return fmt.Errorf("failed to marshal backend options: %w", err)
-			}
+	// Marshal the backend options to JSON for proper unmarshaling
+	backendJson, err := json.Marshal(struct {
+		BackendType    backends.BackendType `json:"backend_type"`
+		BackendOptions map[string]any       `json:"backend_options,omitempty"`
+	}{
+		BackendType:    aux.BackendType,
+		BackendOptions: aux.BackendOptions,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal backend options: %w", err)
+	}
 
-			c.MlxServerOptions = &mlx.MlxServerOptions{}
-			if err := json.Unmarshal(optionsData, c.MlxServerOptions); err != nil {
-				return fmt.Errorf("failed to unmarshal MLX options: %w", err)
-			}
-		}
-	case backends.BackendTypeVllm:
-		if c.BackendOptions != nil {
-			optionsData, err := json.Marshal(c.BackendOptions)
-			if err != nil {
-				return fmt.Errorf("failed to marshal backend options: %w", err)
-			}
-
-			c.VllmServerOptions = &vllm.VllmServerOptions{}
-			if err := json.Unmarshal(optionsData, c.VllmServerOptions); err != nil {
-				return fmt.Errorf("failed to unmarshal vLLM options: %w", err)
-			}
-		}
-	default:
-		return fmt.Errorf("unknown backend type: %s", c.BackendType)
+	// Unmarshal into the backends.Options struct to trigger its custom unmarshaling
+	if err := json.Unmarshal(backendJson, &c.BackendOptions); err != nil {
+		return fmt.Errorf("failed to unmarshal backend options: %w", err)
 	}
 
 	return nil
@@ -157,7 +141,9 @@ func (c *Options) MarshalJSON() ([]byte, error) {
 	// Use anonymous struct to avoid recursion
 	type Alias Options
 	aux := struct {
-		Nodes []string `json:"nodes,omitempty"` // Output as JSON array
+		Nodes          []string             `json:"nodes,omitempty"` // Output as JSON array
+		BackendType    backends.BackendType `json:"backend_type"`
+		BackendOptions map[string]any       `json:"backend_options,omitempty"`
 		*Alias
 	}{
 		Alias: (*Alias)(c),
@@ -173,51 +159,25 @@ func (c *Options) MarshalJSON() ([]byte, error) {
 		slices.Sort(aux.Nodes)
 	}
 
-	// Convert backend-specific options back to BackendOptions map for JSON
-	switch c.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if c.LlamaServerOptions != nil {
-			data, err := json.Marshal(c.LlamaServerOptions)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal llama server options: %w", err)
-			}
+	// Set backend type
+	aux.BackendType = c.BackendOptions.BackendType
 
-			var backendOpts map[string]any
-			if err := json.Unmarshal(data, &backendOpts); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal to map: %w", err)
-			}
-
-			aux.BackendOptions = backendOpts
-		}
-	case backends.BackendTypeMlxLm:
-		if c.MlxServerOptions != nil {
-			data, err := json.Marshal(c.MlxServerOptions)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal MLX server options: %w", err)
-			}
-
-			var backendOpts map[string]any
-			if err := json.Unmarshal(data, &backendOpts); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal to map: %w", err)
-			}
-
-			aux.BackendOptions = backendOpts
-		}
-	case backends.BackendTypeVllm:
-		if c.VllmServerOptions != nil {
-			data, err := json.Marshal(c.VllmServerOptions)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal vLLM server options: %w", err)
-			}
-
-			var backendOpts map[string]any
-			if err := json.Unmarshal(data, &backendOpts); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal to map: %w", err)
-			}
-
-			aux.BackendOptions = backendOpts
-		}
+	// Marshal the backends.Options struct to get the properly formatted backend options
+	// Marshal a pointer to trigger the pointer receiver MarshalJSON method
+	backendData, err := json.Marshal(&c.BackendOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal backend options: %w", err)
 	}
+
+	// Unmarshal into a temporary struct to extract the backend_options map
+	var tempBackend struct {
+		BackendOptions map[string]any `json:"backend_options,omitempty"`
+	}
+	if err := json.Unmarshal(backendData, &tempBackend); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal backend data: %w", err)
+	}
+
+	aux.BackendOptions = tempBackend.BackendOptions
 
 	return json.Marshal(aux)
 }
@@ -259,79 +219,4 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 			c.IdleTimeout = &defaultIdleTimeout
 		}
 	}
-}
-
-// getCommand builds the command to run the backend
-func (c *Options) getCommand(backendConfig *config.BackendSettings) string {
-
-	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
-		return "docker"
-	}
-
-	return backendConfig.Command
-}
-
-// buildCommandArgs builds command line arguments for the backend
-func (c *Options) buildCommandArgs(backendConfig *config.BackendSettings) []string {
-
-	var args []string
-
-	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
-		// For Docker, start with Docker args
-		args = append(args, backendConfig.Docker.Args...)
-		args = append(args, backendConfig.Docker.Image)
-
-		switch c.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if c.LlamaServerOptions != nil {
-				args = append(args, c.LlamaServerOptions.BuildDockerArgs()...)
-			}
-		case backends.BackendTypeVllm:
-			if c.VllmServerOptions != nil {
-				args = append(args, c.VllmServerOptions.BuildDockerArgs()...)
-			}
-		}
-
-	} else {
-		// For native execution, start with backend args
-		args = append(args, backendConfig.Args...)
-
-		switch c.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if c.LlamaServerOptions != nil {
-				args = append(args, c.LlamaServerOptions.BuildCommandArgs()...)
-			}
-		case backends.BackendTypeMlxLm:
-			if c.MlxServerOptions != nil {
-				args = append(args, c.MlxServerOptions.BuildCommandArgs()...)
-			}
-		case backends.BackendTypeVllm:
-			if c.VllmServerOptions != nil {
-				args = append(args, c.VllmServerOptions.BuildCommandArgs()...)
-			}
-		}
-	}
-
-	return args
-}
-
-// buildEnvironment builds the environment variables for the backend process
-func (c *Options) buildEnvironment(backendConfig *config.BackendSettings) map[string]string {
-	env := map[string]string{}
-
-	if backendConfig.Environment != nil {
-		maps.Copy(env, backendConfig.Environment)
-	}
-
-	if backendConfig.Docker != nil && backendConfig.Docker.Enabled && c.BackendType != backends.BackendTypeMlxLm {
-		if backendConfig.Docker.Environment != nil {
-			maps.Copy(env, backendConfig.Docker.Environment)
-		}
-	}
-
-	if c.Environment != nil {
-		maps.Copy(env, c.Environment)
-	}
-
-	return env
 }

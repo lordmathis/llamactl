@@ -2,7 +2,6 @@ package manager
 
 import (
 	"fmt"
-	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
 	"os"
@@ -86,7 +85,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 		return nil, err
 	}
 
-	err = validation.ValidateInstanceOptions(options)
+	err = options.BackendOptions.ValidateInstanceOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +231,7 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
 
-	err := validation.ValidateInstanceOptions(options)
+	err := options.BackendOptions.ValidateInstanceOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -493,39 +492,12 @@ func (im *instanceManager) GetInstanceLogs(name string, numLines int) (string, e
 
 // getPortFromOptions extracts the port from backend-specific options
 func (im *instanceManager) getPortFromOptions(options *instance.Options) int {
-	switch options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if options.LlamaServerOptions != nil {
-			return options.LlamaServerOptions.Port
-		}
-	case backends.BackendTypeMlxLm:
-		if options.MlxServerOptions != nil {
-			return options.MlxServerOptions.Port
-		}
-	case backends.BackendTypeVllm:
-		if options.VllmServerOptions != nil {
-			return options.VllmServerOptions.Port
-		}
-	}
-	return 0
+	return options.BackendOptions.GetPort()
 }
 
 // setPortInOptions sets the port in backend-specific options
 func (im *instanceManager) setPortInOptions(options *instance.Options, port int) {
-	switch options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if options.LlamaServerOptions != nil {
-			options.LlamaServerOptions.Port = port
-		}
-	case backends.BackendTypeMlxLm:
-		if options.MlxServerOptions != nil {
-			options.MlxServerOptions.Port = port
-		}
-	case backends.BackendTypeVllm:
-		if options.VllmServerOptions != nil {
-			options.VllmServerOptions.Port = port
-		}
-	}
+	options.BackendOptions.SetPort(port)
 }
 
 // assignAndValidatePort assigns a port if not specified and validates it's not in use

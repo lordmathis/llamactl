@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/backends"
-	"llamactl/pkg/backends/llamacpp"
-	"llamactl/pkg/backends/mlx"
-	"llamactl/pkg/backends/vllm"
 	"llamactl/pkg/instance"
 	"net/http"
 	"os/exec"
@@ -43,7 +40,7 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 			return
 		}
 
-		if options.BackendType != backends.BackendTypeLlamaCpp {
+		if options.BackendOptions.BackendType != backends.BackendTypeLlamaCpp {
 			http.Error(w, "Instance is not a llama.cpp server.", http.StatusBadRequest)
 			return
 		}
@@ -130,14 +127,16 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
 			return
 		}
-		llamaOptions, err := llamacpp.ParseLlamaCommand(req.Command)
+		llamaOptions, err := backends.ParseLlamaCommand(req.Command)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
 			return
 		}
 		options := &instance.Options{
-			BackendType:        backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: llamaOptions,
+			BackendOptions: backends.Options{
+				BackendType:        backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: llamaOptions,
+			},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(options); err != nil {
@@ -179,7 +178,7 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 			return
 		}
 
-		mlxOptions, err := mlx.ParseMlxCommand(req.Command)
+		mlxOptions, err := backends.ParseMlxCommand(req.Command)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
 			return
@@ -189,8 +188,10 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 		backendType := backends.BackendTypeMlxLm
 
 		options := &instance.Options{
-			BackendType:      backendType,
-			MlxServerOptions: mlxOptions,
+			BackendOptions: backends.Options{
+				BackendType:      backendType,
+				MlxServerOptions: mlxOptions,
+			},
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -233,7 +234,7 @@ func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 			return
 		}
 
-		vllmOptions, err := vllm.ParseVllmCommand(req.Command)
+		vllmOptions, err := backends.ParseVllmCommand(req.Command)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
 			return
@@ -242,8 +243,10 @@ func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 		backendType := backends.BackendTypeVllm
 
 		options := &instance.Options{
-			BackendType:       backendType,
-			VllmServerOptions: vllmOptions,
+			BackendOptions: backends.Options{
+				BackendType:       backendType,
+				VllmServerOptions: vllmOptions,
+			},
 		}
 
 		w.Header().Set("Content-Type", "application/json")

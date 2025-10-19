@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}/cmd/server/main.go",
             "env": {
                 "GO_ENV": "development",
-                "LLAMACTL_REQUIRE_MANAGEMENT_AUTH": "false"
+                "LLAMACTL_CONFIG_PATH": "${workspaceFolder}/llamactl.dev.yaml"
             },
         }
     ]

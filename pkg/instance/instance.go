@@ -3,7 +3,6 @@ package instance
 import (
 	"encoding/json"
 	"fmt"
-	"llamactl/pkg/backends"
 	"llamactl/pkg/config"
 	"log"
 	"net/http/httputil"
@@ -124,48 +123,6 @@ func (i *Instance) IsRunning() bool {
 	return i.status.isRunning()
 }
 
-func (i *Instance) GetPort() int {
-	opts := i.GetOptions()
-	if opts != nil {
-		switch opts.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if opts.LlamaServerOptions != nil {
-				return opts.LlamaServerOptions.Port
-			}
-		case backends.BackendTypeMlxLm:
-			if opts.MlxServerOptions != nil {
-				return opts.MlxServerOptions.Port
-			}
-		case backends.BackendTypeVllm:
-			if opts.VllmServerOptions != nil {
-				return opts.VllmServerOptions.Port
-			}
-		}
-	}
-	return 0
-}
-
-func (i *Instance) GetHost() string {
-	opts := i.GetOptions()
-	if opts != nil {
-		switch opts.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if opts.LlamaServerOptions != nil {
-				return opts.LlamaServerOptions.Host
-			}
-		case backends.BackendTypeMlxLm:
-			if opts.MlxServerOptions != nil {
-				return opts.MlxServerOptions.Host
-			}
-		case backends.BackendTypeVllm:
-			if opts.VllmServerOptions != nil {
-				return opts.VllmServerOptions.Host
-			}
-		}
-	}
-	return ""
-}
-
 // SetOptions sets the options
 func (i *Instance) SetOptions(opts *Options) {
 	if opts == nil {
@@ -196,6 +153,20 @@ func (i *Instance) SetTimeProvider(tp TimeProvider) {
 	if i.proxy != nil {
 		i.proxy.setTimeProvider(tp)
 	}
+}
+
+func (i *Instance) GetHost() string {
+	if i.options == nil {
+		return "localhost"
+	}
+	return i.options.GetHost()
+}
+
+func (i *Instance) GetPort() int {
+	if i.options == nil {
+		return 0
+	}
+	return i.options.GetPort()
 }
 
 // GetProxy returns the reverse proxy for this instance
@@ -266,39 +237,31 @@ func (i *Instance) ShouldTimeout() bool {
 	return i.proxy.shouldTimeout()
 }
 
-// getBackendHostPort extracts the host and port from instance options
-// Returns the configured host and port for the backend
-func (i *Instance) getBackendHostPort() (string, int) {
+func (i *Instance) getCommand() string {
 	opts := i.GetOptions()
 	if opts == nil {
-		return "localhost", 0
+		return ""
 	}
 
-	var host string
-	var port int
-	switch opts.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		if opts.LlamaServerOptions != nil {
-			host = opts.LlamaServerOptions.Host
-			port = opts.LlamaServerOptions.Port
-		}
-	case backends.BackendTypeMlxLm:
-		if opts.MlxServerOptions != nil {
-			host = opts.MlxServerOptions.Host
-			port = opts.MlxServerOptions.Port
-		}
-	case backends.BackendTypeVllm:
-		if opts.VllmServerOptions != nil {
-			host = opts.VllmServerOptions.Host
-			port = opts.VllmServerOptions.Port
-		}
+	return opts.BackendOptions.GetCommand(i.globalBackendSettings)
+}
+
+func (i *Instance) buildCommandArgs() []string {
+	opts := i.GetOptions()
+	if opts == nil {
+		return nil
 	}
 
-	if host == "" {
-		host = "localhost"
+	return opts.BackendOptions.BuildCommandArgs(i.globalBackendSettings)
+}
+
+func (i *Instance) buildEnvironment() map[string]string {
+	opts := i.GetOptions()
+	if opts == nil {
+		return nil
 	}
 
-	return host, port
+	return opts.BackendOptions.BuildEnvironment(i.globalBackendSettings, opts.Environment)
 }
 
 // MarshalJSON implements json.Marshaler for Instance
@@ -307,21 +270,7 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 	opts := i.GetOptions()
 
 	// Determine if docker is enabled for this instance's backend
-	var dockerEnabled bool
-	if opts != nil {
-		switch opts.BackendType {
-		case backends.BackendTypeLlamaCpp:
-			if i.globalBackendSettings != nil && i.globalBackendSettings.LlamaCpp.Docker != nil && i.globalBackendSettings.LlamaCpp.Docker.Enabled {
-				dockerEnabled = true
-			}
-		case backends.BackendTypeVllm:
-			if i.globalBackendSettings != nil && i.globalBackendSettings.VLLM.Docker != nil && i.globalBackendSettings.VLLM.Docker.Enabled {
-				dockerEnabled = true
-			}
-		case backends.BackendTypeMlxLm:
-			// MLX does not support docker currently
-		}
-	}
+	dockerEnabled := opts.BackendOptions.IsDockerEnabled(i.globalBackendSettings)
 
 	return json.Marshal(&struct {
 		Name          string   `json:"name"`

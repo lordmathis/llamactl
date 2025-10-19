@@ -1,7 +1,8 @@
-package mlx
+package backends
 
 import (
-	"llamactl/pkg/backends"
+	"fmt"
+	"llamactl/pkg/validation"
 )
 
 type MlxServerOptions struct {
@@ -30,10 +31,43 @@ type MlxServerOptions struct {
 	MaxTokens int     `json:"max_tokens,omitempty"`
 }
 
+func (o *MlxServerOptions) GetPort() int {
+	return o.Port
+}
+
+func (o *MlxServerOptions) SetPort(port int) {
+	o.Port = port
+}
+
+func (o *MlxServerOptions) GetHost() string {
+	return o.Host
+}
+
+func (o *MlxServerOptions) Validate() error {
+	if o == nil {
+		return validation.ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
+	}
+
+	if err := validation.ValidateStructStrings(o, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if o.Port < 0 || o.Port > 65535 {
+		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
+	}
+
+	return nil
+}
+
 // BuildCommandArgs converts to command line arguments
 func (o *MlxServerOptions) BuildCommandArgs() []string {
 	multipleFlags := map[string]bool{} // MLX doesn't currently have []string fields
-	return backends.BuildCommandArgs(o, multipleFlags)
+	return BuildCommandArgs(o, multipleFlags)
+}
+
+func (o *MlxServerOptions) BuildDockerArgs() []string {
+	return []string{}
 }
 
 // ParseMlxCommand parses a mlx_lm.server command string into MlxServerOptions
@@ -48,7 +82,7 @@ func ParseMlxCommand(command string) (*MlxServerOptions, error) {
 	multiValuedFlags := map[string]bool{} // MLX has no multi-valued flags
 
 	var mlxOptions MlxServerOptions
-	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &mlxOptions); err != nil {
+	if err := ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &mlxOptions); err != nil {
 		return nil, err
 	}
 

@@ -12,9 +12,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"llamactl/pkg/backends"
-	"llamactl/pkg/config"
 )
 
 // process manages the OS process lifecycle for a local instance.
@@ -216,7 +213,8 @@ func (p *process) waitForHealthy(timeout int) error {
 	defer cancel()
 
 	// Get host/port from instance
-	host, port := p.instance.getBackendHostPort()
+	host := p.instance.options.GetHost()
+	port := p.instance.options.GetPort()
 	healthURL := fmt.Sprintf("http://%s:%d/health", host, port)
 
 	// Create a dedicated HTTP client for health checks
@@ -386,26 +384,15 @@ func (p *process) handleAutoRestart(err error) {
 
 // buildCommand builds the command to execute using backend-specific logic
 func (p *process) buildCommand() (*exec.Cmd, error) {
-	// Get options
-	opts := p.instance.GetOptions()
-	if opts == nil {
-		return nil, fmt.Errorf("instance options are nil")
-	}
-
-	// Get backend configuration
-	backendConfig, err := p.getBackendConfig()
-	if err != nil {
-		return nil, err
-	}
 
 	// Build the environment variables
-	env := opts.buildEnvironment(backendConfig)
+	env := p.instance.buildEnvironment()
 
 	// Get the command to execute
-	command := opts.getCommand(backendConfig)
+	command := p.instance.getCommand()
 
 	// Build command arguments
-	args := opts.buildCommandArgs(backendConfig)
+	args := p.instance.buildCommandArgs()
 
 	// Create the exec.Cmd
 	cmd := exec.CommandContext(p.ctx, command, args...)
@@ -419,28 +406,4 @@ func (p *process) buildCommand() (*exec.Cmd, error) {
 	}
 
 	return cmd, nil
-}
-
-// getBackendConfig resolves the backend configuration for the current instance
-func (p *process) getBackendConfig() (*config.BackendSettings, error) {
-	opts := p.instance.GetOptions()
-	if opts == nil {
-		return nil, fmt.Errorf("instance options are nil")
-	}
-
-	var backendTypeStr string
-
-	switch opts.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		backendTypeStr = "llama-cpp"
-	case backends.BackendTypeMlxLm:
-		backendTypeStr = "mlx"
-	case backends.BackendTypeVllm:
-		backendTypeStr = "vllm"
-	default:
-		return nil, fmt.Errorf("unsupported backend type: %s", opts.BackendType)
-	}
-
-	settings := p.instance.globalBackendSettings.GetBackendSettings(backendTypeStr)
-	return &settings, nil
 }

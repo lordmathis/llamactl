@@ -1,11 +1,12 @@
-package vllm
+package backends
 
 import (
-	"llamactl/pkg/backends"
+	"fmt"
+	"llamactl/pkg/validation"
 )
 
-// multiValuedFlags defines flags that should be repeated for each value rather than comma-separated
-var multiValuedFlags = map[string]bool{
+// vllmMultiValuedFlags defines flags that should be repeated for each value rather than comma-separated
+var vllmMultiValuedFlags = map[string]bool{
 	"api-key":         true,
 	"allowed-origins": true,
 	"allowed-methods": true,
@@ -139,6 +140,36 @@ type VllmServerOptions struct {
 	OverrideKVCacheALIGNSize  int    `json:"override_kv_cache_align_size,omitempty"`
 }
 
+func (o *VllmServerOptions) GetPort() int {
+	return o.Port
+}
+
+func (o *VllmServerOptions) SetPort(port int) {
+	o.Port = port
+}
+
+func (o *VllmServerOptions) GetHost() string {
+	return o.Host
+}
+
+func (o *VllmServerOptions) Validate() error {
+	if o == nil {
+		return validation.ValidationError(fmt.Errorf("vLLM server options cannot be nil for vLLM backend"))
+	}
+
+	// Use reflection to check all string fields for injection patterns
+	if err := validation.ValidateStructStrings(o, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if o.Port < 0 || o.Port > 65535 {
+		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
+	}
+
+	return nil
+}
+
 // BuildCommandArgs converts VllmServerOptions to command line arguments
 // For vLLM native, model is a positional argument after "serve"
 func (o *VllmServerOptions) BuildCommandArgs() []string {
@@ -155,7 +186,7 @@ func (o *VllmServerOptions) BuildCommandArgs() []string {
 
 	// Use package-level multipleFlags variable
 
-	flagArgs := backends.BuildCommandArgs(&optionsCopy, multiValuedFlags)
+	flagArgs := BuildCommandArgs(&optionsCopy, vllmMultiValuedFlags)
 	args = append(args, flagArgs...)
 
 	return args
@@ -165,7 +196,7 @@ func (o *VllmServerOptions) BuildDockerArgs() []string {
 	var args []string
 
 	// Use package-level multipleFlags variable
-	flagArgs := backends.BuildCommandArgs(o, multiValuedFlags)
+	flagArgs := BuildCommandArgs(o, vllmMultiValuedFlags)
 	args = append(args, flagArgs...)
 
 	return args
@@ -192,7 +223,7 @@ func ParseVllmCommand(command string) (*VllmServerOptions, error) {
 	}
 
 	var vllmOptions VllmServerOptions
-	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &vllmOptions); err != nil {
+	if err := ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &vllmOptions); err != nil {
 		return nil, err
 	}
 

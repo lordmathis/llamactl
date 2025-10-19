@@ -2,7 +2,6 @@ package manager_test
 
 import (
 	"llamactl/pkg/backends"
-	"llamactl/pkg/backends/llamacpp"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
@@ -14,10 +13,12 @@ func TestCreateInstance_Success(t *testing.T) {
 	manager := createTestManager()
 
 	options := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-			Port:  8080,
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+				Port:  8080,
+			},
 		},
 	}
 
@@ -41,9 +42,11 @@ func TestCreateInstance_ValidationAndLimits(t *testing.T) {
 	// Test duplicate names
 	mngr := createTestManager()
 	options := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
 		},
 	}
 
@@ -97,9 +100,11 @@ func TestPortManagement(t *testing.T) {
 
 	// Test auto port assignment
 	options1 := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
 		},
 	}
 
@@ -115,10 +120,12 @@ func TestPortManagement(t *testing.T) {
 
 	// Test port conflict detection
 	options2 := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
-			Model: "/path/to/model2.gguf",
-			Port:  port1, // Same port - should conflict
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model2.gguf",
+				Port:  port1, // Same port - should conflict
+			},
 		},
 	}
 
@@ -133,10 +140,12 @@ func TestPortManagement(t *testing.T) {
 	// Test port release on deletion
 	specificPort := 8080
 	options3 := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
-			Port:  specificPort,
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+				Port:  specificPort,
+			},
 		},
 	}
 
@@ -161,9 +170,11 @@ func TestInstanceOperations(t *testing.T) {
 	manager := createTestManager()
 
 	options := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
-			Model: "/path/to/model.gguf",
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
 		},
 	}
 
@@ -184,10 +195,12 @@ func TestInstanceOperations(t *testing.T) {
 
 	// Update instance
 	newOptions := &instance.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
-			Model: "/path/to/new-model.gguf",
-			Port:  8081,
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/new-model.gguf",
+				Port:  8081,
+			},
 		},
 	}
 
@@ -195,8 +208,8 @@ func TestInstanceOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpdateInstance failed: %v", err)
 	}
-	if updated.GetOptions().LlamaServerOptions.Model != "/path/to/new-model.gguf" {
-		t.Errorf("Expected model '/path/to/new-model.gguf', got %q", updated.GetOptions().LlamaServerOptions.Model)
+	if updated.GetOptions().BackendOptions.LlamaServerOptions.Model != "/path/to/new-model.gguf" {
+		t.Errorf("Expected model '/path/to/new-model.gguf', got %q", updated.GetOptions().BackendOptions.LlamaServerOptions.Model)
 	}
 
 	// List instances

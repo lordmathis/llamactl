@@ -1,15 +1,16 @@
-package llamacpp
+package backends
 
 import (
 	"encoding/json"
-	"llamactl/pkg/backends"
+	"fmt"
+	"llamactl/pkg/validation"
 	"reflect"
 	"strconv"
 )
 
-// multiValuedFlags defines flags that should be repeated for each value rather than comma-separated
+// llamaMultiValuedFlags defines flags that should be repeated for each value rather than comma-separated
 // Used for both parsing (with underscores) and building (with dashes)
-var multiValuedFlags = map[string]bool{
+var llamaMultiValuedFlags = map[string]bool{
 	// Parsing keys (with underscores)
 	"override_tensor":       true,
 	"override_kv":           true,
@@ -335,11 +336,41 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (o *LlamaServerOptions) GetPort() int {
+	return o.Port
+}
+
+func (o *LlamaServerOptions) SetPort(port int) {
+	o.Port = port
+}
+
+func (o *LlamaServerOptions) GetHost() string {
+	return o.Host
+}
+
+func (o *LlamaServerOptions) Validate() error {
+	if o == nil {
+		return validation.ValidationError(fmt.Errorf("llama server options cannot be nil for llama.cpp backend"))
+	}
+
+	// Use reflection to check all string fields for injection patterns
+	if err := validation.ValidateStructStrings(o, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if o.Port < 0 || o.Port > 65535 {
+		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
+	}
+
+	return nil
+}
+
 // BuildCommandArgs converts InstanceOptions to command line arguments
 func (o *LlamaServerOptions) BuildCommandArgs() []string {
 	// Llama uses multiple flags for arrays by default (not comma-separated)
-	// Use package-level multiValuedFlags variable
-	return backends.BuildCommandArgs(o, multiValuedFlags)
+	// Use package-level llamaMultiValuedFlags variable
+	return BuildCommandArgs(o, llamaMultiValuedFlags)
 }
 
 func (o *LlamaServerOptions) BuildDockerArgs() []string {
@@ -356,10 +387,10 @@ func (o *LlamaServerOptions) BuildDockerArgs() []string {
 func ParseLlamaCommand(command string) (*LlamaServerOptions, error) {
 	executableNames := []string{"llama-server"}
 	var subcommandNames []string // Llama has no subcommands
-	// Use package-level multiValuedFlags variable
+	// Use package-level llamaMultiValuedFlags variable
 
 	var llamaOptions LlamaServerOptions
-	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &llamaOptions); err != nil {
+	if err := ParseCommand(command, executableNames, subcommandNames, llamaMultiValuedFlags, &llamaOptions); err != nil {
 		return nil, err
 	}
 
