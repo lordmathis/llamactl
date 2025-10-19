@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/backends"
-	"llamactl/pkg/backends/llamacpp"
-	"llamactl/pkg/backends/mlx"
-	"llamactl/pkg/backends/vllm"
 	"llamactl/pkg/config"
 	"log"
 	"maps"
@@ -33,9 +30,9 @@ type Options struct {
 	Nodes map[string]struct{} `json:"-"`
 
 	// Backend-specific options
-	LlamaServerOptions *llamacpp.LlamaServerOptions `json:"-"`
-	MlxServerOptions   *mlx.MlxServerOptions        `json:"-"`
-	VllmServerOptions  *vllm.VllmServerOptions      `json:"-"`
+	LlamaServerOptions *backends.LlamaServerOptions `json:"-"`
+	MlxServerOptions   *backends.MlxServerOptions   `json:"-"`
+	VllmServerOptions  *backends.VllmServerOptions  `json:"-"`
 }
 
 // options wraps Options with thread-safe access (unexported).
@@ -116,7 +113,7 @@ func (c *Options) UnmarshalJSON(data []byte) error {
 				return fmt.Errorf("failed to marshal backend options: %w", err)
 			}
 
-			c.LlamaServerOptions = &llamacpp.LlamaServerOptions{}
+			c.LlamaServerOptions = &backends.LlamaServerOptions{}
 			if err := json.Unmarshal(optionsData, c.LlamaServerOptions); err != nil {
 				return fmt.Errorf("failed to unmarshal llama.cpp options: %w", err)
 			}
@@ -128,7 +125,7 @@ func (c *Options) UnmarshalJSON(data []byte) error {
 				return fmt.Errorf("failed to marshal backend options: %w", err)
 			}
 
-			c.MlxServerOptions = &mlx.MlxServerOptions{}
+			c.MlxServerOptions = &backends.MlxServerOptions{}
 			if err := json.Unmarshal(optionsData, c.MlxServerOptions); err != nil {
 				return fmt.Errorf("failed to unmarshal MLX options: %w", err)
 			}
@@ -140,7 +137,7 @@ func (c *Options) UnmarshalJSON(data []byte) error {
 				return fmt.Errorf("failed to marshal backend options: %w", err)
 			}
 
-			c.VllmServerOptions = &vllm.VllmServerOptions{}
+			c.VllmServerOptions = &backends.VllmServerOptions{}
 			if err := json.Unmarshal(optionsData, c.VllmServerOptions); err != nil {
 				return fmt.Errorf("failed to unmarshal vLLM options: %w", err)
 			}

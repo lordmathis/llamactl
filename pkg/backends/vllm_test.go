@@ -1,8 +1,7 @@
-package vllm_test
+package backends_test
 
 import (
-	"llamactl/pkg/backends/vllm"
-	"slices"
+	"llamactl/pkg/backends"
 	"testing"
 )
 
@@ -46,7 +45,7 @@ func TestParseVllmCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := vllm.ParseVllmCommand(tt.command)
+			result, err := backends.ParseVllmCommand(tt.command)
 
 			if tt.expectErr {
 				if err == nil {
@@ -69,7 +68,7 @@ func TestParseVllmCommand(t *testing.T) {
 
 func TestParseVllmCommandValues(t *testing.T) {
 	command := "vllm serve test-model --tensor-parallel-size 4 --gpu-memory-utilization 0.8 --enable-log-outputs"
-	result, err := vllm.ParseVllmCommand(command)
+	result, err := backends.ParseVllmCommand(command)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -89,8 +88,8 @@ func TestParseVllmCommandValues(t *testing.T) {
 	}
 }
 
-func TestBuildCommandArgs(t *testing.T) {
-	options := vllm.VllmServerOptions{
+func TestVllmBuildCommandArgs(t *testing.T) {
+	options := backends.VllmServerOptions{
 		Model:                "microsoft/DialoGPT-medium",
 		Port:                 8080,
 		Host:                 "localhost",
@@ -136,18 +135,4 @@ func TestBuildCommandArgs(t *testing.T) {
 	if allowedOriginsCount != 2 {
 		t.Errorf("Expected 2 --allowed-origins flags, got %d", allowedOriginsCount)
 	}
-}
-
-// Helper functions
-func contains(slice []string, item string) bool {
-	return slices.Contains(slice, item)
-}
-
-func containsFlagWithValue(args []string, flag, value string) bool {
-	for i, arg := range args {
-		if arg == flag && i+1 < len(args) && args[i+1] == value {
-			return true
-		}
-	}
-	return false
 }

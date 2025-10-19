@@ -1,8 +1,4 @@
-package mlx
-
-import (
-	"llamactl/pkg/backends"
-)
+package backends
 
 type MlxServerOptions struct {
 	// Basic connection options
@@ -33,7 +29,7 @@ type MlxServerOptions struct {
 // BuildCommandArgs converts to command line arguments
 func (o *MlxServerOptions) BuildCommandArgs() []string {
 	multipleFlags := map[string]bool{} // MLX doesn't currently have []string fields
-	return backends.BuildCommandArgs(o, multipleFlags)
+	return BuildCommandArgs(o, multipleFlags)
 }
 
 // ParseMlxCommand parses a mlx_lm.server command string into MlxServerOptions
@@ -48,7 +44,7 @@ func ParseMlxCommand(command string) (*MlxServerOptions, error) {
 	multiValuedFlags := map[string]bool{} // MLX has no multi-valued flags
 
 	var mlxOptions MlxServerOptions
-	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &mlxOptions); err != nil {
+	if err := ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &mlxOptions); err != nil {
 		return nil, err
 	}
 

@@ -2,7 +2,6 @@ package manager_test
 
 import (
 	"llamactl/pkg/backends"
-	"llamactl/pkg/backends/llamacpp"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
@@ -37,7 +36,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 	options := &instance.Options{
 		IdleTimeout: &idleTimeout,
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 	}
@@ -86,7 +85,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 	// Test that instance without timeout doesn't timeout
 	noTimeoutOptions := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model.gguf",
 		},
 		// No IdleTimeout set
@@ -117,21 +116,21 @@ func TestEvictLRUInstance_Success(t *testing.T) {
 	// Create 3 instances with idle timeout enabled (value doesn't matter for LRU logic)
 	options1 := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model1.gguf",
 		},
 		IdleTimeout: func() *int { timeout := 1; return &timeout }(), // Any value > 0
 	}
 	options2 := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model2.gguf",
 		},
 		IdleTimeout: func() *int { timeout := 1; return &timeout }(), // Any value > 0
 	}
 	options3 := &instance.Options{
 		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &llamacpp.LlamaServerOptions{
+		LlamaServerOptions: &backends.LlamaServerOptions{
 			Model: "/path/to/model3.gguf",
 		},
 		IdleTimeout: func() *int { timeout := 1; return &timeout }(), // Any value > 0
@@ -199,7 +198,7 @@ func TestEvictLRUInstance_NoEligibleInstances(t *testing.T) {
 	createInstanceWithTimeout := func(manager manager.InstanceManager, name, model string, timeout *int) *instance.Instance {
 		options := &instance.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &llamacpp.LlamaServerOptions{
+			LlamaServerOptions: &backends.LlamaServerOptions{
 				Model: model,
 			},
 			IdleTimeout: timeout,

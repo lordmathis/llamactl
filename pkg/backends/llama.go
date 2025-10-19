@@ -1,15 +1,14 @@
-package llamacpp
+package backends
 
 import (
 	"encoding/json"
-	"llamactl/pkg/backends"
 	"reflect"
 	"strconv"
 )
 
-// multiValuedFlags defines flags that should be repeated for each value rather than comma-separated
+// llamaMultiValuedFlags defines flags that should be repeated for each value rather than comma-separated
 // Used for both parsing (with underscores) and building (with dashes)
-var multiValuedFlags = map[string]bool{
+var llamaMultiValuedFlags = map[string]bool{
 	// Parsing keys (with underscores)
 	"override_tensor":       true,
 	"override_kv":           true,
@@ -338,8 +337,8 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 // BuildCommandArgs converts InstanceOptions to command line arguments
 func (o *LlamaServerOptions) BuildCommandArgs() []string {
 	// Llama uses multiple flags for arrays by default (not comma-separated)
-	// Use package-level multiValuedFlags variable
-	return backends.BuildCommandArgs(o, multiValuedFlags)
+	// Use package-level llamaMultiValuedFlags variable
+	return BuildCommandArgs(o, llamaMultiValuedFlags)
 }
 
 func (o *LlamaServerOptions) BuildDockerArgs() []string {
@@ -356,10 +355,10 @@ func (o *LlamaServerOptions) BuildDockerArgs() []string {
 func ParseLlamaCommand(command string) (*LlamaServerOptions, error) {
 	executableNames := []string{"llama-server"}
 	var subcommandNames []string // Llama has no subcommands
-	// Use package-level multiValuedFlags variable
+	// Use package-level llamaMultiValuedFlags variable
 
 	var llamaOptions LlamaServerOptions
-	if err := backends.ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &llamaOptions); err != nil {
+	if err := ParseCommand(command, executableNames, subcommandNames, llamaMultiValuedFlags, &llamaOptions); err != nil {
 		return nil, err
 	}
 

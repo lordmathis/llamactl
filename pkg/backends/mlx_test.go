@@ -1,7 +1,7 @@
-package mlx_test
+package backends_test
 
 import (
-	"llamactl/pkg/backends/mlx"
+	"llamactl/pkg/backends"
 	"testing"
 )
 
@@ -50,7 +50,7 @@ func TestParseMlxCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := mlx.ParseMlxCommand(tt.command)
+			result, err := backends.ParseMlxCommand(tt.command)
 
 			if tt.expectErr {
 				if err == nil {
@@ -73,7 +73,7 @@ func TestParseMlxCommand(t *testing.T) {
 
 func TestParseMlxCommandValues(t *testing.T) {
 	command := "mlx_lm.server --model /test/model.mlx --port 8080 --temp 0.7 --trust-remote-code --log-level DEBUG"
-	result, err := mlx.ParseMlxCommand(command)
+	result, err := backends.ParseMlxCommand(command)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -100,8 +100,8 @@ func TestParseMlxCommandValues(t *testing.T) {
 	}
 }
 
-func TestBuildCommandArgs(t *testing.T) {
-	options := &mlx.MlxServerOptions{
+func TestMlxBuildCommandArgs(t *testing.T) {
+	options := &backends.MlxServerOptions{
 		Model:           "/test/model.mlx",
 		Host:            "127.0.0.1",
 		Port:            8080,

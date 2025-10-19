@@ -1,16 +1,16 @@
-package llamacpp_test
+package backends_test
 
 import (
 	"encoding/json"
 	"fmt"
-	"llamactl/pkg/backends/llamacpp"
+	"llamactl/pkg/backends"
 	"reflect"
 	"slices"
 	"testing"
 )
 
-func TestBuildCommandArgs_BasicFields(t *testing.T) {
-	options := llamacpp.LlamaServerOptions{
+func TestLlamaCppBuildCommandArgs_BasicFields(t *testing.T) {
+	options := backends.LlamaServerOptions{
 		Model:     "/path/to/model.gguf",
 		Port:      8080,
 		Host:      "localhost",
@@ -42,30 +42,30 @@ func TestBuildCommandArgs_BasicFields(t *testing.T) {
 	}
 }
 
-func TestBuildCommandArgs_BooleanFields(t *testing.T) {
+func TestLlamaCppBuildCommandArgs_BooleanFields(t *testing.T) {
 	tests := []struct {
 		name     string
-		options  llamacpp.LlamaServerOptions
+		options  backends.LlamaServerOptions
 		expected []string
 		excluded []string
 	}{
 		{
 			name: "verbose true",
-			options: llamacpp.LlamaServerOptions{
+			options: backends.LlamaServerOptions{
 				Verbose: true,
 			},
 			expected: []string{"--verbose"},
 		},
 		{
 			name: "verbose false",
-			options: llamacpp.LlamaServerOptions{
+			options: backends.LlamaServerOptions{
 				Verbose: false,
 			},
 			excluded: []string{"--verbose"},
 		},
 		{
 			name: "multiple booleans",
-			options: llamacpp.LlamaServerOptions{
+			options: backends.LlamaServerOptions{
 				Verbose:   true,
 				FlashAttn: true,
 				Mlock:     false,
@@ -95,8 +95,8 @@ func TestBuildCommandArgs_BooleanFields(t *testing.T) {
 	}
 }
 
-func TestBuildCommandArgs_NumericFields(t *testing.T) {
-	options := llamacpp.LlamaServerOptions{
+func TestLlamaCppBuildCommandArgs_NumericFields(t *testing.T) {
+	options := backends.LlamaServerOptions{
 		Port:        8080,
 		Threads:     4,
 		CtxSize:     2048,
@@ -125,8 +125,8 @@ func TestBuildCommandArgs_NumericFields(t *testing.T) {
 	}
 }
 
-func TestBuildCommandArgs_ZeroValues(t *testing.T) {
-	options := llamacpp.LlamaServerOptions{
+func TestLlamaCppBuildCommandArgs_ZeroValues(t *testing.T) {
+	options := backends.LlamaServerOptions{
 		Port:        0,     // Should be excluded
 		Threads:     0,     // Should be excluded
 		Temperature: 0,     // Should be excluded
@@ -152,8 +152,8 @@ func TestBuildCommandArgs_ZeroValues(t *testing.T) {
 	}
 }
 
-func TestBuildCommandArgs_ArrayFields(t *testing.T) {
-	options := llamacpp.LlamaServerOptions{
+func TestLlamaCppBuildCommandArgs_ArrayFields(t *testing.T) {
+	options := backends.LlamaServerOptions{
 		Lora:               []string{"adapter1.bin", "adapter2.bin"},
 		OverrideTensor:     []string{"tensor1", "tensor2", "tensor3"},
 		DrySequenceBreaker: []string{".", "!", "?"},
@@ -177,8 +177,8 @@ func TestBuildCommandArgs_ArrayFields(t *testing.T) {
 	}
 }
 
-func TestBuildCommandArgs_EmptyArrays(t *testing.T) {
-	options := llamacpp.LlamaServerOptions{
+func TestLlamaCppBuildCommandArgs_EmptyArrays(t *testing.T) {
+	options := backends.LlamaServerOptions{
 		Lora:           []string{}, // Empty array should not generate args
 		OverrideTensor: []string{}, // Empty array should not generate args
 	}
@@ -193,9 +193,9 @@ func TestBuildCommandArgs_EmptyArrays(t *testing.T) {
 	}
 }
 
-func TestBuildCommandArgs_FieldNameConversion(t *testing.T) {
+func TestLlamaCppBuildCommandArgs_FieldNameConversion(t *testing.T) {
 	// Test snake_case to kebab-case conversion
-	options := llamacpp.LlamaServerOptions{
+	options := backends.LlamaServerOptions{
 		CtxSize:      4096,
 		GPULayers:    32,
 		ThreadsBatch: 2,
@@ -223,7 +223,7 @@ func TestBuildCommandArgs_FieldNameConversion(t *testing.T) {
 	}
 }
 
-func TestUnmarshalJSON_StandardFields(t *testing.T) {
+func TestLlamaCppUnmarshalJSON_StandardFields(t *testing.T) {
 	jsonData := `{
 		"model": "/path/to/model.gguf",
 		"port": 8080,
@@ -234,7 +234,7 @@ func TestUnmarshalJSON_StandardFields(t *testing.T) {
 		"temp": 0.7
 	}`
 
-	var options llamacpp.LlamaServerOptions
+	var options backends.LlamaServerOptions
 	err := json.Unmarshal([]byte(jsonData), &options)
 	if err != nil {
 		t.Fatalf("Unmarshal failed: %v", err)
@@ -263,16 +263,16 @@ func TestUnmarshalJSON_StandardFields(t *testing.T) {
 	}
 }
 
-func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
+func TestLlamaCppUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 	tests := []struct {
 		name     string
 		jsonData string
-		checkFn  func(llamacpp.LlamaServerOptions) error
+		checkFn  func(backends.LlamaServerOptions) error
 	}{
 		{
 			name:     "threads alternatives",
 			jsonData: `{"t": 4, "tb": 2}`,
-			checkFn: func(opts llamacpp.LlamaServerOptions) error {
+			checkFn: func(opts backends.LlamaServerOptions) error {
 				if opts.Threads != 4 {
 					return fmt.Errorf("expected threads 4, got %d", opts.Threads)
 				}
@@ -285,7 +285,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 		{
 			name:     "context size alternatives",
 			jsonData: `{"c": 2048}`,
-			checkFn: func(opts llamacpp.LlamaServerOptions) error {
+			checkFn: func(opts backends.LlamaServerOptions) error {
 				if opts.CtxSize != 2048 {
 					return fmt.Errorf("expected ctx_size 4096, got %d", opts.CtxSize)
 				}
@@ -295,7 +295,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 		{
 			name:     "gpu layers alternatives",
 			jsonData: `{"ngl": 16}`,
-			checkFn: func(opts llamacpp.LlamaServerOptions) error {
+			checkFn: func(opts backends.LlamaServerOptions) error {
 				if opts.GPULayers != 16 {
 					return fmt.Errorf("expected gpu_layers 32, got %d", opts.GPULayers)
 				}
@@ -305,7 +305,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 		{
 			name:     "model alternatives",
 			jsonData: `{"m": "/path/model.gguf"}`,
-			checkFn: func(opts llamacpp.LlamaServerOptions) error {
+			checkFn: func(opts backends.LlamaServerOptions) error {
 				if opts.Model != "/path/model.gguf" {
 					return fmt.Errorf("expected model '/path/model.gguf', got %q", opts.Model)
 				}
@@ -315,7 +315,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 		{
 			name:     "temperature alternatives",
 			jsonData: `{"temp": 0.8}`,
-			checkFn: func(opts llamacpp.LlamaServerOptions) error {
+			checkFn: func(opts backends.LlamaServerOptions) error {
 				if opts.Temperature != 0.8 {
 					return fmt.Errorf("expected temperature 0.8, got %f", opts.Temperature)
 				}
@@ -326,7 +326,7 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var options llamacpp.LlamaServerOptions
+			var options backends.LlamaServerOptions
 			err := json.Unmarshal([]byte(tt.jsonData), &options)
 			if err != nil {
 				t.Fatalf("Unmarshal failed: %v", err)
@@ -339,24 +339,24 @@ func TestUnmarshalJSON_AlternativeFieldNames(t *testing.T) {
 	}
 }
 
-func TestUnmarshalJSON_InvalidJSON(t *testing.T) {
+func TestLlamaCppUnmarshalJSON_InvalidJSON(t *testing.T) {
 	invalidJSON := `{"port": "not-a-number", "invalid": syntax}`
 
-	var options llamacpp.LlamaServerOptions
+	var options backends.LlamaServerOptions
 	err := json.Unmarshal([]byte(invalidJSON), &options)
 	if err == nil {
 		t.Error("Expected error for invalid JSON")
 	}
 }
 
-func TestUnmarshalJSON_ArrayFields(t *testing.T) {
+func TestLlamaCppUnmarshalJSON_ArrayFields(t *testing.T) {
 	jsonData := `{
 		"lora": ["adapter1.bin", "adapter2.bin"],
 		"override_tensor": ["tensor1", "tensor2"],
 		"dry_sequence_breaker": [".", "!", "?"]
 	}`
 
-	var options llamacpp.LlamaServerOptions
+	var options backends.LlamaServerOptions
 	err := json.Unmarshal([]byte(jsonData), &options)
 	if err != nil {
 		t.Fatalf("Unmarshal failed: %v", err)
@@ -423,7 +423,7 @@ func TestParseLlamaCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := llamacpp.ParseLlamaCommand(tt.command)
+			result, err := backends.ParseLlamaCommand(tt.command)
 
 			if tt.expectErr {
 				if err == nil {
@@ -446,7 +446,7 @@ func TestParseLlamaCommand(t *testing.T) {
 
 func TestParseLlamaCommandValues(t *testing.T) {
 	command := "llama-server --model /test/model.gguf --gpu-layers 32 --temp 0.7 --verbose --no-mmap"
-	result, err := llamacpp.ParseLlamaCommand(command)
+	result, err := backends.ParseLlamaCommand(command)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -475,7 +475,7 @@ func TestParseLlamaCommandValues(t *testing.T) {
 
 func TestParseLlamaCommandArrays(t *testing.T) {
 	command := "llama-server --model test.gguf --lora adapter1.bin --lora=adapter2.bin"
-	result, err := llamacpp.ParseLlamaCommand(command)
+	result, err := backends.ParseLlamaCommand(command)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/backends"
-	"llamactl/pkg/backends/llamacpp"
-	"llamactl/pkg/backends/mlx"
-	"llamactl/pkg/backends/vllm"
 	"llamactl/pkg/instance"
 	"net/http"
 	"os/exec"
@@ -130,7 +127,7 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
 			return
 		}
-		llamaOptions, err := llamacpp.ParseLlamaCommand(req.Command)
+		llamaOptions, err := backends.ParseLlamaCommand(req.Command)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
 			return
@@ -179,7 +176,7 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 			return
 		}
 
-		mlxOptions, err := mlx.ParseMlxCommand(req.Command)
+		mlxOptions, err := backends.ParseMlxCommand(req.Command)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
 			return
@@ -233,7 +230,7 @@ func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 			return
 		}
 
-		vllmOptions, err := vllm.ParseVllmCommand(req.Command)
+		vllmOptions, err := backends.ParseVllmCommand(req.Command)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
 			return
