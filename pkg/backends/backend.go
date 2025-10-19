@@ -14,8 +14,16 @@ const (
 	BackendTypeLlamaCpp BackendType = "llama_cpp"
 	BackendTypeMlxLm    BackendType = "mlx_lm"
 	BackendTypeVllm     BackendType = "vllm"
-	// BackendTypeMlxVlm BackendType = "mlx_vlm"  // Future expansion
 )
+
+type backend interface {
+	BuildCommandArgs() []string
+	BuildDockerArgs() []string
+	GetPort() int
+	SetPort(int)
+	GetHost() string
+	Validate() error
+}
 
 type Options struct {
 	BackendType    BackendType    `json:"backend_type"`
@@ -135,7 +143,7 @@ func (o *Options) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
-func getBackendSettings(o *Options, backendConfig *config.BackendConfig) *config.BackendSettings {
+func (o *Options) getBackendSettings(backendConfig *config.BackendConfig) *config.BackendSettings {
 	switch o.BackendType {
 	case BackendTypeLlamaCpp:
 		return &backendConfig.LlamaCpp
@@ -143,6 +151,20 @@ func getBackendSettings(o *Options, backendConfig *config.BackendConfig) *config
 		return &backendConfig.MLX
 	case BackendTypeVllm:
 		return &backendConfig.VLLM
+	default:
+		return nil
+	}
+}
+
+// getBackend returns the actual backend implementation
+func (o *Options) getBackend() backend {
+	switch o.BackendType {
+	case BackendTypeLlamaCpp:
+		return o.LlamaServerOptions
+	case BackendTypeMlxLm:
+		return o.MlxServerOptions
+	case BackendTypeVllm:
+		return o.VllmServerOptions
 	default:
 		return nil
 	}
@@ -156,14 +178,14 @@ func (o *Options) isDockerEnabled(backend *config.BackendSettings) bool {
 }
 
 func (o *Options) IsDockerEnabled(backendConfig *config.BackendConfig) bool {
-	backendSettings := getBackendSettings(o, backendConfig)
+	backendSettings := o.getBackendSettings(backendConfig)
 	return o.isDockerEnabled(backendSettings)
 }
 
 // GetCommand builds the command to run the backend
 func (o *Options) GetCommand(backendConfig *config.BackendConfig) string {
 
-	backendSettings := getBackendSettings(o, backendConfig)
+	backendSettings := o.getBackendSettings(backendConfig)
 
 	if o.isDockerEnabled(backendSettings) {
 		return "docker"
@@ -177,42 +199,22 @@ func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig) []string
 
 	var args []string
 
-	backendSettings := getBackendSettings(o, backendConfig)
+	backendSettings := o.getBackendSettings(backendConfig)
+	backend := o.getBackend()
+	if backend == nil {
+		return args
+	}
 
 	if o.isDockerEnabled(backendSettings) {
 		// For Docker, start with Docker args
 		args = append(args, backendSettings.Docker.Args...)
 		args = append(args, backendSettings.Docker.Image)
-
-		switch o.BackendType {
-		case BackendTypeLlamaCpp:
-			if o.LlamaServerOptions != nil {
-				args = append(args, o.LlamaServerOptions.BuildDockerArgs()...)
-			}
-		case BackendTypeVllm:
-			if o.VllmServerOptions != nil {
-				args = append(args, o.VllmServerOptions.BuildDockerArgs()...)
-			}
-		}
+		args = append(args, backend.BuildDockerArgs()...)
 
 	} else {
 		// For native execution, start with backend args
 		args = append(args, backendSettings.Args...)
-
-		switch o.BackendType {
-		case BackendTypeLlamaCpp:
-			if o.LlamaServerOptions != nil {
-				args = append(args, o.LlamaServerOptions.BuildCommandArgs()...)
-			}
-		case BackendTypeMlxLm:
-			if o.MlxServerOptions != nil {
-				args = append(args, o.MlxServerOptions.BuildCommandArgs()...)
-			}
-		case BackendTypeVllm:
-			if o.VllmServerOptions != nil {
-				args = append(args, o.VllmServerOptions.BuildCommandArgs()...)
-			}
-		}
+		args = append(args, backend.BuildCommandArgs()...)
 	}
 
 	return args
@@ -221,7 +223,7 @@ func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig) []string
 // BuildEnvironment builds the environment variables for the backend process
 func (o *Options) BuildEnvironment(backendConfig *config.BackendConfig, environment map[string]string) map[string]string {
 
-	backendSettings := getBackendSettings(o, backendConfig)
+	backendSettings := o.getBackendSettings(backendConfig)
 	env := map[string]string{}
 
 	if backendSettings.Environment != nil {
@@ -242,80 +244,39 @@ func (o *Options) BuildEnvironment(backendConfig *config.BackendConfig, environm
 }
 
 func (o *Options) GetPort() int {
-	if o != nil {
-		switch o.BackendType {
-		case BackendTypeLlamaCpp:
-			if o.LlamaServerOptions != nil {
-				return o.LlamaServerOptions.Port
-			}
-		case BackendTypeMlxLm:
-			if o.MlxServerOptions != nil {
-				return o.MlxServerOptions.Port
-			}
-		case BackendTypeVllm:
-			if o.VllmServerOptions != nil {
-				return o.VllmServerOptions.Port
-			}
-		}
+	backend := o.getBackend()
+	if backend != nil {
+		return backend.GetPort()
 	}
 	return 0
 }
 
 func (o *Options) SetPort(port int) {
-	if o != nil {
-		switch o.BackendType {
-		case BackendTypeLlamaCpp:
-			if o.LlamaServerOptions != nil {
-				o.LlamaServerOptions.Port = port
-			}
-		case BackendTypeMlxLm:
-			if o.MlxServerOptions != nil {
-				o.MlxServerOptions.Port = port
-			}
-		case BackendTypeVllm:
-			if o.VllmServerOptions != nil {
-				o.VllmServerOptions.Port = port
-			}
-		}
+	backend := o.getBackend()
+	if backend != nil {
+		backend.SetPort(port)
 	}
 }
 
 func (o *Options) GetHost() string {
-	if o != nil {
-		switch o.BackendType {
-		case BackendTypeLlamaCpp:
-			if o.LlamaServerOptions != nil {
-				return o.LlamaServerOptions.Host
-			}
-		case BackendTypeMlxLm:
-			if o.MlxServerOptions != nil {
-				return o.MlxServerOptions.Host
-			}
-		case BackendTypeVllm:
-			if o.VllmServerOptions != nil {
-				return o.VllmServerOptions.Host
-			}
-		}
+	backend := o.getBackend()
+	if backend != nil {
+		return backend.GetHost()
 	}
 	return "localhost"
 }
 
 func (o *Options) GetResponseHeaders(backendConfig *config.BackendConfig) map[string]string {
-	backendSettings := getBackendSettings(o, backendConfig)
+	backendSettings := o.getBackendSettings(backendConfig)
 	return backendSettings.ResponseHeaders
 }
 
 // ValidateInstanceOptions performs validation based on backend type
 func (o *Options) ValidateInstanceOptions() error {
-	// Validate based on backend type
-	switch o.BackendType {
-	case BackendTypeLlamaCpp:
-		return validateLlamaCppOptions(o.LlamaServerOptions)
-	case BackendTypeMlxLm:
-		return validateMlxOptions(o.MlxServerOptions)
-	case BackendTypeVllm:
-		return validateVllmOptions(o.VllmServerOptions)
-	default:
-		return validation.ValidationError(fmt.Errorf("unsupported backend type: %s", o.BackendType))
+	backend := o.getBackend()
+	if backend == nil {
+		return validation.ValidationError(fmt.Errorf("backend options cannot be nil for backend type %s", o.BackendType))
 	}
+
+	return backend.Validate()
 }

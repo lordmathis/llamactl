@@ -336,6 +336,36 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (o *LlamaServerOptions) GetPort() int {
+	return o.Port
+}
+
+func (o *LlamaServerOptions) SetPort(port int) {
+	o.Port = port
+}
+
+func (o *LlamaServerOptions) GetHost() string {
+	return o.Host
+}
+
+func (o *LlamaServerOptions) Validate() error {
+	if o == nil {
+		return validation.ValidationError(fmt.Errorf("llama server options cannot be nil for llama.cpp backend"))
+	}
+
+	// Use reflection to check all string fields for injection patterns
+	if err := validation.ValidateStructStrings(o, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if o.Port < 0 || o.Port > 65535 {
+		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
+	}
+
+	return nil
+}
+
 // BuildCommandArgs converts InstanceOptions to command line arguments
 func (o *LlamaServerOptions) BuildCommandArgs() []string {
 	// Llama uses multiple flags for arrays by default (not comma-separated)
@@ -365,23 +395,4 @@ func ParseLlamaCommand(command string) (*LlamaServerOptions, error) {
 	}
 
 	return &llamaOptions, nil
-}
-
-// validateLlamaCppOptions validates llama.cpp specific options
-func validateLlamaCppOptions(options *LlamaServerOptions) error {
-	if options == nil {
-		return validation.ValidationError(fmt.Errorf("llama server options cannot be nil for llama.cpp backend"))
-	}
-
-	// Use reflection to check all string fields for injection patterns
-	if err := validation.ValidateStructStrings(options, ""); err != nil {
-		return err
-	}
-
-	// Basic network validation for port
-	if options.Port < 0 || options.Port > 65535 {
-		return validation.ValidationError(fmt.Errorf("invalid port range: %d", options.Port))
-	}
-
-	return nil
 }

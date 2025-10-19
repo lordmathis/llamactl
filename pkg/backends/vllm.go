@@ -140,6 +140,36 @@ type VllmServerOptions struct {
 	OverrideKVCacheALIGNSize  int    `json:"override_kv_cache_align_size,omitempty"`
 }
 
+func (o *VllmServerOptions) GetPort() int {
+	return o.Port
+}
+
+func (o *VllmServerOptions) SetPort(port int) {
+	o.Port = port
+}
+
+func (o *VllmServerOptions) GetHost() string {
+	return o.Host
+}
+
+func (o *VllmServerOptions) Validate() error {
+	if o == nil {
+		return validation.ValidationError(fmt.Errorf("vLLM server options cannot be nil for vLLM backend"))
+	}
+
+	// Use reflection to check all string fields for injection patterns
+	if err := validation.ValidateStructStrings(o, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if o.Port < 0 || o.Port > 65535 {
+		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
+	}
+
+	return nil
+}
+
 // BuildCommandArgs converts VllmServerOptions to command line arguments
 // For vLLM native, model is a positional argument after "serve"
 func (o *VllmServerOptions) BuildCommandArgs() []string {
@@ -198,23 +228,4 @@ func ParseVllmCommand(command string) (*VllmServerOptions, error) {
 	}
 
 	return &vllmOptions, nil
-}
-
-// validateVllmOptions validates vLLM backend specific options
-func validateVllmOptions(options *VllmServerOptions) error {
-	if options == nil {
-		return validation.ValidationError(fmt.Errorf("vLLM server options cannot be nil for vLLM backend"))
-	}
-
-	// Use reflection to check all string fields for injection patterns
-	if err := validation.ValidateStructStrings(options, ""); err != nil {
-		return err
-	}
-
-	// Basic network validation for port
-	if options.Port < 0 || options.Port > 65535 {
-		return validation.ValidationError(fmt.Errorf("invalid port range: %d", options.Port))
-	}
-
-	return nil
 }

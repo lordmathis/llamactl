@@ -31,10 +31,43 @@ type MlxServerOptions struct {
 	MaxTokens int     `json:"max_tokens,omitempty"`
 }
 
+func (o *MlxServerOptions) GetPort() int {
+	return o.Port
+}
+
+func (o *MlxServerOptions) SetPort(port int) {
+	o.Port = port
+}
+
+func (o *MlxServerOptions) GetHost() string {
+	return o.Host
+}
+
+func (o *MlxServerOptions) Validate() error {
+	if o == nil {
+		return validation.ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
+	}
+
+	if err := validation.ValidateStructStrings(o, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if o.Port < 0 || o.Port > 65535 {
+		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
+	}
+
+	return nil
+}
+
 // BuildCommandArgs converts to command line arguments
 func (o *MlxServerOptions) BuildCommandArgs() []string {
 	multipleFlags := map[string]bool{} // MLX doesn't currently have []string fields
 	return BuildCommandArgs(o, multipleFlags)
+}
+
+func (o *MlxServerOptions) BuildDockerArgs() []string {
+	return []string{}
 }
 
 // ParseMlxCommand parses a mlx_lm.server command string into MlxServerOptions
@@ -54,22 +87,4 @@ func ParseMlxCommand(command string) (*MlxServerOptions, error) {
 	}
 
 	return &mlxOptions, nil
-}
-
-// validateMlxOptions validates MLX backend specific options
-func validateMlxOptions(options *MlxServerOptions) error {
-	if options == nil {
-		return validation.ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
-	}
-
-	if err := validation.ValidateStructStrings(options, ""); err != nil {
-		return err
-	}
-
-	// Basic network validation for port
-	if options.Port < 0 || options.Port > 65535 {
-		return validation.ValidationError(fmt.Errorf("invalid port range: %d", options.Port))
-	}
-
-	return nil
 }
