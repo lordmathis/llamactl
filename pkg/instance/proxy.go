@@ -2,7 +2,6 @@ package instance
 
 import (
 	"fmt"
-	"llamactl/pkg/backends"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -68,8 +67,11 @@ func (p *proxy) build() (*httputil.ReverseProxy, error) {
 	}
 
 	// Get host/port from process
-	host, port := p.instance.getBackendHostPort()
-
+	host := p.instance.options.GetHost()
+	port := p.instance.options.GetPort()
+	if port == 0 {
+		return nil, fmt.Errorf("instance %s has no port assigned", p.instance.Name)
+	}
 	targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", host, port))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", p.instance.Name, err)
@@ -78,15 +80,7 @@ func (p *proxy) build() (*httputil.ReverseProxy, error) {
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 
 	// Get response headers from backend config
-	var responseHeaders map[string]string
-	switch options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		responseHeaders = p.instance.globalBackendSettings.LlamaCpp.ResponseHeaders
-	case backends.BackendTypeVllm:
-		responseHeaders = p.instance.globalBackendSettings.VLLM.ResponseHeaders
-	case backends.BackendTypeMlxLm:
-		responseHeaders = p.instance.globalBackendSettings.MLX.ResponseHeaders
-	}
+	responseHeaders := options.BackendOptions.GetResponseHeaders(p.instance.globalBackendSettings)
 
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		// Remove CORS headers from backend response to avoid conflicts

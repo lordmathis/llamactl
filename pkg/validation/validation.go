@@ -2,8 +2,6 @@ package validation
 
 import (
 	"fmt"
-	"llamactl/pkg/backends"
-	"llamactl/pkg/instance"
 	"reflect"
 	"regexp"
 )
@@ -24,8 +22,8 @@ var (
 
 type ValidationError error
 
-// validateStringForInjection checks if a string contains dangerous patterns
-func validateStringForInjection(value string) error {
+// ValidateStringForInjection checks if a string contains dangerous patterns
+func ValidateStringForInjection(value string) error {
 	for _, pattern := range dangerousPatterns {
 		if pattern.MatchString(value) {
 			return ValidationError(fmt.Errorf("value contains potentially dangerous characters: %s", value))
@@ -34,83 +32,8 @@ func validateStringForInjection(value string) error {
 	return nil
 }
 
-// ValidateInstanceOptions performs validation based on backend type
-func ValidateInstanceOptions(options *instance.Options) error {
-	if options == nil {
-		return ValidationError(fmt.Errorf("options cannot be nil"))
-	}
-
-	// Validate based on backend type
-	switch options.BackendType {
-	case backends.BackendTypeLlamaCpp:
-		return validateLlamaCppOptions(options)
-	case backends.BackendTypeMlxLm:
-		return validateMlxOptions(options)
-	case backends.BackendTypeVllm:
-		return validateVllmOptions(options)
-	default:
-		return ValidationError(fmt.Errorf("unsupported backend type: %s", options.BackendType))
-	}
-}
-
-// validateLlamaCppOptions validates llama.cpp specific options
-func validateLlamaCppOptions(options *instance.Options) error {
-	if options.LlamaServerOptions == nil {
-		return ValidationError(fmt.Errorf("llama server options cannot be nil for llama.cpp backend"))
-	}
-
-	// Use reflection to check all string fields for injection patterns
-	if err := validateStructStrings(options.LlamaServerOptions, ""); err != nil {
-		return err
-	}
-
-	// Basic network validation for port
-	if options.LlamaServerOptions.Port < 0 || options.LlamaServerOptions.Port > 65535 {
-		return ValidationError(fmt.Errorf("invalid port range: %d", options.LlamaServerOptions.Port))
-	}
-
-	return nil
-}
-
-// validateMlxOptions validates MLX backend specific options
-func validateMlxOptions(options *instance.Options) error {
-	if options.MlxServerOptions == nil {
-		return ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
-	}
-
-	if err := validateStructStrings(options.MlxServerOptions, ""); err != nil {
-		return err
-	}
-
-	// Basic network validation for port
-	if options.MlxServerOptions.Port < 0 || options.MlxServerOptions.Port > 65535 {
-		return ValidationError(fmt.Errorf("invalid port range: %d", options.MlxServerOptions.Port))
-	}
-
-	return nil
-}
-
-// validateVllmOptions validates vLLM backend specific options
-func validateVllmOptions(options *instance.Options) error {
-	if options.VllmServerOptions == nil {
-		return ValidationError(fmt.Errorf("vLLM server options cannot be nil for vLLM backend"))
-	}
-
-	// Use reflection to check all string fields for injection patterns
-	if err := validateStructStrings(options.VllmServerOptions, ""); err != nil {
-		return err
-	}
-
-	// Basic network validation for port
-	if options.VllmServerOptions.Port < 0 || options.VllmServerOptions.Port > 65535 {
-		return ValidationError(fmt.Errorf("invalid port range: %d", options.VllmServerOptions.Port))
-	}
-
-	return nil
-}
-
-// validateStructStrings recursively validates all string fields in a struct
-func validateStructStrings(v any, fieldPath string) error {
+// ValidateStructStrings recursively validates all string fields in a struct
+func ValidateStructStrings(v any, fieldPath string) error {
 	val := reflect.ValueOf(v)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -136,21 +59,21 @@ func validateStructStrings(v any, fieldPath string) error {
 
 		switch field.Kind() {
 		case reflect.String:
-			if err := validateStringForInjection(field.String()); err != nil {
+			if err := ValidateStringForInjection(field.String()); err != nil {
 				return ValidationError(fmt.Errorf("field %s: %w", fieldName, err))
 			}
 
 		case reflect.Slice:
 			if field.Type().Elem().Kind() == reflect.String {
 				for j := 0; j < field.Len(); j++ {
-					if err := validateStringForInjection(field.Index(j).String()); err != nil {
+					if err := ValidateStringForInjection(field.Index(j).String()); err != nil {
 						return ValidationError(fmt.Errorf("field %s[%d]: %w", fieldName, j, err))
 					}
 				}
 			}
 
 		case reflect.Struct:
-			if err := validateStructStrings(field.Interface(), fieldName); err != nil {
+			if err := ValidateStructStrings(field.Interface(), fieldName); err != nil {
 				return err
 			}
 		}

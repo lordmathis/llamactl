@@ -1,5 +1,10 @@
 package backends
 
+import (
+	"fmt"
+	"llamactl/pkg/validation"
+)
+
 type MlxServerOptions struct {
 	// Basic connection options
 	Model string `json:"model,omitempty"`
@@ -49,4 +54,22 @@ func ParseMlxCommand(command string) (*MlxServerOptions, error) {
 	}
 
 	return &mlxOptions, nil
+}
+
+// validateMlxOptions validates MLX backend specific options
+func validateMlxOptions(options *MlxServerOptions) error {
+	if options == nil {
+		return validation.ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
+	}
+
+	if err := validation.ValidateStructStrings(options, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if options.Port < 0 || options.Port > 65535 {
+		return validation.ValidationError(fmt.Errorf("invalid port range: %d", options.Port))
+	}
+
+	return nil
 }

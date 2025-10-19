@@ -1,5 +1,10 @@
 package backends
 
+import (
+	"fmt"
+	"llamactl/pkg/validation"
+)
+
 // vllmMultiValuedFlags defines flags that should be repeated for each value rather than comma-separated
 var vllmMultiValuedFlags = map[string]bool{
 	"api-key":         true,
@@ -193,4 +198,23 @@ func ParseVllmCommand(command string) (*VllmServerOptions, error) {
 	}
 
 	return &vllmOptions, nil
+}
+
+// validateVllmOptions validates vLLM backend specific options
+func validateVllmOptions(options *VllmServerOptions) error {
+	if options == nil {
+		return validation.ValidationError(fmt.Errorf("vLLM server options cannot be nil for vLLM backend"))
+	}
+
+	// Use reflection to check all string fields for injection patterns
+	if err := validation.ValidateStructStrings(options, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if options.Port < 0 || options.Port > 65535 {
+		return validation.ValidationError(fmt.Errorf("invalid port range: %d", options.Port))
+	}
+
+	return nil
 }

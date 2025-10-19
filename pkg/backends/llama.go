@@ -2,6 +2,8 @@ package backends
 
 import (
 	"encoding/json"
+	"fmt"
+	"llamactl/pkg/validation"
 	"reflect"
 	"strconv"
 )
@@ -363,4 +365,23 @@ func ParseLlamaCommand(command string) (*LlamaServerOptions, error) {
 	}
 
 	return &llamaOptions, nil
+}
+
+// validateLlamaCppOptions validates llama.cpp specific options
+func validateLlamaCppOptions(options *LlamaServerOptions) error {
+	if options == nil {
+		return validation.ValidationError(fmt.Errorf("llama server options cannot be nil for llama.cpp backend"))
+	}
+
+	// Use reflection to check all string fields for injection patterns
+	if err := validation.ValidateStructStrings(options, ""); err != nil {
+		return err
+	}
+
+	// Basic network validation for port
+	if options.Port < 0 || options.Port > 65535 {
+		return validation.ValidationError(fmt.Errorf("invalid port range: %d", options.Port))
+	}
+
+	return nil
 }
