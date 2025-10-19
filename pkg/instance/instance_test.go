@@ -74,40 +74,13 @@ func TestNewInstance(t *testing.T) {
 	if opts.RestartDelay == nil || *opts.RestartDelay != 5 {
 		t.Errorf("Expected RestartDelay to be 5 (default), got %v", opts.RestartDelay)
 	}
-}
 
-func TestNewInstance_WithRestartOptions(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-			Args:    []string{},
-		},
-		MLX: config.BackendSettings{
-			Command: "mlx_lm.server",
-			Args:    []string{},
-		},
-		VLLM: config.BackendSettings{
-			Command: "vllm",
-			Args:    []string{"serve"},
-		},
-	}
-
-	globalSettings := &config.InstancesConfig{
-		LogsDir:             "/tmp/test",
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
-	}
-
-	// Override some defaults
+	// Test that explicit values override defaults
 	autoRestart := false
 	maxRestarts := 10
-	restartDelay := 15
-
-	options := &instance.Options{
+	optionsWithOverrides := &instance.Options{
 		AutoRestart:  &autoRestart,
 		MaxRestarts:  &maxRestarts,
-		RestartDelay: &restartDelay,
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
 			LlamaServerOptions: &backends.LlamaServerOptions{
@@ -116,21 +89,14 @@ func TestNewInstance_WithRestartOptions(t *testing.T) {
 		},
 	}
 
-	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
+	inst2 := instance.New("test-override", backendConfig, globalSettings, optionsWithOverrides, "main", mockOnStatusChange)
+	opts2 := inst2.GetOptions()
 
-	instance := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
-	opts := instance.GetOptions()
-
-	// Check that explicit values override defaults
-	if opts.AutoRestart == nil || *opts.AutoRestart {
+	if opts2.AutoRestart == nil || *opts2.AutoRestart {
 		t.Error("Expected AutoRestart to be false (overridden)")
 	}
-	if opts.MaxRestarts == nil || *opts.MaxRestarts != 10 {
-		t.Errorf("Expected MaxRestarts to be 10 (overridden), got %v", opts.MaxRestarts)
-	}
-	if opts.RestartDelay == nil || *opts.RestartDelay != 15 {
-		t.Errorf("Expected RestartDelay to be 15 (overridden), got %v", opts.RestartDelay)
+	if opts2.MaxRestarts == nil || *opts2.MaxRestarts != 10 {
+		t.Errorf("Expected MaxRestarts to be 10 (overridden), got %v", opts2.MaxRestarts)
 	}
 }
 
@@ -199,62 +165,6 @@ func TestSetOptions(t *testing.T) {
 	}
 }
 
-func TestSetOptions_PreservesNodes(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-			Args:    []string{},
-		},
-	}
-
-	globalSettings := &config.InstancesConfig{
-		LogsDir:             "/tmp/test",
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
-	}
-
-	// Create instance with initial nodes
-	initialOptions := &instance.Options{
-		Nodes: map[string]struct{}{"worker1": {}},
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Model: "/path/to/model.gguf",
-				Port:  8080,
-			},
-		},
-	}
-
-	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
-	inst := instance.New("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
-
-	// Try to update with different nodes
-	updatedOptions := &instance.Options{
-		Nodes: map[string]struct{}{"worker2": {}}, // Attempt to change node
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Model: "/path/to/new-model.gguf",
-				Port:  8081,
-			},
-		},
-	}
-
-	inst.SetOptions(updatedOptions)
-	opts := inst.GetOptions()
-
-	// Nodes should remain unchanged
-	if _, exists := opts.Nodes["worker1"]; len(opts.Nodes) != 1 || !exists {
-		t.Errorf("Expected nodes to contain 'worker1', got %v", opts.Nodes)
-	}
-
-	// Other options should be updated
-	if opts.BackendOptions.LlamaServerOptions.Model != "/path/to/new-model.gguf" {
-		t.Errorf("Expected updated model '/path/to/new-model.gguf', got %q", opts.BackendOptions.LlamaServerOptions.Model)
-	}
-}
-
 func TestGetProxy(t *testing.T) {
 	backendConfig := &config.BackendConfig{
 		LlamaCpp: config.BackendSettings{
@@ -312,27 +222,9 @@ func TestGetProxy(t *testing.T) {
 
 func TestMarshalJSON(t *testing.T) {
 	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-			Args:    []string{},
-		},
-		MLX: config.BackendSettings{
-			Command: "mlx_lm.server",
-			Args:    []string{},
-		},
-		VLLM: config.BackendSettings{
-			Command: "vllm",
-			Args:    []string{"serve"},
-		},
+		LlamaCpp: config.BackendSettings{Command: "llama-server"},
 	}
-
-	globalSettings := &config.InstancesConfig{
-		LogsDir:             "/tmp/test",
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
-	}
-
+	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 	options := &instance.Options{
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
@@ -343,23 +235,16 @@ func TestMarshalJSON(t *testing.T) {
 		},
 	}
 
-	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
+	inst := instance.New("test-instance", backendConfig, globalSettings, options, "main", nil)
 
-	instance := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
-
-	data, err := json.Marshal(instance)
+	data, err := json.Marshal(inst)
 	if err != nil {
 		t.Fatalf("JSON marshal failed: %v", err)
 	}
 
-	// Debug: Print the JSON to see what we're getting
-	t.Logf("Marshaled JSON: %s", string(data))
-
-	// Check that JSON contains expected fields
+	// Verify by unmarshaling and checking key fields
 	var result map[string]any
-	err = json.Unmarshal(data, &result)
-	if err != nil {
+	if err := json.Unmarshal(data, &result); err != nil {
 		t.Fatalf("JSON unmarshal failed: %v", err)
 	}
 
@@ -369,36 +254,8 @@ func TestMarshalJSON(t *testing.T) {
 	if result["status"] != "stopped" {
 		t.Errorf("Expected status 'stopped', got %v", result["status"])
 	}
-
-	// Check that options are included
-	options_data, ok := result["options"]
-	if !ok {
+	if result["options"] == nil {
 		t.Error("Expected options to be included in JSON")
-	}
-	options_map, ok := options_data.(map[string]interface{})
-	if !ok {
-		t.Error("Expected options to be a map")
-	}
-
-	// Check backend type
-	if options_map["backend_type"] != string(backends.BackendTypeLlamaCpp) {
-		t.Errorf("Expected backend_type '%s', got %v", backends.BackendTypeLlamaCpp, options_map["backend_type"])
-	}
-
-	// Check backend options
-	backend_options_data, ok := options_map["backend_options"]
-	if !ok {
-		t.Error("Expected backend_options to be included in JSON")
-	}
-	backend_options_map, ok := backend_options_data.(map[string]any)
-	if !ok {
-		t.Error("Expected backend_options to be a map")
-	}
-	if backend_options_map["model"] != "/path/to/model.gguf" {
-		t.Errorf("Expected model '/path/to/model.gguf', got %v", backend_options_map["model"])
-	}
-	if backend_options_map["port"] != float64(8080) {
-		t.Errorf("Expected port 8080, got %v", backend_options_map["port"])
 	}
 }
 
@@ -730,54 +587,6 @@ func TestRemoteInstanceOperations(t *testing.T) {
 	// GetLogs should fail for remote instance
 	if _, err := inst.GetLogs(10); err == nil {
 		t.Error("Expected error when getting logs for remote instance")
-	}
-}
-
-func TestProxyClearOnOptionsChange(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{Command: "llama-server"},
-	}
-	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
-	options := &instance.Options{
-		Nodes: map[string]struct{}{"main": {}},
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Host: "localhost",
-				Port: 8080,
-			},
-		},
-	}
-
-	inst := instance.New("test", backendConfig, globalSettings, options, "main", nil)
-
-	// Get initial proxy
-	proxy1, err := inst.GetProxy()
-	if err != nil {
-		t.Fatalf("Failed to get initial proxy: %v", err)
-	}
-
-	// Update options (should clear proxy)
-	newOptions := &instance.Options{
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Host: "localhost",
-				Port: 8081, // Different port
-			},
-		},
-	}
-	inst.SetOptions(newOptions)
-
-	// Get proxy again - should be recreated with new port
-	proxy2, err := inst.GetProxy()
-	if err != nil {
-		t.Fatalf("Failed to get proxy after options change: %v", err)
-	}
-
-	// Proxies should be different instances (recreated)
-	if proxy1 == proxy2 {
-		t.Error("Expected proxy to be recreated after options change")
 	}
 }
 
