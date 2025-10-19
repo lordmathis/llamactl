@@ -163,7 +163,8 @@ func (c *Options) MarshalJSON() ([]byte, error) {
 	aux.BackendType = c.BackendOptions.BackendType
 
 	// Marshal the backends.Options struct to get the properly formatted backend options
-	backendData, err := json.Marshal(c.BackendOptions)
+	// Marshal a pointer to trigger the pointer receiver MarshalJSON method
+	backendData, err := json.Marshal(&c.BackendOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal backend options: %w", err)
 	}
