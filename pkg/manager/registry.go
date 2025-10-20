@@ -119,13 +119,3 @@ func (r *instanceRegistry) count() int {
 	defer r.mu.RUnlock()
 	return len(r.instances)
 }
-
-// CountRunning returns the number of currently running instances.
-func (r *instanceRegistry) countRunning() int {
-	count := 0
-	r.running.Range(func(key, value any) bool {
-		count++
-		return true
-	})
-	return count
-}

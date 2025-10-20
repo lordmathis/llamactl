@@ -137,21 +137,6 @@ func parseRemoteResponse(resp *http.Response, result any) error {
 
 // --- Remote CRUD operations ---
 
-// ListInstances lists all instances on a remote node.
-func (rm *remoteManager) listInstances(ctx context.Context, node *config.NodeConfig) ([]*instance.Instance, error) {
-	resp, err := rm.makeRemoteRequest(ctx, node, "GET", apiBasePath, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var instances []*instance.Instance
-	if err := parseRemoteResponse(resp, &instances); err != nil {
-		return nil, err
-	}
-
-	return instances, nil
-}
-
 // CreateInstance creates a new instance on a remote node.
 func (rm *remoteManager) createInstance(ctx context.Context, node *config.NodeConfig, name string, opts *instance.Options) (*instance.Instance, error) {
 	path := fmt.Sprintf("%s%s/", apiBasePath, name)

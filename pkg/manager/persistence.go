@@ -100,32 +100,6 @@ func (p *instancePersister) save(inst *instance.Instance) error {
 	return nil
 }
 
-// Load loads a single instance from disk by name.
-func (p *instancePersister) load(name string) (*instance.Instance, error) {
-	if !p.enabled {
-		return nil, fmt.Errorf("persistence is disabled")
-	}
-
-	if err := p.validateInstanceName(name); err != nil {
-		return nil, err
-	}
-
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	instancePath := filepath.Join(p.instancesDir, name+".json")
-
-	inst, err := p.loadInstanceFile(name, instancePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("instance %s not found", name)
-		}
-		return nil, err
-	}
-
-	return inst, nil
-}
-
 // Delete removes an instance's persistence file from disk.
 func (p *instancePersister) delete(name string) error {
 	if !p.enabled {

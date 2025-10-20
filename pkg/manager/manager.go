@@ -26,18 +26,6 @@ type InstanceManager interface {
 	Shutdown()
 }
 
-type RemoteManager interface {
-	ListRemoteInstances(node *config.NodeConfig) ([]*instance.Instance, error)
-	CreateRemoteInstance(node *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error)
-	GetRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
-	UpdateRemoteInstance(node *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error)
-	DeleteRemoteInstance(node *config.NodeConfig, name string) error
-	StartRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
-	StopRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
-	RestartRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
-	GetRemoteInstanceLogs(node *config.NodeConfig, name string, numLines int) (string, error)
-}
-
 type instanceManager struct {
 	// Components (each with own synchronization)
 	registry    *instanceRegistry
