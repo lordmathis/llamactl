@@ -240,9 +240,10 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 		return nil, err
 	}
 
-	// Lock for local instance operations to prevent races
-	im.operationMu.Lock()
-	defer im.operationMu.Unlock()
+	// Lock this specific instance only
+	lock := im.lockInstance(name)
+	lock.Lock()
+	defer lock.Unlock()
 
 	// Handle port changes
 	oldPort := inst.GetPort()
@@ -330,9 +331,10 @@ func (im *instanceManager) DeleteInstance(name string) error {
 		return nil
 	}
 
-	// Lock for local instance operations to prevent races
-	im.operationMu.Lock()
-	defer im.operationMu.Unlock()
+	// Lock this specific instance and clean up the lock on completion
+	lock := im.lockInstance(name)
+	lock.Lock()
+	defer im.unlockAndCleanup(name)
 
 	if inst.IsRunning() {
 		return fmt.Errorf("instance with name %s is still running, stop it before deleting", name)
@@ -376,9 +378,10 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 		return inst, nil
 	}
 
-	// Lock for local instance operations to prevent races
-	im.operationMu.Lock()
-	defer im.operationMu.Unlock()
+	// Lock this specific instance only
+	lock := im.lockInstance(name)
+	lock.Lock()
+	defer lock.Unlock()
 
 	if inst.IsRunning() {
 		return inst, fmt.Errorf("instance with name %s is already running", name)
@@ -438,9 +441,10 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 		return inst, nil
 	}
 
-	// Lock for local instance operations to prevent races
-	im.operationMu.Lock()
-	defer im.operationMu.Unlock()
+	// Lock this specific instance only
+	lock := im.lockInstance(name)
+	lock.Lock()
+	defer lock.Unlock()
 
 	if !inst.IsRunning() {
 		return inst, fmt.Errorf("instance with name %s is already stopped", name)
@@ -479,9 +483,10 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Instance, err
 		return inst, nil
 	}
 
-	// Lock for the entire restart operation to ensure atomicity
-	im.operationMu.Lock()
-	defer im.operationMu.Unlock()
+	// Lock this specific instance for the entire restart operation to ensure atomicity
+	lock := im.lockInstance(name)
+	lock.Lock()
+	defer lock.Unlock()
 
 	// Stop the instance
 	if inst.IsRunning() {

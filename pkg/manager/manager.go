@@ -40,8 +40,9 @@ type instanceManager struct {
 	localNodeName   string // Name of the local node
 
 	// Synchronization
-	operationMu  sync.Mutex // Protects start/stop/update/delete/restart operations
-	shutdownOnce sync.Once
+	operationMu   sync.Mutex // DEPRECATED: Use instanceLocks for per-instance operations
+	instanceLocks sync.Map   // map[string]*sync.Mutex - per-instance locks for concurrent operations
+	shutdownOnce  sync.Once
 }
 
 // New creates a new instance of InstanceManager.
@@ -286,4 +287,21 @@ func (im *instanceManager) getNodeForInstance(inst *instance.Instance) *config.N
 	}
 
 	return nil
+}
+
+// lockInstance returns the lock for a specific instance, creating one if needed.
+// This allows concurrent operations on different instances while preventing
+// concurrent operations on the same instance.
+func (im *instanceManager) lockInstance(name string) *sync.Mutex {
+	lock, _ := im.instanceLocks.LoadOrStore(name, &sync.Mutex{})
+	return lock.(*sync.Mutex)
+}
+
+// unlockAndCleanup unlocks the instance lock and removes it from the map.
+// This should only be called when deleting an instance to prevent memory leaks.
+func (im *instanceManager) unlockAndCleanup(name string) {
+	if lock, ok := im.instanceLocks.Load(name); ok {
+		lock.(*sync.Mutex).Unlock()
+		im.instanceLocks.Delete(name)
+	}
 }
