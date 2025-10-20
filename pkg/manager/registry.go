@@ -23,7 +23,7 @@ func NewInstanceRegistry() *instanceRegistry {
 
 // Get retrieves an instance by name.
 // Returns the instance and true if found, nil and false otherwise.
-func (r *instanceRegistry) Get(name string) (*instance.Instance, bool) {
+func (r *instanceRegistry) get(name string) (*instance.Instance, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -32,7 +32,7 @@ func (r *instanceRegistry) Get(name string) (*instance.Instance, bool) {
 }
 
 // List returns a snapshot copy of all instances to prevent external mutation.
-func (r *instanceRegistry) List() []*instance.Instance {
+func (r *instanceRegistry) list() []*instance.Instance {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -44,7 +44,7 @@ func (r *instanceRegistry) List() []*instance.Instance {
 }
 
 // ListRunning returns a snapshot of all currently running instances.
-func (r *instanceRegistry) ListRunning() []*instance.Instance {
+func (r *instanceRegistry) listRunning() []*instance.Instance {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -59,7 +59,7 @@ func (r *instanceRegistry) ListRunning() []*instance.Instance {
 
 // Add adds a new instance to the registry.
 // Returns an error if an instance with the same name already exists.
-func (r *instanceRegistry) Add(inst *instance.Instance) error {
+func (r *instanceRegistry) add(inst *instance.Instance) error {
 	if inst == nil {
 		return fmt.Errorf("cannot add nil instance")
 	}
@@ -83,7 +83,7 @@ func (r *instanceRegistry) Add(inst *instance.Instance) error {
 
 // Remove removes an instance from the registry.
 // Returns an error if the instance doesn't exist.
-func (r *instanceRegistry) Remove(name string) error {
+func (r *instanceRegistry) remove(name string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -98,30 +98,30 @@ func (r *instanceRegistry) Remove(name string) error {
 }
 
 // MarkRunning marks an instance as running using lock-free sync.Map.
-func (r *instanceRegistry) MarkRunning(name string) {
+func (r *instanceRegistry) markRunning(name string) {
 	r.running.Store(name, struct{}{})
 }
 
 // MarkStopped marks an instance as stopped using lock-free sync.Map.
-func (r *instanceRegistry) MarkStopped(name string) {
+func (r *instanceRegistry) markStopped(name string) {
 	r.running.Delete(name)
 }
 
 // IsRunning checks if an instance is running using lock-free sync.Map.
-func (r *instanceRegistry) IsRunning(name string) bool {
+func (r *instanceRegistry) isRunning(name string) bool {
 	_, isRunning := r.running.Load(name)
 	return isRunning
 }
 
 // Count returns the total number of instances in the registry.
-func (r *instanceRegistry) Count() int {
+func (r *instanceRegistry) count() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return len(r.instances)
 }
 
 // CountRunning returns the number of currently running instances.
-func (r *instanceRegistry) CountRunning() int {
+func (r *instanceRegistry) countRunning() int {
 	count := 0
 	r.running.Range(func(key, value any) bool {
 		count++

@@ -47,7 +47,7 @@ func NewRemoteManager(nodes map[string]config.NodeConfig, timeout time.Duration)
 
 // GetNodeForInstance returns the node configuration for a given instance.
 // Returns nil if the instance is not mapped to any node.
-func (rm *remoteManager) GetNodeForInstance(instanceName string) (*config.NodeConfig, bool) {
+func (rm *remoteManager) getNodeForInstance(instanceName string) (*config.NodeConfig, bool) {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 
@@ -57,7 +57,7 @@ func (rm *remoteManager) GetNodeForInstance(instanceName string) (*config.NodeCo
 
 // SetInstanceNode maps an instance to a specific node.
 // Returns an error if the node doesn't exist.
-func (rm *remoteManager) SetInstanceNode(instanceName, nodeName string) error {
+func (rm *remoteManager) setInstanceNode(instanceName, nodeName string) error {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -71,7 +71,7 @@ func (rm *remoteManager) SetInstanceNode(instanceName, nodeName string) error {
 }
 
 // RemoveInstance removes the instance-to-node mapping.
-func (rm *remoteManager) RemoveInstance(instanceName string) {
+func (rm *remoteManager) removeInstance(instanceName string) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -138,7 +138,7 @@ func parseRemoteResponse(resp *http.Response, result any) error {
 // --- Remote CRUD operations ---
 
 // ListInstances lists all instances on a remote node.
-func (rm *remoteManager) ListInstances(ctx context.Context, node *config.NodeConfig) ([]*instance.Instance, error) {
+func (rm *remoteManager) listInstances(ctx context.Context, node *config.NodeConfig) ([]*instance.Instance, error) {
 	resp, err := rm.makeRemoteRequest(ctx, node, "GET", apiBasePath, nil)
 	if err != nil {
 		return nil, err
@@ -153,7 +153,7 @@ func (rm *remoteManager) ListInstances(ctx context.Context, node *config.NodeCon
 }
 
 // CreateInstance creates a new instance on a remote node.
-func (rm *remoteManager) CreateInstance(ctx context.Context, node *config.NodeConfig, name string, opts *instance.Options) (*instance.Instance, error) {
+func (rm *remoteManager) createInstance(ctx context.Context, node *config.NodeConfig, name string, opts *instance.Options) (*instance.Instance, error) {
 	path := fmt.Sprintf("%s%s/", apiBasePath, name)
 
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, opts)
@@ -170,7 +170,7 @@ func (rm *remoteManager) CreateInstance(ctx context.Context, node *config.NodeCo
 }
 
 // GetInstance retrieves an instance by name from a remote node.
-func (rm *remoteManager) GetInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
+func (rm *remoteManager) getInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
 	path := fmt.Sprintf("%s%s/", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "GET", path, nil)
 	if err != nil {
@@ -186,7 +186,7 @@ func (rm *remoteManager) GetInstance(ctx context.Context, node *config.NodeConfi
 }
 
 // UpdateInstance updates an existing instance on a remote node.
-func (rm *remoteManager) UpdateInstance(ctx context.Context, node *config.NodeConfig, name string, opts *instance.Options) (*instance.Instance, error) {
+func (rm *remoteManager) updateInstance(ctx context.Context, node *config.NodeConfig, name string, opts *instance.Options) (*instance.Instance, error) {
 	path := fmt.Sprintf("%s%s/", apiBasePath, name)
 
 	resp, err := rm.makeRemoteRequest(ctx, node, "PUT", path, opts)
@@ -203,7 +203,7 @@ func (rm *remoteManager) UpdateInstance(ctx context.Context, node *config.NodeCo
 }
 
 // DeleteInstance deletes an instance from a remote node.
-func (rm *remoteManager) DeleteInstance(ctx context.Context, node *config.NodeConfig, name string) error {
+func (rm *remoteManager) deleteInstance(ctx context.Context, node *config.NodeConfig, name string) error {
 	path := fmt.Sprintf("%s%s/", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "DELETE", path, nil)
 	if err != nil {
@@ -214,7 +214,7 @@ func (rm *remoteManager) DeleteInstance(ctx context.Context, node *config.NodeCo
 }
 
 // StartInstance starts an instance on a remote node.
-func (rm *remoteManager) StartInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
+func (rm *remoteManager) startInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
 	path := fmt.Sprintf("%s%s/start", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, nil)
 	if err != nil {
@@ -230,7 +230,7 @@ func (rm *remoteManager) StartInstance(ctx context.Context, node *config.NodeCon
 }
 
 // StopInstance stops an instance on a remote node.
-func (rm *remoteManager) StopInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
+func (rm *remoteManager) stopInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
 	path := fmt.Sprintf("%s%s/stop", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, nil)
 	if err != nil {
@@ -246,7 +246,7 @@ func (rm *remoteManager) StopInstance(ctx context.Context, node *config.NodeConf
 }
 
 // RestartInstance restarts an instance on a remote node.
-func (rm *remoteManager) RestartInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
+func (rm *remoteManager) restartInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
 	path := fmt.Sprintf("%s%s/restart", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, nil)
 	if err != nil {
@@ -262,7 +262,7 @@ func (rm *remoteManager) RestartInstance(ctx context.Context, node *config.NodeC
 }
 
 // GetInstanceLogs retrieves logs for an instance from a remote node.
-func (rm *remoteManager) GetInstanceLogs(ctx context.Context, node *config.NodeConfig, name string, numLines int) (string, error) {
+func (rm *remoteManager) getInstanceLogs(ctx context.Context, node *config.NodeConfig, name string, numLines int) (string, error) {
 	path := fmt.Sprintf("%s%s/logs?lines=%d", apiBasePath, name, numLines)
 	resp, err := rm.makeRemoteRequest(ctx, node, "GET", path, nil)
 	if err != nil {

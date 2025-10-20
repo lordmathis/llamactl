@@ -45,9 +45,9 @@ func NewPortAllocator(minPort, maxPort int) (*portAllocator, error) {
 	}, nil
 }
 
-// Allocate finds and allocates the first available port for the given instance.
+// allocate finds and allocates the first available port for the given instance.
 // Returns the allocated port or an error if no ports are available.
-func (p *portAllocator) Allocate(instanceName string) (int, error) {
+func (p *portAllocator) allocate(instanceName string) (int, error) {
 	if instanceName == "" {
 		return 0, fmt.Errorf("instance name cannot be empty")
 	}
@@ -66,9 +66,9 @@ func (p *portAllocator) Allocate(instanceName string) (int, error) {
 	return port, nil
 }
 
-// AllocateSpecific allocates a specific port for the given instance.
+// allocateSpecific allocates a specific port for the given instance.
 // Returns an error if the port is already allocated or out of range.
-func (p *portAllocator) AllocateSpecific(port int, instanceName string) error {
+func (p *portAllocator) allocateSpecific(port int, instanceName string) error {
 	if instanceName == "" {
 		return fmt.Errorf("instance name cannot be empty")
 	}
@@ -89,9 +89,9 @@ func (p *portAllocator) AllocateSpecific(port int, instanceName string) error {
 	return nil
 }
 
-// Release releases a specific port, making it available for reuse.
+// release releases a specific port, making it available for reuse.
 // Returns an error if the port is not allocated.
-func (p *portAllocator) Release(port int) error {
+func (p *portAllocator) release(port int) error {
 	if port < p.minPort || port > p.maxPort {
 		return fmt.Errorf("port %d is out of range [%d-%d]", port, p.minPort, p.maxPort)
 	}
@@ -109,10 +109,10 @@ func (p *portAllocator) Release(port int) error {
 	return nil
 }
 
-// ReleaseByInstance releases all ports allocated to the given instance.
+// releaseByInstance releases all ports allocated to the given instance.
 // This is useful for cleanup when deleting or updating an instance.
 // Returns the number of ports released.
-func (p *portAllocator) ReleaseByInstance(instanceName string) int {
+func (p *portAllocator) releaseByInstance(instanceName string) int {
 	if instanceName == "" {
 		return 0
 	}

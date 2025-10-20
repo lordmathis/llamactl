@@ -30,13 +30,13 @@ func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Ins
 // ListInstances returns a list of all instances managed by the instance manager.
 // For remote instances, this fetches the live state from remote nodes and updates local stubs.
 func (im *instanceManager) ListInstances() ([]*instance.Instance, error) {
-	instances := im.registry.List()
+	instances := im.registry.list()
 
 	// Update remote instances with live state
 	ctx := context.Background()
 	for _, inst := range instances {
 		if node := im.getNodeForInstance(inst); node != nil {
-			remoteInst, err := im.remote.GetInstance(ctx, node, inst.Name)
+			remoteInst, err := im.remote.getInstance(ctx, node, inst.Name)
 			if err != nil {
 				// Log error but continue with stale data
 				// Don't fail the entire list operation due to one remote failure
@@ -69,7 +69,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 	}
 
 	// Check if instance with this name already exists (must be globally unique)
-	if _, exists := im.registry.Get(name); exists {
+	if _, exists := im.registry.get(name); exists {
 		return nil, fmt.Errorf("instance with name %s already exists", name)
 	}
 
@@ -84,16 +84,16 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 
 		// Create the remote instance on the remote node
 		ctx := context.Background()
-		nodeConfig, exists := im.remote.GetNodeForInstance(nodeName)
+		nodeConfig, exists := im.remote.getNodeForInstance(nodeName)
 		if !exists {
 			// Try to set the node if it doesn't exist yet
-			if err := im.remote.SetInstanceNode(name, nodeName); err != nil {
+			if err := im.remote.setInstanceNode(name, nodeName); err != nil {
 				return nil, fmt.Errorf("node %s not found", nodeName)
 			}
-			nodeConfig, _ = im.remote.GetNodeForInstance(name)
+			nodeConfig, _ = im.remote.getNodeForInstance(name)
 		}
 
-		remoteInst, err := im.remote.CreateInstance(ctx, nodeConfig, name, options)
+		remoteInst, err := im.remote.createInstance(ctx, nodeConfig, name, options)
 		if err != nil {
 			return nil, err
 		}
@@ -106,19 +106,19 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 		im.updateLocalInstanceFromRemote(inst, remoteInst)
 
 		// Map instance to node
-		if err := im.remote.SetInstanceNode(name, nodeName); err != nil {
+		if err := im.remote.setInstanceNode(name, nodeName); err != nil {
 			return nil, fmt.Errorf("failed to map instance to node: %w", err)
 		}
 
 		// Add to registry (doesn't count towards local limits)
-		if err := im.registry.Add(inst); err != nil {
+		if err := im.registry.add(inst); err != nil {
 			return nil, fmt.Errorf("failed to add instance to registry: %w", err)
 		}
 
 		// Persist the remote instance locally for tracking across restarts
 		if err := im.persistInstance(inst); err != nil {
 			// Rollback: remove from registry
-			im.registry.Remove(name)
+			im.registry.remove(name)
 			return nil, fmt.Errorf("failed to persist remote instance %s: %w", name, err)
 		}
 
@@ -127,9 +127,9 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 
 	// Local instance creation
 	// Check max instances limit for local instances only
-	totalInstances := im.registry.Count()
+	totalInstances := im.registry.count()
 	remoteCount := 0
-	for _, inst := range im.registry.List() {
+	for _, inst := range im.registry.list() {
 		if inst.IsRemote() {
 			remoteCount++
 		}
@@ -144,14 +144,14 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 	var allocatedPort int
 	if currentPort == 0 {
 		// Allocate a port if not specified
-		allocatedPort, err = im.ports.Allocate(name)
+		allocatedPort, err = im.ports.allocate(name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to allocate port: %w", err)
 		}
 		im.setPortInOptions(options, allocatedPort)
 	} else {
 		// Use the specified port
-		if err := im.ports.AllocateSpecific(currentPort, name); err != nil {
+		if err := im.ports.allocateSpecific(currentPort, name); err != nil {
 			return nil, fmt.Errorf("port %d is already in use: %w", currentPort, err)
 		}
 		allocatedPort = currentPort
@@ -164,9 +164,9 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 	inst := instance.New(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, statusCallback)
 
 	// Add to registry
-	if err := im.registry.Add(inst); err != nil {
+	if err := im.registry.add(inst); err != nil {
 		// Rollback: release port
-		im.ports.Release(allocatedPort)
+		im.ports.release(allocatedPort)
 		return nil, fmt.Errorf("failed to add instance to registry: %w", err)
 	}
 
@@ -181,7 +181,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 // GetInstance retrieves an instance by its name.
 // For remote instances, this fetches the live state from the remote node and updates the local stub.
 func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) {
-	inst, exists := im.registry.Get(name)
+	inst, exists := im.registry.get(name)
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
@@ -189,7 +189,7 @@ func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) 
 	// Check if instance is remote and fetch live state
 	if node := im.getNodeForInstance(inst); node != nil {
 		ctx := context.Background()
-		remoteInst, err := im.remote.GetInstance(ctx, node, name)
+		remoteInst, err := im.remote.getInstance(ctx, node, name)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +207,7 @@ func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) 
 // UpdateInstance updates the options of an existing instance and returns it.
 // If the instance is running, it will be restarted to apply the new options.
 func (im *instanceManager) UpdateInstance(name string, options *instance.Options) (*instance.Instance, error) {
-	inst, exists := im.registry.Get(name)
+	inst, exists := im.registry.get(name)
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
@@ -215,7 +215,7 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
 		ctx := context.Background()
-		remoteInst, err := im.remote.UpdateInstance(ctx, node, name, options)
+		remoteInst, err := im.remote.updateInstance(ctx, node, name, options)
 		if err != nil {
 			return nil, err
 		}
@@ -253,14 +253,14 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 		// Port is changing - need to release old and allocate new
 		if newPort == 0 {
 			// Auto-allocate new port
-			allocatedPort, err = im.ports.Allocate(name)
+			allocatedPort, err = im.ports.allocate(name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to allocate new port: %w", err)
 			}
 			im.setPortInOptions(options, allocatedPort)
 		} else {
 			// Use specified port
-			if err := im.ports.AllocateSpecific(newPort, name); err != nil {
+			if err := im.ports.allocateSpecific(newPort, name); err != nil {
 				return nil, fmt.Errorf("failed to allocate port %d: %w", newPort, err)
 			}
 			allocatedPort = newPort
@@ -268,9 +268,9 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 
 		// Release old port
 		if oldPort > 0 {
-			if err := im.ports.Release(oldPort); err != nil {
+			if err := im.ports.release(oldPort); err != nil {
 				// Rollback new port allocation
-				im.ports.Release(allocatedPort)
+				im.ports.release(allocatedPort)
 				return nil, fmt.Errorf("failed to release old port %d: %w", oldPort, err)
 			}
 		}
@@ -305,7 +305,7 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 
 // DeleteInstance removes stopped instance by its name.
 func (im *instanceManager) DeleteInstance(name string) error {
-	inst, exists := im.registry.Get(name)
+	inst, exists := im.registry.get(name)
 	if !exists {
 		return fmt.Errorf("instance with name %s not found", name)
 	}
@@ -313,17 +313,17 @@ func (im *instanceManager) DeleteInstance(name string) error {
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
 		ctx := context.Background()
-		err := im.remote.DeleteInstance(ctx, node, name)
+		err := im.remote.deleteInstance(ctx, node, name)
 		if err != nil {
 			return err
 		}
 
 		// Clean up local tracking
-		im.remote.RemoveInstance(name)
-		im.registry.Remove(name)
+		im.remote.removeInstance(name)
+		im.registry.remove(name)
 
 		// Delete the instance's persistence file
-		if err := im.persistence.Delete(name); err != nil {
+		if err := im.persistence.delete(name); err != nil {
 			return fmt.Errorf("failed to delete config file for remote instance %s: %w", name, err)
 		}
 
@@ -339,15 +339,15 @@ func (im *instanceManager) DeleteInstance(name string) error {
 	}
 
 	// Release port (use ReleaseByInstance for proper cleanup)
-	im.ports.ReleaseByInstance(name)
+	im.ports.releaseByInstance(name)
 
 	// Remove from registry
-	if err := im.registry.Remove(name); err != nil {
+	if err := im.registry.remove(name); err != nil {
 		return fmt.Errorf("failed to remove instance from registry: %w", err)
 	}
 
 	// Delete persistence file
-	if err := im.persistence.Delete(name); err != nil {
+	if err := im.persistence.delete(name); err != nil {
 		return fmt.Errorf("failed to delete config file for instance %s: %w", name, err)
 	}
 
@@ -357,7 +357,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 // StartInstance starts a stopped instance and returns it.
 // If the instance is already running, it returns an error.
 func (im *instanceManager) StartInstance(name string) (*instance.Instance, error) {
-	inst, exists := im.registry.Get(name)
+	inst, exists := im.registry.get(name)
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
@@ -365,7 +365,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
 		ctx := context.Background()
-		remoteInst, err := im.remote.StartInstance(ctx, node, name)
+		remoteInst, err := im.remote.startInstance(ctx, node, name)
 		if err != nil {
 			return nil, err
 		}
@@ -408,7 +408,7 @@ func (im *instanceManager) IsMaxRunningInstancesReached() bool {
 
 	// Count only local running instances (each node has its own limits)
 	localRunningCount := 0
-	for _, inst := range im.registry.ListRunning() {
+	for _, inst := range im.registry.listRunning() {
 		if !inst.IsRemote() {
 			localRunningCount++
 		}
@@ -419,7 +419,7 @@ func (im *instanceManager) IsMaxRunningInstancesReached() bool {
 
 // StopInstance stops a running instance and returns it.
 func (im *instanceManager) StopInstance(name string) (*instance.Instance, error) {
-	inst, exists := im.registry.Get(name)
+	inst, exists := im.registry.get(name)
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
@@ -427,7 +427,7 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
 		ctx := context.Background()
-		remoteInst, err := im.remote.StopInstance(ctx, node, name)
+		remoteInst, err := im.remote.stopInstance(ctx, node, name)
 		if err != nil {
 			return nil, err
 		}
@@ -460,7 +460,7 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 
 // RestartInstance stops and then starts an instance, returning the updated instance.
 func (im *instanceManager) RestartInstance(name string) (*instance.Instance, error) {
-	inst, exists := im.registry.Get(name)
+	inst, exists := im.registry.get(name)
 	if !exists {
 		return nil, fmt.Errorf("instance with name %s not found", name)
 	}
@@ -468,7 +468,7 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Instance, err
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
 		ctx := context.Background()
-		remoteInst, err := im.remote.RestartInstance(ctx, node, name)
+		remoteInst, err := im.remote.restartInstance(ctx, node, name)
 		if err != nil {
 			return nil, err
 		}
@@ -505,7 +505,7 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Instance, err
 
 // GetInstanceLogs retrieves the logs for a specific instance by its name.
 func (im *instanceManager) GetInstanceLogs(name string, numLines int) (string, error) {
-	inst, exists := im.registry.Get(name)
+	inst, exists := im.registry.get(name)
 	if !exists {
 		return "", fmt.Errorf("instance with name %s not found", name)
 	}
@@ -513,7 +513,7 @@ func (im *instanceManager) GetInstanceLogs(name string, numLines int) (string, e
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
 		ctx := context.Background()
-		return im.remote.GetInstanceLogs(ctx, node, name, numLines)
+		return im.remote.getInstanceLogs(ctx, node, name, numLines)
 	}
 
 	// Get logs from the local instance
@@ -532,5 +532,5 @@ func (im *instanceManager) setPortInOptions(options *instance.Options, port int)
 
 // EvictLRUInstance finds and stops the least recently used running instance.
 func (im *instanceManager) EvictLRUInstance() error {
-	return im.lifecycle.EvictLRU()
+	return im.lifecycle.evictLRU()
 }

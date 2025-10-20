@@ -39,7 +39,7 @@ func NewInstancePersister(instancesDir string) (*instancePersister, error) {
 }
 
 // Save persists an instance to disk with atomic write
-func (p *instancePersister) Save(inst *instance.Instance) error {
+func (p *instancePersister) save(inst *instance.Instance) error {
 	if !p.enabled {
 		return nil
 	}
@@ -101,7 +101,7 @@ func (p *instancePersister) Save(inst *instance.Instance) error {
 }
 
 // Load loads a single instance from disk by name.
-func (p *instancePersister) Load(name string) (*instance.Instance, error) {
+func (p *instancePersister) load(name string) (*instance.Instance, error) {
 	if !p.enabled {
 		return nil, fmt.Errorf("persistence is disabled")
 	}
@@ -127,7 +127,7 @@ func (p *instancePersister) Load(name string) (*instance.Instance, error) {
 }
 
 // Delete removes an instance's persistence file from disk.
-func (p *instancePersister) Delete(name string) error {
+func (p *instancePersister) delete(name string) error {
 	if !p.enabled {
 		return nil
 	}
@@ -154,7 +154,7 @@ func (p *instancePersister) Delete(name string) error {
 
 // LoadAll loads all persisted instances from disk.
 // Returns a slice of instances and any errors encountered during loading.
-func (p *instancePersister) LoadAll() ([]*instance.Instance, error) {
+func (p *instancePersister) loadAll() ([]*instance.Instance, error) {
 	if !p.enabled {
 		return nil, nil
 	}

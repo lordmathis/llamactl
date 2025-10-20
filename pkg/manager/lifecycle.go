@@ -46,13 +46,13 @@ func NewLifecycleManager(
 }
 
 // Start begins the timeout checking loop in a goroutine.
-func (l *lifecycleManager) Start() {
+func (l *lifecycleManager) start() {
 	go l.timeoutCheckLoop()
 }
 
 // Stop gracefully stops the lifecycle manager.
 // This ensures the timeout checker completes before instance cleanup begins.
-func (l *lifecycleManager) Stop() {
+func (l *lifecycleManager) stop() {
 	l.shutdownOnce.Do(func() {
 		close(l.shutdownChan)
 		<-l.shutdownDone // Wait for checker to finish (prevents shutdown race)
@@ -77,7 +77,7 @@ func (l *lifecycleManager) timeoutCheckLoop() {
 // checkTimeouts checks all instances for timeout and stops those that have timed out.
 func (l *lifecycleManager) checkTimeouts() {
 	// Get all instances from registry
-	instances := l.registry.List()
+	instances := l.registry.list()
 
 	var timeoutInstances []string
 
@@ -89,7 +89,7 @@ func (l *lifecycleManager) checkTimeouts() {
 		}
 
 		// Only check running instances
-		if !l.registry.IsRunning(inst.Name) {
+		if !l.registry.isRunning(inst.Name) {
 			continue
 		}
 
@@ -111,13 +111,13 @@ func (l *lifecycleManager) checkTimeouts() {
 
 // EvictLRU finds and stops the least recently used running instance.
 // This is called when max running instances limit is reached.
-func (l *lifecycleManager) EvictLRU() error {
+func (l *lifecycleManager) evictLRU() error {
 	if !l.enableLRU {
 		return fmt.Errorf("LRU eviction is not enabled")
 	}
 
 	// Get all running instances
-	runningInstances := l.registry.ListRunning()
+	runningInstances := l.registry.listRunning()
 
 	var lruInstance *instance.Instance
 

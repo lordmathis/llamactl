@@ -102,23 +102,23 @@ func New(backendsConfig config.BackendConfig, instancesConfig config.InstancesCo
 	}
 
 	// Start the lifecycle manager
-	im.lifecycle.Start()
+	im.lifecycle.start()
 
 	return im
 }
 
 // persistInstance saves an instance using the persistence component
 func (im *instanceManager) persistInstance(inst *instance.Instance) error {
-	return im.persistence.Save(inst)
+	return im.persistence.save(inst)
 }
 
 func (im *instanceManager) Shutdown() {
 	im.shutdownOnce.Do(func() {
 		// 1. Stop lifecycle manager (stops timeout checker)
-		im.lifecycle.Stop()
+		im.lifecycle.stop()
 
 		// 2. Get running instances (no lock needed - registry handles it)
-		running := im.registry.ListRunning()
+		running := im.registry.listRunning()
 
 		// 3. Stop local instances concurrently
 		var wg sync.WaitGroup
@@ -143,7 +143,7 @@ func (im *instanceManager) Shutdown() {
 // loadInstances restores all instances from disk using the persistence component
 func (im *instanceManager) loadInstances() error {
 	// Load all instances from persistence
-	instances, err := im.persistence.LoadAll()
+	instances, err := im.persistence.loadAll()
 	if err != nil {
 		return fmt.Errorf("failed to load instances: %w", err)
 	}
@@ -205,21 +205,21 @@ func (im *instanceManager) loadInstance(persistedInst *instance.Instance) error 
 	// Handle remote instance mapping
 	if isRemote {
 		// Map instance to node in remote manager
-		if err := im.remote.SetInstanceNode(name, nodeName); err != nil {
+		if err := im.remote.setInstanceNode(name, nodeName); err != nil {
 			return fmt.Errorf("failed to set instance node: %w", err)
 		}
 	} else {
 		// Allocate port for local instances
 		if inst.GetPort() > 0 {
 			port := inst.GetPort()
-			if err := im.ports.AllocateSpecific(port, name); err != nil {
+			if err := im.ports.allocateSpecific(port, name); err != nil {
 				return fmt.Errorf("port conflict: instance %s wants port %d which is already in use: %w", name, port, err)
 			}
 		}
 	}
 
 	// Add instance to registry
-	if err := im.registry.Add(inst); err != nil {
+	if err := im.registry.add(inst); err != nil {
 		return fmt.Errorf("failed to add instance to registry: %w", err)
 	}
 
@@ -229,7 +229,7 @@ func (im *instanceManager) loadInstance(persistedInst *instance.Instance) error 
 // autoStartInstances starts instances that were running when persisted and have auto-restart enabled
 // For instances with auto-restart disabled, it sets their status to Stopped
 func (im *instanceManager) autoStartInstances() {
-	instances := im.registry.List()
+	instances := im.registry.list()
 
 	var instancesToStart []*instance.Instance
 	var instancesToStop []*instance.Instance
@@ -251,7 +251,7 @@ func (im *instanceManager) autoStartInstances() {
 	for _, inst := range instancesToStop {
 		log.Printf("Instance %s was running but auto-restart is disabled, setting status to stopped", inst.Name)
 		inst.SetStatus(instance.Stopped)
-		im.registry.MarkStopped(inst.Name)
+		im.registry.markStopped(inst.Name)
 	}
 
 	// Start instances that have auto-restart enabled
@@ -259,13 +259,13 @@ func (im *instanceManager) autoStartInstances() {
 		log.Printf("Auto-starting instance %s", inst.Name)
 		// Reset running state before starting (since Start() expects stopped instance)
 		inst.SetStatus(instance.Stopped)
-		im.registry.MarkStopped(inst.Name)
+		im.registry.markStopped(inst.Name)
 
 		// Check if this is a remote instance
-		if node, exists := im.remote.GetNodeForInstance(inst.Name); exists && node != nil {
+		if node, exists := im.remote.getNodeForInstance(inst.Name); exists && node != nil {
 			// Remote instance - use remote manager with context
 			ctx := context.Background()
-			if _, err := im.remote.StartInstance(ctx, node, inst.Name); err != nil {
+			if _, err := im.remote.startInstance(ctx, node, inst.Name); err != nil {
 				log.Printf("Failed to auto-start remote instance %s: %v", inst.Name, err)
 			}
 		} else {
@@ -279,9 +279,9 @@ func (im *instanceManager) autoStartInstances() {
 
 func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus instance.Status) {
 	if newStatus == instance.Running {
-		im.registry.MarkRunning(name)
+		im.registry.markRunning(name)
 	} else {
-		im.registry.MarkStopped(name)
+		im.registry.markStopped(name)
 	}
 }
 
@@ -293,7 +293,7 @@ func (im *instanceManager) getNodeForInstance(inst *instance.Instance) *config.N
 	}
 
 	// Check if we have a node mapping in remote manager
-	if nodeConfig, exists := im.remote.GetNodeForInstance(inst.Name); exists {
+	if nodeConfig, exists := im.remote.getNodeForInstance(inst.Name); exists {
 		return nodeConfig
 	}
 
