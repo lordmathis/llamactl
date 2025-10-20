@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const apiBasePath = "/api/v1/instances/"
+
 // remoteManager handles HTTP operations for remote instances.
 type remoteManager struct {
 	mu             sync.RWMutex
@@ -137,7 +139,7 @@ func parseRemoteResponse(resp *http.Response, result any) error {
 
 // ListInstances lists all instances on a remote node.
 func (rm *remoteManager) ListInstances(ctx context.Context, node *config.NodeConfig) ([]*instance.Instance, error) {
-	resp, err := rm.makeRemoteRequest(ctx, node, "GET", "/api/v1/instances/", nil)
+	resp, err := rm.makeRemoteRequest(ctx, node, "GET", apiBasePath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +154,7 @@ func (rm *remoteManager) ListInstances(ctx context.Context, node *config.NodeCon
 
 // CreateInstance creates a new instance on a remote node.
 func (rm *remoteManager) CreateInstance(ctx context.Context, node *config.NodeConfig, name string, opts *instance.Options) (*instance.Instance, error) {
-	path := fmt.Sprintf("/api/v1/instances/%s/", name)
+	path := fmt.Sprintf("%s%s/", apiBasePath, name)
 
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, opts)
 	if err != nil {
@@ -169,7 +171,7 @@ func (rm *remoteManager) CreateInstance(ctx context.Context, node *config.NodeCo
 
 // GetInstance retrieves an instance by name from a remote node.
 func (rm *remoteManager) GetInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
-	path := fmt.Sprintf("/api/v1/instances/%s/", name)
+	path := fmt.Sprintf("%s%s/", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "GET", path, nil)
 	if err != nil {
 		return nil, err
@@ -185,7 +187,7 @@ func (rm *remoteManager) GetInstance(ctx context.Context, node *config.NodeConfi
 
 // UpdateInstance updates an existing instance on a remote node.
 func (rm *remoteManager) UpdateInstance(ctx context.Context, node *config.NodeConfig, name string, opts *instance.Options) (*instance.Instance, error) {
-	path := fmt.Sprintf("/api/v1/instances/%s/", name)
+	path := fmt.Sprintf("%s%s/", apiBasePath, name)
 
 	resp, err := rm.makeRemoteRequest(ctx, node, "PUT", path, opts)
 	if err != nil {
@@ -202,7 +204,7 @@ func (rm *remoteManager) UpdateInstance(ctx context.Context, node *config.NodeCo
 
 // DeleteInstance deletes an instance from a remote node.
 func (rm *remoteManager) DeleteInstance(ctx context.Context, node *config.NodeConfig, name string) error {
-	path := fmt.Sprintf("/api/v1/instances/%s/", name)
+	path := fmt.Sprintf("%s%s/", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "DELETE", path, nil)
 	if err != nil {
 		return err
@@ -213,7 +215,7 @@ func (rm *remoteManager) DeleteInstance(ctx context.Context, node *config.NodeCo
 
 // StartInstance starts an instance on a remote node.
 func (rm *remoteManager) StartInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
-	path := fmt.Sprintf("/api/v1/instances/%s/start", name)
+	path := fmt.Sprintf("%s%s/start", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, nil)
 	if err != nil {
 		return nil, err
@@ -229,7 +231,7 @@ func (rm *remoteManager) StartInstance(ctx context.Context, node *config.NodeCon
 
 // StopInstance stops an instance on a remote node.
 func (rm *remoteManager) StopInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
-	path := fmt.Sprintf("/api/v1/instances/%s/stop", name)
+	path := fmt.Sprintf("%s%s/stop", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, nil)
 	if err != nil {
 		return nil, err
@@ -245,7 +247,7 @@ func (rm *remoteManager) StopInstance(ctx context.Context, node *config.NodeConf
 
 // RestartInstance restarts an instance on a remote node.
 func (rm *remoteManager) RestartInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
-	path := fmt.Sprintf("/api/v1/instances/%s/restart", name)
+	path := fmt.Sprintf("%s%s/restart", apiBasePath, name)
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, nil)
 	if err != nil {
 		return nil, err
@@ -261,7 +263,7 @@ func (rm *remoteManager) RestartInstance(ctx context.Context, node *config.NodeC
 
 // GetInstanceLogs retrieves logs for an instance from a remote node.
 func (rm *remoteManager) GetInstanceLogs(ctx context.Context, node *config.NodeConfig, name string, numLines int) (string, error) {
-	path := fmt.Sprintf("/api/v1/instances/%s/logs?lines=%d", name, numLines)
+	path := fmt.Sprintf("%s%s/logs?lines=%d", apiBasePath, name, numLines)
 	resp, err := rm.makeRemoteRequest(ctx, node, "GET", path, nil)
 	if err != nil {
 		return "", err
