@@ -22,7 +22,7 @@ func TestTimeoutFunctionality(t *testing.T) {
 		MaxInstances:         5,
 	}
 
-	manager := manager.NewInstanceManager(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
+	manager := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
 	if manager == nil {
 		t.Fatal("Manager should be initialized with timeout checker")
 	}
