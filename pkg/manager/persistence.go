@@ -49,14 +49,15 @@ func (p *instancePersister) save(inst *instance.Instance) error {
 	}
 
 	// Validate instance name to prevent path traversal
-	if err := p.validateInstanceName(inst.Name); err != nil {
+	validatedName, err := p.validateInstanceName(inst.Name)
+	if err != nil {
 		return err
 	}
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	instancePath := filepath.Join(p.instancesDir, inst.Name+".json")
+	instancePath := filepath.Join(p.instancesDir, validatedName+".json")
 	tempPath := instancePath + ".tmp"
 
 	// Serialize instance to JSON
@@ -106,14 +107,15 @@ func (p *instancePersister) delete(name string) error {
 		return nil
 	}
 
-	if err := p.validateInstanceName(name); err != nil {
+	validatedName, err := p.validateInstanceName(name)
+	if err != nil {
 		return err
 	}
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	instancePath := filepath.Join(p.instancesDir, name+".json")
+	instancePath := filepath.Join(p.instancesDir, validatedName+".json")
 
 	if err := os.Remove(instancePath); err != nil {
 		if os.IsNotExist(err) {
@@ -199,17 +201,18 @@ func (p *instancePersister) loadInstanceFile(name, path string) (*instance.Insta
 }
 
 // validateInstanceName ensures the instance name is safe for filesystem operations.
-func (p *instancePersister) validateInstanceName(name string) error {
+// Returns the validated name if valid, or an error if invalid.
+func (p *instancePersister) validateInstanceName(name string) (string, error) {
 	if name == "" {
-		return fmt.Errorf("instance name cannot be empty")
+		return "", fmt.Errorf("instance name cannot be empty")
 	}
 
 	cleaned := filepath.Clean(name)
 
 	// After cleaning, name should not contain any path separators
 	if cleaned != name || strings.Contains(cleaned, string(filepath.Separator)) {
-		return fmt.Errorf("invalid instance name: %s", name)
+		return "", fmt.Errorf("invalid instance name: %s", name)
 	}
 
-	return nil
+	return cleaned, nil
 }
