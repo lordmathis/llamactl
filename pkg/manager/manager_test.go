@@ -27,7 +27,7 @@ func TestNewInstanceManager(t *testing.T) {
 	}
 }
 
-func TestPersistence_SaveAndLoad(t *testing.T) {
+func TestManager_PersistsAndLoadsInstances(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := createPersistenceConfig(tempDir)
 	backendConfig := createBackendConfig()
@@ -68,7 +68,7 @@ func TestPersistence_SaveAndLoad(t *testing.T) {
 	}
 }
 
-func TestPersistence_DeleteRemovesFile(t *testing.T) {
+func TestDeleteInstance_RemovesPersistenceFile(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := createPersistenceConfig(tempDir)
 	backendConfig := createBackendConfig()
@@ -175,12 +175,15 @@ func TestShutdown(t *testing.T) {
 
 // Helper functions for test configuration
 func createBackendConfig() config.BackendConfig {
+	// Use 'sleep' as a test command instead of 'llama-server'
+	// This allows tests to run in CI environments without requiring actual LLM binaries
+	// The sleep command will be invoked with model paths and other args, which it ignores
 	return config.BackendConfig{
 		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
+			Command: "sleep",
 		},
 		MLX: config.BackendSettings{
-			Command: "mlx_lm.server",
+			Command: "sleep",
 		},
 	}
 }
@@ -199,6 +202,7 @@ func createTestManager() manager.InstanceManager {
 		PortRange:            [2]int{8000, 9000},
 		LogsDir:              "/tmp/test",
 		MaxInstances:         10,
+		MaxRunningInstances:  10,
 		DefaultAutoRestart:   true,
 		DefaultMaxRestarts:   3,
 		DefaultRestartDelay:  5,
@@ -207,7 +211,7 @@ func createTestManager() manager.InstanceManager {
 	return manager.New(createBackendConfig(), cfg, map[string]config.NodeConfig{}, "main")
 }
 
-func TestAutoRestartDisabledInstanceStatus(t *testing.T) {
+func TestManager_DoesNotAutoRestartWhenDisabled(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := createPersistenceConfig(tempDir)
 	backendConfig := createBackendConfig()

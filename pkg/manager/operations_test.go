@@ -101,7 +101,7 @@ func TestCreateInstance_MaxInstancesLimit(t *testing.T) {
 	}
 }
 
-func TestPort_AutoAssignment(t *testing.T) {
+func TestCreateInstance_AutoAssignsPort(t *testing.T) {
 	manager := createTestManager()
 
 	options := &instance.Options{
@@ -124,7 +124,7 @@ func TestPort_AutoAssignment(t *testing.T) {
 	}
 }
 
-func TestPort_ConflictDetection(t *testing.T) {
+func TestCreateInstance_PortConflict(t *testing.T) {
 	manager := createTestManager()
 
 	options1 := &instance.Options{
@@ -162,7 +162,7 @@ func TestPort_ConflictDetection(t *testing.T) {
 	}
 }
 
-func TestPort_ReleaseOnDeletion(t *testing.T) {
+func TestDeleteInstance_ReleasesPort(t *testing.T) {
 	manager := createTestManager()
 
 	options := &instance.Options{
@@ -334,5 +334,318 @@ func TestInstanceOperations_NonExistentInstance(t *testing.T) {
 	_, err = manager.UpdateInstance("nonexistent", options)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Errorf("Expected 'not found' error, got: %v", err)
+	}
+}
+
+func TestStartInstance(t *testing.T) {
+	mgr := createTestManager()
+	defer mgr.Shutdown()
+
+	options := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
+		},
+	}
+
+	inst, err := mgr.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	if inst.IsRunning() {
+		t.Error("New instance should not be running")
+	}
+
+	// Start the instance
+	started, err := mgr.StartInstance("test-instance")
+	if err != nil {
+		t.Fatalf("StartInstance failed: %v", err)
+	}
+
+	if !started.IsRunning() {
+		t.Error("Instance should be running after start")
+	}
+}
+
+func TestStartInstance_Idempotent(t *testing.T) {
+	mgr := createTestManager()
+	defer mgr.Shutdown()
+
+	options := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
+		},
+	}
+
+	inst, err := mgr.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	// Start the instance
+	_, err = mgr.StartInstance("test-instance")
+	if err != nil {
+		t.Fatalf("First StartInstance failed: %v", err)
+	}
+
+	// Start again - should be idempotent
+	started, err := mgr.StartInstance("test-instance")
+	if err != nil {
+		t.Fatalf("Second StartInstance failed: %v", err)
+	}
+
+	if !started.IsRunning() {
+		t.Error("Instance should still be running")
+	}
+
+	if inst.GetStatus() != instance.Running {
+		t.Errorf("Expected Running status, got %v", inst.GetStatus())
+	}
+}
+
+func TestStopInstance(t *testing.T) {
+	mgr := createTestManager()
+	defer mgr.Shutdown()
+
+	options := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
+		},
+	}
+
+	_, err := mgr.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	_, err = mgr.StartInstance("test-instance")
+	if err != nil {
+		t.Fatalf("StartInstance failed: %v", err)
+	}
+
+	// Stop the instance
+	stopped, err := mgr.StopInstance("test-instance")
+	if err != nil {
+		t.Fatalf("StopInstance failed: %v", err)
+	}
+
+	if stopped.IsRunning() {
+		t.Error("Instance should not be running after stop")
+	}
+}
+
+func TestStopInstance_Idempotent(t *testing.T) {
+	mgr := createTestManager()
+	defer mgr.Shutdown()
+
+	options := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
+		},
+	}
+
+	inst, err := mgr.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	// Stop when already stopped - should be idempotent
+	stopped, err := mgr.StopInstance("test-instance")
+	if err != nil {
+		t.Fatalf("StopInstance failed: %v", err)
+	}
+
+	if stopped.IsRunning() {
+		t.Error("Instance should not be running")
+	}
+
+	if inst.GetStatus() != instance.Stopped {
+		t.Errorf("Expected Stopped status, got %v", inst.GetStatus())
+	}
+}
+
+func TestRestartInstance(t *testing.T) {
+	mgr := createTestManager()
+	defer mgr.Shutdown()
+
+	options := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
+		},
+	}
+
+	_, err := mgr.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	_, err = mgr.StartInstance("test-instance")
+	if err != nil {
+		t.Fatalf("StartInstance failed: %v", err)
+	}
+
+	// Restart the instance
+	restarted, err := mgr.RestartInstance("test-instance")
+	if err != nil {
+		t.Fatalf("RestartInstance failed: %v", err)
+	}
+
+	if !restarted.IsRunning() {
+		t.Error("Instance should be running after restart")
+	}
+}
+
+func TestDeleteInstance_RunningInstanceFails(t *testing.T) {
+	mgr := createTestManager()
+	defer mgr.Shutdown()
+
+	options := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+			},
+		},
+	}
+
+	_, err := mgr.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	_, err = mgr.StartInstance("test-instance")
+	if err != nil {
+		t.Fatalf("StartInstance failed: %v", err)
+	}
+
+	// Should fail to delete running instance
+	err = mgr.DeleteInstance("test-instance")
+	if err == nil {
+		t.Error("Expected error when deleting running instance")
+	}
+}
+
+func TestUpdateInstance_OnRunningInstance(t *testing.T) {
+	mgr := createTestManager()
+	defer mgr.Shutdown()
+
+	options := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+				Port:  8080,
+			},
+		},
+	}
+
+	_, err := mgr.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	_, err = mgr.StartInstance("test-instance")
+	if err != nil {
+		t.Fatalf("StartInstance failed: %v", err)
+	}
+
+	// Update running instance with new model
+	newOptions := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/new-model.gguf",
+				Port:  8080,
+			},
+		},
+	}
+
+	updated, err := mgr.UpdateInstance("test-instance", newOptions)
+	if err != nil {
+		t.Fatalf("UpdateInstance failed: %v", err)
+	}
+
+	// Should still be running after update
+	if !updated.IsRunning() {
+		t.Error("Instance should be running after update")
+	}
+
+	if updated.GetOptions().BackendOptions.LlamaServerOptions.Model != "/path/to/new-model.gguf" {
+		t.Errorf("Expected model to be updated")
+	}
+}
+
+func TestUpdateInstance_PortChange(t *testing.T) {
+	mgr := createTestManager()
+	defer mgr.Shutdown()
+
+	options := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+				Port:  8080,
+			},
+		},
+	}
+
+	inst, err := mgr.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	if inst.GetPort() != 8080 {
+		t.Errorf("Expected port 8080, got %d", inst.GetPort())
+	}
+
+	// Update with new port
+	newOptions := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+				Port:  8081,
+			},
+		},
+	}
+
+	updated, err := mgr.UpdateInstance("test-instance", newOptions)
+	if err != nil {
+		t.Fatalf("UpdateInstance failed: %v", err)
+	}
+
+	if updated.GetPort() != 8081 {
+		t.Errorf("Expected port 8081, got %d", updated.GetPort())
+	}
+
+	// Old port should be released - try to create new instance with old port
+	options2 := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model2.gguf",
+				Port:  8080,
+			},
+		},
+	}
+
+	_, err = mgr.CreateInstance("test-instance-2", options2)
+	if err != nil {
+		t.Errorf("Should be able to use old port 8080: %v", err)
 	}
 }
