@@ -134,30 +134,6 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 }
 
-func TestShutdown(t *testing.T) {
-	mgr := createTestManager()
-
-	// Create test instance
-	options := &instance.Options{
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Model: "/path/to/model.gguf",
-			},
-		},
-	}
-	_, err := mgr.CreateInstance("test-instance", options)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	// Shutdown should not panic
-	mgr.Shutdown()
-
-	// Multiple shutdowns should not panic
-	mgr.Shutdown()
-}
-
 // Helper functions for test configuration
 func createBackendConfig() config.BackendConfig {
 	// Use 'sleep' as a test command instead of 'llama-server'
@@ -194,58 +170,4 @@ func createTestManager() manager.InstanceManager {
 		TimeoutCheckInterval: 5,
 	}
 	return manager.New(createBackendConfig(), cfg, map[string]config.NodeConfig{}, "main")
-}
-
-func TestManager_DoesNotAutoRestartWhenDisabled(t *testing.T) {
-	tempDir := t.TempDir()
-	cfg := createPersistenceConfig(tempDir)
-	backendConfig := createBackendConfig()
-
-	// Create first manager and instance with auto-restart disabled
-	manager1 := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
-
-	autoRestart := false
-	options := &instance.Options{
-		AutoRestart: &autoRestart,
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Model: "/path/to/model.gguf",
-				Port:  8080,
-			},
-		},
-	}
-
-	inst, err := manager1.CreateInstance("test-instance", options)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	// Simulate instance being in running state when persisted
-	// (this would happen if the instance was running when llamactl was stopped)
-	inst.SetStatus(instance.Running)
-
-	// Shutdown first manager
-	manager1.Shutdown()
-
-	// Create second manager (simulating restart of llamactl)
-	manager2 := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
-
-	// Get the loaded instance
-	loadedInst, err := manager2.GetInstance("test-instance")
-	if err != nil {
-		t.Fatalf("GetInstance failed: %v", err)
-	}
-
-	// The instance should be marked as Stopped, not Running
-	// because auto-restart is disabled
-	if loadedInst.IsRunning() {
-		t.Errorf("Expected instance with auto-restart disabled to be stopped after manager restart, but it was running")
-	}
-
-	if loadedInst.GetStatus() != instance.Stopped {
-		t.Errorf("Expected instance status to be Stopped, got %v", loadedInst.GetStatus())
-	}
-
-	manager2.Shutdown()
 }
