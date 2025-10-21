@@ -23,8 +23,8 @@ type lifecycleManager struct {
 	shutdownOnce sync.Once
 }
 
-// NewLifecycleManager creates a new lifecycle manager.
-func NewLifecycleManager(
+// newLifecycleManager creates a new lifecycle manager.
+func newLifecycleManager(
 	registry *instanceRegistry,
 	manager InstanceManager,
 	checkInterval time.Duration,

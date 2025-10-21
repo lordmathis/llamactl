@@ -18,9 +18,9 @@ type instancePersister struct {
 	enabled      bool
 }
 
-// NewInstancePersister creates a new instance persister.
+// newInstancePersister creates a new instance persister.
 // If instancesDir is empty, persistence is disabled.
-func NewInstancePersister(instancesDir string) (*instancePersister, error) {
+func newInstancePersister(instancesDir string) (*instancePersister, error) {
 	if instancesDir == "" {
 		return &instancePersister{
 			enabled: false,

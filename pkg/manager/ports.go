@@ -23,9 +23,9 @@ type portAllocator struct {
 	rangeSize int
 }
 
-// NewPortAllocator creates a new port allocator for the given port range.
+// newPortAllocator creates a new port allocator for the given port range.
 // Returns an error if the port range is invalid.
-func NewPortAllocator(minPort, maxPort int) (*portAllocator, error) {
+func newPortAllocator(minPort, maxPort int) (*portAllocator, error) {
 	if minPort <= 0 || maxPort <= 0 {
 		return nil, fmt.Errorf("invalid port range: min=%d, max=%d (must be > 0)", minPort, maxPort)
 	}

@@ -14,8 +14,8 @@ type instanceRegistry struct {
 	running   sync.Map // map[string]struct{} - lock-free for status checks
 }
 
-// NewInstanceRegistry creates a new instance registry.
-func NewInstanceRegistry() *instanceRegistry {
+// newInstanceRegistry creates a new instance registry.
+func newInstanceRegistry() *instanceRegistry {
 	return &instanceRegistry{
 		instances: make(map[string]*instance.Instance),
 	}

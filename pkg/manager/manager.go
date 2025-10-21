@@ -52,23 +52,23 @@ func New(backendsConfig config.BackendConfig, instancesConfig config.InstancesCo
 	}
 
 	// Initialize components
-	registry := NewInstanceRegistry()
+	registry := newInstanceRegistry()
 
 	// Initialize port allocator
 	portRange := instancesConfig.PortRange
-	ports, err := NewPortAllocator(portRange[0], portRange[1])
+	ports, err := newPortAllocator(portRange[0], portRange[1])
 	if err != nil {
 		log.Fatalf("Failed to create port allocator: %v", err)
 	}
 
 	// Initialize persistence
-	persistence, err := NewInstancePersister(instancesConfig.InstancesDir)
+	persistence, err := newInstancePersister(instancesConfig.InstancesDir)
 	if err != nil {
 		log.Fatalf("Failed to create instance persister: %v", err)
 	}
 
 	// Initialize remote manager
-	remote := NewRemoteManager(nodesConfig, 30*time.Second)
+	remote := newRemoteManager(nodesConfig, 30*time.Second)
 
 	// Create manager instance
 	im := &instanceManager{
@@ -83,7 +83,7 @@ func New(backendsConfig config.BackendConfig, instancesConfig config.InstancesCo
 
 	// Initialize lifecycle manager (needs reference to manager for Stop/Evict operations)
 	checkInterval := time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute
-	im.lifecycle = NewLifecycleManager(registry, im, checkInterval, true)
+	im.lifecycle = newLifecycleManager(registry, im, checkInterval, true)
 
 	// Load existing instances from disk
 	if err := im.loadInstances(); err != nil {

@@ -23,8 +23,8 @@ type remoteManager struct {
 	instanceToNode map[string]*config.NodeConfig // instance name -> node config
 }
 
-// NewRemoteManager creates a new remote manager.
-func NewRemoteManager(nodes map[string]config.NodeConfig, timeout time.Duration) *remoteManager {
+// newRemoteManager creates a new remote manager.
+func newRemoteManager(nodes map[string]config.NodeConfig, timeout time.Duration) *remoteManager {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
