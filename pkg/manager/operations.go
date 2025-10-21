@@ -383,8 +383,9 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 	lock.Lock()
 	defer lock.Unlock()
 
+	// Idempotent: if already running, just return success
 	if inst.IsRunning() {
-		return inst, fmt.Errorf("instance with name %s is already running", name)
+		return inst, nil
 	}
 
 	// Check max running instances limit for local instances only
@@ -446,8 +447,9 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 	lock.Lock()
 	defer lock.Unlock()
 
+	// Idempotent: if already stopped, just return success
 	if !inst.IsRunning() {
-		return inst, fmt.Errorf("instance with name %s is already stopped", name)
+		return inst, nil
 	}
 
 	if err := inst.Stop(); err != nil {
