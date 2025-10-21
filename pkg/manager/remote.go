@@ -10,7 +10,6 @@ import (
 	"llamactl/pkg/instance"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 )
@@ -82,38 +81,6 @@ func (rm *remoteManager) removeInstance(instanceName string) {
 
 // --- HTTP request helpers ---
 
-// validateInstanceNameForURL ensures the instance name is safe for use in URLs.
-func validateInstanceNameForURL(name string) (string, error) {
-	if name == "" {
-		return "", fmt.Errorf("instance name cannot be empty")
-	}
-
-	// Check for path separators and parent directory references
-	// This prevents path traversal and SSRF attacks
-	if strings.Contains(name, "/") || strings.Contains(name, "\\") || strings.Contains(name, "..") {
-		return "", fmt.Errorf("invalid instance name: %s (cannot contain path separators or '..')", name)
-	}
-
-	// Check for URL-unsafe characters that could be used for injection
-	// Reject names with special URL characters that could allow URL manipulation
-	unsafeChars := []string{"?", "&", "#", "%", "=", "@", ":", " "}
-	for _, char := range unsafeChars {
-		if strings.Contains(name, char) {
-			return "", fmt.Errorf("invalid instance name: %s (cannot contain URL-unsafe characters)", name)
-		}
-	}
-
-	// Additional validation: use url.PathEscape to ensure the name doesn't change
-	// when URL-encoded (indicating it contains characters that need encoding)
-	// This catches any other characters that could cause issues in URLs
-	escaped := url.PathEscape(name)
-	if escaped != name {
-		return "", fmt.Errorf("invalid instance name: %s (contains characters requiring URL encoding)", name)
-	}
-
-	return name, nil
-}
-
 // makeRemoteRequest creates and executes an HTTP request to a remote node with context support.
 func (rm *remoteManager) makeRemoteRequest(ctx context.Context, nodeConfig *config.NodeConfig, method, path string, body any) (*http.Response, error) {
 	var reqBody io.Reader
@@ -173,12 +140,11 @@ func parseRemoteResponse(resp *http.Response, result any) error {
 
 // CreateInstance creates a new instance on a remote node.
 func (rm *remoteManager) createInstance(ctx context.Context, node *config.NodeConfig, name string, opts *instance.Options) (*instance.Instance, error) {
-	validatedName, err := validateInstanceNameForURL(name)
-	if err != nil {
-		return nil, err
-	}
+	// URL-encode the instance name to safely include it in the URL path
+	// This prevents SSRF and URL injection attacks
+	escapedName := url.PathEscape(name)
 
-	path := fmt.Sprintf("%s%s/", apiBasePath, validatedName)
+	path := fmt.Sprintf("%s%s/", apiBasePath, escapedName)
 
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, opts)
 	if err != nil {
@@ -195,12 +161,10 @@ func (rm *remoteManager) createInstance(ctx context.Context, node *config.NodeCo
 
 // GetInstance retrieves an instance by name from a remote node.
 func (rm *remoteManager) getInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
-	validatedName, err := validateInstanceNameForURL(name)
-	if err != nil {
-		return nil, err
-	}
+	// URL-encode the instance name to safely include it in the URL path
+	escapedName := url.PathEscape(name)
 
-	path := fmt.Sprintf("%s%s/", apiBasePath, validatedName)
+	path := fmt.Sprintf("%s%s/", apiBasePath, escapedName)
 	resp, err := rm.makeRemoteRequest(ctx, node, "GET", path, nil)
 	if err != nil {
 		return nil, err
@@ -216,12 +180,10 @@ func (rm *remoteManager) getInstance(ctx context.Context, node *config.NodeConfi
 
 // UpdateInstance updates an existing instance on a remote node.
 func (rm *remoteManager) updateInstance(ctx context.Context, node *config.NodeConfig, name string, opts *instance.Options) (*instance.Instance, error) {
-	validatedName, err := validateInstanceNameForURL(name)
-	if err != nil {
-		return nil, err
-	}
+	// URL-encode the instance name to safely include it in the URL path
+	escapedName := url.PathEscape(name)
 
-	path := fmt.Sprintf("%s%s/", apiBasePath, validatedName)
+	path := fmt.Sprintf("%s%s/", apiBasePath, escapedName)
 
 	resp, err := rm.makeRemoteRequest(ctx, node, "PUT", path, opts)
 	if err != nil {
@@ -238,12 +200,10 @@ func (rm *remoteManager) updateInstance(ctx context.Context, node *config.NodeCo
 
 // DeleteInstance deletes an instance from a remote node.
 func (rm *remoteManager) deleteInstance(ctx context.Context, node *config.NodeConfig, name string) error {
-	validatedName, err := validateInstanceNameForURL(name)
-	if err != nil {
-		return err
-	}
+	// URL-encode the instance name to safely include it in the URL path
+	escapedName := url.PathEscape(name)
 
-	path := fmt.Sprintf("%s%s/", apiBasePath, validatedName)
+	path := fmt.Sprintf("%s%s/", apiBasePath, escapedName)
 	resp, err := rm.makeRemoteRequest(ctx, node, "DELETE", path, nil)
 	if err != nil {
 		return err
@@ -254,12 +214,10 @@ func (rm *remoteManager) deleteInstance(ctx context.Context, node *config.NodeCo
 
 // StartInstance starts an instance on a remote node.
 func (rm *remoteManager) startInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
-	validatedName, err := validateInstanceNameForURL(name)
-	if err != nil {
-		return nil, err
-	}
+	// URL-encode the instance name to safely include it in the URL path
+	escapedName := url.PathEscape(name)
 
-	path := fmt.Sprintf("%s%s/start", apiBasePath, validatedName)
+	path := fmt.Sprintf("%s%s/start", apiBasePath, escapedName)
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, nil)
 	if err != nil {
 		return nil, err
@@ -275,12 +233,10 @@ func (rm *remoteManager) startInstance(ctx context.Context, node *config.NodeCon
 
 // StopInstance stops an instance on a remote node.
 func (rm *remoteManager) stopInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
-	validatedName, err := validateInstanceNameForURL(name)
-	if err != nil {
-		return nil, err
-	}
+	// URL-encode the instance name to safely include it in the URL path
+	escapedName := url.PathEscape(name)
 
-	path := fmt.Sprintf("%s%s/stop", apiBasePath, validatedName)
+	path := fmt.Sprintf("%s%s/stop", apiBasePath, escapedName)
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, nil)
 	if err != nil {
 		return nil, err
@@ -296,12 +252,10 @@ func (rm *remoteManager) stopInstance(ctx context.Context, node *config.NodeConf
 
 // RestartInstance restarts an instance on a remote node.
 func (rm *remoteManager) restartInstance(ctx context.Context, node *config.NodeConfig, name string) (*instance.Instance, error) {
-	validatedName, err := validateInstanceNameForURL(name)
-	if err != nil {
-		return nil, err
-	}
+	// URL-encode the instance name to safely include it in the URL path
+	escapedName := url.PathEscape(name)
 
-	path := fmt.Sprintf("%s%s/restart", apiBasePath, validatedName)
+	path := fmt.Sprintf("%s%s/restart", apiBasePath, escapedName)
 	resp, err := rm.makeRemoteRequest(ctx, node, "POST", path, nil)
 	if err != nil {
 		return nil, err
@@ -317,12 +271,10 @@ func (rm *remoteManager) restartInstance(ctx context.Context, node *config.NodeC
 
 // GetInstanceLogs retrieves logs for an instance from a remote node.
 func (rm *remoteManager) getInstanceLogs(ctx context.Context, node *config.NodeConfig, name string, numLines int) (string, error) {
-	validatedName, err := validateInstanceNameForURL(name)
-	if err != nil {
-		return "", err
-	}
+	// URL-encode the instance name to safely include it in the URL path
+	escapedName := url.PathEscape(name)
 
-	path := fmt.Sprintf("%s%s/logs?lines=%d", apiBasePath, validatedName, numLines)
+	path := fmt.Sprintf("%s%s/logs?lines=%d", apiBasePath, escapedName, numLines)
 	resp, err := rm.makeRemoteRequest(ctx, node, "GET", path, nil)
 	if err != nil {
 		return "", err
