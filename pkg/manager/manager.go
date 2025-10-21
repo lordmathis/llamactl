@@ -40,8 +40,7 @@ type instanceManager struct {
 	localNodeName   string // Name of the local node
 
 	// Synchronization
-	operationMu   sync.Mutex // DEPRECATED: Use instanceLocks for per-instance operations
-	instanceLocks sync.Map   // map[string]*sync.Mutex - per-instance locks for concurrent operations
+	instanceLocks sync.Map // map[string]*sync.Mutex - per-instance locks for concurrent operations
 	shutdownOnce  sync.Once
 }
 
