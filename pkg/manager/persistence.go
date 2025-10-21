@@ -207,12 +207,17 @@ func (p *instancePersister) validateInstanceName(name string) (string, error) {
 		return "", fmt.Errorf("instance name cannot be empty")
 	}
 
-	cleaned := filepath.Clean(name)
-
-	// After cleaning, name should not contain any path separators
-	if cleaned != name || strings.Contains(cleaned, string(filepath.Separator)) {
-		return "", fmt.Errorf("invalid instance name: %s", name)
+	// Check for path separators and parent directory references
+	// This prevents path traversal attacks
+	if strings.Contains(name, "/") || strings.Contains(name, "\\") || strings.Contains(name, "..") {
+		return "", fmt.Errorf("invalid instance name: %s (cannot contain path separators or '..')", name)
 	}
 
-	return cleaned, nil
+	// Additional check: ensure the name doesn't start with a dot (hidden files)
+	// or contain any other suspicious characters
+	if strings.HasPrefix(name, ".") {
+		return "", fmt.Errorf("invalid instance name: %s (cannot start with '.')", name)
+	}
+
+	return name, nil
 }
