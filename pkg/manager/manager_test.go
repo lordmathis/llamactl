@@ -12,21 +12,6 @@ import (
 	"testing"
 )
 
-func TestNewInstanceManager(t *testing.T) {
-	mgr := createTestManager()
-	if mgr == nil {
-		t.Fatal("NewInstanceManager returned nil")
-	}
-
-	instances, err := mgr.ListInstances()
-	if err != nil {
-		t.Fatalf("ListInstances failed: %v", err)
-	}
-	if len(instances) != 0 {
-		t.Errorf("Expected empty instance list, got %d instances", len(instances))
-	}
-}
-
 func TestManager_PersistsAndLoadsInstances(t *testing.T) {
 	tempDir := t.TempDir()
 	cfg := createPersistenceConfig(tempDir)

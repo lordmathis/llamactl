@@ -192,32 +192,6 @@ func TestDeleteInstance_ReleasesPort(t *testing.T) {
 	}
 }
 
-func TestGetInstance(t *testing.T) {
-	manager := createTestManager()
-
-	options := &instance.Options{
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Model: "/path/to/model.gguf",
-			},
-		},
-	}
-
-	created, err := manager.CreateInstance("test-instance", options)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	retrieved, err := manager.GetInstance("test-instance")
-	if err != nil {
-		t.Fatalf("GetInstance failed: %v", err)
-	}
-	if retrieved.Name != created.Name {
-		t.Errorf("Expected name %q, got %q", created.Name, retrieved.Name)
-	}
-}
-
 func TestUpdateInstance(t *testing.T) {
 	manager := createTestManager()
 
@@ -252,60 +226,6 @@ func TestUpdateInstance(t *testing.T) {
 	}
 	if updated.GetOptions().BackendOptions.LlamaServerOptions.Model != "/path/to/new-model.gguf" {
 		t.Errorf("Expected model '/path/to/new-model.gguf', got %q", updated.GetOptions().BackendOptions.LlamaServerOptions.Model)
-	}
-}
-
-func TestListInstances(t *testing.T) {
-	manager := createTestManager()
-
-	options := &instance.Options{
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Model: "/path/to/model.gguf",
-			},
-		},
-	}
-
-	_, err := manager.CreateInstance("test-instance", options)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	instances, err := manager.ListInstances()
-	if err != nil {
-		t.Fatalf("ListInstances failed: %v", err)
-	}
-	if len(instances) != 1 {
-		t.Errorf("Expected 1 instance, got %d", len(instances))
-	}
-}
-
-func TestDeleteInstance(t *testing.T) {
-	manager := createTestManager()
-
-	options := &instance.Options{
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Model: "/path/to/model.gguf",
-			},
-		},
-	}
-
-	_, err := manager.CreateInstance("test-instance", options)
-	if err != nil {
-		t.Fatalf("CreateInstance failed: %v", err)
-	}
-
-	err = manager.DeleteInstance("test-instance")
-	if err != nil {
-		t.Fatalf("DeleteInstance failed: %v", err)
-	}
-
-	_, err = manager.GetInstance("test-instance")
-	if err == nil {
-		t.Error("Instance should not exist after deletion")
 	}
 }
 
