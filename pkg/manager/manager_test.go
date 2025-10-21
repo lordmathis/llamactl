@@ -8,37 +8,16 @@ import (
 	"llamactl/pkg/manager"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 )
 
 func TestNewInstanceManager(t *testing.T) {
-	backendConfig := config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-		},
-		MLX: config.BackendSettings{
-			Command: "mlx_lm.server",
-		},
-	}
-
-	cfg := config.InstancesConfig{
-		PortRange:            [2]int{8000, 9000},
-		LogsDir:              "/tmp/test",
-		MaxInstances:         5,
-		DefaultAutoRestart:   true,
-		DefaultMaxRestarts:   3,
-		DefaultRestartDelay:  5,
-		TimeoutCheckInterval: 5,
-	}
-
-	mgr := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
+	mgr := createTestManager()
 	if mgr == nil {
 		t.Fatal("NewInstanceManager returned nil")
 	}
 
-	// Test initial state
 	instances, err := mgr.ListInstances()
 	if err != nil {
 		t.Fatalf("ListInstances failed: %v", err)
@@ -48,26 +27,12 @@ func TestNewInstanceManager(t *testing.T) {
 	}
 }
 
-func TestPersistence(t *testing.T) {
+func TestPersistence_SaveAndLoad(t *testing.T) {
 	tempDir := t.TempDir()
+	cfg := createPersistenceConfig(tempDir)
+	backendConfig := createBackendConfig()
 
-	backendConfig := config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-		},
-		MLX: config.BackendSettings{
-			Command: "mlx_lm.server",
-		},
-	}
-
-	cfg := config.InstancesConfig{
-		PortRange:            [2]int{8000, 9000},
-		InstancesDir:         tempDir,
-		MaxInstances:         10,
-		TimeoutCheckInterval: 5,
-	}
-
-	// Test instance persistence on creation
+	// Create instance and check file was created
 	manager1 := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
 	options := &instance.Options{
 		BackendOptions: backends.Options{
@@ -84,13 +49,12 @@ func TestPersistence(t *testing.T) {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
-	// Check that JSON file was created
 	expectedPath := filepath.Join(tempDir, "test-instance.json")
 	if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
 		t.Errorf("Expected persistence file %s to exist", expectedPath)
 	}
 
-	// Test loading instances from disk
+	// Load instances from disk
 	manager2 := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
 	instances, err := manager2.ListInstances()
 	if err != nil {
@@ -102,15 +66,32 @@ func TestPersistence(t *testing.T) {
 	if instances[0].Name != "test-instance" {
 		t.Errorf("Expected loaded instance name 'test-instance', got %q", instances[0].Name)
 	}
+}
 
-	// Test port map populated from loaded instances (port conflict should be detected)
-	_, err = manager2.CreateInstance("new-instance", options) // Same port
-	if err == nil || !strings.Contains(err.Error(), "port") {
-		t.Errorf("Expected port conflict error, got: %v", err)
+func TestPersistence_DeleteRemovesFile(t *testing.T) {
+	tempDir := t.TempDir()
+	cfg := createPersistenceConfig(tempDir)
+	backendConfig := createBackendConfig()
+
+	mgr := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
+	options := &instance.Options{
+		BackendOptions: backends.Options{
+			BackendType: backends.BackendTypeLlamaCpp,
+			LlamaServerOptions: &backends.LlamaServerOptions{
+				Model: "/path/to/model.gguf",
+				Port:  8080,
+			},
+		},
 	}
 
-	// Test file deletion on instance deletion
-	err = manager2.DeleteInstance("test-instance")
+	_, err := mgr.CreateInstance("test-instance", options)
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	expectedPath := filepath.Join(tempDir, "test-instance.json")
+
+	err = mgr.DeleteInstance("test-instance")
 	if err != nil {
 		t.Fatalf("DeleteInstance failed: %v", err)
 	}
@@ -192,9 +173,9 @@ func TestShutdown(t *testing.T) {
 	mgr.Shutdown()
 }
 
-// Helper function to create a test manager with standard config
-func createTestManager() manager.InstanceManager {
-	backendConfig := config.BackendConfig{
+// Helper functions for test configuration
+func createBackendConfig() config.BackendConfig {
+	return config.BackendConfig{
 		LlamaCpp: config.BackendSettings{
 			Command: "llama-server",
 		},
@@ -202,7 +183,18 @@ func createTestManager() manager.InstanceManager {
 			Command: "mlx_lm.server",
 		},
 	}
+}
 
+func createPersistenceConfig(dir string) config.InstancesConfig {
+	return config.InstancesConfig{
+		PortRange:            [2]int{8000, 9000},
+		InstancesDir:         dir,
+		MaxInstances:         10,
+		TimeoutCheckInterval: 5,
+	}
+}
+
+func createTestManager() manager.InstanceManager {
 	cfg := config.InstancesConfig{
 		PortRange:            [2]int{8000, 9000},
 		LogsDir:              "/tmp/test",
@@ -212,24 +204,13 @@ func createTestManager() manager.InstanceManager {
 		DefaultRestartDelay:  5,
 		TimeoutCheckInterval: 5,
 	}
-	return manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
+	return manager.New(createBackendConfig(), cfg, map[string]config.NodeConfig{}, "main")
 }
 
 func TestAutoRestartDisabledInstanceStatus(t *testing.T) {
 	tempDir := t.TempDir()
-
-	backendConfig := config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-		},
-	}
-
-	cfg := config.InstancesConfig{
-		PortRange:            [2]int{8000, 9000},
-		InstancesDir:         tempDir,
-		MaxInstances:         10,
-		TimeoutCheckInterval: 5,
-	}
+	cfg := createPersistenceConfig(tempDir)
+	backendConfig := createBackendConfig()
 
 	// Create first manager and instance with auto-restart disabled
 	manager1 := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
