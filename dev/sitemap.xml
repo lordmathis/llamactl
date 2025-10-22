@@ -2,37 +2,37 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://llamactl.org/dev/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <lastmod>2025-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://llamactl.org/dev/getting-started/configuration/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <lastmod>2025-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://llamactl.org/dev/getting-started/installation/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <lastmod>2025-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://llamactl.org/dev/getting-started/quick-start/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <lastmod>2025-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://llamactl.org/dev/user-guide/api-reference/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <lastmod>2025-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://llamactl.org/dev/user-guide/managing-instances/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <lastmod>2025-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://llamactl.org/dev/user-guide/troubleshooting/</loc>
-         <lastmod>2025-10-21</lastmod>
+         <lastmod>2025-10-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
