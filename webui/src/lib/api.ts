@@ -116,7 +116,7 @@ export const nodesApi = {
   list: () => apiCall<NodesMap>("/nodes"),
 
   // GET /nodes/{name}
-  get: (name: string) => apiCall<NodeResponse>(`/nodes/${name}`),
+  get: (name: string) => apiCall<NodeResponse>(`/nodes/${encodeURIComponent(name)}`),
 };
 
 // Instance API functions
@@ -125,52 +125,52 @@ export const instancesApi = {
   list: () => apiCall<Instance[]>("/instances"),
 
   // GET /instances/{name}
-  get: (name: string) => apiCall<Instance>(`/instances/${name}`),
+  get: (name: string) => apiCall<Instance>(`/instances/${encodeURIComponent(name)}`),
 
   // POST /instances/{name}
   create: (name: string, options: CreateInstanceOptions) =>
-    apiCall<Instance>(`/instances/${name}`, {
+    apiCall<Instance>(`/instances/${encodeURIComponent(name)}`, {
       method: "POST",
       body: JSON.stringify(options),
     }),
 
   // PUT /instances/{name}
   update: (name: string, options: CreateInstanceOptions) =>
-    apiCall<Instance>(`/instances/${name}`, {
+    apiCall<Instance>(`/instances/${encodeURIComponent(name)}`, {
       method: "PUT",
       body: JSON.stringify(options),
     }),
 
   // DELETE /instances/{name}
   delete: (name: string) =>
-    apiCall<void>(`/instances/${name}`, {
+    apiCall<void>(`/instances/${encodeURIComponent(name)}`, {
       method: "DELETE",
     }),
 
   // POST /instances/{name}/start
   start: (name: string) =>
-    apiCall<Instance>(`/instances/${name}/start`, {
+    apiCall<Instance>(`/instances/${encodeURIComponent(name)}/start`, {
       method: "POST",
     }),
 
   // POST /instances/{name}/stop
   stop: (name: string) =>
-    apiCall<Instance>(`/instances/${name}/stop`, {
+    apiCall<Instance>(`/instances/${encodeURIComponent(name)}/stop`, {
       method: "POST",
     }),
 
   // POST /instances/{name}/restart
   restart: (name: string) =>
-    apiCall<Instance>(`/instances/${name}/restart`, {
+    apiCall<Instance>(`/instances/${encodeURIComponent(name)}/restart`, {
       method: "POST",
     }),
 
   // GET /instances/{name}/logs
   getLogs: (name: string, lines?: number) => {
     const params = lines ? `?lines=${lines}` : "";
-    return apiCall<string>(`/instances/${name}/logs${params}`, {}, "text");
+    return apiCall<string>(`/instances/${encodeURIComponent(name)}/logs${params}`, {}, "text");
   },
 
   // GET /instances/{name}/proxy/health
-  getHealth: (name: string) => apiCall<Record<string, unknown>>(`/instances/${name}/proxy/health`),
+  getHealth: (name: string) => apiCall<Record<string, unknown>>(`/instances/${encodeURIComponent(name)}/proxy/health`),
 };

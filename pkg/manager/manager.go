@@ -1,15 +1,11 @@
 package manager
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"log"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
@@ -30,256 +26,146 @@ type InstanceManager interface {
 	Shutdown()
 }
 
-type RemoteManager interface {
-	ListRemoteInstances(node *config.NodeConfig) ([]*instance.Instance, error)
-	CreateRemoteInstance(node *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error)
-	GetRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
-	UpdateRemoteInstance(node *config.NodeConfig, name string, options *instance.Options) (*instance.Instance, error)
-	DeleteRemoteInstance(node *config.NodeConfig, name string) error
-	StartRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
-	StopRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
-	RestartRemoteInstance(node *config.NodeConfig, name string) (*instance.Instance, error)
-	GetRemoteInstanceLogs(node *config.NodeConfig, name string, numLines int) (string, error)
-}
-
 type instanceManager struct {
-	mu               sync.RWMutex
-	instances        map[string]*instance.Instance
-	runningInstances map[string]struct{}
-	ports            map[int]bool
-	instancesConfig  config.InstancesConfig
-	backendsConfig   config.BackendConfig
-	localNodeName    string // Name of the local node
+	// Components (each with own synchronization)
+	registry    *instanceRegistry
+	ports       *portAllocator
+	persistence *instancePersister
+	remote      *remoteManager
+	lifecycle   *lifecycleManager
 
-	// Timeout checker
-	timeoutChecker *time.Ticker
-	shutdownChan   chan struct{}
-	shutdownDone   chan struct{}
-	isShutdown     bool
+	// Configuration
+	instancesConfig config.InstancesConfig
+	backendsConfig  config.BackendConfig
+	localNodeName   string // Name of the local node
 
-	// Remote instance management
-	httpClient      *http.Client
-	instanceNodeMap map[string]*config.NodeConfig // Maps instance name to its node config
-	nodeConfigMap   map[string]*config.NodeConfig // Maps node name to node config for quick lookup
+	// Synchronization
+	instanceLocks sync.Map // map[string]*sync.Mutex - per-instance locks for concurrent operations
+	shutdownOnce  sync.Once
 }
 
-// NewInstanceManager creates a new instance of InstanceManager.
-func NewInstanceManager(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig, nodesConfig map[string]config.NodeConfig, localNodeName string) InstanceManager {
+// New creates a new instance of InstanceManager.
+func New(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig, nodesConfig map[string]config.NodeConfig, localNodeName string) InstanceManager {
 	if instancesConfig.TimeoutCheckInterval <= 0 {
 		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
 	}
 
-	// Build node config map for quick lookup
-	nodeConfigMap := make(map[string]*config.NodeConfig)
-	for name := range nodesConfig {
-		nodeCopy := nodesConfig[name]
-		nodeConfigMap[name] = &nodeCopy
+	// Initialize components
+	registry := newInstanceRegistry()
+
+	// Initialize port allocator
+	portRange := instancesConfig.PortRange
+	ports, err := newPortAllocator(portRange[0], portRange[1])
+	if err != nil {
+		log.Fatalf("Failed to create port allocator: %v", err)
 	}
 
+	// Initialize persistence
+	persistence, err := newInstancePersister(instancesConfig.InstancesDir)
+	if err != nil {
+		log.Fatalf("Failed to create instance persister: %v", err)
+	}
+
+	// Initialize remote manager
+	remote := newRemoteManager(nodesConfig, 30*time.Second)
+
+	// Create manager instance
 	im := &instanceManager{
-		instances:        make(map[string]*instance.Instance),
-		runningInstances: make(map[string]struct{}),
-		ports:            make(map[int]bool),
-		instancesConfig:  instancesConfig,
-		backendsConfig:   backendsConfig,
-		localNodeName:    localNodeName,
-
-		timeoutChecker: time.NewTicker(time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute),
-		shutdownChan:   make(chan struct{}),
-		shutdownDone:   make(chan struct{}),
-
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-
-		instanceNodeMap: make(map[string]*config.NodeConfig),
-		nodeConfigMap:   nodeConfigMap,
+		registry:        registry,
+		ports:           ports,
+		persistence:     persistence,
+		remote:          remote,
+		instancesConfig: instancesConfig,
+		backendsConfig:  backendsConfig,
+		localNodeName:   localNodeName,
 	}
+
+	// Initialize lifecycle manager (needs reference to manager for Stop/Evict operations)
+	checkInterval := time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute
+	im.lifecycle = newLifecycleManager(registry, im, checkInterval, true)
 
 	// Load existing instances from disk
 	if err := im.loadInstances(); err != nil {
 		log.Printf("Error loading instances: %v", err)
 	}
 
-	// Start the timeout checker goroutine after initialization is complete
-	go func() {
-		defer close(im.shutdownDone)
-
-		for {
-			select {
-			case <-im.timeoutChecker.C:
-				im.checkAllTimeouts()
-			case <-im.shutdownChan:
-				return // Exit goroutine on shutdown
-			}
-		}
-	}()
+	// Start the lifecycle manager
+	im.lifecycle.start()
 
 	return im
 }
 
-func (im *instanceManager) getNextAvailablePort() (int, error) {
-	portRange := im.instancesConfig.PortRange
-
-	for port := portRange[0]; port <= portRange[1]; port++ {
-		if !im.ports[port] {
-			im.ports[port] = true
-			return port, nil
-		}
-	}
-
-	return 0, fmt.Errorf("no available ports in the specified range")
-}
-
-// persistInstance saves an instance to its JSON file
-func (im *instanceManager) persistInstance(instance *instance.Instance) error {
-	if im.instancesConfig.InstancesDir == "" {
-		return nil // Persistence disabled
-	}
-
-	instancePath := filepath.Join(im.instancesConfig.InstancesDir, instance.Name+".json")
-	tempPath := instancePath + ".tmp"
-
-	// Serialize instance to JSON
-	jsonData, err := json.MarshalIndent(instance, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal instance %s: %w", instance.Name, err)
-	}
-
-	// Write to temporary file first
-	if err := os.WriteFile(tempPath, jsonData, 0644); err != nil {
-		return fmt.Errorf("failed to write temp file for instance %s: %w", instance.Name, err)
-	}
-
-	// Atomic rename
-	if err := os.Rename(tempPath, instancePath); err != nil {
-		os.Remove(tempPath) // Clean up temp file
-		return fmt.Errorf("failed to rename temp file for instance %s: %w", instance.Name, err)
-	}
-
-	return nil
+// persistInstance saves an instance using the persistence component
+func (im *instanceManager) persistInstance(inst *instance.Instance) error {
+	return im.persistence.save(inst)
 }
 
 func (im *instanceManager) Shutdown() {
-	im.mu.Lock()
+	im.shutdownOnce.Do(func() {
+		// 1. Stop lifecycle manager (stops timeout checker)
+		im.lifecycle.stop()
 
-	// Check if already shutdown
-	if im.isShutdown {
-		im.mu.Unlock()
-		return
-	}
-	im.isShutdown = true
+		// 2. Get running instances (no lock needed - registry handles it)
+		running := im.registry.listRunning()
 
-	// Signal the timeout checker to stop
-	close(im.shutdownChan)
-
-	// Create a list of running instances to stop
-	var runningInstances []*instance.Instance
-	var runningNames []string
-	for name, inst := range im.instances {
-		if inst.IsRunning() {
-			runningInstances = append(runningInstances, inst)
-			runningNames = append(runningNames, name)
-		}
-	}
-
-	// Release lock before stopping instances to avoid deadlock
-	im.mu.Unlock()
-
-	// Wait for the timeout checker goroutine to actually stop
-	<-im.shutdownDone
-
-	// Now stop the ticker
-	if im.timeoutChecker != nil {
-		im.timeoutChecker.Stop()
-	}
-
-	// Stop instances without holding the manager lock
-	var wg sync.WaitGroup
-	wg.Add(len(runningInstances))
-
-	for i, inst := range runningInstances {
-		go func(name string, inst *instance.Instance) {
-			defer wg.Done()
-			fmt.Printf("Stopping instance %s...\n", name)
-			// Attempt to stop the instance gracefully
-			if err := inst.Stop(); err != nil {
-				fmt.Printf("Error stopping instance %s: %v\n", name, err)
+		// 3. Stop local instances concurrently
+		var wg sync.WaitGroup
+		for _, inst := range running {
+			if inst.IsRemote() {
+				continue // Skip remote instances
 			}
-		}(runningNames[i], inst)
-	}
-
-	wg.Wait()
-	fmt.Println("All instances stopped.")
+			wg.Add(1)
+			go func(inst *instance.Instance) {
+				defer wg.Done()
+				fmt.Printf("Stopping instance %s...\n", inst.Name)
+				if err := inst.Stop(); err != nil {
+					fmt.Printf("Error stopping instance %s: %v\n", inst.Name, err)
+				}
+			}(inst)
+		}
+		wg.Wait()
+		fmt.Println("All instances stopped.")
+	})
 }
 
-// loadInstances restores all instances from disk
+// loadInstances restores all instances from disk using the persistence component
 func (im *instanceManager) loadInstances() error {
-	if im.instancesConfig.InstancesDir == "" {
-		return nil // Persistence disabled
-	}
-
-	// Check if instances directory exists
-	if _, err := os.Stat(im.instancesConfig.InstancesDir); os.IsNotExist(err) {
-		return nil // No instances directory, start fresh
-	}
-
-	// Read all JSON files from instances directory
-	files, err := os.ReadDir(im.instancesConfig.InstancesDir)
+	// Load all instances from persistence
+	instances, err := im.persistence.loadAll()
 	if err != nil {
-		return fmt.Errorf("failed to read instances directory: %w", err)
+		return fmt.Errorf("failed to load instances: %w", err)
 	}
 
-	loadedCount := 0
-	for _, file := range files {
-		if file.IsDir() || !strings.HasSuffix(file.Name(), ".json") {
+	if len(instances) == 0 {
+		return nil
+	}
+
+	// Process each loaded instance
+	for _, persistedInst := range instances {
+		if err := im.loadInstance(persistedInst); err != nil {
+			log.Printf("Failed to load instance %s: %v", persistedInst.Name, err)
 			continue
 		}
-
-		instanceName := strings.TrimSuffix(file.Name(), ".json")
-		instancePath := filepath.Join(im.instancesConfig.InstancesDir, file.Name())
-
-		if err := im.loadInstance(instanceName, instancePath); err != nil {
-			log.Printf("Failed to load instance %s: %v", instanceName, err)
-			continue
-		}
-
-		loadedCount++
 	}
 
-	if loadedCount > 0 {
-		log.Printf("Loaded %d instances from persistence", loadedCount)
-		// Auto-start instances that have auto-restart enabled
-		go im.autoStartInstances()
-	}
+	log.Printf("Loaded %d instances from persistence", len(instances))
+
+	// Auto-start instances that have auto-restart enabled
+	go im.autoStartInstances()
 
 	return nil
 }
 
-// loadInstance loads a single instance from its JSON file
-func (im *instanceManager) loadInstance(name, path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to read instance file: %w", err)
-	}
-
-	var persistedInstance instance.Instance
-	if err := json.Unmarshal(data, &persistedInstance); err != nil {
-		return fmt.Errorf("failed to unmarshal instance: %w", err)
-	}
-
-	// Validate the instance name matches the filename
-	if persistedInstance.Name != name {
-		return fmt.Errorf("instance name mismatch: file=%s, instance.Name=%s", name, persistedInstance.Name)
-	}
-
-	options := persistedInstance.GetOptions()
+// loadInstance loads a single persisted instance and adds it to the registry
+func (im *instanceManager) loadInstance(persistedInst *instance.Instance) error {
+	name := persistedInst.Name
+	options := persistedInst.GetOptions()
 
 	// Check if this is a remote instance (local node not in the Nodes set)
 	var isRemote bool
 	var nodeName string
 	if options != nil {
-		if _, isLocal := options.Nodes[im.localNodeName]; !isLocal {
+		if _, isLocal := options.Nodes[im.localNodeName]; !isLocal && len(options.Nodes) > 0 {
 			// Get the first node from the set
 			for node := range options.Nodes {
 				nodeName = node
@@ -293,7 +179,7 @@ func (im *instanceManager) loadInstance(name, path string) error {
 	if !isRemote {
 		// Only set status callback for local instances
 		statusCallback = func(oldStatus, newStatus instance.Status) {
-			im.onStatusChange(persistedInstance.Name, oldStatus, newStatus)
+			im.onStatusChange(name, oldStatus, newStatus)
 		}
 	}
 
@@ -301,38 +187,42 @@ func (im *instanceManager) loadInstance(name, path string) error {
 	inst := instance.New(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
-	inst.Created = persistedInstance.Created
-	inst.SetStatus(persistedInstance.GetStatus())
+	inst.Created = persistedInst.Created
+	inst.SetStatus(persistedInst.GetStatus())
 
 	// Handle remote instance mapping
 	if isRemote {
-		nodeConfig, exists := im.nodeConfigMap[nodeName]
-		if !exists {
-			return fmt.Errorf("node %s not found for remote instance %s", nodeName, name)
+		// Map instance to node in remote manager
+		if err := im.remote.setInstanceNode(name, nodeName); err != nil {
+			return fmt.Errorf("failed to set instance node: %w", err)
 		}
-		im.instanceNodeMap[name] = nodeConfig
 	} else {
-		// Check for port conflicts only for local instances
+		// Allocate port for local instances
 		if inst.GetPort() > 0 {
 			port := inst.GetPort()
-			if im.ports[port] {
-				return fmt.Errorf("port conflict: instance %s wants port %d which is already in use", name, port)
+			if err := im.ports.allocateSpecific(port, name); err != nil {
+				return fmt.Errorf("port conflict: instance %s wants port %d which is already in use: %w", name, port, err)
 			}
-			im.ports[port] = true
 		}
 	}
 
-	im.instances[name] = inst
+	// Add instance to registry
+	if err := im.registry.add(inst); err != nil {
+		return fmt.Errorf("failed to add instance to registry: %w", err)
+	}
+
 	return nil
 }
 
 // autoStartInstances starts instances that were running when persisted and have auto-restart enabled
 // For instances with auto-restart disabled, it sets their status to Stopped
 func (im *instanceManager) autoStartInstances() {
-	im.mu.RLock()
+	instances := im.registry.list()
+
 	var instancesToStart []*instance.Instance
 	var instancesToStop []*instance.Instance
-	for _, inst := range im.instances {
+
+	for _, inst := range instances {
 		if inst.IsRunning() && // Was running when persisted
 			inst.GetOptions() != nil &&
 			inst.GetOptions().AutoRestart != nil {
@@ -344,12 +234,12 @@ func (im *instanceManager) autoStartInstances() {
 			}
 		}
 	}
-	im.mu.RUnlock()
 
 	// Stop instances that have auto-restart disabled
 	for _, inst := range instancesToStop {
 		log.Printf("Instance %s was running but auto-restart is disabled, setting status to stopped", inst.Name)
 		inst.SetStatus(instance.Stopped)
+		im.registry.markStopped(inst.Name)
 	}
 
 	// Start instances that have auto-restart enabled
@@ -357,11 +247,13 @@ func (im *instanceManager) autoStartInstances() {
 		log.Printf("Auto-starting instance %s", inst.Name)
 		// Reset running state before starting (since Start() expects stopped instance)
 		inst.SetStatus(instance.Stopped)
+		im.registry.markStopped(inst.Name)
 
 		// Check if this is a remote instance
-		if node := im.getNodeForInstance(inst); node != nil {
-			// Remote instance - use StartRemoteInstance
-			if _, err := im.StartRemoteInstance(node, inst.Name); err != nil {
+		if node, exists := im.remote.getNodeForInstance(inst.Name); exists && node != nil {
+			// Remote instance - use remote manager with context
+			ctx := context.Background()
+			if _, err := im.remote.startInstance(ctx, node, inst.Name); err != nil {
 				log.Printf("Failed to auto-start remote instance %s: %v", inst.Name, err)
 			}
 		} else {
@@ -374,13 +266,10 @@ func (im *instanceManager) autoStartInstances() {
 }
 
 func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus instance.Status) {
-	im.mu.Lock()
-	defer im.mu.Unlock()
-
 	if newStatus == instance.Running {
-		im.runningInstances[name] = struct{}{}
+		im.registry.markRunning(name)
 	} else {
-		delete(im.runningInstances, name)
+		im.registry.markStopped(name)
 	}
 }
 
@@ -391,10 +280,27 @@ func (im *instanceManager) getNodeForInstance(inst *instance.Instance) *config.N
 		return nil
 	}
 
-	// Check if we have a cached mapping
-	if nodeConfig, exists := im.instanceNodeMap[inst.Name]; exists {
+	// Check if we have a node mapping in remote manager
+	if nodeConfig, exists := im.remote.getNodeForInstance(inst.Name); exists {
 		return nodeConfig
 	}
 
 	return nil
+}
+
+// lockInstance returns the lock for a specific instance, creating one if needed.
+// This allows concurrent operations on different instances while preventing
+// concurrent operations on the same instance.
+func (im *instanceManager) lockInstance(name string) *sync.Mutex {
+	lock, _ := im.instanceLocks.LoadOrStore(name, &sync.Mutex{})
+	return lock.(*sync.Mutex)
+}
+
+// unlockAndCleanup unlocks the instance lock and removes it from the map.
+// This should only be called when deleting an instance to prevent memory leaks.
+func (im *instanceManager) unlockAndCleanup(name string) {
+	if lock, ok := im.instanceLocks.Load(name); ok {
+		lock.(*sync.Mutex).Unlock()
+		im.instanceLocks.Delete(name)
+	}
 }

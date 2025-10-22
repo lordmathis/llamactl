@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"llamactl/pkg/instance"
+	"llamactl/pkg/validation"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -85,8 +86,15 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
+		// Validate instance name at the entry point
+		validatedName, err := validation.ValidateInstanceName(modelName)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		// Route to the appropriate inst based on instance name
-		inst, err := h.InstanceManager.GetInstance(modelName)
+		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
 			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
 			return
@@ -96,7 +104,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		if inst.IsRemote() {
 			// Restore the body for the remote proxy
 			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-			h.RemoteOpenAIProxy(w, r, modelName, inst)
+			h.RemoteOpenAIProxy(w, r, validatedName, inst)
 			return
 		}
 
@@ -122,7 +130,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			}
 
 			// If on-demand start is enabled, start the instance
-			if _, err := h.InstanceManager.StartInstance(modelName); err != nil {
+			if _, err := h.InstanceManager.StartInstance(validatedName); err != nil {
 				http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
 				return
 			}

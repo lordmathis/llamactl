@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
+	"llamactl/pkg/validation"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -22,13 +23,16 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 
 		// Get the instance name from the URL parameter
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		// Validate instance name at the entry point
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Route to the appropriate inst based on instance name
-		inst, err := h.InstanceManager.GetInstance(name)
+		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
 			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
 			return
@@ -66,7 +70,7 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 			}
 
 			// If on-demand start is enabled, start the instance
-			if _, err := h.InstanceManager.StartInstance(name); err != nil {
+			if _, err := h.InstanceManager.StartInstance(validatedName); err != nil {
 				http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -85,7 +89,7 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 		}
 
 		// Strip the "/llama-cpp/<name>" prefix from the request URL
-		prefix := fmt.Sprintf("/llama-cpp/%s", name)
+		prefix := fmt.Sprintf("/llama-cpp/%s", validatedName)
 		r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 
 		// Update the last request time for the instance
