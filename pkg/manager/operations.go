@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"llamactl/pkg/instance"
-	"llamactl/pkg/validation"
 	"log"
 )
 
@@ -58,12 +57,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 		return nil, fmt.Errorf("instance options cannot be nil")
 	}
 
-	name, err := validation.ValidateInstanceName(name)
-	if err != nil {
-		return nil, err
-	}
-
-	err = options.BackendOptions.ValidateInstanceOptions()
+	err := options.BackendOptions.ValidateInstanceOptions()
 	if err != nil {
 		return nil, err
 	}

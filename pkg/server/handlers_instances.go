@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
+	"llamactl/pkg/validation"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -55,8 +56,10 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 func (h *Handler) CreateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -66,7 +69,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 			return
 		}
 
-		inst, err := h.InstanceManager.CreateInstance(name, &options)
+		inst, err := h.InstanceManager.CreateInstance(validatedName, &options)
 		if err != nil {
 			http.Error(w, "Failed to create instance: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -95,12 +98,14 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 func (h *Handler) GetInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		inst, err := h.InstanceManager.GetInstance(name)
+		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
 			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
 			return
@@ -130,8 +135,10 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 func (h *Handler) UpdateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -141,7 +148,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 			return
 		}
 
-		inst, err := h.InstanceManager.UpdateInstance(name, &options)
+		inst, err := h.InstanceManager.UpdateInstance(validatedName, &options)
 		if err != nil {
 			http.Error(w, "Failed to update instance: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -169,12 +176,14 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 func (h *Handler) StartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		inst, err := h.InstanceManager.StartInstance(name)
+		inst, err := h.InstanceManager.StartInstance(validatedName)
 		if err != nil {
 			// Check if error is due to maximum running instances limit
 			if _, ok := err.(manager.MaxRunningInstancesError); ok {
@@ -208,12 +217,14 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 func (h *Handler) StopInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		inst, err := h.InstanceManager.StopInstance(name)
+		inst, err := h.InstanceManager.StopInstance(validatedName)
 		if err != nil {
 			http.Error(w, "Failed to stop instance: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -241,12 +252,14 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 func (h *Handler) RestartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		inst, err := h.InstanceManager.RestartInstance(name)
+		inst, err := h.InstanceManager.RestartInstance(validatedName)
 		if err != nil {
 			http.Error(w, "Failed to restart instance: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -273,12 +286,14 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 func (h *Handler) DeleteInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		if err := h.InstanceManager.DeleteInstance(name); err != nil {
+		if err := h.InstanceManager.DeleteInstance(validatedName); err != nil {
 			http.Error(w, "Failed to delete instance: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -302,8 +317,10 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -319,7 +336,7 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 		}
 
 		// Use the instance manager which handles both local and remote instances
-		logs, err := h.InstanceManager.GetInstanceLogs(name, numLines)
+		logs, err := h.InstanceManager.GetInstanceLogs(validatedName, numLines)
 		if err != nil {
 			http.Error(w, "Failed to get logs: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -345,12 +362,14 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 func (h *Handler) ProxyToInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		if name == "" {
-			http.Error(w, "Instance name cannot be empty", http.StatusBadRequest)
+
+		validatedName, err := validation.ValidateInstanceName(name)
+		if err != nil {
+			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		inst, err := h.InstanceManager.GetInstance(name)
+		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
 			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -358,7 +377,7 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 
 		// Check if this is a remote instance
 		if inst.IsRemote() {
-			h.RemoteInstanceProxy(w, r, name, inst)
+			h.RemoteInstanceProxy(w, r, validatedName, inst)
 			return
 		}
 
@@ -375,7 +394,7 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 		}
 
 		// Strip the "/api/v1/instances/<name>/proxy" prefix from the request URL
-		prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", name)
+		prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", validatedName)
 		r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 
 		// Update the last request time for the instance
