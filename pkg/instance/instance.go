@@ -319,38 +319,5 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	i.status = aux.Status
 	i.options = aux.Options
 
-	// Handle options with validation and defaults
-	if i.options != nil {
-		opts := i.options.get()
-		if opts != nil {
-			opts.validateAndApplyDefaults(i.Name, i.globalInstanceSettings)
-		}
-	}
-
-	// Initialize fields that are not serialized or may be nil
-	if i.status == nil {
-		i.status = newStatus(Stopped)
-	}
-	if i.options == nil {
-		i.options = newOptions(&Options{})
-	}
-
-	// Recreate the proxy
-	var err error
-	i.proxy, err = newProxy(i)
-	if err != nil {
-		log.Println("Warning: Failed to create proxy for instance", i.Name, "-", err)
-	}
-
-	// Only create logger, proxy, and process for non-remote instances
-	if !i.IsRemote() {
-		if i.logger == nil && i.globalInstanceSettings != nil {
-			i.logger = newLogger(i.Name, i.globalInstanceSettings.LogsDir)
-		}
-		if i.process == nil {
-			i.process = newProcess(i)
-		}
-	}
-
 	return nil
 }
