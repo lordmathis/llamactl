@@ -30,11 +30,12 @@ type Instance struct {
 }
 
 // New creates a new instance with the given name, log path, options and local node name
-func New(name string, globalConfig *config.AppConfig, opts *Options, localNodeName string, onStatusChange func(oldStatus, newStatus Status)) *Instance {
+func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusChange func(oldStatus, newStatus Status)) *Instance {
 
 	globalInstanceSettings := &globalConfig.Instances
 	globalBackendSettings := &globalConfig.Backends
 	globalNodesConfig := globalConfig.Nodes
+	localNodeName := globalConfig.LocalNode
 
 	// Validate and copy options
 	opts.validateAndApplyDefaults(name, globalInstanceSettings)

@@ -35,9 +35,7 @@ type instanceManager struct {
 	lifecycle   *lifecycleManager
 
 	// Configuration
-	instancesConfig config.InstancesConfig
-	backendsConfig  config.BackendConfig
-	localNodeName   string // Name of the local node
+	globalConfig *config.AppConfig
 
 	// Synchronization
 	instanceLocks sync.Map // map[string]*sync.Mutex - per-instance locks for concurrent operations
@@ -45,43 +43,42 @@ type instanceManager struct {
 }
 
 // New creates a new instance of InstanceManager.
-func New(backendsConfig config.BackendConfig, instancesConfig config.InstancesConfig, nodesConfig map[string]config.NodeConfig, localNodeName string) InstanceManager {
-	if instancesConfig.TimeoutCheckInterval <= 0 {
-		instancesConfig.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
+func New(globalConfig *config.AppConfig) InstanceManager {
+
+	if globalConfig.Instances.TimeoutCheckInterval <= 0 {
+		globalConfig.Instances.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
 	}
 
 	// Initialize components
 	registry := newInstanceRegistry()
 
 	// Initialize port allocator
-	portRange := instancesConfig.PortRange
+	portRange := globalConfig.Instances.PortRange
 	ports, err := newPortAllocator(portRange[0], portRange[1])
 	if err != nil {
 		log.Fatalf("Failed to create port allocator: %v", err)
 	}
 
 	// Initialize persistence
-	persistence, err := newInstancePersister(instancesConfig.InstancesDir)
+	persistence, err := newInstancePersister(globalConfig.Instances.InstancesDir)
 	if err != nil {
 		log.Fatalf("Failed to create instance persister: %v", err)
 	}
 
 	// Initialize remote manager
-	remote := newRemoteManager(nodesConfig, 30*time.Second)
+	remote := newRemoteManager(globalConfig.Nodes, 30*time.Second)
 
 	// Create manager instance
 	im := &instanceManager{
-		registry:        registry,
-		ports:           ports,
-		persistence:     persistence,
-		remote:          remote,
-		instancesConfig: instancesConfig,
-		backendsConfig:  backendsConfig,
-		localNodeName:   localNodeName,
+		registry:     registry,
+		ports:        ports,
+		persistence:  persistence,
+		remote:       remote,
+		globalConfig: globalConfig,
 	}
 
 	// Initialize lifecycle manager (needs reference to manager for Stop/Evict operations)
-	checkInterval := time.Duration(instancesConfig.TimeoutCheckInterval) * time.Minute
+	checkInterval := time.Duration(globalConfig.Instances.TimeoutCheckInterval) * time.Minute
 	im.lifecycle = newLifecycleManager(registry, im, checkInterval, true)
 
 	// Load existing instances from disk
@@ -165,7 +162,7 @@ func (im *instanceManager) loadInstance(persistedInst *instance.Instance) error 
 	var isRemote bool
 	var nodeName string
 	if options != nil {
-		if _, isLocal := options.Nodes[im.localNodeName]; !isLocal && len(options.Nodes) > 0 {
+		if _, isLocal := options.Nodes[im.globalConfig.LocalNode]; !isLocal && len(options.Nodes) > 0 {
 			// Get the first node from the set
 			for node := range options.Nodes {
 				nodeName = node
@@ -184,7 +181,7 @@ func (im *instanceManager) loadInstance(persistedInst *instance.Instance) error 
 	}
 
 	// Create new inst using NewInstance (handles validation, defaults, setup)
-	inst := instance.New(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, statusCallback)
+	inst := instance.New(name, im.globalConfig, options, statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
 	inst.Created = persistedInst.Created
