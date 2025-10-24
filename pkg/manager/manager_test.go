@@ -14,11 +14,10 @@ import (
 
 func TestManager_PersistsAndLoadsInstances(t *testing.T) {
 	tempDir := t.TempDir()
-	cfg := createPersistenceConfig(tempDir)
-	backendConfig := createBackendConfig()
+	appConfig := createTestAppConfig(tempDir)
 
 	// Create instance and check file was created
-	manager1 := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
+	manager1 := manager.New(appConfig)
 	options := &instance.Options{
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
@@ -40,7 +39,7 @@ func TestManager_PersistsAndLoadsInstances(t *testing.T) {
 	}
 
 	// Load instances from disk
-	manager2 := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
+	manager2 := manager.New(appConfig)
 	instances, err := manager2.ListInstances()
 	if err != nil {
 		t.Fatalf("ListInstances failed: %v", err)
@@ -55,10 +54,9 @@ func TestManager_PersistsAndLoadsInstances(t *testing.T) {
 
 func TestDeleteInstance_RemovesPersistenceFile(t *testing.T) {
 	tempDir := t.TempDir()
-	cfg := createPersistenceConfig(tempDir)
-	backendConfig := createBackendConfig()
+	appConfig := createTestAppConfig(tempDir)
 
-	mgr := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
+	mgr := manager.New(appConfig)
 	options := &instance.Options{
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
@@ -135,39 +133,57 @@ func TestConcurrentAccess(t *testing.T) {
 }
 
 // Helper functions for test configuration
-func createBackendConfig() config.BackendConfig {
+func createTestAppConfig(instancesDir string) *config.AppConfig {
 	// Use 'sleep' as a test command instead of 'llama-server'
 	// This allows tests to run in CI environments without requiring actual LLM binaries
 	// The sleep command will be invoked with model paths and other args, which it ignores
-	return config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "sleep",
+	return &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{
+				Command: "sleep",
+			},
+			MLX: config.BackendSettings{
+				Command: "sleep",
+			},
 		},
-		MLX: config.BackendSettings{
-			Command: "sleep",
+		Instances: config.InstancesConfig{
+			PortRange:            [2]int{8000, 9000},
+			InstancesDir:         instancesDir,
+			LogsDir:              instancesDir,
+			MaxInstances:         10,
+			MaxRunningInstances:  10,
+			DefaultAutoRestart:   true,
+			DefaultMaxRestarts:   3,
+			DefaultRestartDelay:  5,
+			TimeoutCheckInterval: 5,
 		},
-	}
-}
-
-func createPersistenceConfig(dir string) config.InstancesConfig {
-	return config.InstancesConfig{
-		PortRange:            [2]int{8000, 9000},
-		InstancesDir:         dir,
-		MaxInstances:         10,
-		TimeoutCheckInterval: 5,
+		LocalNode: "main",
+		Nodes:     map[string]config.NodeConfig{},
 	}
 }
 
 func createTestManager() manager.InstanceManager {
-	cfg := config.InstancesConfig{
-		PortRange:            [2]int{8000, 9000},
-		LogsDir:              "/tmp/test",
-		MaxInstances:         10,
-		MaxRunningInstances:  10,
-		DefaultAutoRestart:   true,
-		DefaultMaxRestarts:   3,
-		DefaultRestartDelay:  5,
-		TimeoutCheckInterval: 5,
+	appConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{
+				Command: "sleep",
+			},
+			MLX: config.BackendSettings{
+				Command: "sleep",
+			},
+		},
+		Instances: config.InstancesConfig{
+			PortRange:            [2]int{8000, 9000},
+			LogsDir:              "/tmp/test",
+			MaxInstances:         10,
+			MaxRunningInstances:  10,
+			DefaultAutoRestart:   true,
+			DefaultMaxRestarts:   3,
+			DefaultRestartDelay:  5,
+			TimeoutCheckInterval: 5,
+		},
+		LocalNode: "main",
+		Nodes:     map[string]config.NodeConfig{},
 	}
-	return manager.New(createBackendConfig(), cfg, map[string]config.NodeConfig{}, "main")
+	return manager.New(appConfig)
 }
