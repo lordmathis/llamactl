@@ -17,6 +17,7 @@ type Instance struct {
 	// Global configuration
 	globalInstanceSettings *config.InstancesConfig
 	globalBackendSettings  *config.BackendConfig
+	globalNodesConfig      map[string]config.NodeConfig
 	localNodeName          string `json:"-"` // Name of the local node for remote detection
 
 	status  *status  `json:"-"`
@@ -29,7 +30,12 @@ type Instance struct {
 }
 
 // New creates a new instance with the given name, log path, options and local node name
-func New(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, opts *Options, localNodeName string, onStatusChange func(oldStatus, newStatus Status)) *Instance {
+func New(name string, globalConfig *config.AppConfig, opts *Options, localNodeName string, onStatusChange func(oldStatus, newStatus Status)) *Instance {
+
+	globalInstanceSettings := &globalConfig.Instances
+	globalBackendSettings := &globalConfig.Backends
+	globalNodesConfig := globalConfig.Nodes
+
 	// Validate and copy options
 	opts.validateAndApplyDefaults(name, globalInstanceSettings)
 
@@ -45,15 +51,21 @@ func New(name string, globalBackendSettings *config.BackendConfig, globalInstanc
 		options:                options,
 		globalInstanceSettings: globalInstanceSettings,
 		globalBackendSettings:  globalBackendSettings,
+		globalNodesConfig:      globalNodesConfig,
 		localNodeName:          localNodeName,
 		Created:                time.Now().Unix(),
 		status:                 status,
 	}
 
+	var err error
+	instance.proxy, err = newProxy(instance)
+	if err != nil {
+		log.Println("Warning: Failed to create proxy for instance", instance.Name, "-", err)
+	}
+
 	// Only create logger, proxy, and process for local instances
 	if !instance.IsRemote() {
 		instance.logger = newLogger(name, globalInstanceSettings.LogsDir)
-		instance.proxy = newProxy(instance)
 		instance.process = newProcess(instance)
 	}
 
@@ -323,13 +335,17 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 		i.options = newOptions(&Options{})
 	}
 
+	// Recreate the proxy
+	var err error
+	i.proxy, err = newProxy(i)
+	if err != nil {
+		log.Println("Warning: Failed to create proxy for instance", i.Name, "-", err)
+	}
+
 	// Only create logger, proxy, and process for non-remote instances
 	if !i.IsRemote() {
 		if i.logger == nil && i.globalInstanceSettings != nil {
 			i.logger = newLogger(i.Name, i.globalInstanceSettings.LogsDir)
-		}
-		if i.proxy == nil {
-			i.proxy = newProxy(i)
 		}
 		if i.process == nil {
 			i.process = newProcess(i)
