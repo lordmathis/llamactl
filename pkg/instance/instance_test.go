@@ -577,7 +577,9 @@ func TestRemoteInstanceOperations(t *testing.T) {
 			LlamaCpp: config.BackendSettings{Command: "llama-server"},
 		},
 		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
-		Nodes:     map[string]config.NodeConfig{},
+		Nodes: map[string]config.NodeConfig{
+			"remote-node": {Address: "http://remote-node:8080"},
+		},
 		LocalNode: "main",
 	}
 	options := &instance.Options{
@@ -612,8 +614,8 @@ func TestRemoteInstanceOperations(t *testing.T) {
 	}
 
 	// GetProxy should fail for remote instance
-	if _, err := inst.GetProxy(); err == nil {
-		t.Error("Expected error when getting proxy for remote instance")
+	if _, err := inst.GetProxy(); err != nil {
+		t.Error("Expected no error when getting proxy for remote instance")
 	}
 
 	// GetLogs should fail for remote instance

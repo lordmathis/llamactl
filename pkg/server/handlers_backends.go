@@ -49,7 +49,7 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 			return
 		}
 
-		if !inst.IsRunning() {
+		if !inst.IsRemote() && !inst.IsRunning() {
 
 			if !(onDemandStart && options.OnDemandStart != nil && *options.OnDemandStart) {
 				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)

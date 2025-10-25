@@ -3,13 +3,9 @@ package server
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
-	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 )
 
 // OpenAIListInstances godoc
@@ -100,15 +96,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
-		// Check if this is a remote instance
-		if inst.IsRemote() {
-			// Restore the body for the remote proxy
-			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-			h.RemoteOpenAIProxy(w, r, validatedName, inst)
-			return
-		}
-
-		if !inst.IsRunning() {
+		if !inst.IsRemote() && !inst.IsRunning() {
 			options := inst.GetOptions()
 			allowOnDemand := options != nil && options.OnDemandStart != nil && *options.OnDemandStart
 			if !allowOnDemand {
@@ -157,67 +145,4 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 
 		proxy.ServeHTTP(w, r)
 	}
-}
-
-// RemoteOpenAIProxy proxies OpenAI-compatible requests to a remote instance
-func (h *Handler) RemoteOpenAIProxy(w http.ResponseWriter, r *http.Request, modelName string, inst *instance.Instance) {
-	// Get the node name from instance options
-	options := inst.GetOptions()
-	if options == nil {
-		http.Error(w, "Instance has no options configured", http.StatusInternalServerError)
-		return
-	}
-
-	// Get the first node from the set
-	var nodeName string
-	for node := range options.Nodes {
-		nodeName = node
-		break
-	}
-	if nodeName == "" {
-		http.Error(w, "Instance has no node configured", http.StatusInternalServerError)
-		return
-	}
-
-	// Check if we have a cached proxy for this node
-	h.remoteProxiesMu.RLock()
-	proxy, exists := h.remoteProxies[nodeName]
-	h.remoteProxiesMu.RUnlock()
-
-	if !exists {
-		// Find node configuration
-		nodeConfig, exists := h.cfg.Nodes[nodeName]
-		if !exists {
-			http.Error(w, fmt.Sprintf("Node %s not found", nodeName), http.StatusInternalServerError)
-			return
-		}
-
-		// Create reverse proxy to remote node
-		targetURL, err := url.Parse(nodeConfig.Address)
-		if err != nil {
-			http.Error(w, "Failed to parse node address: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		proxy = httputil.NewSingleHostReverseProxy(targetURL)
-
-		// Modify request before forwarding
-		originalDirector := proxy.Director
-		apiKey := nodeConfig.APIKey // Capture for closure
-		proxy.Director = func(req *http.Request) {
-			originalDirector(req)
-			// Add API key if configured
-			if apiKey != "" {
-				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
-			}
-		}
-
-		// Cache the proxy
-		h.remoteProxiesMu.Lock()
-		h.remoteProxies[nodeName] = proxy
-		h.remoteProxiesMu.Unlock()
-	}
-
-	// Forward the request using the cached proxy
-	proxy.ServeHTTP(w, r)
 }

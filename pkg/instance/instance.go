@@ -188,14 +188,6 @@ func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 		return nil, fmt.Errorf("instance %s has no proxy component", i.Name)
 	}
 
-	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
-	opts := i.GetOptions()
-	if opts != nil && len(opts.Nodes) > 0 {
-		if _, isLocal := opts.Nodes[i.localNodeName]; !isLocal {
-			return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
-		}
-	}
-
 	return i.proxy.get()
 }
 
