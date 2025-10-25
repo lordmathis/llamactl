@@ -88,9 +88,11 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 			return
 		}
 
-		// Strip the "/llama-cpp/<name>" prefix from the request URL
-		prefix := fmt.Sprintf("/llama-cpp/%s", validatedName)
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+		if !inst.IsRemote() {
+			// Strip the "/llama-cpp/<name>" prefix from the request URL
+			prefix := fmt.Sprintf("/llama-cpp/%s", validatedName)
+			r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+		}
 
 		// Update the last request time for the instance
 		inst.UpdateLastRequestTime()
