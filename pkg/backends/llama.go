@@ -9,25 +9,16 @@ import (
 )
 
 // llamaMultiValuedFlags defines flags that should be repeated for each value rather than comma-separated
-// Used for both parsing (with underscores) and building (with dashes)
-var llamaMultiValuedFlags = map[string]bool{
-	// Parsing keys (with underscores)
-	"override_tensor":       true,
-	"override_kv":           true,
-	"lora":                  true,
-	"lora_scaled":           true,
-	"control_vector":        true,
-	"control_vector_scaled": true,
-	"dry_sequence_breaker":  true,
-	"logit_bias":            true,
-	// Building keys (with dashes)
-	"override-tensor":       true,
-	"override-kv":           true,
-	"lora-scaled":           true,
-	"control-vector":        true,
-	"control-vector-scaled": true,
-	"dry-sequence-breaker":  true,
-	"logit-bias":            true,
+// Keys use snake_case as the parser converts kebab-case flags to snake_case before lookup
+var llamaMultiValuedFlags = map[string]struct{}{
+	"override_tensor":       {},
+	"override_kv":           {},
+	"lora":                  {},
+	"lora_scaled":           {},
+	"control_vector":        {},
+	"control_vector_scaled": {},
+	"dry_sequence_breaker":  {},
+	"logit_bias":            {},
 }
 
 type LlamaServerOptions struct {

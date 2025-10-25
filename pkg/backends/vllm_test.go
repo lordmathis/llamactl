@@ -120,6 +120,41 @@ func TestParseVllmCommand(t *testing.T) {
 	}
 }
 
+func TestParseVllmCommandArrays(t *testing.T) {
+	command := "vllm serve test-model --middleware auth.py --middleware=cors.py --api-key key1 --api-key key2"
+
+	var opts backends.VllmServerOptions
+	resultAny, err := opts.ParseCommand(command)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	result, ok := resultAny.(*backends.VllmServerOptions)
+	if !ok {
+		t.Fatalf("expected *VllmServerOptions, got %T", resultAny)
+	}
+
+	expectedMiddleware := []string{"auth.py", "cors.py"}
+	if len(result.Middleware) != len(expectedMiddleware) {
+		t.Errorf("expected %d middleware items, got %d", len(expectedMiddleware), len(result.Middleware))
+	}
+	for i, v := range expectedMiddleware {
+		if i >= len(result.Middleware) || result.Middleware[i] != v {
+			t.Errorf("expected middleware[%d]=%s got %s", i, v, result.Middleware[i])
+		}
+	}
+
+	expectedAPIKeys := []string{"key1", "key2"}
+	if len(result.APIKey) != len(expectedAPIKeys) {
+		t.Errorf("expected %d api keys, got %d", len(expectedAPIKeys), len(result.APIKey))
+	}
+	for i, v := range expectedAPIKeys {
+		if i >= len(result.APIKey) || result.APIKey[i] != v {
+			t.Errorf("expected api_key[%d]=%s got %s", i, v, result.APIKey[i])
+		}
+	}
+}
+
 func TestVllmBuildCommandArgs_BooleanFields(t *testing.T) {
 	tests := []struct {
 		name     string

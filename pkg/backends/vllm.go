@@ -6,12 +6,16 @@ import (
 )
 
 // vllmMultiValuedFlags defines flags that should be repeated for each value rather than comma-separated
-var vllmMultiValuedFlags = map[string]bool{
-	"api-key":         true,
-	"allowed-origins": true,
-	"allowed-methods": true,
-	"allowed-headers": true,
-	"middleware":      true,
+// Based on vLLM's CLI argument definitions with action='append' or List types
+// Keys use snake_case as the parser converts kebab-case flags to snake_case before lookup
+var vllmMultiValuedFlags = map[string]struct{}{
+	"api_key":         {}, // --api-key (action='append')
+	"allowed_origins": {}, // --allowed-origins (List type)
+	"allowed_methods": {}, // --allowed-methods (List type)
+	"allowed_headers": {}, // --allowed-headers (List type)
+	"middleware":      {}, // --middleware (action='append')
+	"lora_modules":    {}, // --lora-modules (custom LoRAParserAction, accepts multiple)
+	"prompt_adapters": {}, // --prompt-adapters (similar to lora-modules, accepts multiple)
 }
 
 type VllmServerOptions struct {
@@ -212,18 +216,9 @@ func (o *VllmServerOptions) BuildDockerArgs() []string {
 func (o *VllmServerOptions) ParseCommand(command string) (any, error) {
 	executableNames := []string{"vllm"}
 	subcommandNames := []string{"serve"}
-	multiValuedFlags := map[string]bool{
-		"middleware":      true,
-		"api_key":         true,
-		"allowed_origins": true,
-		"allowed_methods": true,
-		"allowed_headers": true,
-		"lora_modules":    true,
-		"prompt_adapters": true,
-	}
 
 	var vllmOptions VllmServerOptions
-	if err := parseCommand(command, executableNames, subcommandNames, multiValuedFlags, &vllmOptions); err != nil {
+	if err := parseCommand(command, executableNames, subcommandNames, vllmMultiValuedFlags, &vllmOptions); err != nil {
 		return nil, err
 	}
 

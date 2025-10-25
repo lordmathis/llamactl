@@ -62,7 +62,7 @@ func (o *MlxServerOptions) Validate() error {
 
 // BuildCommandArgs converts to command line arguments
 func (o *MlxServerOptions) BuildCommandArgs() []string {
-	multipleFlags := map[string]bool{} // MLX doesn't currently have []string fields
+	multipleFlags := map[string]struct{}{} // MLX doesn't currently have []string fields
 	return BuildCommandArgs(o, multipleFlags)
 }
 
@@ -78,8 +78,8 @@ func (o *MlxServerOptions) BuildDockerArgs() []string {
 // 4. Multiline commands with backslashes
 func (o *MlxServerOptions) ParseCommand(command string) (any, error) {
 	executableNames := []string{"mlx_lm.server"}
-	var subcommandNames []string          // MLX has no subcommands
-	multiValuedFlags := map[string]bool{} // MLX has no multi-valued flags
+	var subcommandNames []string            // MLX has no subcommands
+	multiValuedFlags := map[string]struct{}{} // MLX has no multi-valued flags
 
 	var mlxOptions MlxServerOptions
 	if err := parseCommand(command, executableNames, subcommandNames, multiValuedFlags, &mlxOptions); err != nil {
