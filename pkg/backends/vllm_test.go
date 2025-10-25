@@ -92,7 +92,9 @@ func TestParseVllmCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := backends.ParseVllmCommand(tt.command)
+			var opts backends.VllmServerOptions
+			resultAny, err := opts.ParseCommand(tt.command)
+			result, _ := resultAny.(*backends.VllmServerOptions)
 
 			if tt.expectErr {
 				if err == nil {
@@ -173,11 +175,11 @@ func TestVllmBuildCommandArgs_BooleanFields(t *testing.T) {
 
 func TestVllmBuildCommandArgs_ZeroValues(t *testing.T) {
 	options := backends.VllmServerOptions{
-		Port:                 0,   // Should be excluded
-		TensorParallelSize:   0,   // Should be excluded
-		GPUMemoryUtilization: 0,   // Should be excluded
-		Model:                "",  // Should be excluded (positional arg)
-		Host:                 "",  // Should be excluded
+		Port:                 0,     // Should be excluded
+		TensorParallelSize:   0,     // Should be excluded
+		GPUMemoryUtilization: 0,     // Should be excluded
+		Model:                "",    // Should be excluded (positional arg)
+		Host:                 "",    // Should be excluded
 		EnableLogOutputs:     false, // Should be excluded
 	}
 

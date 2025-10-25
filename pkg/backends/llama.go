@@ -378,19 +378,19 @@ func (o *LlamaServerOptions) BuildDockerArgs() []string {
 	return o.BuildCommandArgs()
 }
 
-// ParseLlamaCommand parses a llama-server command string into LlamaServerOptions
+// ParseCommand parses a llama-server command string into LlamaServerOptions
 // Supports multiple formats:
 // 1. Full command: "llama-server --model file.gguf"
 // 2. Full path: "/usr/local/bin/llama-server --model file.gguf"
 // 3. Args only: "--model file.gguf --gpu-layers 32"
 // 4. Multiline commands with backslashes
-func ParseLlamaCommand(command string) (*LlamaServerOptions, error) {
+func (o *LlamaServerOptions) ParseCommand(command string) (any, error) {
 	executableNames := []string{"llama-server"}
 	var subcommandNames []string // Llama has no subcommands
 	// Use package-level llamaMultiValuedFlags variable
 
 	var llamaOptions LlamaServerOptions
-	if err := ParseCommand(command, executableNames, subcommandNames, llamaMultiValuedFlags, &llamaOptions); err != nil {
+	if err := parseCommand(command, executableNames, subcommandNames, llamaMultiValuedFlags, &llamaOptions); err != nil {
 		return nil, err
 	}
 

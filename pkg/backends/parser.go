@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// ParseCommand parses a command string into a target struct
-func ParseCommand(command string, executableNames []string, subcommandNames []string, multiValuedFlags map[string]bool, target any) error {
+// parseCommand parses a command string into a target struct
+func parseCommand(command string, executableNames []string, subcommandNames []string, multiValuedFlags map[string]bool, target any) error {
 	// Normalize multiline commands
 	command = normalizeCommand(command)
 	if command == "" {

@@ -23,6 +23,7 @@ type backend interface {
 	SetPort(int)
 	GetHost() string
 	Validate() error
+	ParseCommand(string) (any, error)
 }
 
 var backendConstructors = map[BackendType]func() backend{

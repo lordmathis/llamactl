@@ -202,14 +202,14 @@ func (o *VllmServerOptions) BuildDockerArgs() []string {
 	return args
 }
 
-// ParseVllmCommand parses a vLLM serve command string into VllmServerOptions
+// ParseCommand parses a vLLM serve command string into VllmServerOptions
 // Supports multiple formats:
 // 1. Full command: "vllm serve --model MODEL_NAME --other-args"
 // 2. Full path: "/usr/local/bin/vllm serve --model MODEL_NAME"
 // 3. Serve only: "serve --model MODEL_NAME --other-args"
 // 4. Args only: "--model MODEL_NAME --other-args"
 // 5. Multiline commands with backslashes
-func ParseVllmCommand(command string) (*VllmServerOptions, error) {
+func (o *VllmServerOptions) ParseCommand(command string) (any, error) {
 	executableNames := []string{"vllm"}
 	subcommandNames := []string{"serve"}
 	multiValuedFlags := map[string]bool{
@@ -223,7 +223,7 @@ func ParseVllmCommand(command string) (*VllmServerOptions, error) {
 	}
 
 	var vllmOptions VllmServerOptions
-	if err := ParseCommand(command, executableNames, subcommandNames, multiValuedFlags, &vllmOptions); err != nil {
+	if err := parseCommand(command, executableNames, subcommandNames, multiValuedFlags, &vllmOptions); err != nil {
 		return nil, err
 	}
 
