@@ -94,9 +94,6 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 		}
 
-		// Update the last request time for the instance
-		inst.UpdateLastRequestTime()
-
 		proxy.ServeHTTP(w, r)
 	}
 }

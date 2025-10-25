@@ -392,9 +392,6 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 		}
 
-		// Update the last request time for the instance
-		inst.UpdateLastRequestTime()
-
 		// Set forwarded headers
 		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 		r.Header.Set("X-Forwarded-Proto", "http")

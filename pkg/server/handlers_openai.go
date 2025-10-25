@@ -136,9 +136,6 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
-		// Update last request time for the instance
-		inst.UpdateLastRequestTime()
-
 		// Recreate the request body from the bytes we read
 		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		r.ContentLength = int64(len(bodyBytes))
