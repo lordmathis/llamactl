@@ -8,6 +8,20 @@ import (
 	"net/http"
 )
 
+// OpenAIListInstancesResponse represents the response structure for listing instances (models) in OpenAI format
+type OpenAIListInstancesResponse struct {
+	Object string           `json:"object"`
+	Data   []OpenAIInstance `json:"data"`
+}
+
+// OpenAIInstance represents a single instance (model) in OpenAI format
+type OpenAIInstance struct {
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	Created int64  `json:"created"`
+	OwnedBy string `json:"owned_by"`
+}
+
 // OpenAIListInstances godoc
 // @Summary List instances in OpenAI-compatible format
 // @Description Returns a list of instances in a format compatible with OpenAI API
@@ -97,35 +111,9 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		}
 
 		if !inst.IsRemote() && !inst.IsRunning() {
-			options := inst.GetOptions()
-			allowOnDemand := options != nil && options.OnDemandStart != nil && *options.OnDemandStart
-			if !allowOnDemand {
-				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
-				return
-			}
-
-			if h.InstanceManager.IsMaxRunningInstancesReached() {
-				if h.cfg.Instances.EnableLRUEviction {
-					err := h.InstanceManager.EvictLRUInstance()
-					if err != nil {
-						http.Error(w, "Cannot start Instance, failed to evict instance "+err.Error(), http.StatusInternalServerError)
-						return
-					}
-				} else {
-					http.Error(w, "Cannot start Instance, maximum number of instances reached", http.StatusConflict)
-					return
-				}
-			}
-
-			// If on-demand start is enabled, start the instance
-			if _, err := h.InstanceManager.StartInstance(validatedName); err != nil {
-				http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			// Wait for the instance to become healthy before proceeding
-			if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil { // 2 minutes timeout
-				http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				http.Error(w, "Failed to ensure instance is running: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}

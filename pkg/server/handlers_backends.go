@@ -18,17 +18,6 @@ type ParseCommandRequest struct {
 	Command string `json:"command"`
 }
 
-type errorResponse struct {
-	Error   string `json:"error"`
-	Details string `json:"details,omitempty"`
-}
-
-func writeError(w http.ResponseWriter, status int, code, details string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
-}
-
 func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -60,35 +49,10 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 			return
 		}
 
-		if !inst.IsRemote() && !inst.IsRunning() {
-
-			if !(onDemandStart && options.OnDemandStart != nil && *options.OnDemandStart) {
-				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
-				return
-			}
-
-			if h.InstanceManager.IsMaxRunningInstancesReached() {
-				if h.cfg.Instances.EnableLRUEviction {
-					err := h.InstanceManager.EvictLRUInstance()
-					if err != nil {
-						http.Error(w, "Cannot start Instance, failed to evict instance "+err.Error(), http.StatusInternalServerError)
-						return
-					}
-				} else {
-					http.Error(w, "Cannot start Instance, maximum number of instances reached", http.StatusConflict)
-					return
-				}
-			}
-
-			// If on-demand start is enabled, start the instance
-			if _, err := h.InstanceManager.StartInstance(validatedName); err != nil {
-				http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			// Wait for the instance to become healthy before proceeding
-			if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil { // 2 minutes timeout
-				http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
+		if !inst.IsRemote() && !inst.IsRunning() && onDemandStart {
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				http.Error(w, "Failed to ensure instance is running: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}

@@ -1,11 +1,25 @@
 package server
 
 import (
+	"encoding/json"
+	"fmt"
 	"llamactl/pkg/config"
+	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
 	"net/http"
 	"time"
 )
+
+type errorResponse struct {
+	Error   string `json:"error"`
+	Details string `json:"details,omitempty"`
+}
+
+func writeError(w http.ResponseWriter, status int, code, details string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
+}
 
 type Handler struct {
 	InstanceManager manager.InstanceManager
@@ -21,4 +35,35 @@ func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 			Timeout: 30 * time.Second,
 		},
 	}
+}
+
+func (h *Handler) ensureInstanceRunning(inst *instance.Instance) error {
+	options := inst.GetOptions()
+	allowOnDemand := options != nil && options.OnDemandStart != nil && *options.OnDemandStart
+	if !allowOnDemand {
+		return fmt.Errorf("instance is not running and on-demand start is not enabled")
+	}
+
+	if h.InstanceManager.IsMaxRunningInstancesReached() {
+		if h.cfg.Instances.EnableLRUEviction {
+			err := h.InstanceManager.EvictLRUInstance()
+			if err != nil {
+				return fmt.Errorf("cannot start instance, failed to evict instance: %w", err)
+			}
+		} else {
+			return fmt.Errorf("cannot start instance, maximum number of instances reached")
+		}
+	}
+
+	// If on-demand start is enabled, start the instance
+	if _, err := h.InstanceManager.StartInstance(inst.Name); err != nil {
+		return fmt.Errorf("failed to start instance: %w", err)
+	}
+
+	// Wait for the instance to become healthy before proceeding
+	if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil {
+		return fmt.Errorf("instance failed to become healthy: %w", err)
+	}
+
+	return nil
 }
