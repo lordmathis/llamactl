@@ -18,6 +18,17 @@ type ParseCommandRequest struct {
 	Command string `json:"command"`
 }
 
+type errorResponse struct {
+	Error   string `json:"error"`
+	Details string `json:"details,omitempty"`
+}
+
+func writeError(w http.ResponseWriter, status int, code, details string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
+}
+
 func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -98,6 +109,31 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 	}
 }
 
+// parseHelper parses a backend command and returns the parsed options
+func parseHelper(w http.ResponseWriter, r *http.Request, backend interface {
+	ParseCommand(string) (any, error)
+}) (any, bool) {
+	var req ParseCommandRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		return nil, false
+	}
+
+	if strings.TrimSpace(req.Command) == "" {
+		writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
+		return nil, false
+	}
+
+	// Parse command using the backend's ParseCommand method
+	parsedOptions, err := backend.ParseCommand(req.Command)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "parse_error", err.Error())
+		return nil, false
+	}
+
+	return parsedOptions, true
+}
+
 // ParseLlamaCommand godoc
 // @Summary Parse llama-server command
 // @Description Parses a llama-server command string into instance options
@@ -111,36 +147,19 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /backends/llama-cpp/parse-command [post]
 func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
-	type errorResponse struct {
-		Error   string `json:"error"`
-		Details string `json:"details,omitempty"`
-	}
-	writeError := func(w http.ResponseWriter, status int, code, details string) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req ParseCommandRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		parsedOptions, ok := parseHelper(w, r, &backends.LlamaServerOptions{})
+		if !ok {
 			return
 		}
-		if strings.TrimSpace(req.Command) == "" {
-			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
-			return
-		}
-		llamaOptions, err := backends.ParseLlamaCommand(req.Command)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
-			return
-		}
+
 		options := &instance.Options{
 			BackendOptions: backends.Options{
 				BackendType:        backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: llamaOptions,
+				LlamaServerOptions: parsedOptions.(*backends.LlamaServerOptions),
 			},
 		}
+
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(options); err != nil {
 			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())
@@ -160,40 +179,16 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 // @Failure 400 {object} map[string]string "Invalid request or command"
 // @Router /backends/mlx/parse-command [post]
 func (h *Handler) ParseMlxCommand() http.HandlerFunc {
-	type errorResponse struct {
-		Error   string `json:"error"`
-		Details string `json:"details,omitempty"`
-	}
-	writeError := func(w http.ResponseWriter, status int, code, details string) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req ParseCommandRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		parsedOptions, ok := parseHelper(w, r, &backends.MlxServerOptions{})
+		if !ok {
 			return
 		}
-
-		if strings.TrimSpace(req.Command) == "" {
-			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
-			return
-		}
-
-		mlxOptions, err := backends.ParseMlxCommand(req.Command)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
-			return
-		}
-
-		// Currently only support mlx_lm backend type
-		backendType := backends.BackendTypeMlxLm
 
 		options := &instance.Options{
 			BackendOptions: backends.Options{
-				BackendType:      backendType,
-				MlxServerOptions: mlxOptions,
+				BackendType:      backends.BackendTypeMlxLm,
+				MlxServerOptions: parsedOptions.(*backends.MlxServerOptions),
 			},
 		}
 
@@ -216,39 +211,16 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 // @Failure 400 {object} map[string]string "Invalid request or command"
 // @Router /backends/vllm/parse-command [post]
 func (h *Handler) ParseVllmCommand() http.HandlerFunc {
-	type errorResponse struct {
-		Error   string `json:"error"`
-		Details string `json:"details,omitempty"`
-	}
-	writeError := func(w http.ResponseWriter, status int, code, details string) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req ParseCommandRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		parsedOptions, ok := parseHelper(w, r, &backends.VllmServerOptions{})
+		if !ok {
 			return
 		}
-
-		if strings.TrimSpace(req.Command) == "" {
-			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
-			return
-		}
-
-		vllmOptions, err := backends.ParseVllmCommand(req.Command)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
-			return
-		}
-
-		backendType := backends.BackendTypeVllm
 
 		options := &instance.Options{
 			BackendOptions: backends.Options{
-				BackendType:       backendType,
-				VllmServerOptions: vllmOptions,
+				BackendType:       backends.BackendTypeVllm,
+				VllmServerOptions: parsedOptions.(*backends.VllmServerOptions),
 			},
 		}
 
