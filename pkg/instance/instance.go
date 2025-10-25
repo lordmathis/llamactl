@@ -17,6 +17,7 @@ type Instance struct {
 	// Global configuration
 	globalInstanceSettings *config.InstancesConfig
 	globalBackendSettings  *config.BackendConfig
+	globalNodesConfig      map[string]config.NodeConfig
 	localNodeName          string `json:"-"` // Name of the local node for remote detection
 
 	status  *status  `json:"-"`
@@ -29,7 +30,13 @@ type Instance struct {
 }
 
 // New creates a new instance with the given name, log path, options and local node name
-func New(name string, globalBackendSettings *config.BackendConfig, globalInstanceSettings *config.InstancesConfig, opts *Options, localNodeName string, onStatusChange func(oldStatus, newStatus Status)) *Instance {
+func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusChange func(oldStatus, newStatus Status)) *Instance {
+
+	globalInstanceSettings := &globalConfig.Instances
+	globalBackendSettings := &globalConfig.Backends
+	globalNodesConfig := globalConfig.Nodes
+	localNodeName := globalConfig.LocalNode
+
 	// Validate and copy options
 	opts.validateAndApplyDefaults(name, globalInstanceSettings)
 
@@ -45,15 +52,21 @@ func New(name string, globalBackendSettings *config.BackendConfig, globalInstanc
 		options:                options,
 		globalInstanceSettings: globalInstanceSettings,
 		globalBackendSettings:  globalBackendSettings,
+		globalNodesConfig:      globalNodesConfig,
 		localNodeName:          localNodeName,
 		Created:                time.Now().Unix(),
 		status:                 status,
 	}
 
+	var err error
+	instance.proxy, err = newProxy(instance)
+	if err != nil {
+		log.Println("Warning: Failed to create proxy for instance", instance.Name, "-", err)
+	}
+
 	// Only create logger, proxy, and process for local instances
 	if !instance.IsRemote() {
 		instance.logger = newLogger(name, globalInstanceSettings.LogsDir)
-		instance.proxy = newProxy(instance)
 		instance.process = newProcess(instance)
 	}
 
@@ -173,14 +186,6 @@ func (i *Instance) GetPort() int {
 func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
 	if i.proxy == nil {
 		return nil, fmt.Errorf("instance %s has no proxy component", i.Name)
-	}
-
-	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
-	opts := i.GetOptions()
-	if opts != nil && len(opts.Nodes) > 0 {
-		if _, isLocal := opts.Nodes[i.localNodeName]; !isLocal {
-			return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", i.Name)
-		}
 	}
 
 	return i.proxy.get()
@@ -306,35 +311,6 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	i.Created = aux.Created
 	i.status = aux.Status
 	i.options = aux.Options
-
-	// Handle options with validation and defaults
-	if i.options != nil {
-		opts := i.options.get()
-		if opts != nil {
-			opts.validateAndApplyDefaults(i.Name, i.globalInstanceSettings)
-		}
-	}
-
-	// Initialize fields that are not serialized or may be nil
-	if i.status == nil {
-		i.status = newStatus(Stopped)
-	}
-	if i.options == nil {
-		i.options = newOptions(&Options{})
-	}
-
-	// Only create logger, proxy, and process for non-remote instances
-	if !i.IsRemote() {
-		if i.logger == nil && i.globalInstanceSettings != nil {
-			i.logger = newLogger(i.Name, i.globalInstanceSettings.LogsDir)
-		}
-		if i.proxy == nil {
-			i.proxy = newProxy(i)
-		}
-		if i.process == nil {
-			i.process = newProcess(i)
-		}
-	}
 
 	return nil
 }

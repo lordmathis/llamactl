@@ -11,26 +11,29 @@ import (
 )
 
 func TestNewInstance(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-			Args:    []string{},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{
+				Command: "llama-server",
+				Args:    []string{},
+			},
+			MLX: config.BackendSettings{
+				Command: "mlx_lm.server",
+				Args:    []string{},
+			},
+			VLLM: config.BackendSettings{
+				Command: "vllm",
+				Args:    []string{"serve"},
+			},
 		},
-		MLX: config.BackendSettings{
-			Command: "mlx_lm.server",
-			Args:    []string{},
+		Instances: config.InstancesConfig{
+			LogsDir:             "/tmp/test",
+			DefaultAutoRestart:  true,
+			DefaultMaxRestarts:  3,
+			DefaultRestartDelay: 5,
 		},
-		VLLM: config.BackendSettings{
-			Command: "vllm",
-			Args:    []string{"serve"},
-		},
-	}
-
-	globalSettings := &config.InstancesConfig{
-		LogsDir:             "/tmp/test",
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
 	}
 
 	options := &instance.Options{
@@ -46,7 +49,7 @@ func TestNewInstance(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", globalConfig, options, mockOnStatusChange)
 
 	if inst.Name != "test-instance" {
 		t.Errorf("Expected name 'test-instance', got %q", inst.Name)
@@ -79,8 +82,8 @@ func TestNewInstance(t *testing.T) {
 	autoRestart := false
 	maxRestarts := 10
 	optionsWithOverrides := &instance.Options{
-		AutoRestart:  &autoRestart,
-		MaxRestarts:  &maxRestarts,
+		AutoRestart: &autoRestart,
+		MaxRestarts: &maxRestarts,
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
 			LlamaServerOptions: &backends.LlamaServerOptions{
@@ -89,7 +92,7 @@ func TestNewInstance(t *testing.T) {
 		},
 	}
 
-	inst2 := instance.New("test-override", backendConfig, globalSettings, optionsWithOverrides, "main", mockOnStatusChange)
+	inst2 := instance.New("test-override", globalConfig, optionsWithOverrides, mockOnStatusChange)
 	opts2 := inst2.GetOptions()
 
 	if opts2.AutoRestart == nil || *opts2.AutoRestart {
@@ -101,26 +104,29 @@ func TestNewInstance(t *testing.T) {
 }
 
 func TestSetOptions(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-			Args:    []string{},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{
+				Command: "llama-server",
+				Args:    []string{},
+			},
+			MLX: config.BackendSettings{
+				Command: "mlx_lm.server",
+				Args:    []string{},
+			},
+			VLLM: config.BackendSettings{
+				Command: "vllm",
+				Args:    []string{"serve"},
+			},
 		},
-		MLX: config.BackendSettings{
-			Command: "mlx_lm.server",
-			Args:    []string{},
+		Instances: config.InstancesConfig{
+			LogsDir:             "/tmp/test",
+			DefaultAutoRestart:  true,
+			DefaultMaxRestarts:  3,
+			DefaultRestartDelay: 5,
 		},
-		VLLM: config.BackendSettings{
-			Command: "vllm",
-			Args:    []string{"serve"},
-		},
-	}
-
-	globalSettings := &config.InstancesConfig{
-		LogsDir:             "/tmp/test",
-		DefaultAutoRestart:  true,
-		DefaultMaxRestarts:  3,
-		DefaultRestartDelay: 5,
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
 	}
 
 	initialOptions := &instance.Options{
@@ -136,7 +142,7 @@ func TestSetOptions(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.New("test-instance", backendConfig, globalSettings, initialOptions, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", globalConfig, initialOptions, mockOnStatusChange)
 
 	// Update options
 	newOptions := &instance.Options{
@@ -166,23 +172,26 @@ func TestSetOptions(t *testing.T) {
 }
 
 func TestGetProxy(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-			Args:    []string{},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{
+				Command: "llama-server",
+				Args:    []string{},
+			},
+			MLX: config.BackendSettings{
+				Command: "mlx_lm.server",
+				Args:    []string{},
+			},
+			VLLM: config.BackendSettings{
+				Command: "vllm",
+				Args:    []string{"serve"},
+			},
 		},
-		MLX: config.BackendSettings{
-			Command: "mlx_lm.server",
-			Args:    []string{},
+		Instances: config.InstancesConfig{
+			LogsDir: "/tmp/test",
 		},
-		VLLM: config.BackendSettings{
-			Command: "vllm",
-			Args:    []string{"serve"},
-		},
-	}
-
-	globalSettings := &config.InstancesConfig{
-		LogsDir: "/tmp/test",
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
 	}
 
 	options := &instance.Options{
@@ -199,7 +208,7 @@ func TestGetProxy(t *testing.T) {
 	// Mock onStatusChange function
 	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-	inst := instance.New("test-instance", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+	inst := instance.New("test-instance", globalConfig, options, mockOnStatusChange)
 
 	// Get proxy for the first time
 	proxy1, err := inst.GetProxy()
@@ -221,10 +230,14 @@ func TestGetProxy(t *testing.T) {
 }
 
 func TestMarshalJSON(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{Command: "llama-server"},
+		},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
 	}
-	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 	options := &instance.Options{
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
@@ -235,7 +248,7 @@ func TestMarshalJSON(t *testing.T) {
 		},
 	}
 
-	inst := instance.New("test-instance", backendConfig, globalSettings, options, "main", nil)
+	inst := instance.New("test-instance", globalConfig, options, nil)
 
 	data, err := json.Marshal(inst)
 	if err != nil {
@@ -342,23 +355,26 @@ func TestCreateOptionsValidation(t *testing.T) {
 		},
 	}
 
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
-			Args:    []string{},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{
+				Command: "llama-server",
+				Args:    []string{},
+			},
+			MLX: config.BackendSettings{
+				Command: "mlx_lm.server",
+				Args:    []string{},
+			},
+			VLLM: config.BackendSettings{
+				Command: "vllm",
+				Args:    []string{"serve"},
+			},
 		},
-		MLX: config.BackendSettings{
-			Command: "mlx_lm.server",
-			Args:    []string{},
+		Instances: config.InstancesConfig{
+			LogsDir: "/tmp/test",
 		},
-		VLLM: config.BackendSettings{
-			Command: "vllm",
-			Args:    []string{"serve"},
-		},
-	}
-
-	globalSettings := &config.InstancesConfig{
-		LogsDir: "/tmp/test",
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
 	}
 
 	for _, tt := range tests {
@@ -377,7 +393,7 @@ func TestCreateOptionsValidation(t *testing.T) {
 			// Mock onStatusChange function
 			mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
 
-			instance := instance.New("test", backendConfig, globalSettings, options, "main", mockOnStatusChange)
+			instance := instance.New("test", globalConfig, options, mockOnStatusChange)
 			opts := instance.GetOptions()
 
 			if opts.MaxRestarts == nil {
@@ -396,10 +412,14 @@ func TestCreateOptionsValidation(t *testing.T) {
 }
 
 func TestStatusChangeCallback(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{Command: "llama-server"},
+		},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
 	}
-	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 	options := &instance.Options{
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
@@ -418,7 +438,7 @@ func TestStatusChangeCallback(t *testing.T) {
 		callbackCalled = true
 	}
 
-	inst := instance.New("test", backendConfig, globalSettings, options, "main", onStatusChange)
+	inst := instance.New("test", globalConfig, options, onStatusChange)
 
 	inst.SetStatus(instance.Running)
 
@@ -434,10 +454,14 @@ func TestStatusChangeCallback(t *testing.T) {
 }
 
 func TestSetOptions_NodesPreserved(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{Command: "llama-server"},
+		},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
 	}
-	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 
 	tests := []struct {
 		name          string
@@ -477,7 +501,7 @@ func TestSetOptions_NodesPreserved(t *testing.T) {
 				},
 			}
 
-			inst := instance.New("test", backendConfig, globalSettings, options, "main", nil)
+			inst := instance.New("test", globalConfig, options, nil)
 
 			// Attempt to update nodes (should be ignored)
 			updateOptions := &instance.Options{
@@ -512,10 +536,14 @@ func TestSetOptions_NodesPreserved(t *testing.T) {
 }
 
 func TestProcessErrorCases(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{Command: "llama-server"},
+		},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
 	}
-	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 	options := &instance.Options{
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
@@ -525,7 +553,7 @@ func TestProcessErrorCases(t *testing.T) {
 		},
 	}
 
-	inst := instance.New("test", backendConfig, globalSettings, options, "main", nil)
+	inst := instance.New("test", globalConfig, options, nil)
 
 	// Stop when not running should return error
 	err := inst.Stop()
@@ -544,10 +572,16 @@ func TestProcessErrorCases(t *testing.T) {
 }
 
 func TestRemoteInstanceOperations(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{Command: "llama-server"},
+		},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
+		Nodes: map[string]config.NodeConfig{
+			"remote-node": {Address: "http://remote-node:8080"},
+		},
+		LocalNode: "main",
 	}
-	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 	options := &instance.Options{
 		Nodes: map[string]struct{}{"remote-node": {}}, // Remote instance
 		BackendOptions: backends.Options{
@@ -558,7 +592,7 @@ func TestRemoteInstanceOperations(t *testing.T) {
 		},
 	}
 
-	inst := instance.New("remote-test", backendConfig, globalSettings, options, "main", nil)
+	inst := instance.New("remote-test", globalConfig, options, nil)
 
 	if !inst.IsRemote() {
 		t.Error("Expected instance to be remote")
@@ -580,8 +614,8 @@ func TestRemoteInstanceOperations(t *testing.T) {
 	}
 
 	// GetProxy should fail for remote instance
-	if _, err := inst.GetProxy(); err == nil {
-		t.Error("Expected error when getting proxy for remote instance")
+	if _, err := inst.GetProxy(); err != nil {
+		t.Error("Expected no error when getting proxy for remote instance")
 	}
 
 	// GetLogs should fail for remote instance
@@ -591,14 +625,18 @@ func TestRemoteInstanceOperations(t *testing.T) {
 }
 
 func TestIdleTimeout(t *testing.T) {
-	backendConfig := &config.BackendConfig{
-		LlamaCpp: config.BackendSettings{Command: "llama-server"},
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{Command: "llama-server"},
+		},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
 	}
-	globalSettings := &config.InstancesConfig{LogsDir: "/tmp/test"}
 
 	t.Run("not running never times out", func(t *testing.T) {
 		timeout := 1
-		inst := instance.New("test", backendConfig, globalSettings, &instance.Options{
+		inst := instance.New("test", globalConfig, &instance.Options{
 			IdleTimeout: &timeout,
 			BackendOptions: backends.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
@@ -606,7 +644,7 @@ func TestIdleTimeout(t *testing.T) {
 					Model: "/path/to/model.gguf",
 				},
 			},
-		}, "main", nil)
+		}, nil)
 
 		if inst.ShouldTimeout() {
 			t.Error("Non-running instance should never timeout")
@@ -614,7 +652,7 @@ func TestIdleTimeout(t *testing.T) {
 	})
 
 	t.Run("no timeout configured", func(t *testing.T) {
-		inst := instance.New("test", backendConfig, globalSettings, &instance.Options{
+		inst := instance.New("test", globalConfig, &instance.Options{
 			IdleTimeout: nil, // No timeout
 			BackendOptions: backends.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
@@ -622,7 +660,7 @@ func TestIdleTimeout(t *testing.T) {
 					Model: "/path/to/model.gguf",
 				},
 			},
-		}, "main", nil)
+		}, nil)
 		inst.SetStatus(instance.Running)
 
 		if inst.ShouldTimeout() {
@@ -632,15 +670,17 @@ func TestIdleTimeout(t *testing.T) {
 
 	t.Run("timeout exceeded", func(t *testing.T) {
 		timeout := 1 // 1 minute
-		inst := instance.New("test", backendConfig, globalSettings, &instance.Options{
+		inst := instance.New("test", globalConfig, &instance.Options{
 			IdleTimeout: &timeout,
 			BackendOptions: backends.Options{
 				BackendType: backends.BackendTypeLlamaCpp,
 				LlamaServerOptions: &backends.LlamaServerOptions{
 					Model: "/path/to/model.gguf",
+					Host:  "localhost",
+					Port:  8080,
 				},
 			},
-		}, "main", nil)
+		}, nil)
 		inst.SetStatus(instance.Running)
 
 		// Use mock time provider

@@ -26,20 +26,78 @@ func (realTimeProvider) Now() time.Time {
 type proxy struct {
 	instance *Instance
 
-	mu              sync.RWMutex
-	proxy           *httputil.ReverseProxy
-	proxyOnce       sync.Once
-	proxyErr        error
+	targetURL *url.URL
+	apiKey    string // For remote instances
+
+	responseHeaders map[string]string
+
+	mu sync.RWMutex
+
+	proxy     *httputil.ReverseProxy
+	proxyOnce sync.Once
+	proxyErr  error
+
 	lastRequestTime atomic.Int64
 	timeProvider    TimeProvider
 }
 
 // newProxy creates a new Proxy for the given instance
-func newProxy(instance *Instance) *proxy {
-	return &proxy{
+func newProxy(instance *Instance) (*proxy, error) {
+
+	p := &proxy{
 		instance:     instance,
 		timeProvider: realTimeProvider{},
 	}
+
+	var err error
+
+	options := instance.GetOptions()
+	if options == nil {
+		return nil, fmt.Errorf("instance %s has no options set", instance.Name)
+	}
+
+	if instance.IsRemote() {
+
+		// Take the first remote node as the target for now
+		var nodeName string
+		for node := range options.Nodes {
+			nodeName = node
+			break
+		}
+
+		if nodeName == "" {
+			return nil, fmt.Errorf("instance %s has no remote nodes defined", p.instance.Name)
+		}
+
+		node, ok := p.instance.globalNodesConfig[nodeName]
+		if !ok {
+			return nil, fmt.Errorf("remote node %s is not defined", nodeName)
+		}
+
+		p.targetURL, err = url.Parse(node.Address)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse target URL for remote instance %s: %w", p.instance.Name, err)
+		}
+
+		p.apiKey = node.APIKey
+	} else {
+		// Get host/port from process
+		host := p.instance.options.GetHost()
+		port := p.instance.options.GetPort()
+		if port == 0 {
+			return nil, fmt.Errorf("instance %s has no port assigned", p.instance.Name)
+		}
+		p.targetURL, err = url.Parse(fmt.Sprintf("http://%s:%d", host, port))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", p.instance.Name, err)
+		}
+
+		// Get response headers from backend config
+		p.responseHeaders = options.BackendOptions.GetResponseHeaders(p.instance.globalBackendSettings)
+	}
+
+	return p, nil
+
 }
 
 // get returns the reverse proxy for this instance, creating it if needed.
@@ -56,46 +114,40 @@ func (p *proxy) get() (*httputil.ReverseProxy, error) {
 
 // build creates the reverse proxy based on instance options
 func (p *proxy) build() (*httputil.ReverseProxy, error) {
-	options := p.instance.GetOptions()
-	if options == nil {
-		return nil, fmt.Errorf("instance %s has no options set", p.instance.Name)
-	}
 
-	// Remote instances should not use local proxy - they are handled by RemoteInstanceProxy
-	if _, isLocal := options.Nodes[p.instance.localNodeName]; !isLocal {
-		return nil, fmt.Errorf("instance %s is a remote instance and should not use local proxy", p.instance.Name)
-	}
+	proxy := httputil.NewSingleHostReverseProxy(p.targetURL)
 
-	// Get host/port from process
-	host := p.instance.options.GetHost()
-	port := p.instance.options.GetPort()
-	if port == 0 {
-		return nil, fmt.Errorf("instance %s has no port assigned", p.instance.Name)
-	}
-	targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", host, port))
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", p.instance.Name, err)
-	}
+	// Modify the request before sending it to the backend
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
 
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
-
-	// Get response headers from backend config
-	responseHeaders := options.BackendOptions.GetResponseHeaders(p.instance.globalBackendSettings)
-
-	proxy.ModifyResponse = func(resp *http.Response) error {
-		// Remove CORS headers from backend response to avoid conflicts
-		// llamactl will add its own CORS headers
-		resp.Header.Del("Access-Control-Allow-Origin")
-		resp.Header.Del("Access-Control-Allow-Methods")
-		resp.Header.Del("Access-Control-Allow-Headers")
-		resp.Header.Del("Access-Control-Allow-Credentials")
-		resp.Header.Del("Access-Control-Max-Age")
-		resp.Header.Del("Access-Control-Expose-Headers")
-
-		for key, value := range responseHeaders {
-			resp.Header.Set(key, value)
+		// Add API key header for remote instances
+		if p.instance.IsRemote() && p.apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+p.apiKey)
 		}
-		return nil
+
+		// Update last request time
+		p.updateLastRequestTime()
+	}
+
+	if !p.instance.IsRemote() {
+		// Add custom headers to the request
+		proxy.ModifyResponse = func(resp *http.Response) error {
+			// Remove CORS headers from backend response to avoid conflicts
+			// llamactl will add its own CORS headers
+			resp.Header.Del("Access-Control-Allow-Origin")
+			resp.Header.Del("Access-Control-Allow-Methods")
+			resp.Header.Del("Access-Control-Allow-Headers")
+			resp.Header.Del("Access-Control-Allow-Credentials")
+			resp.Header.Del("Access-Control-Max-Age")
+			resp.Header.Del("Access-Control-Expose-Headers")
+
+			for key, value := range p.responseHeaders {
+				resp.Header.Set(key, value)
+			}
+			return nil
+		}
 	}
 
 	return proxy, nil

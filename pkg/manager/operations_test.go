@@ -36,17 +36,21 @@ func TestCreateInstance_FailsWithDuplicateName(t *testing.T) {
 }
 
 func TestCreateInstance_FailsWhenMaxInstancesReached(t *testing.T) {
-	backendConfig := config.BackendConfig{
-		LlamaCpp: config.BackendSettings{
-			Command: "llama-server",
+	appConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{
+				Command: "llama-server",
+			},
 		},
+		Instances: config.InstancesConfig{
+			PortRange:            [2]int{8000, 9000},
+			MaxInstances:         1, // Very low limit for testing
+			TimeoutCheckInterval: 5,
+		},
+		LocalNode: "main",
+		Nodes:     map[string]config.NodeConfig{},
 	}
-	cfg := config.InstancesConfig{
-		PortRange:            [2]int{8000, 9000},
-		MaxInstances:         1, // Very low limit for testing
-		TimeoutCheckInterval: 5,
-	}
-	limitedManager := manager.New(backendConfig, cfg, map[string]config.NodeConfig{}, "main")
+	limitedManager := manager.New(appConfig)
 
 	options := &instance.Options{
 		BackendOptions: backends.Options{

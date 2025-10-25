@@ -68,7 +68,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 	}
 
 	// Check if this is a remote instance (local node not in the Nodes set)
-	if _, isLocal := options.Nodes[im.localNodeName]; !isLocal && len(options.Nodes) > 0 {
+	if _, isLocal := options.Nodes[im.globalConfig.LocalNode]; !isLocal && len(options.Nodes) > 0 {
 		// Get the first node from the set
 		var nodeName string
 		for node := range options.Nodes {
@@ -94,7 +94,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 
 		// Create a local stub that preserves the Nodes field for tracking
 		// We keep the original options (with Nodes) so IsRemote() works correctly
-		inst := instance.New(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, nil)
+		inst := instance.New(name, im.globalConfig, options, nil)
 
 		// Update the local stub with all remote data (preserving Nodes)
 		im.updateLocalInstanceFromRemote(inst, remoteInst)
@@ -129,8 +129,8 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 		}
 	}
 	localInstanceCount := totalInstances - remoteCount
-	if localInstanceCount >= im.instancesConfig.MaxInstances && im.instancesConfig.MaxInstances != -1 {
-		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.instancesConfig.MaxInstances)
+	if localInstanceCount >= im.globalConfig.Instances.MaxInstances && im.globalConfig.Instances.MaxInstances != -1 {
+		return nil, fmt.Errorf("maximum number of instances (%d) reached", im.globalConfig.Instances.MaxInstances)
 	}
 
 	// Assign and validate port for backend-specific options
@@ -155,7 +155,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 		im.onStatusChange(name, oldStatus, newStatus)
 	}
 
-	inst := instance.New(name, &im.backendsConfig, &im.instancesConfig, options, im.localNodeName, statusCallback)
+	inst := instance.New(name, im.globalConfig, options, statusCallback)
 
 	// Add to registry
 	if err := im.registry.add(inst); err != nil {
@@ -384,7 +384,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 
 	// Check max running instances limit for local instances only
 	if im.IsMaxRunningInstancesReached() {
-		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.instancesConfig.MaxRunningInstances))
+		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.globalConfig.Instances.MaxRunningInstances))
 	}
 
 	if err := inst.Start(); err != nil {
@@ -400,7 +400,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 }
 
 func (im *instanceManager) IsMaxRunningInstancesReached() bool {
-	if im.instancesConfig.MaxRunningInstances == -1 {
+	if im.globalConfig.Instances.MaxRunningInstances == -1 {
 		return false
 	}
 
@@ -412,7 +412,7 @@ func (im *instanceManager) IsMaxRunningInstancesReached() bool {
 		}
 	}
 
-	return localRunningCount >= im.instancesConfig.MaxRunningInstances
+	return localRunningCount >= im.globalConfig.Instances.MaxRunningInstances
 }
 
 // StopInstance stops a running instance and returns it.

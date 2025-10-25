@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// Initialize the instance manager
-	instanceManager := manager.New(cfg.Backends, cfg.Instances, cfg.Nodes, cfg.LocalNode)
+	instanceManager := manager.New(&cfg)
 
 	// Create a new handler with the instance manager
 	handler := server.NewHandler(instanceManager, cfg)
