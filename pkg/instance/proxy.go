@@ -122,6 +122,11 @@ func (p *proxy) build() (*httputil.ReverseProxy, error) {
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
 
+		// Add API key header for remote instances
+		if p.instance.IsRemote() && p.apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+p.apiKey)
+		}
+
 		// Update last request time
 		p.updateLastRequestTime()
 	}
