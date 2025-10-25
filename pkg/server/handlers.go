@@ -6,6 +6,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
+	"log"
 	"net/http"
 	"time"
 )
@@ -18,7 +19,25 @@ type errorResponse struct {
 func writeError(w http.ResponseWriter, status int, code, details string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
+	if err := json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details}); err != nil {
+		log.Printf("Failed to encode error response: %v", err)
+	}
+}
+
+func writeJSON(w http.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Failed to encode JSON response: %v", err)
+	}
+}
+
+func writeText(w http.ResponseWriter, status int, data string) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(status)
+	if _, err := w.Write([]byte(data)); err != nil {
+		log.Printf("Failed to write text response: %v", err)
+	}
 }
 
 type Handler struct {

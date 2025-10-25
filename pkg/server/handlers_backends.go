@@ -27,39 +27,39 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 		// Validate instance name at the entry point
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
 		// Route to the appropriate inst based on instance name
 		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
-			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
 			return
 		}
 
 		options := inst.GetOptions()
 		if options == nil {
-			http.Error(w, "Cannot obtain Instance's options", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "options_failed", "Cannot obtain Instance's options")
 			return
 		}
 
 		if options.BackendOptions.BackendType != backends.BackendTypeLlamaCpp {
-			http.Error(w, "Instance is not a llama.cpp server.", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_backend", "Instance is not a llama.cpp server.")
 			return
 		}
 
 		if !inst.IsRemote() && !inst.IsRunning() && onDemandStart {
 			err := h.ensureInstanceRunning(inst)
 			if err != nil {
-				http.Error(w, "Failed to ensure instance is running: "+err.Error(), http.StatusInternalServerError)
+				writeError(w, http.StatusInternalServerError, "instance_start_failed", err.Error())
 				return
 			}
 		}
 
 		proxy, err := inst.GetProxy()
 		if err != nil {
-			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "proxy_failed", err.Error())
 			return
 		}
 
@@ -124,10 +124,7 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 			},
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(options); err != nil {
-			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())
-		}
+		writeJSON(w, http.StatusOK, options)
 	}
 }
 
@@ -156,10 +153,7 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 			},
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(options); err != nil {
-			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())
-		}
+		writeJSON(w, http.StatusOK, options)
 	}
 }
 
@@ -188,10 +182,7 @@ func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 			},
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(options); err != nil {
-			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())
-		}
+		writeJSON(w, http.StatusOK, options)
 	}
 }
 
@@ -209,11 +200,10 @@ func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 		helpCmd := exec.Command("llama-server", "--help")
 		output, err := helpCmd.CombinedOutput()
 		if err != nil {
-			http.Error(w, "Failed to get help: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "command_failed", "Failed to get help: "+err.Error())
 			return
 		}
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write(output)
+		writeText(w, http.StatusOK, string(output))
 	}
 }
 
@@ -231,11 +221,10 @@ func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 		versionCmd := exec.Command("llama-server", "--version")
 		output, err := versionCmd.CombinedOutput()
 		if err != nil {
-			http.Error(w, "Failed to get version: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "command_failed", "Failed to get version: "+err.Error())
 			return
 		}
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write(output)
+		writeText(w, http.StatusOK, string(output))
 	}
 }
 
@@ -253,10 +242,9 @@ func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
 		listCmd := exec.Command("llama-server", "--list-devices")
 		output, err := listCmd.CombinedOutput()
 		if err != nil {
-			http.Error(w, "Failed to list devices: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "command_failed", "Failed to list devices: "+err.Error())
 			return
 		}
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write(output)
+		writeText(w, http.StatusOK, string(output))
 	}
 }

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -31,11 +30,7 @@ func (h *Handler) ListNodes() http.HandlerFunc {
 			}
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(nodeResponses); err != nil {
-			http.Error(w, "Failed to encode nodes: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, nodeResponses)
 	}
 }
 
@@ -55,13 +50,13 @@ func (h *Handler) GetNode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
 		if name == "" {
-			http.Error(w, "Node name cannot be empty", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Node name cannot be empty")
 			return
 		}
 
 		nodeConfig, exists := h.cfg.Nodes[name]
 		if !exists {
-			http.Error(w, "Node not found", http.StatusNotFound)
+			writeError(w, http.StatusNotFound, "not_found", "Node not found")
 			return
 		}
 
@@ -70,10 +65,6 @@ func (h *Handler) GetNode() http.HandlerFunc {
 			Address: nodeConfig.Address,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(nodeResponse); err != nil {
-			http.Error(w, "Failed to encode node: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, nodeResponse)
 	}
 }

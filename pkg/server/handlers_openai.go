@@ -35,7 +35,7 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		instances, err := h.InstanceManager.ListInstances()
 		if err != nil {
-			http.Error(w, "Failed to list instances: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "list_failed", "Failed to list instances: "+err.Error())
 			return
 		}
 
@@ -54,11 +54,7 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 			Data:   openaiInstances,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(openaiResponse); err != nil {
-			http.Error(w, "Failed to encode instances: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, openaiResponse)
 	}
 }
 
@@ -78,7 +74,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		// Read the entire body first
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Failed to read request body")
 			return
 		}
 		r.Body.Close()
@@ -86,41 +82,41 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		// Parse the body to extract instance name
 		var requestBody map[string]any
 		if err := json.Unmarshal(bodyBytes, &requestBody); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 			return
 		}
 
 		modelName, ok := requestBody["model"].(string)
 		if !ok || modelName == "" {
-			http.Error(w, "Instance name is required", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Instance name is required")
 			return
 		}
 
 		// Validate instance name at the entry point
 		validatedName, err := validation.ValidateInstanceName(modelName)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
 		// Route to the appropriate inst based on instance name
 		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
-			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
 			return
 		}
 
 		if !inst.IsRemote() && !inst.IsRunning() {
 			err := h.ensureInstanceRunning(inst)
 			if err != nil {
-				http.Error(w, "Failed to ensure instance is running: "+err.Error(), http.StatusInternalServerError)
+				writeError(w, http.StatusInternalServerError, "instance_start_failed", err.Error())
 				return
 			}
 		}
 
 		proxy, err := inst.GetProxy()
 		if err != nil {
-			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "proxy_failed", err.Error())
 			return
 		}
 
