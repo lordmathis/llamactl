@@ -350,6 +350,10 @@ func (p *process) handleAutoRestart(err error) {
 	maxRestarts := *opts.MaxRestarts
 
 	p.restarts++
+
+	// Set status to Restarting instead of leaving as Stopped
+	p.instance.SetStatus(Restarting)
+
 	log.Printf("Auto-restarting instance %s (attempt %d/%d) in %v",
 		p.instance.Name, p.restarts, maxRestarts, time.Duration(restartDelay)*time.Second)
 
