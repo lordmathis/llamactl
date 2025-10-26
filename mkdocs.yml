@@ -64,6 +64,7 @@ plugins:
       css_dir: css
       javascript_dir: js
       canonical_version: null
+  - neoteroi.mkdocsoad
 
 hooks:
   - docs/readme_sync.py
