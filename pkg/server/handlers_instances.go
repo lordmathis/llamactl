@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/go-chi/chi/v5"
 )
 
 // ListInstances godoc
@@ -49,8 +47,7 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 // @Router /instances/{name} [post]
 func (h *Handler) CreateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
+		name := r.URL.Query().Get("name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -86,8 +83,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 // @Router /instances/{name} [get]
 func (h *Handler) GetInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
+		name := r.URL.Query().Get("name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -119,8 +115,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 // @Router /instances/{name} [put]
 func (h *Handler) UpdateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
+		name := r.URL.Query().Get("name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -156,8 +151,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 // @Router /instances/{name}/start [post]
 func (h *Handler) StartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
+		name := r.URL.Query().Get("name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -193,8 +187,7 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 // @Router /instances/{name}/stop [post]
 func (h *Handler) StopInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
+		name := r.URL.Query().Get("name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -224,8 +217,7 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 // @Router /instances/{name}/restart [post]
 func (h *Handler) RestartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
+		name := r.URL.Query().Get("name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -254,8 +246,7 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 // @Router /instances/{name} [delete]
 func (h *Handler) DeleteInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
+		name := r.URL.Query().Get("name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -285,8 +276,7 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 // @Router /instances/{name}/logs [get]
 func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
+		name := r.URL.Query().Get("name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -316,7 +306,7 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 }
 
 // ProxyToInstance godoc
-// @Summary Proxy requests to a specific instance
+// @Summary Proxy requests to a specific instance, does not autostart instance if stopped
 // @Description Forwards HTTP requests to the llama-server instance running on a specific port
 // @Tags instances
 // @Security ApiKeyAuth
@@ -329,17 +319,9 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 // @Router /instances/{name}/proxy [post]
 func (h *Handler) ProxyToInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
-		validatedName, err := validation.ValidateInstanceName(name)
+		inst, err := h.getInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
-			return
-		}
-
-		inst, err := h.InstanceManager.GetInstance(validatedName)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "instance_failed", "Failed to get instance: "+err.Error())
+			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
 			return
 		}
 
@@ -358,7 +340,7 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 		// Check if this is a remote instance
 		if !inst.IsRemote() {
 			// Strip the "/api/v1/instances/<name>/proxy" prefix from the request URL
-			prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", validatedName)
+			prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", inst.Name)
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 		}
 

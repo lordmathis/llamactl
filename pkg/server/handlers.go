@@ -6,6 +6,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
+	"llamactl/pkg/validation"
 	"log"
 	"net/http"
 	"time"
@@ -54,6 +55,21 @@ func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 			Timeout: 30 * time.Second,
 		},
 	}
+}
+
+func (h *Handler) getInstance(r *http.Request) (*instance.Instance, error) {
+	name := r.URL.Query().Get("name")
+	validatedName, err := validation.ValidateInstanceName(name)
+	if err != nil {
+		return nil, fmt.Errorf("invalid instance name: %w", err)
+	}
+
+	inst, err := h.InstanceManager.GetInstance(validatedName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get instance by name: %w", err)
+	}
+
+	return inst, nil
 }
 
 func (h *Handler) ensureInstanceRunning(inst *instance.Instance) error {

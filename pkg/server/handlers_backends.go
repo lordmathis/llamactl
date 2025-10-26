@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
-	"llamactl/pkg/validation"
 	"net/http"
 	"os/exec"
 	"strings"
-
-	"github.com/go-chi/chi/v5"
 )
 
 // ParseCommandRequest represents the request body for command parsing
@@ -21,18 +18,7 @@ type ParseCommandRequest struct {
 func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		// Get the instance name from the URL parameter
-		name := chi.URLParam(r, "name")
-
-		// Validate instance name at the entry point
-		validatedName, err := validation.ValidateInstanceName(name)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
-			return
-		}
-
-		// Route to the appropriate inst based on instance name
-		inst, err := h.InstanceManager.GetInstance(validatedName)
+		inst, err := h.getInstance(r)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
 			return
@@ -65,7 +51,7 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 
 		if !inst.IsRemote() {
 			// Strip the "/llama-cpp/<name>" prefix from the request URL
-			prefix := fmt.Sprintf("/llama-cpp/%s", validatedName)
+			prefix := fmt.Sprintf("/llama-cpp/%s", inst.Name)
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 		}
 
