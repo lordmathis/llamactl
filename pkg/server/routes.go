@@ -117,7 +117,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		// Public Routes
 		// Allow llama-cpp server to serve its own WebUI if it is running.
 		// Don't auto start the server since it can be accessed without an API key
-		r.Get("/", handler.LlamaCppProxy(false))
+		r.Get("/", handler.LlamaCppUIProxy())
 
 		// Private Routes
 		r.Group(func(r chi.Router) {
@@ -127,7 +127,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 			}
 
 			// This handler auto start the server if it's not running
-			llamaCppHandler := handler.LlamaCppProxy(true)
+			llamaCppHandler := handler.LlamaCppProxy()
 
 			// llama.cpp server specific proxy endpoints
 			r.Get("/props", llamaCppHandler)

@@ -15,44 +15,105 @@ type ParseCommandRequest struct {
 	Command string `json:"command"`
 }
 
-func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
+func (h *Handler) validateLlamaCppInstance(r *http.Request) (*instance.Instance, error) {
+	inst, err := h.getInstance(r)
+	if err != nil {
+		return nil, fmt.Errorf("invalid instance: %w", err)
+	}
+
+	options := inst.GetOptions()
+	if options == nil {
+		return nil, fmt.Errorf("cannot obtain instance's options")
+	}
+
+	if options.BackendOptions.BackendType != backends.BackendTypeLlamaCpp {
+		return nil, fmt.Errorf("instance is not a llama.cpp server")
+	}
+
+	return inst, nil
+}
+
+func (h *Handler) stripLlamaCppPrefix(r *http.Request, instName string) {
+	// Strip the "/llama-cpp/<name>" prefix from the request URL
+	prefix := fmt.Sprintf("/llama-cpp/%s", instName)
+	r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+}
+
+// LlamaCppUIProxy godoc
+// @Summary Proxy requests to llama.cpp UI for the instance
+// @Description Proxies requests to the llama.cpp UI for the specified instance
+// @Tags backends
+// @Security ApiKeyAuth
+// @Produce html
+// @Param name query string true "Instance Name"
+// @Success 200 {string} string "Proxied HTML response"
+// @Failure 400 {string} string "Invalid instance"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /llama-cpp/{name}/ [get]
+func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		inst, err := h.getInstance(r)
+		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
 			return
 		}
 
-		options := inst.GetOptions()
-		if options == nil {
-			writeError(w, http.StatusInternalServerError, "options_failed", "Cannot obtain Instance's options")
+		if !inst.IsRemote() && !inst.IsRunning() {
+			writeError(w, http.StatusBadRequest, "instance is not running", "Instance is not running")
 			return
 		}
 
-		if options.BackendOptions.BackendType != backends.BackendTypeLlamaCpp {
-			writeError(w, http.StatusBadRequest, "invalid_backend", "Instance is not a llama.cpp server.")
+		proxy, err := inst.GetProxy()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get proxy", err.Error())
 			return
 		}
 
-		if !inst.IsRemote() && !inst.IsRunning() && onDemandStart {
+		if !inst.IsRemote() {
+			h.stripLlamaCppPrefix(r, inst.Name)
+		}
+
+		proxy.ServeHTTP(w, r)
+	}
+}
+
+// LlamaCppProxy godoc
+// @Summary Proxy requests to llama.cpp server instance
+// @Description Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured
+// @Tags backends
+// @Security ApiKeyAuth
+// @Produce json
+// @Param name query string true "Instance Name"
+// @Success 200 {object} map[string]any "Proxied response"
+// @Failure 400 {string} string "Invalid instance"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /llama-cpp/{name}/* [post]
+func (h *Handler) LlamaCppProxy() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		inst, err := h.validateLlamaCppInstance(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			return
+		}
+
+		if !inst.IsRemote() && !inst.IsRunning() {
 			err := h.ensureInstanceRunning(inst)
 			if err != nil {
-				writeError(w, http.StatusInternalServerError, "instance_start_failed", err.Error())
+				writeError(w, http.StatusInternalServerError, "instance start failed", err.Error())
 				return
 			}
 		}
 
 		proxy, err := inst.GetProxy()
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "proxy_failed", err.Error())
+			writeError(w, http.StatusInternalServerError, "failed to get proxy", err.Error())
 			return
 		}
 
 		if !inst.IsRemote() {
-			// Strip the "/llama-cpp/<name>" prefix from the request URL
-			prefix := fmt.Sprintf("/llama-cpp/%s", inst.Name)
-			r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+			h.stripLlamaCppPrefix(r, inst.Name)
 		}
 
 		proxy.ServeHTTP(w, r)
