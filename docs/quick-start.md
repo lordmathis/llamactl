@@ -2,6 +2,8 @@
 
 This guide will help you get Llamactl up and running in just a few minutes.
 
+**Before you begin:** Ensure you have at least one backend installed (llama.cpp, MLX, or vLLM). See the [Installation Guide](installation.md#prerequisites) for backend setup.
+
 ## Core Concepts
 
 Before you start, let's clarify a few key terms:
@@ -53,7 +55,7 @@ llamactl
 Llamactl server listening on 0.0.0.0:8080
 ```
 
-Copy the **Management API Key** from the terminal - you'll need it to access the web UI.
+Copy the **Management** and **Inference** API Keys from the terminal - you'll need them to access the web UI and make inference requests.
 
 By default, Llamactl will start on `http://localhost:8080`.
 
@@ -143,7 +145,7 @@ Here are basic example configurations for each backend:
 }
 ```
 
-**Multi-node deployment example:**
+**Remote node deployment example:**
 ```json
 {
   "name": "distributed-model",
@@ -152,7 +154,7 @@ Here are basic example configurations for each backend:
     "model": "/path/to/model.gguf",
     "gpu_layers": 32
   },
-  "nodes": ["worker1", "worker2"]
+  "nodes": ["worker1"]
 }
 ```
 
