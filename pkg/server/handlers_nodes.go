@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// NodeResponse represents a sanitized node configuration for API responses
+// NodeResponse represents a node configuration in API responses
 type NodeResponse struct {
 	Address string `json:"address"`
 }

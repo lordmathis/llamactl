@@ -12,11 +12,13 @@ import (
 	"time"
 )
 
+// errorResponse represents an error response returned by the API
 type errorResponse struct {
 	Error   string `json:"error"`
 	Details string `json:"details,omitempty"`
 }
 
+// writeError writes a JSON error response with the specified HTTP status code
 func writeError(w http.ResponseWriter, status int, code, details string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -25,6 +27,7 @@ func writeError(w http.ResponseWriter, status int, code, details string) {
 	}
 }
 
+// writeJSON writes a JSON response with the specified HTTP status code
 func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -33,6 +36,7 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 	}
 }
 
+// writeText writes a plain text response with the specified HTTP status code
 func writeText(w http.ResponseWriter, status int, data string) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(status)
@@ -41,12 +45,14 @@ func writeText(w http.ResponseWriter, status int, data string) {
 	}
 }
 
+// Handler provides HTTP handlers for the llamactl server API
 type Handler struct {
 	InstanceManager manager.InstanceManager
 	cfg             config.AppConfig
 	httpClient      *http.Client
 }
 
+// NewHandler creates a new Handler instance with the provided instance manager and configuration
 func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 	return &Handler{
 		InstanceManager: im,
@@ -57,6 +63,7 @@ func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 	}
 }
 
+// getInstance retrieves an instance by name from the request query parameters
 func (h *Handler) getInstance(r *http.Request) (*instance.Instance, error) {
 	name := r.URL.Query().Get("name")
 	validatedName, err := validation.ValidateInstanceName(name)
@@ -72,6 +79,8 @@ func (h *Handler) getInstance(r *http.Request) (*instance.Instance, error) {
 	return inst, nil
 }
 
+// ensureInstanceRunning ensures the instance is running by starting it if on-demand start is enabled
+// It handles LRU eviction when the maximum number of running instances is reached
 func (h *Handler) ensureInstanceRunning(inst *instance.Instance) error {
 	options := inst.GetOptions()
 	allowOnDemand := options != nil && options.OnDemandStart != nil && *options.OnDemandStart

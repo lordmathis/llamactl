@@ -10,11 +10,12 @@ import (
 	"strings"
 )
 
-// ParseCommandRequest represents the request body for command parsing
+// ParseCommandRequest represents the request body for backend command parsing
 type ParseCommandRequest struct {
 	Command string `json:"command"`
 }
 
+// validateLlamaCppInstance validates that the instance specified in the request is a llama.cpp instance
 func (h *Handler) validateLlamaCppInstance(r *http.Request) (*instance.Instance, error) {
 	inst, err := h.getInstance(r)
 	if err != nil {
@@ -33,6 +34,7 @@ func (h *Handler) validateLlamaCppInstance(r *http.Request) (*instance.Instance,
 	return inst, nil
 }
 
+// stripLlamaCppPrefix removes the llama.cpp proxy prefix from the request URL path
 func (h *Handler) stripLlamaCppPrefix(r *http.Request, instName string) {
 	// Strip the "/llama-cpp/<name>" prefix from the request URL
 	prefix := fmt.Sprintf("/llama-cpp/%s", instName)

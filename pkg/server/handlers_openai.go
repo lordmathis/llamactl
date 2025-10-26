@@ -8,13 +8,13 @@ import (
 	"net/http"
 )
 
-// OpenAIListInstancesResponse represents the response structure for listing instances (models) in OpenAI format
+// OpenAIListInstancesResponse represents the response structure for listing instances (models) in OpenAI-compatible format
 type OpenAIListInstancesResponse struct {
 	Object string           `json:"object"`
 	Data   []OpenAIInstance `json:"data"`
 }
 
-// OpenAIInstance represents a single instance (model) in OpenAI format
+// OpenAIInstance represents a single instance (model) in OpenAI-compatible format
 type OpenAIInstance struct {
 	ID      string `json:"id"`
 	Object  string `json:"object"`
