@@ -13,18 +13,21 @@ const (
 	Stopped Status = iota
 	Running
 	Failed
+	Restarting
 )
 
 var nameToStatus = map[string]Status{
-	"stopped": Stopped,
-	"running": Running,
-	"failed":  Failed,
+	"stopped":    Stopped,
+	"running":    Running,
+	"failed":     Failed,
+	"restarting": Restarting,
 }
 
 var statusToName = map[Status]string{
-	Stopped: "stopped",
-	Running: "running",
-	Failed:  "failed",
+	Stopped:    "stopped",
+	Running:    "running",
+	Failed:     "failed",
+	Restarting: "restarting",
 }
 
 // Status enum JSON marshaling methods

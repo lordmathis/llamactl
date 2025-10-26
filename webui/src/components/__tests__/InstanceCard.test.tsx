@@ -2,12 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceCard from '@/components/InstanceCard'
-import type { Instance } from '@/types/instance'
-import { BackendType } from '@/types/instance'
+import { type Instance, BackendType } from '@/types/instance'
 
 // Mock the health hook since we're not testing health logic here
 vi.mock('@/hooks/useInstanceHealth', () => ({
-  useInstanceHealth: vi.fn(() => ({ status: 'ok', lastChecked: new Date() }))
+  useInstanceHealth: vi.fn(() => ({
+    state: 'ready',
+    instanceStatus: 'running',
+    lastChecked: new Date(),
+    source: 'http'
+  }))
 }))
 
 describe('InstanceCard - Instance Actions and State', () => {

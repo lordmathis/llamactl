@@ -2,6 +2,7 @@ import { type ReactNode, createContext, useContext, useState, useEffect, useCall
 import type { CreateInstanceOptions, Instance } from '@/types/instance'
 import { instancesApi } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
+import { healthService } from '@/lib/healthService'
 
 interface InstancesContextState {
   instances: Instance[]
@@ -115,6 +116,9 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
 
       // Update only this instance's status
       updateInstanceInMap(name, { status: "running" })
+
+      // Trigger health check after starting
+      healthService.checkHealthAfterOperation(name, 'start')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start instance')
     }
@@ -127,6 +131,9 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
 
       // Update only this instance's status
       updateInstanceInMap(name, { status: "stopped" })
+
+      // Trigger health check after stopping
+      healthService.checkHealthAfterOperation(name, 'stop')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to stop instance')
     }
@@ -139,6 +146,9 @@ export const InstancesProvider = ({ children }: InstancesProviderProps) => {
 
       // Update only this instance's status
       updateInstanceInMap(name, { status: "running" })
+
+      // Trigger health check after restarting
+      healthService.checkHealthAfterOperation(name, 'restart')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to restart instance')
     }
