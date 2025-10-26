@@ -33,7 +33,7 @@ RUN go mod download
 # Copy source code
 COPY cmd/ ./cmd/
 COPY pkg/ ./pkg/
-COPY apidocs/ ./apidocs/
+COPY docs/ ./docs/
 COPY webui/webui.go ./webui/
 
 # Copy built webui from webui-builder
