@@ -10,17 +10,17 @@
 
 ## Features
 
-### 🚀 Easy Model Management
+**🚀 Easy Model Management**
 - **Multiple Models Simultaneously**: Run different models at the same time (7B for speed, 70B for quality)
 - **Smart Resource Management**: Automatic idle timeout, LRU eviction, and configurable instance limits
 - **Web Dashboard**: Modern React UI for managing instances, monitoring health, and viewing logs
 
-### 🔗 Flexible Integration
+**🔗 Flexible Integration**
 - **OpenAI API Compatible**: Drop-in replacement - route requests to different models by instance name
 - **Multi-Backend Support**: Native support for llama.cpp, MLX (Apple Silicon optimized), and vLLM
 - **Docker Ready**: Run backends in containers with full GPU support
 
-### 🌐 Distributed Deployment
+**🌐 Distributed Deployment**
 - **Remote Instances**: Deploy instances on remote hosts
 - **Central Management**: Manage everything from a single dashboard with automatic routing  
 

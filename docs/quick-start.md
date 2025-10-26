@@ -2,7 +2,7 @@
 
 This guide will help you get Llamactl up and running in just a few minutes.
 
-## Step 1: Start Llamactl
+## Start Llamactl
 
 Start the Llamactl server:
 
@@ -12,7 +12,7 @@ llamactl
 
 By default, Llamactl will start on `http://localhost:8080`.
 
-## Step 2: Access the Web UI
+## Access the Web UI
 
 Open your web browser and navigate to:
 
@@ -24,18 +24,18 @@ Login with the management API key. By default it is generated during server star
 
 You should see the Llamactl web interface.
 
-## Step 3: Create Your First Instance
+## Create Your First Instance
 
 1. Click the "Add Instance" button
 2. Fill in the instance configuration:
    - **Name**: Give your instance a descriptive name
    - **Backend Type**: Choose from llama.cpp, MLX, or vLLM
-   - **Model**: Model path or identifier for your chosen backend
+   - **Model**: Model path or huggingface repo
    - **Additional Options**: Backend-specific parameters
 
 3. Click "Create Instance"
 
-## Step 4: Start Your Instance
+## Start Your Instance
 
 Once created, you can:
 

@@ -33,7 +33,7 @@ Each instance is displayed as a card showing:
 
 ## Create Instance
 
-### Via Web UI
+**Via Web UI**
 
 ![Create Instance Screenshot](images/create_instance.png)
 
@@ -61,7 +61,7 @@ Each instance is displayed as a card showing:
     - **vLLM**: Tensor parallel size, GPU memory utilization, quantization, etc.
 8. Click **"Create"** to save the instance  
 
-### Via API
+**Via API**
 
 ```bash
 # Create llama.cpp instance with local model file
@@ -138,37 +138,37 @@ curl -X POST http://localhost:8080/api/instances/remote-llama \
 
 ## Start Instance
 
-### Via Web UI
+**Via Web UI**
 1. Click the **"Start"** button on an instance card
 2. Watch the status change to "Unknown"
 3. Monitor progress in the logs
 4. Instance status changes to "Ready" when ready
 
-### Via API
+**Via API**
 ```bash
 curl -X POST http://localhost:8080/api/instances/{name}/start
 ```
 
 ## Stop Instance
 
-### Via Web UI
+**Via Web UI**
 1. Click the **"Stop"** button on an instance card
 2. Instance gracefully shuts down
 
-### Via API
+**Via API**
 ```bash
 curl -X POST http://localhost:8080/api/instances/{name}/stop
 ```
 
 ## Edit Instance
 
-### Via Web UI
+**Via Web UI**
 1. Click the **"Edit"** button on an instance card
 2. Modify settings in the configuration dialog
 3. Changes require instance restart to take effect
 4. Click **"Update & Restart"** to apply changes
 
-### Via API
+**Via API**
 Modify instance settings:
 
 ```bash
@@ -188,12 +188,12 @@ curl -X PUT http://localhost:8080/api/instances/{name} \
 
 ## View Logs
 
-### Via Web UI
+**Via Web UI**
 
 1. Click the **"Logs"** button on any instance card
 2. Real-time log viewer opens
 
-### Via API
+**Via API**
 Check instance status in real-time:
 
 ```bash
@@ -203,12 +203,12 @@ curl http://localhost:8080/api/instances/{name}/logs
 
 ## Delete Instance
 
-### Via Web UI
+**Via Web UI**
 1. Click the **"Delete"** button on an instance card
 2. Only stopped instances can be deleted
 3. Confirm deletion in the dialog
 
-### Via API
+**Via API**
 ```bash
 curl -X DELETE http://localhost:8080/api/instances/{name}
 ```
@@ -229,11 +229,11 @@ All backends provide OpenAI-compatible endpoints. Check the respective documenta
 
 ### Instance Health
 
-#### Via Web UI
+**Via Web UI**
 
 1. The health status badge is displayed on each instance card
 
-#### Via API
+**Via API**
 
 Check the health status of your instances:
 
