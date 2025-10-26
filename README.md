@@ -138,7 +138,7 @@ go build -o llamactl ./cmd/server
 1. Open http://localhost:8080
 2. Click "Create Instance"
 3. Choose backend type (llama.cpp, MLX, or vLLM)
-4. Configure your model and options
+4. Configure your model and options (ports and API keys are auto-assigned)
 5. Start the instance and use it with any OpenAI-compatible client
 
 ## Configuration

@@ -33,6 +33,9 @@ You should see the Llamactl web interface.
    - **Model**: Model path or huggingface repo
    - **Additional Options**: Backend-specific parameters
 
+!!! tip "Auto-Assignment"
+    Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.
+
 3. Click "Create Instance"
 
 ## Start Your Instance

@@ -59,6 +59,10 @@ Each instance is displayed as a card showing:
     - **llama.cpp**: Threads, context size, GPU layers, port, etc.
     - **MLX**: Temperature, top-p, adapter path, Python environment, etc.
     - **vLLM**: Tensor parallel size, GPU memory utilization, quantization, etc.
+
+!!! tip "Auto-Assignment"
+    Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.
+
 8. Click **"Create"** to save the instance  
 
 **Via API**
