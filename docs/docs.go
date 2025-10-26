@@ -19,7 +19,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/backends/llama-cpp/devices": {
+        "/api/v1/backends/llama-cpp/devices": {
             "get": {
                 "security": [
                     {
@@ -47,7 +47,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/backends/llama-cpp/help": {
+        "/api/v1/backends/llama-cpp/help": {
             "get": {
                 "security": [
                     {
@@ -75,7 +75,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/backends/llama-cpp/parse-command": {
+        "/api/v1/backends/llama-cpp/parse-command": {
             "post": {
                 "security": [
                     {
@@ -132,7 +132,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/backends/llama-cpp/version": {
+        "/api/v1/backends/llama-cpp/version": {
             "get": {
                 "security": [
                     {
@@ -160,7 +160,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/backends/mlx/parse-command": {
+        "/api/v1/backends/mlx/parse-command": {
             "post": {
                 "security": [
                     {
@@ -208,7 +208,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/backends/vllm/parse-command": {
+        "/api/v1/backends/vllm/parse-command": {
             "post": {
                 "security": [
                     {
@@ -256,7 +256,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/instances": {
+        "/api/v1/instances": {
             "get": {
                 "security": [
                     {
@@ -287,7 +287,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/instances/{name}": {
+        "/api/v1/instances/{name}": {
             "get": {
                 "security": [
                     {
@@ -474,7 +474,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/instances/{name}/logs": {
+        "/api/v1/instances/{name}/logs": {
             "get": {
                 "security": [
                     {
@@ -523,7 +523,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/instances/{name}/proxy": {
+        "/api/v1/instances/{name}/proxy": {
             "get": {
                 "security": [
                     {
@@ -613,7 +613,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/instances/{name}/restart": {
+        "/api/v1/instances/{name}/restart": {
             "post": {
                 "security": [
                     {
@@ -656,7 +656,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/instances/{name}/start": {
+        "/api/v1/instances/{name}/start": {
             "post": {
                 "security": [
                     {
@@ -699,7 +699,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/instances/{name}/stop": {
+        "/api/v1/instances/{name}/stop": {
             "post": {
                 "security": [
                     {
@@ -729,6 +729,114 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nodes": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a map of all nodes configured in the server (node name -\u003e node config)",
+                "tags": [
+                    "nodes"
+                ],
+                "summary": "List all configured nodes",
+                "responses": {
+                    "200": {
+                        "description": "Map of nodes",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/server.NodeResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nodes/{name}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the details of a specific node by name",
+                "tags": [
+                    "nodes"
+                ],
+                "summary": "Get details of a specific node",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Node Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Node details",
+                        "schema": {
+                            "$ref": "#/definitions/server.NodeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Node not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/version": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the version of the llamactl command",
+                "tags": [
+                    "version"
+                ],
+                "summary": "Get llamactl version",
+                "responses": {
+                    "200": {
+                        "description": "Version information",
                         "schema": {
                             "type": "string"
                         }
@@ -1303,86 +1411,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/nodes": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns a map of all nodes configured in the server (node name -\u003e node config)",
-                "tags": [
-                    "nodes"
-                ],
-                "summary": "List all configured nodes",
-                "responses": {
-                    "200": {
-                        "description": "Map of nodes",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "$ref": "#/definitions/server.NodeResponse"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/nodes/{name}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns the details of a specific node by name",
-                "tags": [
-                    "nodes"
-                ],
-                "summary": "Get details of a specific node",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Node Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Node details",
-                        "schema": {
-                            "$ref": "#/definitions/server.NodeResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid name format",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Node not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/": {
             "post": {
                 "security": [
@@ -1434,34 +1462,6 @@ const docTemplate = `{
                         "description": "List of OpenAI-compatible instances",
                         "schema": {
                             "$ref": "#/definitions/server.OpenAIListInstancesResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/version": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns the version of the llamactl command",
-                "tags": [
-                    "version"
-                ],
-                "summary": "Get llamactl version",
-                "responses": {
-                    "200": {
-                        "description": "Version information",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
