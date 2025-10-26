@@ -16,7 +16,7 @@ import (
 // ListInstances godoc
 // @Summary List all instances
 // @Description Returns a list of all instances managed by the server
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Produces json
 // @Success 200 {array} instance.Instance "List of instances"
@@ -37,7 +37,7 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 // CreateInstance godoc
 // @Summary Create and start a new instance
 // @Description Creates a new instance with the provided configuration options
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Accept json
 // @Produces json
@@ -75,7 +75,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 // GetInstance godoc
 // @Summary Get details of a specific instance
 // @Description Returns the details of a specific instance by name
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
@@ -105,7 +105,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 // UpdateInstance godoc
 // @Summary Update an instance's configuration
 // @Description Updates the configuration of a specific instance by name
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Accept json
 // @Produces json
@@ -143,7 +143,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 // StartInstance godoc
 // @Summary Start a stopped instance
 // @Description Starts a specific instance by name
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
@@ -179,7 +179,7 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 // StopInstance godoc
 // @Summary Stop a running instance
 // @Description Stops a specific instance by name
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
@@ -209,7 +209,7 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 // RestartInstance godoc
 // @Summary Restart a running instance
 // @Description Restarts a specific instance by name
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
@@ -239,7 +239,7 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 // DeleteInstance godoc
 // @Summary Delete an instance
 // @Description Stops and removes a specific instance by name
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Param name path string true "Instance Name"
 // @Success 204 "No Content"
@@ -267,7 +267,7 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 // GetInstanceLogs godoc
 // @Summary Get logs from a specific instance
 // @Description Returns the logs from a specific instance by name with optional line limit
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Param name path string true "Instance Name"
 // @Param lines query string false "Number of lines to retrieve (default: all lines)"
@@ -310,7 +310,7 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 // InstanceProxy godoc
 // @Summary Proxy requests to a specific instance, does not autostart instance if stopped
 // @Description Forwards HTTP requests to the llama-server instance running on a specific port
-// @Tags instances
+// @Tags Instances
 // @Security ApiKeyAuth
 // @Param name path string true "Instance Name"
 // @Success 200 "Request successfully proxied to instance"

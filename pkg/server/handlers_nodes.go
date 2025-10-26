@@ -14,7 +14,7 @@ type NodeResponse struct {
 // ListNodes godoc
 // @Summary List all configured nodes
 // @Description Returns a map of all nodes configured in the server (node name -> node config)
-// @Tags nodes
+// @Tags Nodes
 // @Security ApiKeyAuth
 // @Produces json
 // @Success 200 {object} map[string]NodeResponse "Map of nodes"
@@ -37,7 +37,7 @@ func (h *Handler) ListNodes() http.HandlerFunc {
 // GetNode godoc
 // @Summary Get details of a specific node
 // @Description Returns the details of a specific node by name
-// @Tags nodes
+// @Tags Nodes
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Node Name"

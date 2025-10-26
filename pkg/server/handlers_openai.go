@@ -25,7 +25,7 @@ type OpenAIInstance struct {
 // OpenAIListInstances godoc
 // @Summary List instances in OpenAI-compatible format
 // @Description Returns a list of instances in a format compatible with OpenAI API
-// @Tags openai
+// @Tags OpenAI
 // @Security ApiKeyAuth
 // @Produces json
 // @Success 200 {object} OpenAIListInstancesResponse "List of OpenAI-compatible instances"
@@ -61,7 +61,7 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 // OpenAIProxy godoc
 // @Summary OpenAI-compatible proxy endpoint
 // @Description Handles all POST requests to /v1/*, routing to the appropriate instance based on the request body. Requires API key authentication via the `Authorization` header.
-// @Tags openai
+// @Tags OpenAI
 // @Security ApiKeyAuth
 // @Accept json
 // @Produces json

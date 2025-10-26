@@ -44,7 +44,7 @@ func (h *Handler) stripLlamaCppPrefix(r *http.Request, instName string) {
 // LlamaCppUIProxy godoc
 // @Summary Proxy requests to llama.cpp UI for the instance
 // @Description Proxies requests to the llama.cpp UI for the specified instance
-// @Tags backends
+// @Tags Llama.cpp
 // @Security ApiKeyAuth
 // @Produce html
 // @Param name query string true "Instance Name"
@@ -83,7 +83,7 @@ func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
 // LlamaCppProxy godoc
 // @Summary Proxy requests to llama.cpp server instance
 // @Description Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured
-// @Tags backends
+// @Tags Llama.cpp
 // @Security ApiKeyAuth
 // @Produce json
 // @Param name path string true "Instance Name"
@@ -160,7 +160,7 @@ func parseHelper(w http.ResponseWriter, r *http.Request, backend interface {
 // ParseLlamaCommand godoc
 // @Summary Parse llama-server command
 // @Description Parses a llama-server command string into instance options
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Accept json
 // @Produce json
@@ -190,7 +190,7 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 // ParseMlxCommand godoc
 // @Summary Parse mlx_lm.server command
 // @Description Parses MLX-LM server command string into instance options
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Accept json
 // @Produce json
@@ -219,7 +219,7 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 // ParseVllmCommand godoc
 // @Summary Parse vllm serve command
 // @Description Parses a vLLM serve command string into instance options
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Accept json
 // @Produce json
@@ -261,7 +261,7 @@ func (h *Handler) executeLlamaServerCommand(flag, errorMsg string) http.HandlerF
 // LlamaServerHelpHandler godoc
 // @Summary Get help for llama server
 // @Description Returns the help text for the llama server command
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "Help text"
@@ -274,7 +274,7 @@ func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 // LlamaServerVersionHandler godoc
 // @Summary Get version of llama server
 // @Description Returns the version of the llama server command
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "Version information"
@@ -287,7 +287,7 @@ func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 // LlamaServerListDevicesHandler godoc
 // @Summary List available devices for llama server
 // @Description Returns a list of available devices for the llama server
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "List of devices"

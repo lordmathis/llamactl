@@ -85,7 +85,7 @@ paths:
       - ApiKeyAuth: []
       summary: List available devices for llama server
       tags:
-      - backends
+      - Backends
   /api/v1/backends/llama-cpp/help:
     get:
       description: Returns the help text for the llama server command
@@ -102,7 +102,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get help for llama server
       tags:
-      - backends
+      - Backends
   /api/v1/backends/llama-cpp/parse-command:
     post:
       consumes:
@@ -138,7 +138,7 @@ paths:
       - ApiKeyAuth: []
       summary: Parse llama-server command
       tags:
-      - backends
+      - Backends
   /api/v1/backends/llama-cpp/version:
     get:
       description: Returns the version of the llama server command
@@ -155,7 +155,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get version of llama server
       tags:
-      - backends
+      - Backends
   /api/v1/backends/mlx/parse-command:
     post:
       consumes:
@@ -185,7 +185,7 @@ paths:
       - ApiKeyAuth: []
       summary: Parse mlx_lm.server command
       tags:
-      - backends
+      - Backends
   /api/v1/backends/vllm/parse-command:
     post:
       consumes:
@@ -215,7 +215,7 @@ paths:
       - ApiKeyAuth: []
       summary: Parse vllm serve command
       tags:
-      - backends
+      - Backends
   /api/v1/instances:
     get:
       description: Returns a list of all instances managed by the server
@@ -234,7 +234,7 @@ paths:
       - ApiKeyAuth: []
       summary: List all instances
       tags:
-      - instances
+      - Instances
   /api/v1/instances/{name}:
     delete:
       description: Stops and removes a specific instance by name
@@ -259,7 +259,7 @@ paths:
       - ApiKeyAuth: []
       summary: Delete an instance
       tags:
-      - instances
+      - Instances
     get:
       description: Returns the details of a specific instance by name
       parameters:
@@ -285,7 +285,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get details of a specific instance
       tags:
-      - instances
+      - Instances
     post:
       consumes:
       - application/json
@@ -319,7 +319,7 @@ paths:
       - ApiKeyAuth: []
       summary: Create and start a new instance
       tags:
-      - instances
+      - Instances
     put:
       consumes:
       - application/json
@@ -353,7 +353,7 @@ paths:
       - ApiKeyAuth: []
       summary: Update an instance's configuration
       tags:
-      - instances
+      - Instances
   /api/v1/instances/{name}/logs:
     get:
       description: Returns the logs from a specific instance by name with optional
@@ -385,7 +385,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get logs from a specific instance
       tags:
-      - instances
+      - Instances
   /api/v1/instances/{name}/proxy:
     get:
       description: Forwards HTTP requests to the llama-server instance running on
@@ -416,7 +416,7 @@ paths:
       summary: Proxy requests to a specific instance, does not autostart instance
         if stopped
       tags:
-      - instances
+      - Instances
     post:
       description: Forwards HTTP requests to the llama-server instance running on
         a specific port
@@ -446,7 +446,7 @@ paths:
       summary: Proxy requests to a specific instance, does not autostart instance
         if stopped
       tags:
-      - instances
+      - Instances
   /api/v1/instances/{name}/restart:
     post:
       description: Restarts a specific instance by name
@@ -473,7 +473,7 @@ paths:
       - ApiKeyAuth: []
       summary: Restart a running instance
       tags:
-      - instances
+      - Instances
   /api/v1/instances/{name}/start:
     post:
       description: Starts a specific instance by name
@@ -500,7 +500,7 @@ paths:
       - ApiKeyAuth: []
       summary: Start a stopped instance
       tags:
-      - instances
+      - Instances
   /api/v1/instances/{name}/stop:
     post:
       description: Stops a specific instance by name
@@ -527,7 +527,7 @@ paths:
       - ApiKeyAuth: []
       summary: Stop a running instance
       tags:
-      - instances
+      - Instances
   /api/v1/nodes:
     get:
       description: Returns a map of all nodes configured in the server (node name
@@ -547,7 +547,7 @@ paths:
       - ApiKeyAuth: []
       summary: List all configured nodes
       tags:
-      - nodes
+      - Nodes
   /api/v1/nodes/{name}:
     get:
       description: Returns the details of a specific node by name
@@ -578,7 +578,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get details of a specific node
       tags:
-      - nodes
+      - Nodes
   /api/v1/version:
     get:
       description: Returns the version of the llamactl command
@@ -595,7 +595,7 @@ paths:
       - ApiKeyAuth: []
       summary: Get llamactl version
       tags:
-      - version
+      - System
   /llama-cpp/{name}/:
     get:
       description: Proxies requests to the llama.cpp UI for the specified instance
@@ -624,7 +624,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp UI for the instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/apply-template:
     post:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -655,7 +655,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/completion:
     post:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -686,7 +686,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/detokenize:
     post:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -717,7 +717,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/embeddings:
     post:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -748,7 +748,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/infill:
     post:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -779,7 +779,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/metrics:
     post:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -810,7 +810,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/props:
     get:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -841,7 +841,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
     post:
       description: Proxies requests to the specified llama.cpp server instance, starting
         it on-demand if configured
@@ -871,7 +871,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/reranking:
     post:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -902,7 +902,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/slots:
     get:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -933,7 +933,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /llama-cpp/{name}/tokenize:
     post:
       description: Proxies requests to the specified llama.cpp server instance, starting
@@ -964,7 +964,7 @@ paths:
       - ApiKeyAuth: []
       summary: Proxy requests to llama.cpp server instance
       tags:
-      - backends
+      - Llama.cpp
   /v1/:
     post:
       consumes:
@@ -987,7 +987,7 @@ paths:
       - ApiKeyAuth: []
       summary: OpenAI-compatible proxy endpoint
       tags:
-      - openai
+      - OpenAI
   /v1/models:
     get:
       description: Returns a list of instances in a format compatible with OpenAI
@@ -1005,7 +1005,7 @@ paths:
       - ApiKeyAuth: []
       summary: List instances in OpenAI-compatible format
       tags:
-      - openai
+      - OpenAI
 securityDefinitions:
   ApiKeyAuth:
     in: header

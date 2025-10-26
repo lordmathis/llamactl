@@ -8,7 +8,7 @@ import (
 // VersionHandler godoc
 // @Summary Get llamactl version
 // @Description Returns the version of the llamactl command
-// @Tags version
+// @Tags System
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "Version information"

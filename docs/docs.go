@@ -28,7 +28,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns a list of available devices for the llama server",
                 "tags": [
-                    "backends"
+                    "Backends"
                 ],
                 "summary": "List available devices for llama server",
                 "responses": {
@@ -56,7 +56,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns the help text for the llama server command",
                 "tags": [
-                    "backends"
+                    "Backends"
                 ],
                 "summary": "Get help for llama server",
                 "responses": {
@@ -90,7 +90,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Backends"
                 ],
                 "summary": "Parse llama-server command",
                 "parameters": [
@@ -141,7 +141,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns the version of the llama server command",
                 "tags": [
-                    "backends"
+                    "Backends"
                 ],
                 "summary": "Get version of llama server",
                 "responses": {
@@ -175,7 +175,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Backends"
                 ],
                 "summary": "Parse mlx_lm.server command",
                 "parameters": [
@@ -223,7 +223,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Backends"
                 ],
                 "summary": "Parse vllm serve command",
                 "parameters": [
@@ -265,7 +265,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns a list of all instances managed by the server",
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "List all instances",
                 "responses": {
@@ -296,7 +296,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns the details of a specific instance by name",
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Get details of a specific instance",
                 "parameters": [
@@ -340,7 +340,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Update an instance's configuration",
                 "parameters": [
@@ -393,7 +393,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Create and start a new instance",
                 "parameters": [
@@ -443,7 +443,7 @@ const docTemplate = `{
                 ],
                 "description": "Stops and removes a specific instance by name",
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Delete an instance",
                 "parameters": [
@@ -483,7 +483,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns the logs from a specific instance by name with optional line limit",
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Get logs from a specific instance",
                 "parameters": [
@@ -532,7 +532,7 @@ const docTemplate = `{
                 ],
                 "description": "Forwards HTTP requests to the llama-server instance running on a specific port",
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Proxy requests to a specific instance, does not autostart instance if stopped",
                 "parameters": [
@@ -576,7 +576,7 @@ const docTemplate = `{
                 ],
                 "description": "Forwards HTTP requests to the llama-server instance running on a specific port",
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Proxy requests to a specific instance, does not autostart instance if stopped",
                 "parameters": [
@@ -622,7 +622,7 @@ const docTemplate = `{
                 ],
                 "description": "Restarts a specific instance by name",
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Restart a running instance",
                 "parameters": [
@@ -665,7 +665,7 @@ const docTemplate = `{
                 ],
                 "description": "Starts a specific instance by name",
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Start a stopped instance",
                 "parameters": [
@@ -708,7 +708,7 @@ const docTemplate = `{
                 ],
                 "description": "Stops a specific instance by name",
                 "tags": [
-                    "instances"
+                    "Instances"
                 ],
                 "summary": "Stop a running instance",
                 "parameters": [
@@ -751,7 +751,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns a map of all nodes configured in the server (node name -\u003e node config)",
                 "tags": [
-                    "nodes"
+                    "Nodes"
                 ],
                 "summary": "List all configured nodes",
                 "responses": {
@@ -782,7 +782,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns the details of a specific node by name",
                 "tags": [
-                    "nodes"
+                    "Nodes"
                 ],
                 "summary": "Get details of a specific node",
                 "parameters": [
@@ -831,7 +831,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns the version of the llamactl command",
                 "tags": [
-                    "version"
+                    "System"
                 ],
                 "summary": "Get llamactl version",
                 "responses": {
@@ -862,7 +862,7 @@ const docTemplate = `{
                     "text/html"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp UI for the instance",
                 "parameters": [
@@ -908,7 +908,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -955,7 +955,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1002,7 +1002,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1049,7 +1049,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1096,7 +1096,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1143,7 +1143,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1190,7 +1190,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1235,7 +1235,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1282,7 +1282,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1329,7 +1329,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1376,7 +1376,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "backends"
+                    "Llama.cpp"
                 ],
                 "summary": "Proxy requests to llama.cpp server instance",
                 "parameters": [
@@ -1423,7 +1423,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "openai"
+                    "OpenAI"
                 ],
                 "summary": "OpenAI-compatible proxy endpoint",
                 "responses": {
@@ -1454,7 +1454,7 @@ const docTemplate = `{
                 ],
                 "description": "Returns a list of instances in a format compatible with OpenAI API",
                 "tags": [
-                    "openai"
+                    "OpenAI"
                 ],
                 "summary": "List instances in OpenAI-compatible format",
                 "responses": {
