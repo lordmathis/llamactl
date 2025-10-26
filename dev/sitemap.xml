@@ -3,36 +3,29 @@
     <url>
          <loc>https://llamactl.org/dev/</loc>
          <lastmod>2025-10-26</lastmod>
-         <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://llamactl.org/dev/getting-started/configuration/</loc>
+         <loc>https://llamactl.org/dev/api-reference/</loc>
          <lastmod>2025-10-26</lastmod>
-         <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://llamactl.org/dev/getting-started/installation/</loc>
+         <loc>https://llamactl.org/dev/configuration/</loc>
          <lastmod>2025-10-26</lastmod>
-         <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://llamactl.org/dev/getting-started/quick-start/</loc>
+         <loc>https://llamactl.org/dev/installation/</loc>
          <lastmod>2025-10-26</lastmod>
-         <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://llamactl.org/dev/user-guide/api-reference/</loc>
+         <loc>https://llamactl.org/dev/managing-instances/</loc>
          <lastmod>2025-10-26</lastmod>
-         <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://llamactl.org/dev/user-guide/managing-instances/</loc>
+         <loc>https://llamactl.org/dev/quick-start/</loc>
          <lastmod>2025-10-26</lastmod>
-         <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://llamactl.org/dev/user-guide/troubleshooting/</loc>
+         <loc>https://llamactl.org/dev/troubleshooting/</loc>
          <lastmod>2025-10-26</lastmod>
-         <changefreq>daily</changefreq>
     </url>
 </urlset>
