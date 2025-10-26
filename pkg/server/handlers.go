@@ -10,6 +10,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // errorResponse represents an error response returned by the API
@@ -65,7 +67,7 @@ func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
 
 // getInstance retrieves an instance by name from the request query parameters
 func (h *Handler) getInstance(r *http.Request) (*instance.Instance, error) {
-	name := r.URL.Query().Get("name")
+	name := chi.URLParam(r, "name")
 	validatedName, err := validation.ValidateInstanceName(name)
 	if err != nil {
 		return nil, fmt.Errorf("invalid instance name: %w", err)

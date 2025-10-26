@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // ListInstances godoc
@@ -47,7 +49,7 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 // @Router /instances/{name} [post]
 func (h *Handler) CreateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
+		name := chi.URLParam(r, "name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -83,7 +85,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 // @Router /instances/{name} [get]
 func (h *Handler) GetInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
+		name := chi.URLParam(r, "name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -115,7 +117,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 // @Router /instances/{name} [put]
 func (h *Handler) UpdateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
+		name := chi.URLParam(r, "name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -151,7 +153,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 // @Router /instances/{name}/start [post]
 func (h *Handler) StartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
+		name := chi.URLParam(r, "name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -187,7 +189,7 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 // @Router /instances/{name}/stop [post]
 func (h *Handler) StopInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
+		name := chi.URLParam(r, "name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -217,7 +219,7 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 // @Router /instances/{name}/restart [post]
 func (h *Handler) RestartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
+		name := chi.URLParam(r, "name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -246,7 +248,7 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 // @Router /instances/{name} [delete]
 func (h *Handler) DeleteInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
+		name := chi.URLParam(r, "name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
@@ -276,7 +278,7 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 // @Router /instances/{name}/logs [get]
 func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := r.URL.Query().Get("name")
+		name := chi.URLParam(r, "name")
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
