@@ -78,7 +78,8 @@ curl -X POST http://localhost:8080/api/instances/my-llama-instance \
       "threads": 8,
       "ctx_size": 4096,
       "gpu_layers": 32
-    }
+    },
+    "nodes": ["main"]
   }'
 
 # Create MLX instance (macOS only)
@@ -93,7 +94,8 @@ curl -X POST http://localhost:8080/api/instances/my-mlx-instance \
       "max_tokens": 2048
     },
     "auto_restart": true,
-    "max_restarts": 3
+    "max_restarts": 3,
+    "nodes": ["main"]
   }'
 
 # Create vLLM instance
@@ -112,7 +114,8 @@ curl -X POST http://localhost:8080/api/instances/my-vllm-instance \
       "CUDA_VISIBLE_DEVICES": "0,1",
       "NCCL_DEBUG": "INFO",
       "PYTHONPATH": "/custom/path"
-    }
+    },
+    "nodes": ["main"]
   }'
 
 # Create llama.cpp instance with HuggingFace model
@@ -124,7 +127,8 @@ curl -X POST http://localhost:8080/api/instances/gemma-3-27b \
       "hf_repo": "unsloth/gemma-3-27b-it-GGUF",
       "hf_file": "gemma-3-27b-it-GGUF.gguf",
       "gpu_layers": 32
-    }
+    },
+    "nodes": ["main"]
   }'
 
 # Create instance on specific remote node
@@ -137,6 +141,18 @@ curl -X POST http://localhost:8080/api/instances/remote-llama \
       "gpu_layers": 32
     },
     "nodes": ["worker1"]
+  }'
+
+# Create instance on multiple nodes for high availability
+curl -X POST http://localhost:8080/api/instances/multi-node-llama \
+  -H "Content-Type: application/json" \
+  -d '{
+    "backend_type": "llama_cpp",
+    "backend_options": {
+      "model": "/models/llama-7b.gguf",
+      "gpu_layers": 32
+    },
+    "nodes": ["worker1", "worker2", "worker3"]
   }'
 ```
 

@@ -28,13 +28,17 @@ You should see the Llamactl web interface.
 
 1. Click the "Add Instance" button
 2. Fill in the instance configuration:
-   - **Name**: Give your instance a descriptive name
-   - **Backend Type**: Choose from llama.cpp, MLX, or vLLM
-   - **Model**: Model path or huggingface repo
-   - **Additional Options**: Backend-specific parameters
+     - **Name**: Give your instance a descriptive name
+     - **Node**: Select which node to deploy the instance to (defaults to "main" for single-node setups)
+     - **Backend Type**: Choose from llama.cpp, MLX, or vLLM
+     - **Model**: Model path or huggingface repo
+     - **Additional Options**: Backend-specific parameters
 
-!!! tip "Auto-Assignment"
-    Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.
+    !!! tip "Auto-Assignment"
+        Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.
+
+    !!! note "Remote Node Deployment"
+        If you have configured remote nodes in your configuration file, you can select which node to deploy the instance to. This allows you to distribute instances across multiple machines. See the [Configuration](configuration.md#remote-node-configuration) guide for details on setting up remote nodes.
 
 3. Click "Create Instance"
 
@@ -61,7 +65,8 @@ Here are basic example configurations for each backend:
     "threads": 4,
     "ctx_size": 2048,
     "gpu_layers": 32
-  }
+  },
+  "nodes": ["main"]
 }
 ```
 
@@ -74,7 +79,8 @@ Here are basic example configurations for each backend:
     "model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
     "temp": 0.7,
     "max_tokens": 2048
-  }
+  },
+  "nodes": ["main"]
 }
 ```
 
@@ -87,7 +93,21 @@ Here are basic example configurations for each backend:
     "model": "microsoft/DialoGPT-medium",
     "tensor_parallel_size": 2,
     "gpu_memory_utilization": 0.9
-  }
+  },
+  "nodes": ["main"]
+}
+```
+
+**Multi-node deployment example:**
+```json
+{
+  "name": "distributed-model",
+  "backend_type": "llama_cpp",
+  "backend_options": {
+    "model": "/path/to/model.gguf",
+    "gpu_layers": 32
+  },
+  "nodes": ["worker1", "worker2"]
 }
 ```
 
