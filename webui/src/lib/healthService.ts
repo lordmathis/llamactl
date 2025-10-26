@@ -6,12 +6,10 @@ type HealthCallback = (health: HealthStatus) => void
 // Polling intervals based on health state (in milliseconds)
 const POLLING_INTERVALS: Record<HealthState, number> = {
   'starting': 5000,    // 5 seconds - frequent during startup
-  'loading': 5000,     // 5 seconds - model loading
   'restarting': 5000,  // 5 seconds - restart in progress
   'ready': 60000,      // 60 seconds - stable state
   'stopped': 0,        // No polling
   'failed': 0,         // No polling
-  'error': 10000,      // 10 seconds - retry on error
 }
 
 class HealthService {
@@ -42,7 +40,7 @@ class HealthService {
         try {
           await instancesApi.getHealth(instanceName)
 
-          // HTTP health check succeeded
+          // HTTP health check succeeded - instance is ready
           const health: HealthStatus = {
             state: 'ready',
             instanceStatus: 'running',
@@ -54,45 +52,21 @@ class HealthService {
           return health
 
         } catch (httpError) {
-          // HTTP health check failed while instance is running
-          // Re-verify instance is still running
-          try {
-            const verifyInstance = await instancesApi.get(instanceName)
-
-            if (verifyInstance.status !== 'running') {
-              // Instance stopped/failed since our first check
-              const health: HealthStatus = {
-                state: this.mapStatusToHealthState(verifyInstance.status),
-                instanceStatus: verifyInstance.status,
-                lastChecked: new Date(),
-                source: 'backend'
-              }
-
-              this.updateCache(instanceName, health)
-              return health
-            }
-
-            // Instance still running but HTTP failed - classify error
-            const health = this.classifyHttpError(httpError as Error, 'running')
-            this.updateCache(instanceName, health)
-            return health
-
-          } catch (verifyError) {
-            // Failed to verify - return error state
-            const health: HealthStatus = {
-              state: 'error',
-              instanceStatus: 'running',
-              lastChecked: new Date(),
-              error: 'Failed to verify instance status',
-              source: 'error'
-            }
-
-            this.updateCache(instanceName, health)
-            return health
+          // HTTP health check failed - instance is still starting
+          // Any error (503, connection refused, timeout, etc.) means "starting"
+          const health: HealthStatus = {
+            state: 'starting',
+            instanceStatus: 'running',
+            lastChecked: new Date(),
+            error: httpError instanceof Error ? httpError.message : 'Health check failed',
+            source: 'http'
           }
+
+          this.updateCache(instanceName, health)
+          return health
         }
       } else {
-        // Instance not running - return backend status
+        // Instance not running - map backend status directly
         const health: HealthStatus = {
           state: this.mapStatusToHealthState(instance.status),
           instanceStatus: instance.status,
@@ -105,56 +79,11 @@ class HealthService {
       }
 
     } catch (error) {
-      // Failed to get instance
-      const health: HealthStatus = {
-        state: 'error',
-        instanceStatus: 'unknown',
-        lastChecked: new Date(),
-        error: error instanceof Error ? error.message : 'Unknown error',
-        source: 'error'
-      }
-
-      this.updateCache(instanceName, health)
-      return health
-    }
-  }
-
-  /**
-   * Classifies HTTP errors into appropriate health states
-   */
-  private classifyHttpError(error: Error, instanceStatus: InstanceStatus): HealthStatus {
-    const errorMessage = error.message.toLowerCase()
-
-    // Parse HTTP status code from error message if available
-    if (errorMessage.includes('503')) {
-      return {
-        state: 'loading',
-        instanceStatus,
-        lastChecked: new Date(),
-        error: 'Service loading',
-        source: 'http'
-      }
-    }
-
-    if (errorMessage.includes('connection refused') ||
-        errorMessage.includes('econnrefused') ||
-        errorMessage.includes('network error')) {
-      return {
-        state: 'starting',
-        instanceStatus,
-        lastChecked: new Date(),
-        error: 'Connection refused',
-        source: 'http'
-      }
-    }
-
-    // Other HTTP errors
-    return {
-      state: 'error',
-      instanceStatus,
-      lastChecked: new Date(),
-      error: error.message,
-      source: 'http'
+      // Failed to get instance status from backend
+      // This is a backend communication error, not an instance health error
+      // Let the error propagate so polling can retry
+      console.error(`Failed to get instance status for ${instanceName}:`, error)
+      throw error
     }
   }
 
@@ -164,10 +93,9 @@ class HealthService {
   private mapStatusToHealthState(status: InstanceStatus): HealthState {
     switch (status) {
       case 'stopped': return 'stopped'
-      case 'running': return 'starting' // Unknown without HTTP check
+      case 'running': return 'starting' // Should not happen as we check HTTP for running
       case 'failed': return 'failed'
       case 'restarting': return 'restarting'
-      default: return 'error'
     }
   }
 
@@ -188,15 +116,20 @@ class HealthService {
     // Invalidate cache
     this.healthCache.delete(instanceName)
 
-    const health = await this.performHealthCheck(instanceName)
-    this.notifyCallbacks(instanceName, health)
+    try {
+      const health = await this.performHealthCheck(instanceName)
+      this.notifyCallbacks(instanceName, health)
 
-    // Update last state and adjust polling interval if needed
-    const previousState = this.lastHealthState.get(instanceName)
-    this.lastHealthState.set(instanceName, health.state)
+      // Update last state and adjust polling interval if needed
+      const previousState = this.lastHealthState.get(instanceName)
+      this.lastHealthState.set(instanceName, health.state)
 
-    if (previousState !== health.state) {
-      this.adjustPollingInterval(instanceName, health.state)
+      if (previousState !== health.state) {
+        this.adjustPollingInterval(instanceName, health.state)
+      }
+    } catch (error) {
+      // Error getting health - keep polling if active
+      console.error(`Failed to refresh health for ${instanceName}:`, error)
     }
   }
 
@@ -273,7 +206,7 @@ class HealthService {
 
     const pollInterval = POLLING_INTERVALS[state]
 
-    // Don't poll for stable states (stopped, failed, ready has long interval)
+    // Don't poll for stable states (stopped, failed)
     if (pollInterval === 0) {
       return
     }
@@ -293,6 +226,7 @@ class HealthService {
         }
       } catch (error) {
         console.error(`Health check failed for ${instanceName}:`, error)
+        // Continue polling even on error
       }
     }, pollInterval)
 

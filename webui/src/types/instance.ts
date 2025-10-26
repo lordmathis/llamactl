@@ -13,14 +13,14 @@ export type BackendTypeValue = typeof BackendType[keyof typeof BackendType]
 
 export type InstanceStatus = 'running' | 'stopped' | 'failed' | 'restarting'
 
-export type HealthState = 'stopped' | 'starting' | 'loading' | 'ready' | 'error' | 'failed' | 'restarting'
+export type HealthState = 'stopped' | 'starting' | 'ready' | 'failed' | 'restarting'
 
 export interface HealthStatus {
   state: HealthState
-  instanceStatus: InstanceStatus | 'unknown'
+  instanceStatus: InstanceStatus
   lastChecked: Date
   error?: string
-  source: 'backend' | 'http' | 'error'
+  source: 'backend' | 'http'
 }
 
 export interface Instance {
