@@ -14,20 +14,20 @@ Welcome to the Llamactl documentation!
 
 ## Quick Links
 
-- [Installation Guide](getting-started/installation.md) - Get Llamactl up and running
-- [Configuration Guide](getting-started/configuration.md) - Detailed configuration options
-- [Quick Start](getting-started/quick-start.md) - Your first steps with Llamactl
-- [Managing Instances](user-guide/managing-instances.md) - Instance lifecycle management
-- [API Reference](user-guide/api-reference.md) - Complete API documentation
+- [Installation Guide](installation.md) - Get Llamactl up and running
+- [Configuration Guide](configuration.md) - Detailed configuration options
+- [Quick Start](quick-start.md) - Your first steps with Llamactl
+- [Managing Instances](managing-instances.md) - Instance lifecycle management
+- [API Reference](api-reference.md) - Complete API documentation
 
 
 ## Getting Help
 
 If you need help or have questions:
 
-- Check the [Troubleshooting](user-guide/troubleshooting.md) guide
+- Check the [Troubleshooting](troubleshooting.md) guide
 - Visit the [GitHub repository](https://github.com/lordmathis/llamactl)
-- Review the [Configuration Guide](getting-started/configuration.md) for advanced settings
+- Review the [Configuration Guide](configuration.md) for advanced settings
 
 ## License
 

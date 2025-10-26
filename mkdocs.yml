@@ -49,14 +49,12 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quick-start.md
-    - Configuration: getting-started/configuration.md
-  - User Guide:
-    - Managing Instances: user-guide/managing-instances.md
-    - API Reference: user-guide/api-reference.md
-    - Troubleshooting: user-guide/troubleshooting.md
+  - Installation: installation.md
+  - Quick Start: quick-start.md
+  - Configuration: configuration.md
+  - Managing Instances: managing-instances.md
+  - API Reference: api-reference.md
+  - Troubleshooting: troubleshooting.md
 
 plugins:
   - search

@@ -9,7 +9,7 @@ Llamactl provides two ways to manage instances:
 - **Web UI**: Accessible at `http://localhost:8080` with an intuitive dashboard
 - **REST API**: Programmatic access for automation and integration
 
-![Dashboard Screenshot](../images/dashboard.png)
+![Dashboard Screenshot](images/dashboard.png)
 
 ### Authentication
 
@@ -35,7 +35,7 @@ Each instance is displayed as a card showing:
 
 ### Via Web UI
 
-![Create Instance Screenshot](../images/create_instance.png)
+![Create Instance Screenshot](images/create_instance.png)
 
 1. Click the **"Create Instance"** button on the dashboard
 2. Enter a unique **Name** for your instance (only required field)

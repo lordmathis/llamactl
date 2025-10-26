@@ -185,6 +185,6 @@ curl http://localhost:8080/v1/models
 
 ## Next Steps
 
-- Manage instances [Managing Instances](../user-guide/managing-instances.md)
-- Explore the [API Reference](../user-guide/api-reference.md)
+- Manage instances [Managing Instances](managing-instances.md)
+- Explore the [API Reference](api-reference.md)
 - Configure advanced settings in the [Configuration](configuration.md) guide
