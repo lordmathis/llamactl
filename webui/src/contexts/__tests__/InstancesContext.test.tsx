@@ -11,13 +11,36 @@ import { AuthProvider } from "../AuthContext";
 vi.mock("@/lib/api", () => ({
   instancesApi: {
     list: vi.fn(),
+    get: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
     restart: vi.fn(),
     delete: vi.fn(),
+    getHealth: vi.fn(),
   },
+}));
+
+// Mock health service
+vi.mock("@/lib/healthService", () => ({
+  healthService: {
+    subscribe: vi.fn(() => () => {}),
+    refreshHealth: vi.fn(() => Promise.resolve()),
+    checkHealthAfterOperation: vi.fn(),
+    performHealthCheck: vi.fn(() => Promise.resolve({
+      state: 'ready',
+      instanceStatus: 'running',
+      lastChecked: new Date(),
+      source: 'http'
+    })),
+  },
+  checkHealth: vi.fn(() => Promise.resolve({
+    state: 'ready',
+    instanceStatus: 'running',
+    lastChecked: new Date(),
+    source: 'http'
+  })),
 }));
 
 // Test component to access context

@@ -7,7 +7,12 @@ import { BackendType } from '@/types/instance'
 
 // Mock the health hook since we're not testing health logic here
 vi.mock('@/hooks/useInstanceHealth', () => ({
-  useInstanceHealth: vi.fn(() => ({ status: 'ok', lastChecked: new Date() }))
+  useInstanceHealth: vi.fn(() => ({
+    state: 'ready',
+    instanceStatus: 'running',
+    lastChecked: new Date(),
+    source: 'http'
+  }))
 }))
 
 describe('InstanceCard - Instance Actions and State', () => {
