@@ -86,7 +86,7 @@ go install github.com/swaggo/swag/cmd/swag@latest
 
 # Update Swagger comments in pkg/server/handlers.go
 # Then regenerate docs
-swag init -g cmd/server/main.go -o apidocs
+swag init -g cmd/server/main.go
 ```
 
 ## Pull Request Guidelines

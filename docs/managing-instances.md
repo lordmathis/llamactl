@@ -9,13 +9,17 @@ Llamactl provides two ways to manage instances:
 - **Web UI**: Accessible at `http://localhost:8080` with an intuitive dashboard
 - **REST API**: Programmatic access for automation and integration
 
-![Dashboard Screenshot](../images/dashboard.png)
+![Dashboard Screenshot](images/dashboard.png)
 
 ### Authentication
 
-If authentication is enabled:
+Llamactl uses a **Management API Key** to authenticate requests to the management API (creating, starting, stopping instances). All curl examples below use `<token>` as a placeholder - replace this with your actual Management API Key.
+
+By default, authentication is required. If you don't configure a management API key in your configuration file, llamactl will auto-generate one and print it to the terminal on startup. See the [Configuration](configuration.md) guide for details.
+
+For Web UI access:
 1. Navigate to the web UI
-2. Enter your credentials
+2. Enter your Management API Key
 3. Bearer token is stored for the session
 
 ### Theme Support
@@ -33,9 +37,9 @@ Each instance is displayed as a card showing:
 
 ## Create Instance
 
-### Via Web UI
+**Via Web UI**
 
-![Create Instance Screenshot](../images/create_instance.png)
+![Create Instance Screenshot](images/create_instance.png)
 
 1. Click the **"Create Instance"** button on the dashboard
 2. Enter a unique **Name** for your instance (only required field)
@@ -59,14 +63,19 @@ Each instance is displayed as a card showing:
     - **llama.cpp**: Threads, context size, GPU layers, port, etc.
     - **MLX**: Temperature, top-p, adapter path, Python environment, etc.
     - **vLLM**: Tensor parallel size, GPU memory utilization, quantization, etc.
+
+!!! tip "Auto-Assignment"
+    Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.
+
 8. Click **"Create"** to save the instance  
 
-### Via API
+**Via API**
 
 ```bash
 # Create llama.cpp instance with local model file
-curl -X POST http://localhost:8080/api/instances/my-llama-instance \
+curl -X POST http://localhost:8080/api/v1/instances/my-llama-instance \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{
     "backend_type": "llama_cpp",
     "backend_options": {
@@ -74,12 +83,14 @@ curl -X POST http://localhost:8080/api/instances/my-llama-instance \
       "threads": 8,
       "ctx_size": 4096,
       "gpu_layers": 32
-    }
+    },
+    "nodes": ["main"]
   }'
 
 # Create MLX instance (macOS only)
-curl -X POST http://localhost:8080/api/instances/my-mlx-instance \
+curl -X POST http://localhost:8080/api/v1/instances/my-mlx-instance \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{
     "backend_type": "mlx_lm",
     "backend_options": {
@@ -89,12 +100,14 @@ curl -X POST http://localhost:8080/api/instances/my-mlx-instance \
       "max_tokens": 2048
     },
     "auto_restart": true,
-    "max_restarts": 3
+    "max_restarts": 3,
+    "nodes": ["main"]
   }'
 
 # Create vLLM instance
-curl -X POST http://localhost:8080/api/instances/my-vllm-instance \
+curl -X POST http://localhost:8080/api/v1/instances/my-vllm-instance \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{
     "backend_type": "vllm",
     "backend_options": {
@@ -108,24 +121,28 @@ curl -X POST http://localhost:8080/api/instances/my-vllm-instance \
       "CUDA_VISIBLE_DEVICES": "0,1",
       "NCCL_DEBUG": "INFO",
       "PYTHONPATH": "/custom/path"
-    }
+    },
+    "nodes": ["main"]
   }'
 
 # Create llama.cpp instance with HuggingFace model
-curl -X POST http://localhost:8080/api/instances/gemma-3-27b \
+curl -X POST http://localhost:8080/api/v1/instances/gemma-3-27b \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{
     "backend_type": "llama_cpp",
     "backend_options": {
       "hf_repo": "unsloth/gemma-3-27b-it-GGUF",
       "hf_file": "gemma-3-27b-it-GGUF.gguf",
       "gpu_layers": 32
-    }
+    },
+    "nodes": ["main"]
   }'
 
 # Create instance on specific remote node
-curl -X POST http://localhost:8080/api/instances/remote-llama \
+curl -X POST http://localhost:8080/api/v1/instances/remote-llama \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{
     "backend_type": "llama_cpp",
     "backend_options": {
@@ -134,46 +151,62 @@ curl -X POST http://localhost:8080/api/instances/remote-llama \
     },
     "nodes": ["worker1"]
   }'
+
+# Create instance on multiple nodes for high availability
+curl -X POST http://localhost:8080/api/v1/instances/multi-node-llama \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "backend_type": "llama_cpp",
+    "backend_options": {
+      "model": "/models/llama-7b.gguf",
+      "gpu_layers": 32
+    },
+    "nodes": ["worker1", "worker2", "worker3"]
+  }'
 ```
 
 ## Start Instance
 
-### Via Web UI
+**Via Web UI**
 1. Click the **"Start"** button on an instance card
 2. Watch the status change to "Unknown"
 3. Monitor progress in the logs
 4. Instance status changes to "Ready" when ready
 
-### Via API
+**Via API**
 ```bash
-curl -X POST http://localhost:8080/api/instances/{name}/start
+curl -X POST http://localhost:8080/api/v1/instances/{name}/start \
+  -H "Authorization: Bearer <token>"
 ```
 
 ## Stop Instance
 
-### Via Web UI
+**Via Web UI**
 1. Click the **"Stop"** button on an instance card
 2. Instance gracefully shuts down
 
-### Via API
+**Via API**
 ```bash
-curl -X POST http://localhost:8080/api/instances/{name}/stop
+curl -X POST http://localhost:8080/api/v1/instances/{name}/stop \
+  -H "Authorization: Bearer <token>"
 ```
 
 ## Edit Instance
 
-### Via Web UI
+**Via Web UI**
 1. Click the **"Edit"** button on an instance card
 2. Modify settings in the configuration dialog
 3. Changes require instance restart to take effect
 4. Click **"Update & Restart"** to apply changes
 
-### Via API
+**Via API**
 Modify instance settings:
 
 ```bash
-curl -X PUT http://localhost:8080/api/instances/{name} \
+curl -X PUT http://localhost:8080/api/v1/instances/{name} \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{
     "backend_options": {
       "threads": 8,
@@ -188,29 +221,31 @@ curl -X PUT http://localhost:8080/api/instances/{name} \
 
 ## View Logs
 
-### Via Web UI
+**Via Web UI**
 
 1. Click the **"Logs"** button on any instance card
 2. Real-time log viewer opens
 
-### Via API
+**Via API**
 Check instance status in real-time:
 
 ```bash
-# Get instance details
-curl http://localhost:8080/api/instances/{name}/logs
+# Get instance logs
+curl http://localhost:8080/api/v1/instances/{name}/logs \
+  -H "Authorization: Bearer <token>"
 ```
 
 ## Delete Instance
 
-### Via Web UI
+**Via Web UI**
 1. Click the **"Delete"** button on an instance card
 2. Only stopped instances can be deleted
 3. Confirm deletion in the dialog
 
-### Via API
+**Via API**
 ```bash
-curl -X DELETE http://localhost:8080/api/instances/{name}
+curl -X DELETE http://localhost:8080/api/v1/instances/{name} \
+  -H "Authorization: Bearer <token>"
 ```
 
 ## Instance Proxy
@@ -218,8 +253,9 @@ curl -X DELETE http://localhost:8080/api/instances/{name}
 Llamactl proxies all requests to the underlying backend instances (llama-server, MLX, or vLLM).
 
 ```bash
-# Get instance details
-curl http://localhost:8080/api/instances/{name}/proxy/
+# Proxy requests to the instance
+curl http://localhost:8080/api/v1/instances/{name}/proxy/ \
+  -H "Authorization: Bearer <token>"
 ```
 
 All backends provide OpenAI-compatible endpoints. Check the respective documentation:
@@ -229,15 +265,16 @@ All backends provide OpenAI-compatible endpoints. Check the respective documenta
 
 ### Instance Health
 
-#### Via Web UI
+**Via Web UI**
 
 1. The health status badge is displayed on each instance card
 
-#### Via API
+**Via API**
 
 Check the health status of your instances:
 
 ```bash
-curl http://localhost:8080/api/instances/{name}/proxy/health
+curl http://localhost:8080/api/v1/instances/{name}/proxy/health \
+  -H "Authorization: Bearer <token>"
 ```
 

@@ -42,15 +42,10 @@ Note: MLX backend is only available on macOS with Apple Silicon (M1, M2, M3, etc
 vLLM provides high-throughput distributed serving for LLMs. Install vLLM:
 
 ```bash
-# Install via pip (requires Python 3.8+, GPU required)
-pip install vllm
-
-# Or in a virtual environment (recommended)
+# Install in a virtual environment
 python -m venv vllm-env
 source vllm-env/bin/activate
 pip install vllm
-
-# For production deployments, consider container-based installation
 ```
 
 ## Installation Methods
@@ -82,7 +77,7 @@ llamactl provides Dockerfiles for creating Docker images with backends pre-insta
 
 **Note:** These Dockerfiles are configured for CUDA. For other platforms (CPU, ROCm, Vulkan, etc.), adapt the base image. For llama.cpp, see available tags at [llama.cpp Docker docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/docker.md). For vLLM, check [vLLM docs](https://docs.vllm.ai/en/v0.6.5/serving/deploying_with_docker.html).
 
-#### Using Docker Compose
+**Using Docker Compose**
 
 ```bash
 # Clone the repository
@@ -103,9 +98,9 @@ Access the dashboard at:
 - llamactl with llama.cpp: http://localhost:8080
 - llamactl with vLLM: http://localhost:8081
 
-#### Using Docker Build and Run
+**Using Docker Build and Run**
 
-**llamactl with llama.cpp CUDA:**
+1. llamactl with llama.cpp CUDA:
 ```bash
 docker build -f docker/Dockerfile.llamacpp -t llamactl:llamacpp-cuda .
 docker run -d \
@@ -116,7 +111,7 @@ docker run -d \
   llamactl:llamacpp-cuda
 ```
 
-**llamactl with vLLM CUDA:**
+2. llamactl with vLLM CUDA:
 ```bash
 docker build -f docker/Dockerfile.vllm -t llamactl:vllm-cuda .
 docker run -d \
@@ -127,7 +122,7 @@ docker run -d \
   llamactl:vllm-cuda
 ```
 
-**llamactl built from source:**
+3. llamactl built from source:
 ```bash
 docker build -f docker/Dockerfile.source -t llamactl:source .
 docker run -d \

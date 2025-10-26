@@ -22,6 +22,9 @@ var buildTime string = "unknown"
 // @license.name MIT License
 // @license.url https://opensource.org/license/mit/
 // @basePath /api/v1
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-Key
 func main() {
 
 	// --version flag to print the version

@@ -44,7 +44,7 @@ func (h *Handler) stripLlamaCppPrefix(r *http.Request, instName string) {
 // LlamaCppUIProxy godoc
 // @Summary Proxy requests to llama.cpp UI for the instance
 // @Description Proxies requests to the llama.cpp UI for the specified instance
-// @Tags backends
+// @Tags Llama.cpp
 // @Security ApiKeyAuth
 // @Produce html
 // @Param name query string true "Instance Name"
@@ -83,14 +83,24 @@ func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
 // LlamaCppProxy godoc
 // @Summary Proxy requests to llama.cpp server instance
 // @Description Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured
-// @Tags backends
+// @Tags Llama.cpp
 // @Security ApiKeyAuth
 // @Produce json
-// @Param name query string true "Instance Name"
+// @Param name path string true "Instance Name"
 // @Success 200 {object} map[string]any "Proxied response"
 // @Failure 400 {string} string "Invalid instance"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /llama-cpp/{name}/* [post]
+// @Router /llama-cpp/{name}/props [get]
+// @Router /llama-cpp/{name}/slots [get]
+// @Router /llama-cpp/{name}/apply-template [post]
+// @Router /llama-cpp/{name}/completion [post]
+// @Router /llama-cpp/{name}/detokenize [post]
+// @Router /llama-cpp/{name}/embeddings [post]
+// @Router /llama-cpp/{name}/infill [post]
+// @Router /llama-cpp/{name}/metrics [post]
+// @Router /llama-cpp/{name}/props [post]
+// @Router /llama-cpp/{name}/reranking [post]
+// @Router /llama-cpp/{name}/tokenize [post]
 func (h *Handler) LlamaCppProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -150,7 +160,7 @@ func parseHelper(w http.ResponseWriter, r *http.Request, backend interface {
 // ParseLlamaCommand godoc
 // @Summary Parse llama-server command
 // @Description Parses a llama-server command string into instance options
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Accept json
 // @Produce json
@@ -158,7 +168,7 @@ func parseHelper(w http.ResponseWriter, r *http.Request, backend interface {
 // @Success 200 {object} instance.Options "Parsed options"
 // @Failure 400 {object} map[string]string "Invalid request or command"
 // @Failure 500 {object} map[string]string "Internal Server Error"
-// @Router /backends/llama-cpp/parse-command [post]
+// @Router /api/v1/backends/llama-cpp/parse-command [post]
 func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parsedOptions, ok := parseHelper(w, r, &backends.LlamaServerOptions{})
@@ -180,14 +190,14 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 // ParseMlxCommand godoc
 // @Summary Parse mlx_lm.server command
 // @Description Parses MLX-LM server command string into instance options
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Accept json
 // @Produce json
 // @Param request body ParseCommandRequest true "Command to parse"
 // @Success 200 {object} instance.Options "Parsed options"
 // @Failure 400 {object} map[string]string "Invalid request or command"
-// @Router /backends/mlx/parse-command [post]
+// @Router /api/v1/backends/mlx/parse-command [post]
 func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parsedOptions, ok := parseHelper(w, r, &backends.MlxServerOptions{})
@@ -209,14 +219,14 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 // ParseVllmCommand godoc
 // @Summary Parse vllm serve command
 // @Description Parses a vLLM serve command string into instance options
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Accept json
 // @Produce json
 // @Param request body ParseCommandRequest true "Command to parse"
 // @Success 200 {object} instance.Options "Parsed options"
 // @Failure 400 {object} map[string]string "Invalid request or command"
-// @Router /backends/vllm/parse-command [post]
+// @Router /api/v1/backends/vllm/parse-command [post]
 func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parsedOptions, ok := parseHelper(w, r, &backends.VllmServerOptions{})
@@ -251,12 +261,12 @@ func (h *Handler) executeLlamaServerCommand(flag, errorMsg string) http.HandlerF
 // LlamaServerHelpHandler godoc
 // @Summary Get help for llama server
 // @Description Returns the help text for the llama server command
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "Help text"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /backends/llama-cpp/help [get]
+// @Router /api/v1/backends/llama-cpp/help [get]
 func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 	return h.executeLlamaServerCommand("--help", "Failed to get help")
 }
@@ -264,12 +274,12 @@ func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 // LlamaServerVersionHandler godoc
 // @Summary Get version of llama server
 // @Description Returns the version of the llama server command
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "Version information"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /backends/llama-cpp/version [get]
+// @Router /api/v1/backends/llama-cpp/version [get]
 func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 	return h.executeLlamaServerCommand("--version", "Failed to get version")
 }
@@ -277,12 +287,12 @@ func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 // LlamaServerListDevicesHandler godoc
 // @Summary List available devices for llama server
 // @Description Returns a list of available devices for the llama server
-// @Tags backends
+// @Tags Backends
 // @Security ApiKeyAuth
 // @Produces text/plain
 // @Success 200 {string} string "List of devices"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /backends/llama-cpp/devices [get]
+// @Router /api/v1/backends/llama-cpp/devices [get]
 func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
 	return h.executeLlamaServerCommand("--list-devices", "Failed to list devices")
 }

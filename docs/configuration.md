@@ -80,7 +80,7 @@ nodes:                           # Node configuration for multi-node deployment
 
 ### Configuration File Locations
 
-Configuration files are searched in the following locations (in order of precedence):
+Configuration files are searched in the following locations (in order of precedence, first found is used):
 
 **Linux:**  
 - `./llamactl.yaml` or `./config.yaml` (current directory)  

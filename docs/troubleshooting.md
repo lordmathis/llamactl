@@ -26,62 +26,67 @@ Issues specific to Llamactl deployment and operation.
 
 ## Instance Management Issues
 
-### Model Loading Failures
+### Instance Fails to Start
 
-**Problem:** Instance fails to start with model loading errors
-
-**Common Solutions:**  
-- **llama-server not found:** Ensure `llama-server` binary is in PATH  
-- **Wrong model format:** Ensure model is in GGUF format  
-- **Insufficient memory:** Use smaller model or reduce context size  
-- **Path issues:** Use absolute paths to model files  
-
-### Memory Issues
-
-**Problem:** Out of memory errors or system becomes unresponsive
+**Problem:** Instance fails to start or immediately stops
 
 **Solutions:**
-1. **Reduce context size:**
-   ```json
-   {
-     "n_ctx": 1024
-   }
+
+1. **Check instance logs** to see the actual error:
+   ```bash
+   curl http://localhost:8080/api/v1/instances/{name}/logs
+   # Or check log files directly
+   tail -f ~/.local/share/llamactl/logs/{instance-name}.log
    ```
 
-2. **Use quantized models:**  
-   - Try Q4_K_M instead of higher precision models  
-   - Use smaller model variants (7B instead of 13B)  
+2. **Verify backend is installed:**  
+     - **llama.cpp**: Ensure `llama-server` is in PATH
+     - **MLX**: Ensure `mlx-lm` Python package is installed
+     - **vLLM**: Ensure `vllm` Python package is installed
 
-### GPU Configuration
+3. **Check model path and format:**
+     - Use absolute paths to model files
+     - Verify model format matches backend (GGUF for llama.cpp, etc.)
 
-**Problem:** GPU not being used effectively
+4. **Verify backend command configuration:**
+     - Check that the backend `command` is correctly configured in the global config
+     - For virtual environments, specify the full path to the command (e.g., `/path/to/venv/bin/mlx_lm.server`)
+     - See the [Configuration Guide](configuration.md) for backend configuration details
+     - Test the backend directly (see [Backend-Specific Issues](#backend-specific-issues) below)
 
-**Solutions:**
-1. **Configure GPU layers:**
-   ```json
-   {
-     "n_gpu_layers": 35
-   }
-   ```
+### Backend-Specific Issues
 
-### Advanced Instance Issues
+**Problem:** Model loading, memory, GPU, or performance issues
 
-**Problem:** Complex model loading, performance, or compatibility issues
+Most model-specific issues (memory, GPU configuration, performance tuning) are backend-specific and should be resolved by consulting the respective backend documentation:
 
-Since llamactl uses `llama-server` under the hood, many instance-related issues are actually llama.cpp issues. For advanced troubleshooting:
+**llama.cpp:**
+- [llama.cpp GitHub](https://github.com/ggml-org/llama.cpp)
+- [llama-server README](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md)
 
-**Resources:**  
-- **llama.cpp Documentation:** [https://github.com/ggml/llama.cpp](https://github.com/ggml/llama.cpp)  
-- **llama.cpp Issues:** [https://github.com/ggml/llama.cpp/issues](https://github.com/ggml/llama.cpp/issues)  
-- **llama.cpp Discussions:** [https://github.com/ggml/llama.cpp/discussions](https://github.com/ggml/llama.cpp/discussions)  
+**MLX:**
+- [MLX-LM GitHub](https://github.com/ml-explore/mlx-lm)
+- [MLX-LM Server Guide](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md)
 
-**Testing directly with llama-server:**  
+**vLLM:**
+- [vLLM Documentation](https://docs.vllm.ai/en/stable/)
+- [OpenAI Compatible Server](https://docs.vllm.ai/en/stable/serving/openai_compatible_server.html)
+- [vllm serve Command](https://docs.vllm.ai/en/stable/cli/serve.html#vllm-serve)
+
+**Testing backends directly:**
+
+Testing your model and configuration directly with the backend helps determine if the issue is with llamactl or the backend itself:
+
 ```bash
-# Test your model and parameters directly with llama-server
-llama-server --model /path/to/model.gguf --port 8081 --n-gpu-layers 35
-```
+# llama.cpp
+llama-server --model /path/to/model.gguf --port 8081
 
-This helps determine if the issue is with llamactl or with the underlying llama.cpp/llama-server.
+# MLX
+mlx_lm.server --model mlx-community/Mistral-7B-Instruct-v0.3-4bit --port 8081
+
+# vLLM
+vllm serve microsoft/DialoGPT-medium --port 8081
+```
 
 ## API and Network Issues
 
