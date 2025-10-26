@@ -21,7 +21,7 @@ import (
 // @Produces json
 // @Success 200 {array} instance.Instance "List of instances"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances [get]
+// @Router /api/v1/instances [get]
 func (h *Handler) ListInstances() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		instances, err := h.InstanceManager.ListInstances()
@@ -46,7 +46,7 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 // @Success 201 {object} instance.Instance "Created instance details"
 // @Failure 400 {string} string "Invalid request body"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances/{name} [post]
+// @Router /api/v1/instances/{name} [post]
 func (h *Handler) CreateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -82,7 +82,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 // @Success 200 {object} instance.Instance "Instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances/{name} [get]
+// @Router /api/v1/instances/{name} [get]
 func (h *Handler) GetInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -114,7 +114,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 // @Success 200 {object} instance.Instance "Updated instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances/{name} [put]
+// @Router /api/v1/instances/{name} [put]
 func (h *Handler) UpdateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -150,7 +150,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 // @Success 200 {object} instance.Instance "Started instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances/{name}/start [post]
+// @Router /api/v1/instances/{name}/start [post]
 func (h *Handler) StartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -186,7 +186,7 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 // @Success 200 {object} instance.Instance "Stopped instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances/{name}/stop [post]
+// @Router /api/v1/instances/{name}/stop [post]
 func (h *Handler) StopInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -216,7 +216,7 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 // @Success 200 {object} instance.Instance "Restarted instance details"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances/{name}/restart [post]
+// @Router /api/v1/instances/{name}/restart [post]
 func (h *Handler) RestartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -245,7 +245,7 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 // @Success 204 "No Content"
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances/{name} [delete]
+// @Router /api/v1/instances/{name} [delete]
 func (h *Handler) DeleteInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -275,7 +275,7 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 // @Success 200 {string} string "Instance logs"
 // @Failure 400 {string} string "Invalid name format or lines parameter"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /instances/{name}/logs [get]
+// @Router /api/v1/instances/{name}/logs [get]
 func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
@@ -317,8 +317,8 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 500 {string} string "Internal Server Error"
 // @Failure 503 {string} string "Instance is not running"
-// @Router /instances/{name}/proxy [get]
-// @Router /instances/{name}/proxy [post]
+// @Router /api/v1/instances/{name}/proxy [get]
+// @Router /api/v1/instances/{name}/proxy [post]
 func (h *Handler) InstanceProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		inst, err := h.getInstance(r)

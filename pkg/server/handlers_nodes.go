@@ -19,7 +19,7 @@ type NodeResponse struct {
 // @Produces json
 // @Success 200 {object} map[string]NodeResponse "Map of nodes"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /nodes [get]
+// @Router /api/v1/nodes [get]
 func (h *Handler) ListNodes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Convert to sanitized response format (map of name -> NodeResponse)
@@ -45,7 +45,7 @@ func (h *Handler) ListNodes() http.HandlerFunc {
 // @Failure 400 {string} string "Invalid name format"
 // @Failure 404 {string} string "Node not found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /nodes/{name} [get]
+// @Router /api/v1/nodes/{name} [get]
 func (h *Handler) GetNode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")

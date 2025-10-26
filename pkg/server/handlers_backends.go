@@ -168,7 +168,7 @@ func parseHelper(w http.ResponseWriter, r *http.Request, backend interface {
 // @Success 200 {object} instance.Options "Parsed options"
 // @Failure 400 {object} map[string]string "Invalid request or command"
 // @Failure 500 {object} map[string]string "Internal Server Error"
-// @Router /backends/llama-cpp/parse-command [post]
+// @Router /api/v1/backends/llama-cpp/parse-command [post]
 func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parsedOptions, ok := parseHelper(w, r, &backends.LlamaServerOptions{})
@@ -197,7 +197,7 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 // @Param request body ParseCommandRequest true "Command to parse"
 // @Success 200 {object} instance.Options "Parsed options"
 // @Failure 400 {object} map[string]string "Invalid request or command"
-// @Router /backends/mlx/parse-command [post]
+// @Router /api/v1/backends/mlx/parse-command [post]
 func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parsedOptions, ok := parseHelper(w, r, &backends.MlxServerOptions{})
@@ -226,7 +226,7 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 // @Param request body ParseCommandRequest true "Command to parse"
 // @Success 200 {object} instance.Options "Parsed options"
 // @Failure 400 {object} map[string]string "Invalid request or command"
-// @Router /backends/vllm/parse-command [post]
+// @Router /api/v1/backends/vllm/parse-command [post]
 func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		parsedOptions, ok := parseHelper(w, r, &backends.VllmServerOptions{})
@@ -266,7 +266,7 @@ func (h *Handler) executeLlamaServerCommand(flag, errorMsg string) http.HandlerF
 // @Produces text/plain
 // @Success 200 {string} string "Help text"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /backends/llama-cpp/help [get]
+// @Router /api/v1/backends/llama-cpp/help [get]
 func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 	return h.executeLlamaServerCommand("--help", "Failed to get help")
 }
@@ -279,7 +279,7 @@ func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 // @Produces text/plain
 // @Success 200 {string} string "Version information"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /backends/llama-cpp/version [get]
+// @Router /api/v1/backends/llama-cpp/version [get]
 func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 	return h.executeLlamaServerCommand("--version", "Failed to get version")
 }
@@ -292,7 +292,7 @@ func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 // @Produces text/plain
 // @Success 200 {string} string "List of devices"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /backends/llama-cpp/devices [get]
+// @Router /api/v1/backends/llama-cpp/devices [get]
 func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
 	return h.executeLlamaServerCommand("--list-devices", "Failed to list devices")
 }
