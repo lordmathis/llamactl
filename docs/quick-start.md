@@ -2,6 +2,24 @@
 
 This guide will help you get Llamactl up and running in just a few minutes.
 
+## Core Concepts
+
+Before you start, let's clarify a few key terms:
+
+- **Instance**: A running backend server that serves a specific model. Each instance has a unique name and runs independently.
+- **Backend**: The inference engine that actually runs the model (llama.cpp, MLX, or vLLM). You need at least one backend installed before creating instances.
+- **Node**: In multi-machine setups, a node represents one machine. Most users will just use the default "main" node for single-machine deployments.
+- **Proxy Architecture**: Llamactl acts as a proxy in front of your instances. You make requests to llamactl (e.g., `http://localhost:8080/v1/chat/completions`), and it routes them to the appropriate backend instance. This means you don't need to track individual instance ports or endpoints.
+
+## Authentication
+
+Llamactl uses two types of API keys:
+
+- **Management API Key**: Used to authenticate with the Llamactl management API (creating, starting, stopping instances).
+- **Inference API Key**: Used to authenticate requests to the OpenAI-compatible endpoints (`/v1/chat/completions`, `/v1/completions`, etc.).
+
+By default, authentication is required. If you don't configure these keys in your configuration file, llamactl will auto-generate them and print them to the terminal on startup. You can also configure custom keys or disable authentication entirely in the [Configuration](configuration.md) guide.
+
 ## Start Llamactl
 
 Start the Llamactl server:
@@ -9,6 +27,33 @@ Start the Llamactl server:
 ```bash
 llamactl
 ```
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  MANAGEMENT AUTHENTICATION REQUIRED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔑  Generated Management API Key:
+
+    sk-management-...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  INFERENCE AUTHENTICATION REQUIRED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔑  Generated Inference API Key:
+
+    sk-inference-...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  IMPORTANT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• These keys are auto-generated and will change on restart
+• For production, add explicit keys to your configuration
+• Copy these keys before they disappear from the terminal
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Llamactl server listening on 0.0.0.0:8080
+```
+
+Copy the **Management API Key** from the terminal - you'll need it to access the web UI.
 
 By default, Llamactl will start on `http://localhost:8080`.
 
@@ -20,7 +65,7 @@ Open your web browser and navigate to:
 http://localhost:8080
 ```
 
-Login with the management API key. By default it is generated during server startup. Copy it from the terminal output.
+Login with the management API key from the terminal output.
 
 You should see the Llamactl web interface.
 
@@ -182,7 +227,7 @@ from openai import OpenAI
 # Point the client to your Llamactl server
 client = OpenAI(
     base_url="http://localhost:8080/v1",
-    api_key="not-needed"  # Llamactl doesn't require API keys by default
+    api_key="your-inference-api-key"  # Use the inference API key from terminal or config
 )
 
 # Create a chat completion
@@ -197,6 +242,9 @@ response = client.chat.completions.create(
 
 print(response.choices[0].message.content)
 ```
+
+!!! note "API Key"
+    If you disabled authentication in your config, you can use any value for `api_key` (e.g., `"not-needed"`). Otherwise, use the inference API key shown in the terminal output on startup.
 
 ### List Available Models
 
