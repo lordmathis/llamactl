@@ -1006,4 +1006,9 @@ paths:
       summary: Get llamactl version
       tags:
       - version
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-API-Key
+    type: apiKey
 swagger: "2.0"
