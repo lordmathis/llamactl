@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// ParseCommand parses a command string into a target struct
-func ParseCommand(command string, executableNames []string, subcommandNames []string, multiValuedFlags map[string]bool, target any) error {
+// parseCommand parses a command string into a target struct
+func parseCommand(command string, executableNames []string, subcommandNames []string, multiValuedFlags map[string]struct{}, target any) error {
 	// Normalize multiline commands
 	command = normalizeCommand(command)
 	if command == "" {
@@ -125,7 +125,7 @@ func extractArgs(command string, executableNames []string, subcommandNames []str
 }
 
 // parseFlags parses command line flags into a map
-func parseFlags(args []string, multiValuedFlags map[string]bool) (map[string]any, error) {
+func parseFlags(args []string, multiValuedFlags map[string]struct{}) (map[string]any, error) {
 	options := make(map[string]any)
 
 	for i := 0; i < len(args); i++ {
@@ -163,7 +163,7 @@ func parseFlags(args []string, multiValuedFlags map[string]bool) (map[string]any
 
 		if hasValue {
 			// Handle multi-valued flags
-			if multiValuedFlags[flagName] {
+			if _, isMultiValue := multiValuedFlags[flagName]; isMultiValue {
 				if existing, ok := options[flagName].([]string); ok {
 					options[flagName] = append(existing, value)
 				} else {

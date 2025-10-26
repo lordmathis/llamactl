@@ -8,6 +8,20 @@ import (
 	"net/http"
 )
 
+// OpenAIListInstancesResponse represents the response structure for listing instances (models) in OpenAI-compatible format
+type OpenAIListInstancesResponse struct {
+	Object string           `json:"object"`
+	Data   []OpenAIInstance `json:"data"`
+}
+
+// OpenAIInstance represents a single instance (model) in OpenAI-compatible format
+type OpenAIInstance struct {
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	Created int64  `json:"created"`
+	OwnedBy string `json:"owned_by"`
+}
+
 // OpenAIListInstances godoc
 // @Summary List instances in OpenAI-compatible format
 // @Description Returns a list of instances in a format compatible with OpenAI API
@@ -21,7 +35,7 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		instances, err := h.InstanceManager.ListInstances()
 		if err != nil {
-			http.Error(w, "Failed to list instances: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "list_failed", "Failed to list instances: "+err.Error())
 			return
 		}
 
@@ -40,11 +54,7 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 			Data:   openaiInstances,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(openaiResponse); err != nil {
-			http.Error(w, "Failed to encode instances: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, openaiResponse)
 	}
 }
 
@@ -64,7 +74,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		// Read the entire body first
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Failed to read request body")
 			return
 		}
 		r.Body.Close()
@@ -72,67 +82,41 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		// Parse the body to extract instance name
 		var requestBody map[string]any
 		if err := json.Unmarshal(bodyBytes, &requestBody); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 			return
 		}
 
 		modelName, ok := requestBody["model"].(string)
 		if !ok || modelName == "" {
-			http.Error(w, "Instance name is required", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Instance name is required")
 			return
 		}
 
 		// Validate instance name at the entry point
 		validatedName, err := validation.ValidateInstanceName(modelName)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
 		// Route to the appropriate inst based on instance name
 		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
-			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
 			return
 		}
 
 		if !inst.IsRemote() && !inst.IsRunning() {
-			options := inst.GetOptions()
-			allowOnDemand := options != nil && options.OnDemandStart != nil && *options.OnDemandStart
-			if !allowOnDemand {
-				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
-				return
-			}
-
-			if h.InstanceManager.IsMaxRunningInstancesReached() {
-				if h.cfg.Instances.EnableLRUEviction {
-					err := h.InstanceManager.EvictLRUInstance()
-					if err != nil {
-						http.Error(w, "Cannot start Instance, failed to evict instance "+err.Error(), http.StatusInternalServerError)
-						return
-					}
-				} else {
-					http.Error(w, "Cannot start Instance, maximum number of instances reached", http.StatusConflict)
-					return
-				}
-			}
-
-			// If on-demand start is enabled, start the instance
-			if _, err := h.InstanceManager.StartInstance(validatedName); err != nil {
-				http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			// Wait for the instance to become healthy before proceeding
-			if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil { // 2 minutes timeout
-				http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "instance_start_failed", err.Error())
 				return
 			}
 		}
 
 		proxy, err := inst.GetProxy()
 		if err != nil {
-			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "proxy_failed", err.Error())
 			return
 		}
 

@@ -5,97 +5,146 @@ import (
 	"fmt"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
-	"llamactl/pkg/validation"
 	"net/http"
 	"os/exec"
 	"strings"
-
-	"github.com/go-chi/chi/v5"
 )
 
-// ParseCommandRequest represents the request body for command parsing
+// ParseCommandRequest represents the request body for backend command parsing
 type ParseCommandRequest struct {
 	Command string `json:"command"`
 }
 
-func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
+// validateLlamaCppInstance validates that the instance specified in the request is a llama.cpp instance
+func (h *Handler) validateLlamaCppInstance(r *http.Request) (*instance.Instance, error) {
+	inst, err := h.getInstance(r)
+	if err != nil {
+		return nil, fmt.Errorf("invalid instance: %w", err)
+	}
+
+	options := inst.GetOptions()
+	if options == nil {
+		return nil, fmt.Errorf("cannot obtain instance's options")
+	}
+
+	if options.BackendOptions.BackendType != backends.BackendTypeLlamaCpp {
+		return nil, fmt.Errorf("instance is not a llama.cpp server")
+	}
+
+	return inst, nil
+}
+
+// stripLlamaCppPrefix removes the llama.cpp proxy prefix from the request URL path
+func (h *Handler) stripLlamaCppPrefix(r *http.Request, instName string) {
+	// Strip the "/llama-cpp/<name>" prefix from the request URL
+	prefix := fmt.Sprintf("/llama-cpp/%s", instName)
+	r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+}
+
+// LlamaCppUIProxy godoc
+// @Summary Proxy requests to llama.cpp UI for the instance
+// @Description Proxies requests to the llama.cpp UI for the specified instance
+// @Tags backends
+// @Security ApiKeyAuth
+// @Produce html
+// @Param name query string true "Instance Name"
+// @Success 200 {string} string "Proxied HTML response"
+// @Failure 400 {string} string "Invalid instance"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /llama-cpp/{name}/ [get]
+func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		// Get the instance name from the URL parameter
-		name := chi.URLParam(r, "name")
-
-		// Validate instance name at the entry point
-		validatedName, err := validation.ValidateInstanceName(name)
+		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		// Route to the appropriate inst based on instance name
-		inst, err := h.InstanceManager.GetInstance(validatedName)
-		if err != nil {
-			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		options := inst.GetOptions()
-		if options == nil {
-			http.Error(w, "Cannot obtain Instance's options", http.StatusInternalServerError)
-			return
-		}
-
-		if options.BackendOptions.BackendType != backends.BackendTypeLlamaCpp {
-			http.Error(w, "Instance is not a llama.cpp server.", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
 			return
 		}
 
 		if !inst.IsRemote() && !inst.IsRunning() {
+			writeError(w, http.StatusBadRequest, "instance is not running", "Instance is not running")
+			return
+		}
 
-			if !(onDemandStart && options.OnDemandStart != nil && *options.OnDemandStart) {
-				http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
-				return
-			}
+		proxy, err := inst.GetProxy()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get proxy", err.Error())
+			return
+		}
 
-			if h.InstanceManager.IsMaxRunningInstancesReached() {
-				if h.cfg.Instances.EnableLRUEviction {
-					err := h.InstanceManager.EvictLRUInstance()
-					if err != nil {
-						http.Error(w, "Cannot start Instance, failed to evict instance "+err.Error(), http.StatusInternalServerError)
-						return
-					}
-				} else {
-					http.Error(w, "Cannot start Instance, maximum number of instances reached", http.StatusConflict)
-					return
-				}
-			}
+		if !inst.IsRemote() {
+			h.stripLlamaCppPrefix(r, inst.Name)
+		}
 
-			// If on-demand start is enabled, start the instance
-			if _, err := h.InstanceManager.StartInstance(validatedName); err != nil {
-				http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
+		proxy.ServeHTTP(w, r)
+	}
+}
 
-			// Wait for the instance to become healthy before proceeding
-			if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil { // 2 minutes timeout
-				http.Error(w, "Instance failed to become healthy: "+err.Error(), http.StatusServiceUnavailable)
+// LlamaCppProxy godoc
+// @Summary Proxy requests to llama.cpp server instance
+// @Description Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured
+// @Tags backends
+// @Security ApiKeyAuth
+// @Produce json
+// @Param name query string true "Instance Name"
+// @Success 200 {object} map[string]any "Proxied response"
+// @Failure 400 {string} string "Invalid instance"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /llama-cpp/{name}/* [post]
+func (h *Handler) LlamaCppProxy() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		inst, err := h.validateLlamaCppInstance(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			return
+		}
+
+		if !inst.IsRemote() && !inst.IsRunning() {
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "instance start failed", err.Error())
 				return
 			}
 		}
 
 		proxy, err := inst.GetProxy()
 		if err != nil {
-			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "failed to get proxy", err.Error())
 			return
 		}
 
 		if !inst.IsRemote() {
-			// Strip the "/llama-cpp/<name>" prefix from the request URL
-			prefix := fmt.Sprintf("/llama-cpp/%s", validatedName)
-			r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
+			h.stripLlamaCppPrefix(r, inst.Name)
 		}
 
 		proxy.ServeHTTP(w, r)
 	}
+}
+
+// parseHelper parses a backend command and returns the parsed options
+func parseHelper(w http.ResponseWriter, r *http.Request, backend interface {
+	ParseCommand(string) (any, error)
+}) (any, bool) {
+	var req ParseCommandRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		return nil, false
+	}
+
+	if strings.TrimSpace(req.Command) == "" {
+		writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
+		return nil, false
+	}
+
+	// Parse command using the backend's ParseCommand method
+	parsedOptions, err := backend.ParseCommand(req.Command)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "parse_error", err.Error())
+		return nil, false
+	}
+
+	return parsedOptions, true
 }
 
 // ParseLlamaCommand godoc
@@ -111,40 +160,20 @@ func (h *Handler) LlamaCppProxy(onDemandStart bool) http.HandlerFunc {
 // @Failure 500 {object} map[string]string "Internal Server Error"
 // @Router /backends/llama-cpp/parse-command [post]
 func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
-	type errorResponse struct {
-		Error   string `json:"error"`
-		Details string `json:"details,omitempty"`
-	}
-	writeError := func(w http.ResponseWriter, status int, code, details string) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req ParseCommandRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		parsedOptions, ok := parseHelper(w, r, &backends.LlamaServerOptions{})
+		if !ok {
 			return
 		}
-		if strings.TrimSpace(req.Command) == "" {
-			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
-			return
-		}
-		llamaOptions, err := backends.ParseLlamaCommand(req.Command)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
-			return
-		}
+
 		options := &instance.Options{
 			BackendOptions: backends.Options{
 				BackendType:        backends.BackendTypeLlamaCpp,
-				LlamaServerOptions: llamaOptions,
+				LlamaServerOptions: parsedOptions.(*backends.LlamaServerOptions),
 			},
 		}
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(options); err != nil {
-			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())
-		}
+
+		writeJSON(w, http.StatusOK, options)
 	}
 }
 
@@ -160,47 +189,20 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 // @Failure 400 {object} map[string]string "Invalid request or command"
 // @Router /backends/mlx/parse-command [post]
 func (h *Handler) ParseMlxCommand() http.HandlerFunc {
-	type errorResponse struct {
-		Error   string `json:"error"`
-		Details string `json:"details,omitempty"`
-	}
-	writeError := func(w http.ResponseWriter, status int, code, details string) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req ParseCommandRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		parsedOptions, ok := parseHelper(w, r, &backends.MlxServerOptions{})
+		if !ok {
 			return
 		}
-
-		if strings.TrimSpace(req.Command) == "" {
-			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
-			return
-		}
-
-		mlxOptions, err := backends.ParseMlxCommand(req.Command)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
-			return
-		}
-
-		// Currently only support mlx_lm backend type
-		backendType := backends.BackendTypeMlxLm
 
 		options := &instance.Options{
 			BackendOptions: backends.Options{
-				BackendType:      backendType,
-				MlxServerOptions: mlxOptions,
+				BackendType:      backends.BackendTypeMlxLm,
+				MlxServerOptions: parsedOptions.(*backends.MlxServerOptions),
 			},
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(options); err != nil {
-			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())
-		}
+		writeJSON(w, http.StatusOK, options)
 	}
 }
 
@@ -216,46 +218,33 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 // @Failure 400 {object} map[string]string "Invalid request or command"
 // @Router /backends/vllm/parse-command [post]
 func (h *Handler) ParseVllmCommand() http.HandlerFunc {
-	type errorResponse struct {
-		Error   string `json:"error"`
-		Details string `json:"details,omitempty"`
-	}
-	writeError := func(w http.ResponseWriter, status int, code, details string) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_ = json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details})
-	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req ParseCommandRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		parsedOptions, ok := parseHelper(w, r, &backends.VllmServerOptions{})
+		if !ok {
 			return
 		}
-
-		if strings.TrimSpace(req.Command) == "" {
-			writeError(w, http.StatusBadRequest, "invalid_command", "Command cannot be empty")
-			return
-		}
-
-		vllmOptions, err := backends.ParseVllmCommand(req.Command)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "parse_error", err.Error())
-			return
-		}
-
-		backendType := backends.BackendTypeVllm
 
 		options := &instance.Options{
 			BackendOptions: backends.Options{
-				BackendType:       backendType,
-				VllmServerOptions: vllmOptions,
+				BackendType:       backends.BackendTypeVllm,
+				VllmServerOptions: parsedOptions.(*backends.VllmServerOptions),
 			},
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(options); err != nil {
-			writeError(w, http.StatusInternalServerError, "encode_error", err.Error())
+		writeJSON(w, http.StatusOK, options)
+	}
+}
+
+// executeLlamaServerCommand executes a llama-server command with the specified flag and returns the output
+func (h *Handler) executeLlamaServerCommand(flag, errorMsg string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cmd := exec.Command("llama-server", flag)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "command failed", errorMsg+": "+err.Error())
+			return
 		}
+		writeText(w, http.StatusOK, string(output))
 	}
 }
 
@@ -269,16 +258,7 @@ func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /backends/llama-cpp/help [get]
 func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		helpCmd := exec.Command("llama-server", "--help")
-		output, err := helpCmd.CombinedOutput()
-		if err != nil {
-			http.Error(w, "Failed to get help: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write(output)
-	}
+	return h.executeLlamaServerCommand("--help", "Failed to get help")
 }
 
 // LlamaServerVersionHandler godoc
@@ -291,16 +271,7 @@ func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /backends/llama-cpp/version [get]
 func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		versionCmd := exec.Command("llama-server", "--version")
-		output, err := versionCmd.CombinedOutput()
-		if err != nil {
-			http.Error(w, "Failed to get version: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write(output)
-	}
+	return h.executeLlamaServerCommand("--version", "Failed to get version")
 }
 
 // LlamaServerListDevicesHandler godoc
@@ -313,14 +284,5 @@ func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /backends/llama-cpp/devices [get]
 func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		listCmd := exec.Command("llama-server", "--list-devices")
-		output, err := listCmd.CombinedOutput()
-		if err != nil {
-			http.Error(w, "Failed to list devices: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write(output)
-	}
+	return h.executeLlamaServerCommand("--list-devices", "Failed to list devices")
 }

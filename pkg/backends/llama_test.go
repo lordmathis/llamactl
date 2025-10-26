@@ -385,7 +385,9 @@ func TestParseLlamaCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := backends.ParseLlamaCommand(tt.command)
+			var opts backends.LlamaServerOptions
+			resultAny, err := opts.ParseCommand(tt.command)
+			result, _ := resultAny.(*backends.LlamaServerOptions)
 
 			if tt.expectErr {
 				if err == nil {
@@ -413,7 +415,9 @@ func TestParseLlamaCommand(t *testing.T) {
 
 func TestParseLlamaCommandArrays(t *testing.T) {
 	command := "llama-server --model test.gguf --lora adapter1.bin --lora=adapter2.bin"
-	result, err := backends.ParseLlamaCommand(command)
+	var opts backends.LlamaServerOptions
+	resultAny, err := opts.ParseCommand(command)
+	result, _ := resultAny.(*backends.LlamaServerOptions)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -96,7 +96,9 @@ func TestParseMlxCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := backends.ParseMlxCommand(tt.command)
+			var opts backends.MlxServerOptions
+			resultAny, err := opts.ParseCommand(tt.command)
+			result, _ := resultAny.(*backends.MlxServerOptions)
 
 			if tt.expectErr {
 				if err == nil {
@@ -174,11 +176,11 @@ func TestMlxBuildCommandArgs_BooleanFields(t *testing.T) {
 
 func TestMlxBuildCommandArgs_ZeroValues(t *testing.T) {
 	options := backends.MlxServerOptions{
-		Port:      0,   // Should be excluded
-		TopK:      0,   // Should be excluded
-		Temp:      0,   // Should be excluded
-		Model:     "",  // Should be excluded
-		LogLevel:  "",  // Should be excluded
+		Port:            0,     // Should be excluded
+		TopK:            0,     // Should be excluded
+		Temp:            0,     // Should be excluded
+		Model:           "",    // Should be excluded
+		LogLevel:        "",    // Should be excluded
 		TrustRemoteCode: false, // Should be excluded
 	}
 

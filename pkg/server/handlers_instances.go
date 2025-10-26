@@ -26,15 +26,11 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		instances, err := h.InstanceManager.ListInstances()
 		if err != nil {
-			http.Error(w, "Failed to list instances: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "list_failed", "Failed to list instances: "+err.Error())
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(instances); err != nil {
-			http.Error(w, "Failed to encode instances: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, instances)
 	}
 }
 
@@ -54,31 +50,25 @@ func (h *Handler) ListInstances() http.HandlerFunc {
 func (h *Handler) CreateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
 		var options instance.Options
 		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 			return
 		}
 
 		inst, err := h.InstanceManager.CreateInstance(validatedName, &options)
 		if err != nil {
-			http.Error(w, "Failed to create instance: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "create_failed", "Failed to create instance: "+err.Error())
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		if err := json.NewEncoder(w).Encode(inst); err != nil {
-			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusCreated, inst)
 	}
 }
 
@@ -96,24 +86,19 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 func (h *Handler) GetInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
 		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
-			http.Error(w, "Invalid instance: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(inst); err != nil {
-			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, inst)
 	}
 }
 
@@ -133,30 +118,25 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 func (h *Handler) UpdateInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
 		var options instance.Options
 		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
 			return
 		}
 
 		inst, err := h.InstanceManager.UpdateInstance(validatedName, &options)
 		if err != nil {
-			http.Error(w, "Failed to update instance: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "update_failed", "Failed to update instance: "+err.Error())
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(inst); err != nil {
-			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, inst)
 	}
 }
 
@@ -174,10 +154,9 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 func (h *Handler) StartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
@@ -185,19 +164,15 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 		if err != nil {
 			// Check if error is due to maximum running instances limit
 			if _, ok := err.(manager.MaxRunningInstancesError); ok {
-				http.Error(w, err.Error(), http.StatusConflict)
+				writeError(w, http.StatusConflict, "max_instances_reached", err.Error())
 				return
 			}
 
-			http.Error(w, "Failed to start instance: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "start_failed", "Failed to start instance: "+err.Error())
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(inst); err != nil {
-			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, inst)
 	}
 }
 
@@ -215,24 +190,19 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 func (h *Handler) StopInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
 		inst, err := h.InstanceManager.StopInstance(validatedName)
 		if err != nil {
-			http.Error(w, "Failed to stop instance: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "stop_failed", "Failed to stop instance: "+err.Error())
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(inst); err != nil {
-			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, inst)
 	}
 }
 
@@ -250,24 +220,19 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 func (h *Handler) RestartInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
 		inst, err := h.InstanceManager.RestartInstance(validatedName)
 		if err != nil {
-			http.Error(w, "Failed to restart instance: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "restart_failed", "Failed to restart instance: "+err.Error())
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(inst); err != nil {
-			http.Error(w, "Failed to encode instance: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
+		writeJSON(w, http.StatusOK, inst)
 	}
 }
 
@@ -284,15 +249,14 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 func (h *Handler) DeleteInstance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
 		if err := h.InstanceManager.DeleteInstance(validatedName); err != nil {
-			http.Error(w, "Failed to delete instance: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "delete_failed", "Failed to delete instance: "+err.Error())
 			return
 		}
 
@@ -315,10 +279,9 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-
 		validatedName, err := validation.ValidateInstanceName(name)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
 		}
 
@@ -327,7 +290,7 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 		if lines != "" {
 			parsedLines, err := strconv.Atoi(lines)
 			if err != nil {
-				http.Error(w, "Invalid lines parameter: "+err.Error(), http.StatusBadRequest)
+				writeError(w, http.StatusBadRequest, "invalid_parameter", "Invalid lines parameter: "+err.Error())
 				return
 			}
 			numLines = parsedLines
@@ -336,17 +299,16 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 		// Use the instance manager which handles both local and remote instances
 		logs, err := h.InstanceManager.GetInstanceLogs(validatedName, numLines)
 		if err != nil {
-			http.Error(w, "Failed to get logs: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "logs_failed", "Failed to get logs: "+err.Error())
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(logs))
+		writeText(w, http.StatusOK, logs)
 	}
 }
 
-// ProxyToInstance godoc
-// @Summary Proxy requests to a specific instance
+// InstanceProxy godoc
+// @Summary Proxy requests to a specific instance, does not autostart instance if stopped
 // @Description Forwards HTTP requests to the llama-server instance running on a specific port
 // @Tags instances
 // @Security ApiKeyAuth
@@ -357,38 +319,28 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 // @Failure 503 {string} string "Instance is not running"
 // @Router /instances/{name}/proxy [get]
 // @Router /instances/{name}/proxy [post]
-func (h *Handler) ProxyToInstance() http.HandlerFunc {
+func (h *Handler) InstanceProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-
-		validatedName, err := validation.ValidateInstanceName(name)
+		inst, err := h.getInstance(r)
 		if err != nil {
-			http.Error(w, "Invalid instance name: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		inst, err := h.InstanceManager.GetInstance(validatedName)
-		if err != nil {
-			http.Error(w, "Failed to get instance: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
 			return
 		}
 
 		if !inst.IsRunning() {
-			http.Error(w, "Instance is not running", http.StatusServiceUnavailable)
+			writeError(w, http.StatusServiceUnavailable, "instance_not_running", "Instance is not running")
 			return
 		}
 
-		// Get the cached proxy for this instance
 		proxy, err := inst.GetProxy()
 		if err != nil {
-			http.Error(w, "Failed to get proxy: "+err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "proxy_failed", "Failed to get proxy: "+err.Error())
 			return
 		}
 
-		// Check if this is a remote instance
 		if !inst.IsRemote() {
 			// Strip the "/api/v1/instances/<name>/proxy" prefix from the request URL
-			prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", validatedName)
+			prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", inst.Name)
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, prefix)
 		}
 
@@ -396,7 +348,6 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 		r.Header.Set("X-Forwarded-Proto", "http")
 
-		// Forward the request using the cached proxy
 		proxy.ServeHTTP(w, r)
 	}
 }

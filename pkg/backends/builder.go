@@ -9,7 +9,7 @@ import (
 )
 
 // BuildCommandArgs converts a struct to command line arguments
-func BuildCommandArgs(options any, multipleFlags map[string]bool) []string {
+func BuildCommandArgs(options any, multipleFlags map[string]struct{}) []string {
 	var args []string
 
 	v := reflect.ValueOf(options).Elem()
@@ -28,9 +28,10 @@ func BuildCommandArgs(options any, multipleFlags map[string]bool) []string {
 			continue
 		}
 
-		// Get flag name from JSON tag
-		flagName := strings.Split(jsonTag, ",")[0]
-		flagName = strings.ReplaceAll(flagName, "_", "-")
+		// Get flag name from JSON tag (snake_case)
+		jsonFieldName := strings.Split(jsonTag, ",")[0]
+		// Convert to kebab-case for CLI flags
+		flagName := strings.ReplaceAll(jsonFieldName, "_", "-")
 
 		switch field.Kind() {
 		case reflect.Bool:
@@ -51,7 +52,8 @@ func BuildCommandArgs(options any, multipleFlags map[string]bool) []string {
 			}
 		case reflect.Slice:
 			if field.Type().Elem().Kind() == reflect.String && field.Len() > 0 {
-				if multipleFlags[flagName] {
+				// Use jsonFieldName (snake_case) for multipleFlags lookup
+				if _, isMultiValue := multipleFlags[jsonFieldName]; isMultiValue {
 					// Multiple flags: --flag value1 --flag value2
 					for j := 0; j < field.Len(); j++ {
 						args = append(args, "--"+flagName, field.Index(j).String())
