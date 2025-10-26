@@ -86,7 +86,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 
 				// Llama.cpp server proxy endpoints (proxied to the actual llama.cpp server)
 				r.Route("/proxy", func(r chi.Router) {
-					r.HandleFunc("/*", handler.ProxyToInstance()) // Proxy all llama.cpp server requests
+					r.HandleFunc("/*", handler.InstanceProxy()) // Proxy all llama.cpp server requests
 				})
 			})
 		})

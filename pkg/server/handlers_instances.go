@@ -305,7 +305,7 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 	}
 }
 
-// ProxyToInstance godoc
+// InstanceProxy godoc
 // @Summary Proxy requests to a specific instance, does not autostart instance if stopped
 // @Description Forwards HTTP requests to the llama-server instance running on a specific port
 // @Tags instances
@@ -317,7 +317,7 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 // @Failure 503 {string} string "Instance is not running"
 // @Router /instances/{name}/proxy [get]
 // @Router /instances/{name}/proxy [post]
-func (h *Handler) ProxyToInstance() http.HandlerFunc {
+func (h *Handler) InstanceProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		inst, err := h.getInstance(r)
 		if err != nil {
@@ -330,14 +330,12 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 			return
 		}
 
-		// Get the cached proxy for this instance
 		proxy, err := inst.GetProxy()
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "proxy_failed", "Failed to get proxy: "+err.Error())
 			return
 		}
 
-		// Check if this is a remote instance
 		if !inst.IsRemote() {
 			// Strip the "/api/v1/instances/<name>/proxy" prefix from the request URL
 			prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", inst.Name)
@@ -348,7 +346,6 @@ func (h *Handler) ProxyToInstance() http.HandlerFunc {
 		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 		r.Header.Set("X-Forwarded-Proto", "http")
 
-		// Forward the request using the cached proxy
 		proxy.ServeHTTP(w, r)
 	}
 }
