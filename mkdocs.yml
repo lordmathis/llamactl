@@ -64,7 +64,8 @@ plugins:
       css_dir: css
       javascript_dir: js
       canonical_version: null
-  - neoteroi.mkdocsoad
+  - neoteroi.mkdocsoad:
+      use_pymdownx: true
 
 hooks:
   - docs/readme_sync.py
@@ -77,3 +78,6 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/lordmathis/llamactl
+
+extra_css:
+- css/css-v1.1.3.css
