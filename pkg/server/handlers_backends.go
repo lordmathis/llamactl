@@ -235,6 +235,19 @@ func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 	}
 }
 
+// executeLlamaServerCommand executes a llama-server command with the specified flag and returns the output
+func (h *Handler) executeLlamaServerCommand(flag, errorMsg string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cmd := exec.Command("llama-server", flag)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "command failed", errorMsg+": "+err.Error())
+			return
+		}
+		writeText(w, http.StatusOK, string(output))
+	}
+}
+
 // LlamaServerHelpHandler godoc
 // @Summary Get help for llama server
 // @Description Returns the help text for the llama server command
@@ -245,15 +258,7 @@ func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /backends/llama-cpp/help [get]
 func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		helpCmd := exec.Command("llama-server", "--help")
-		output, err := helpCmd.CombinedOutput()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "command_failed", "Failed to get help: "+err.Error())
-			return
-		}
-		writeText(w, http.StatusOK, string(output))
-	}
+	return h.executeLlamaServerCommand("--help", "Failed to get help")
 }
 
 // LlamaServerVersionHandler godoc
@@ -266,15 +271,7 @@ func (h *Handler) LlamaServerHelpHandler() http.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /backends/llama-cpp/version [get]
 func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		versionCmd := exec.Command("llama-server", "--version")
-		output, err := versionCmd.CombinedOutput()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "command_failed", "Failed to get version: "+err.Error())
-			return
-		}
-		writeText(w, http.StatusOK, string(output))
-	}
+	return h.executeLlamaServerCommand("--version", "Failed to get version")
 }
 
 // LlamaServerListDevicesHandler godoc
@@ -287,13 +284,5 @@ func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /backends/llama-cpp/devices [get]
 func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		listCmd := exec.Command("llama-server", "--list-devices")
-		output, err := listCmd.CombinedOutput()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "command_failed", "Failed to list devices: "+err.Error())
-			return
-		}
-		writeText(w, http.StatusOK, string(output))
-	}
+	return h.executeLlamaServerCommand("--list-devices", "Failed to list devices")
 }
