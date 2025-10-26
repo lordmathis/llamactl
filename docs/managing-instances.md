@@ -69,7 +69,7 @@ Each instance is displayed as a card showing:
 
 ```bash
 # Create llama.cpp instance with local model file
-curl -X POST http://localhost:8080/api/instances/my-llama-instance \
+curl -X POST http://localhost:8080/api/v1/instances/my-llama-instance \
   -H "Content-Type: application/json" \
   -d '{
     "backend_type": "llama_cpp",
@@ -83,7 +83,7 @@ curl -X POST http://localhost:8080/api/instances/my-llama-instance \
   }'
 
 # Create MLX instance (macOS only)
-curl -X POST http://localhost:8080/api/instances/my-mlx-instance \
+curl -X POST http://localhost:8080/api/v1/instances/my-mlx-instance \
   -H "Content-Type: application/json" \
   -d '{
     "backend_type": "mlx_lm",
@@ -99,7 +99,7 @@ curl -X POST http://localhost:8080/api/instances/my-mlx-instance \
   }'
 
 # Create vLLM instance
-curl -X POST http://localhost:8080/api/instances/my-vllm-instance \
+curl -X POST http://localhost:8080/api/v1/instances/my-vllm-instance \
   -H "Content-Type: application/json" \
   -d '{
     "backend_type": "vllm",
@@ -119,7 +119,7 @@ curl -X POST http://localhost:8080/api/instances/my-vllm-instance \
   }'
 
 # Create llama.cpp instance with HuggingFace model
-curl -X POST http://localhost:8080/api/instances/gemma-3-27b \
+curl -X POST http://localhost:8080/api/v1/instances/gemma-3-27b \
   -H "Content-Type: application/json" \
   -d '{
     "backend_type": "llama_cpp",
@@ -132,7 +132,7 @@ curl -X POST http://localhost:8080/api/instances/gemma-3-27b \
   }'
 
 # Create instance on specific remote node
-curl -X POST http://localhost:8080/api/instances/remote-llama \
+curl -X POST http://localhost:8080/api/v1/instances/remote-llama \
   -H "Content-Type: application/json" \
   -d '{
     "backend_type": "llama_cpp",
@@ -144,7 +144,7 @@ curl -X POST http://localhost:8080/api/instances/remote-llama \
   }'
 
 # Create instance on multiple nodes for high availability
-curl -X POST http://localhost:8080/api/instances/multi-node-llama \
+curl -X POST http://localhost:8080/api/v1/instances/multi-node-llama \
   -H "Content-Type: application/json" \
   -d '{
     "backend_type": "llama_cpp",
@@ -166,7 +166,7 @@ curl -X POST http://localhost:8080/api/instances/multi-node-llama \
 
 **Via API**
 ```bash
-curl -X POST http://localhost:8080/api/instances/{name}/start
+curl -X POST http://localhost:8080/api/v1/instances/{name}/start
 ```
 
 ## Stop Instance
@@ -177,7 +177,7 @@ curl -X POST http://localhost:8080/api/instances/{name}/start
 
 **Via API**
 ```bash
-curl -X POST http://localhost:8080/api/instances/{name}/stop
+curl -X POST http://localhost:8080/api/v1/instances/{name}/stop
 ```
 
 ## Edit Instance
@@ -192,7 +192,7 @@ curl -X POST http://localhost:8080/api/instances/{name}/stop
 Modify instance settings:
 
 ```bash
-curl -X PUT http://localhost:8080/api/instances/{name} \
+curl -X PUT http://localhost:8080/api/v1/instances/{name} \
   -H "Content-Type: application/json" \
   -d '{
     "backend_options": {
@@ -218,7 +218,7 @@ Check instance status in real-time:
 
 ```bash
 # Get instance details
-curl http://localhost:8080/api/instances/{name}/logs
+curl http://localhost:8080/api/v1/instances/{name}/logs
 ```
 
 ## Delete Instance
@@ -230,7 +230,7 @@ curl http://localhost:8080/api/instances/{name}/logs
 
 **Via API**
 ```bash
-curl -X DELETE http://localhost:8080/api/instances/{name}
+curl -X DELETE http://localhost:8080/api/v1/instances/{name}
 ```
 
 ## Instance Proxy
@@ -239,7 +239,7 @@ Llamactl proxies all requests to the underlying backend instances (llama-server,
 
 ```bash
 # Get instance details
-curl http://localhost:8080/api/instances/{name}/proxy/
+curl http://localhost:8080/api/v1/instances/{name}/proxy/
 ```
 
 All backends provide OpenAI-compatible endpoints. Check the respective documentation:
@@ -258,6 +258,6 @@ All backends provide OpenAI-compatible endpoints. Check the respective documenta
 Check the health status of your instances:
 
 ```bash
-curl http://localhost:8080/api/instances/{name}/proxy/health
+curl http://localhost:8080/api/v1/instances/{name}/proxy/health
 ```
 

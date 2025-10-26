@@ -132,10 +132,10 @@ You can also manage instances via the REST API:
 
 ```bash
 # List all instances
-curl http://localhost:8080/api/instances
+curl http://localhost:8080/api/v1/instances
 
 # Create a new llama.cpp instance
-curl -X POST http://localhost:8080/api/instances/my-model \
+curl -X POST http://localhost:8080/api/v1/instances/my-model \
   -H "Content-Type: application/json" \
   -d '{
     "backend_type": "llama_cpp",
@@ -145,7 +145,7 @@ curl -X POST http://localhost:8080/api/instances/my-model \
   }'
 
 # Start an instance
-curl -X POST http://localhost:8080/api/instances/my-model/start
+curl -X POST http://localhost:8080/api/v1/instances/my-model/start
 ```
 
 ## OpenAI Compatible API
