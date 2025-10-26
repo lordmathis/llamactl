@@ -68,12 +68,9 @@ Issues specific to Llamactl deployment and operation.
 
 **Problem:** Complex model loading, performance, or compatibility issues
 
-Since llamactl uses `llama-server` under the hood, many instance-related issues are actually llama.cpp issues. For advanced troubleshooting:
+Since llamactl uses `llama-server` under the hood, many instance-related issues are actually llama.cpp issues. For advanced troubleshooting check llama.cpp resources:
+- **llama.cpp Documentation:** [https://github.com/ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp)  
 
-**Resources:**  
-- **llama.cpp Documentation:** [https://github.com/ggml/llama.cpp](https://github.com/ggml/llama.cpp)  
-- **llama.cpp Issues:** [https://github.com/ggml/llama.cpp/issues](https://github.com/ggml/llama.cpp/issues)  
-- **llama.cpp Discussions:** [https://github.com/ggml/llama.cpp/discussions](https://github.com/ggml/llama.cpp/discussions)  
 
 **Testing directly with llama-server:**  
 ```bash
