@@ -101,7 +101,7 @@
                     "200": {
                         "description": "Parsed options",
                         "schema": {
-                            "$ref": "#/definitions/instance.CreateInstanceOptions"
+                            "$ref": "#/definitions/instance.Options"
                         }
                     },
                     "400": {
@@ -186,7 +186,7 @@
                     "200": {
                         "description": "Parsed options",
                         "schema": {
-                            "$ref": "#/definitions/instance.CreateInstanceOptions"
+                            "$ref": "#/definitions/instance.Options"
                         }
                     },
                     "400": {
@@ -234,7 +234,7 @@
                     "200": {
                         "description": "Parsed options",
                         "schema": {
-                            "$ref": "#/definitions/instance.CreateInstanceOptions"
+                            "$ref": "#/definitions/instance.Options"
                         }
                     },
                     "400": {
@@ -267,7 +267,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/instance.Process"
+                                "$ref": "#/definitions/instance.Instance"
                             }
                         }
                     },
@@ -305,7 +305,7 @@
                     "200": {
                         "description": "Instance details",
                         "schema": {
-                            "$ref": "#/definitions/instance.Process"
+                            "$ref": "#/definitions/instance.Instance"
                         }
                     },
                     "400": {
@@ -350,7 +350,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/instance.CreateInstanceOptions"
+                            "$ref": "#/definitions/instance.Options"
                         }
                     }
                 ],
@@ -358,7 +358,7 @@
                     "200": {
                         "description": "Updated instance details",
                         "schema": {
-                            "$ref": "#/definitions/instance.Process"
+                            "$ref": "#/definitions/instance.Instance"
                         }
                     },
                     "400": {
@@ -403,7 +403,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/instance.CreateInstanceOptions"
+                            "$ref": "#/definitions/instance.Options"
                         }
                     }
                 ],
@@ -411,7 +411,7 @@
                     "201": {
                         "description": "Created instance details",
                         "schema": {
-                            "$ref": "#/definitions/instance.Process"
+                            "$ref": "#/definitions/instance.Instance"
                         }
                     },
                     "400": {
@@ -527,7 +527,7 @@
                 "tags": [
                     "instances"
                 ],
-                "summary": "Proxy requests to a specific instance",
+                "summary": "Proxy requests to a specific instance, does not autostart instance if stopped",
                 "parameters": [
                     {
                         "type": "string",
@@ -571,7 +571,7 @@
                 "tags": [
                     "instances"
                 ],
-                "summary": "Proxy requests to a specific instance",
+                "summary": "Proxy requests to a specific instance, does not autostart instance if stopped",
                 "parameters": [
                     {
                         "type": "string",
@@ -631,7 +631,7 @@
                     "200": {
                         "description": "Restarted instance details",
                         "schema": {
-                            "$ref": "#/definitions/instance.Process"
+                            "$ref": "#/definitions/instance.Instance"
                         }
                     },
                     "400": {
@@ -674,7 +674,7 @@
                     "200": {
                         "description": "Started instance details",
                         "schema": {
-                            "$ref": "#/definitions/instance.Process"
+                            "$ref": "#/definitions/instance.Instance"
                         }
                     },
                     "400": {
@@ -717,11 +717,652 @@
                     "200": {
                         "description": "Stopped instance details",
                         "schema": {
-                            "$ref": "#/definitions/instance.Process"
+                            "$ref": "#/definitions/instance.Instance"
                         }
                     },
                     "400": {
                         "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the llama.cpp UI for the specified instance",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp UI for the instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied HTML response",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/apply-template": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/completion": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/detokenize": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/embeddings": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/infill": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/metrics": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/props": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/reranking": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/slots": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/llama-cpp/{name}/tokenize": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Proxies requests to the specified llama.cpp server instance, starting it on-demand if configured",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "backends"
+                ],
+                "summary": "Proxy requests to llama.cpp server instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Proxied response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/nodes": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a map of all nodes configured in the server (node name -\u003e node config)",
+                "tags": [
+                    "nodes"
+                ],
+                "summary": "List all configured nodes",
+                "responses": {
+                    "200": {
+                        "description": "Map of nodes",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/server.NodeResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/nodes/{name}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the details of a specific node by name",
+                "tags": [
+                    "nodes"
+                ],
+                "summary": "Get details of a specific node",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Node Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Node details",
+                        "schema": {
+                            "$ref": "#/definitions/server.NodeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Node not found",
                         "schema": {
                             "type": "string"
                         }
@@ -827,32 +1468,31 @@
         }
     },
     "definitions": {
-        "backends.BackendType": {
-            "type": "string",
-            "enum": [
-                "llama_cpp",
-                "mlx_lm",
-                "vllm"
-            ],
-            "x-enum-varnames": [
-                "BackendTypeLlamaCpp",
-                "BackendTypeMlxLm",
-                "BackendTypeVllm"
-            ]
+        "instance.Instance": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "description": "Unix timestamp when the instance was created",
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
         },
-        "instance.CreateInstanceOptions": {
+        "instance.Options": {
             "type": "object",
             "properties": {
                 "auto_restart": {
                     "description": "Auto restart",
                     "type": "boolean"
                 },
-                "backend_options": {
+                "environment": {
+                    "description": "Environment variables",
                     "type": "object",
-                    "additionalProperties": {}
-                },
-                "backend_type": {
-                    "$ref": "#/definitions/backends.BackendType"
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "idle_timeout": {
                     "description": "Idle timeout",
@@ -871,36 +1511,11 @@
                 }
             }
         },
-        "instance.InstanceStatus": {
-            "type": "integer",
-            "enum": [
-                0,
-                1,
-                2
-            ],
-            "x-enum-varnames": [
-                "Stopped",
-                "Running",
-                "Failed"
-            ]
-        },
-        "instance.Process": {
+        "server.NodeResponse": {
             "type": "object",
             "properties": {
-                "created": {
-                    "description": "Creation time",
-                    "type": "integer"
-                },
-                "name": {
+                "address": {
                     "type": "string"
-                },
-                "status": {
-                    "description": "Status",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/instance.InstanceStatus"
-                        }
-                    ]
                 }
             }
         },

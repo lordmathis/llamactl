@@ -86,11 +86,21 @@ func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
 // @Tags backends
 // @Security ApiKeyAuth
 // @Produce json
-// @Param name query string true "Instance Name"
+// @Param name path string true "Instance Name"
 // @Success 200 {object} map[string]any "Proxied response"
 // @Failure 400 {string} string "Invalid instance"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /llama-cpp/{name}/* [post]
+// @Router /llama-cpp/{name}/props [get]
+// @Router /llama-cpp/{name}/slots [get]
+// @Router /llama-cpp/{name}/apply-template [post]
+// @Router /llama-cpp/{name}/completion [post]
+// @Router /llama-cpp/{name}/detokenize [post]
+// @Router /llama-cpp/{name}/embeddings [post]
+// @Router /llama-cpp/{name}/infill [post]
+// @Router /llama-cpp/{name}/metrics [post]
+// @Router /llama-cpp/{name}/props [post]
+// @Router /llama-cpp/{name}/reranking [post]
+// @Router /llama-cpp/{name}/tokenize [post]
 func (h *Handler) LlamaCppProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 

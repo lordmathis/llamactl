@@ -1,25 +1,23 @@
 basePath: /api/v1
 definitions:
-  backends.BackendType:
-    enum:
-    - llama_cpp
-    - mlx_lm
-    - vllm
-    type: string
-    x-enum-varnames:
-    - BackendTypeLlamaCpp
-    - BackendTypeMlxLm
-    - BackendTypeVllm
-  instance.CreateInstanceOptions:
+  instance.Instance:
+    properties:
+      created:
+        description: Unix timestamp when the instance was created
+        type: integer
+      name:
+        type: string
+    type: object
+  instance.Options:
     properties:
       auto_restart:
         description: Auto restart
         type: boolean
-      backend_options:
-        additionalProperties: {}
+      environment:
+        additionalProperties:
+          type: string
+        description: Environment variables
         type: object
-      backend_type:
-        $ref: '#/definitions/backends.BackendType'
       idle_timeout:
         description: Idle timeout
         type: integer
@@ -32,27 +30,10 @@ definitions:
         description: seconds
         type: integer
     type: object
-  instance.InstanceStatus:
-    enum:
-    - 0
-    - 1
-    - 2
-    type: integer
-    x-enum-varnames:
-    - Stopped
-    - Running
-    - Failed
-  instance.Process:
+  server.NodeResponse:
     properties:
-      created:
-        description: Creation time
-        type: integer
-      name:
+      address:
         type: string
-      status:
-        allOf:
-        - $ref: '#/definitions/instance.InstanceStatus'
-        description: Status
     type: object
   server.OpenAIInstance:
     properties:
@@ -140,7 +121,7 @@ paths:
         "200":
           description: Parsed options
           schema:
-            $ref: '#/definitions/instance.CreateInstanceOptions'
+            $ref: '#/definitions/instance.Options'
         "400":
           description: Invalid request or command
           schema:
@@ -193,7 +174,7 @@ paths:
         "200":
           description: Parsed options
           schema:
-            $ref: '#/definitions/instance.CreateInstanceOptions'
+            $ref: '#/definitions/instance.Options'
         "400":
           description: Invalid request or command
           schema:
@@ -223,7 +204,7 @@ paths:
         "200":
           description: Parsed options
           schema:
-            $ref: '#/definitions/instance.CreateInstanceOptions'
+            $ref: '#/definitions/instance.Options'
         "400":
           description: Invalid request or command
           schema:
@@ -243,7 +224,7 @@ paths:
           description: List of instances
           schema:
             items:
-              $ref: '#/definitions/instance.Process'
+              $ref: '#/definitions/instance.Instance'
             type: array
         "500":
           description: Internal Server Error
@@ -291,7 +272,7 @@ paths:
         "200":
           description: Instance details
           schema:
-            $ref: '#/definitions/instance.Process'
+            $ref: '#/definitions/instance.Instance'
         "400":
           description: Invalid name format
           schema:
@@ -320,12 +301,12 @@ paths:
         name: options
         required: true
         schema:
-          $ref: '#/definitions/instance.CreateInstanceOptions'
+          $ref: '#/definitions/instance.Options'
       responses:
         "201":
           description: Created instance details
           schema:
-            $ref: '#/definitions/instance.Process'
+            $ref: '#/definitions/instance.Instance'
         "400":
           description: Invalid request body
           schema:
@@ -354,12 +335,12 @@ paths:
         name: options
         required: true
         schema:
-          $ref: '#/definitions/instance.CreateInstanceOptions'
+          $ref: '#/definitions/instance.Options'
       responses:
         "200":
           description: Updated instance details
           schema:
-            $ref: '#/definitions/instance.Process'
+            $ref: '#/definitions/instance.Instance'
         "400":
           description: Invalid name format
           schema:
@@ -432,7 +413,8 @@ paths:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Proxy requests to a specific instance
+      summary: Proxy requests to a specific instance, does not autostart instance
+        if stopped
       tags:
       - instances
     post:
@@ -461,7 +443,8 @@ paths:
             type: string
       security:
       - ApiKeyAuth: []
-      summary: Proxy requests to a specific instance
+      summary: Proxy requests to a specific instance, does not autostart instance
+        if stopped
       tags:
       - instances
   /instances/{name}/restart:
@@ -477,7 +460,7 @@ paths:
         "200":
           description: Restarted instance details
           schema:
-            $ref: '#/definitions/instance.Process'
+            $ref: '#/definitions/instance.Instance'
         "400":
           description: Invalid name format
           schema:
@@ -504,7 +487,7 @@ paths:
         "200":
           description: Started instance details
           schema:
-            $ref: '#/definitions/instance.Process'
+            $ref: '#/definitions/instance.Instance'
         "400":
           description: Invalid name format
           schema:
@@ -531,7 +514,7 @@ paths:
         "200":
           description: Stopped instance details
           schema:
-            $ref: '#/definitions/instance.Process'
+            $ref: '#/definitions/instance.Instance'
         "400":
           description: Invalid name format
           schema:
@@ -545,6 +528,426 @@ paths:
       summary: Stop a running instance
       tags:
       - instances
+  /llama-cpp/{name}/:
+    get:
+      description: Proxies requests to the llama.cpp UI for the specified instance
+      parameters:
+      - description: Instance Name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Proxied HTML response
+          schema:
+            type: string
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp UI for the instance
+      tags:
+      - backends
+  /llama-cpp/{name}/apply-template:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /llama-cpp/{name}/completion:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /llama-cpp/{name}/detokenize:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /llama-cpp/{name}/embeddings:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /llama-cpp/{name}/infill:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /llama-cpp/{name}/metrics:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /llama-cpp/{name}/props:
+    get:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /llama-cpp/{name}/reranking:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /llama-cpp/{name}/slots:
+    get:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /llama-cpp/{name}/tokenize:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - backends
+  /nodes:
+    get:
+      description: Returns a map of all nodes configured in the server (node name
+        -> node config)
+      responses:
+        "200":
+          description: Map of nodes
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/server.NodeResponse'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List all configured nodes
+      tags:
+      - nodes
+  /nodes/{name}:
+    get:
+      description: Returns the details of a specific node by name
+      parameters:
+      - description: Node Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Node details
+          schema:
+            $ref: '#/definitions/server.NodeResponse'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "404":
+          description: Node not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get details of a specific node
+      tags:
+      - nodes
   /v1/:
     post:
       consumes:
