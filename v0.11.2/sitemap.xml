@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://llamactl.org/v0.11.2/</loc>
+         <lastmod>2025-10-26</lastmod>
+    </url>
+    <url>
+         <loc>https://llamactl.org/v0.11.2/api-reference/</loc>
+         <lastmod>2025-10-26</lastmod>
+    </url>
+    <url>
+         <loc>https://llamactl.org/v0.11.2/configuration/</loc>
+         <lastmod>2025-10-26</lastmod>
+    </url>
+    <url>
+         <loc>https://llamactl.org/v0.11.2/installation/</loc>
+         <lastmod>2025-10-26</lastmod>
+    </url>
+    <url>
+         <loc>https://llamactl.org/v0.11.2/managing-instances/</loc>
+         <lastmod>2025-10-26</lastmod>
+    </url>
+    <url>
+         <loc>https://llamactl.org/v0.11.2/quick-start/</loc>
+         <lastmod>2025-10-26</lastmod>
+    </url>
+    <url>
+         <loc>https://llamactl.org/v0.11.2/troubleshooting/</loc>
+         <lastmod>2025-10-26</lastmod>
+    </url>
+</urlset>
