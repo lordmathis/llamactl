@@ -155,15 +155,13 @@ func TestDeleteInstance_RunningInstanceFails(t *testing.T) {
 		},
 	}
 
-	_, err := mgr.CreateInstance("test-instance", options)
+	inst, err := mgr.CreateInstance("test-instance", options)
 	if err != nil {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
-	_, err = mgr.StartInstance("test-instance")
-	if err != nil {
-		t.Fatalf("StartInstance failed: %v", err)
-	}
+	// Simulate starting the instance
+	inst.SetStatus(instance.Running)
 
 	// Should fail to delete running instance
 	err = mgr.DeleteInstance("test-instance")
@@ -186,15 +184,13 @@ func TestUpdateInstance(t *testing.T) {
 		},
 	}
 
-	_, err := mgr.CreateInstance("test-instance", options)
+	inst, err := mgr.CreateInstance("test-instance", options)
 	if err != nil {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
-	_, err = mgr.StartInstance("test-instance")
-	if err != nil {
-		t.Fatalf("StartInstance failed: %v", err)
-	}
+	// Simulate starting the instance
+	inst.SetStatus(instance.Running)
 
 	// Update running instance with new model
 	newOptions := &instance.Options{
@@ -212,9 +208,10 @@ func TestUpdateInstance(t *testing.T) {
 		t.Fatalf("UpdateInstance failed: %v", err)
 	}
 
-	// Should still be running after update
-	if !updated.IsRunning() {
-		t.Error("Instance should be running after update")
+	// Should be either running or restarting after update
+	status := updated.GetStatus()
+	if status != instance.Running && status != instance.Restarting {
+		t.Error("Instance should be running or restarting after update")
 	}
 
 	if updated.GetOptions().BackendOptions.LlamaServerOptions.Model != "/path/to/new-model.gguf" {

@@ -110,7 +110,7 @@ func (im *instanceManager) Shutdown() {
 				defer wg.Done()
 				fmt.Printf("Stopping instance %s...\n", inst.Name)
 				if err := inst.Stop(); err != nil {
-					fmt.Printf("Error stopping instance %s: %w\n", inst.Name, err)
+					log.Printf("Error stopping instance %s: %v\n", inst.Name, err)
 				}
 			}(inst)
 		}
