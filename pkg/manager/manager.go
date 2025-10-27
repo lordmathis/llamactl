@@ -83,7 +83,7 @@ func New(globalConfig *config.AppConfig) InstanceManager {
 
 	// Load existing instances from disk
 	if err := im.loadInstances(); err != nil {
-		log.Printf("Error loading instances: %w", err)
+		log.Printf("Error loading instances: %v", err)
 	}
 
 	// Start the lifecycle manager
@@ -140,7 +140,7 @@ func (im *instanceManager) loadInstances() error {
 	// Process each loaded instance
 	for _, persistedInst := range instances {
 		if err := im.loadInstance(persistedInst); err != nil {
-			log.Printf("Failed to load instance %s: %w", persistedInst.Name, err)
+			log.Printf("Failed to load instance %s: %v", persistedInst.Name, err)
 			continue
 		}
 	}
@@ -251,12 +251,12 @@ func (im *instanceManager) autoStartInstances() {
 			// Remote instance - use remote manager with context
 			ctx := context.Background()
 			if _, err := im.remote.startInstance(ctx, node, inst.Name); err != nil {
-				log.Printf("Failed to auto-start remote instance %s: %w", inst.Name, err)
+				log.Printf("Failed to auto-start remote instance %s: %v", inst.Name, err)
 			}
 		} else {
 			// Local instance - call Start() directly
 			if err := inst.Start(); err != nil {
-				log.Printf("Failed to auto-start instance %s: %w", inst.Name, err)
+				log.Printf("Failed to auto-start instance %s: %v", inst.Name, err)
 			}
 		}
 	}
