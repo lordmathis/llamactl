@@ -42,6 +42,7 @@ Each instance is displayed as a card showing:
 ![Create Instance Screenshot](images/create_instance.png)
 
 1. Click the **"Create Instance"** button on the dashboard
+2. *Optional*: Click **"Import"** in the dialog header to load a previously exported configuration
 2. Enter a unique **Name** for your instance (only required field)
 3. **Select Target Node**: Choose which node to deploy the instance to from the dropdown
 4. **Choose Backend Type**:
@@ -218,6 +219,12 @@ curl -X PUT http://localhost:8080/api/v1/instances/{name} \
 !!! note
     Configuration changes require restarting the instance to take effect.
 
+
+## Export Instance
+
+**Via Web UI**
+1. Click the **"More actions"** button (three dots) on an instance card
+2. Click **"Export"** to download the instance configuration as a JSON file
 
 ## View Logs
 
