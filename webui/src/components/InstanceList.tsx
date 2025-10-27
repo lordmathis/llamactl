@@ -56,9 +56,9 @@ function InstanceList({ editInstance }: InstanceListProps) {
           <MemoizedInstanceCard 
             key={instance.name} 
             instance={instance}
-            startInstance={startInstance}
-            stopInstance={stopInstance}
-            deleteInstance={deleteInstance}
+            startInstance={() => { void startInstance(instance.name) }}
+            stopInstance={() => { void stopInstance(instance.name) }}
+            deleteInstance={() => { void deleteInstance(instance.name) }}
             editInstance={editInstance}
           />
         ))}

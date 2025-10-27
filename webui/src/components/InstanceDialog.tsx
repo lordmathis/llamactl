@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BackendType, type CreateInstanceOptions, type Instance } from "@/types/instance";
+import type { BackendOptions } from "@/schemas/instanceOptions";
 import ParseCommandDialog from "@/components/ParseCommandDialog";
 import InstanceSettingsCard from "@/components/instance/InstanceSettingsCard";
 import BackendConfigurationCard from "@/components/instance/BackendConfigurationCard";
@@ -56,31 +57,31 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
     }
   }, [open, instance]);
 
-  const handleFieldChange = (key: keyof CreateInstanceOptions, value: any) => {
+  const handleFieldChange = (key: keyof CreateInstanceOptions, value: unknown) => {
     setFormData((prev) => {
       // If backend_type is changing, clear backend_options
       if (key === 'backend_type' && prev.backend_type !== value) {
         return {
           ...prev,
-          [key]: value,
+          backend_type: value as CreateInstanceOptions['backend_type'],
           backend_options: {}, // Clear backend options when backend type changes
         };
       }
-      
+
       return {
         ...prev,
         [key]: value,
-      };
+      } as CreateInstanceOptions;
     });
   };
 
-  const handleBackendFieldChange = (key: string, value: any) => {
+  const handleBackendFieldChange = (key: string, value: unknown) => {
     setFormData((prev) => ({
       ...prev,
       backend_options: {
         ...prev.backend_options,
         [key]: value,
-      } as any,
+      } as BackendOptions,
     }));
   };
 
@@ -106,11 +107,13 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
     }
 
     // Clean up undefined values to avoid sending empty fields
-    const cleanOptions: CreateInstanceOptions = {};
+    const cleanOptions: CreateInstanceOptions = {} as CreateInstanceOptions;
     Object.entries(formData).forEach(([key, value]) => {
+      const typedKey = key as keyof CreateInstanceOptions;
+
       if (key === 'backend_options' && value && typeof value === 'object' && !Array.isArray(value)) {
         // Handle backend_options specially - clean nested object
-        const cleanBackendOptions: any = {};
+        const cleanBackendOptions: Record<string, unknown> = {};
         Object.entries(value).forEach(([backendKey, backendValue]) => {
           if (backendValue !== undefined && backendValue !== null && (typeof backendValue !== 'string' || backendValue.trim() !== "")) {
             // Handle arrays - don't include empty arrays
@@ -123,7 +126,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
 
         // Only include backend_options if it has content
         if (Object.keys(cleanBackendOptions).length > 0) {
-          (cleanOptions as any)[key] = cleanBackendOptions;
+          (cleanOptions as Record<string, unknown>)[typedKey] = cleanBackendOptions as BackendOptions;
         }
       } else if (value !== undefined && value !== null) {
         // Skip empty strings
@@ -134,7 +137,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
         if (Array.isArray(value) && value.length === 0) {
           return;
         }
-        (cleanOptions as any)[key] = value;
+        (cleanOptions as Record<string, unknown>)[typedKey] = value;
       }
     });
 
@@ -167,7 +170,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        const importedData = JSON.parse(content);
+        const importedData = JSON.parse(content) as { name?: string; options?: CreateInstanceOptions };
 
         // Validate that it's an instance export
         if (!importedData.name || !importedData.options) {
@@ -176,7 +179,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
         }
 
         // Set the instance name (only for new instances, not editing)
-        if (!isEditing) {
+        if (!isEditing && typeof importedData.name === 'string') {
           handleNameChange(importedData.name);
         }
 

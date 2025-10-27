@@ -12,13 +12,13 @@ interface BackendFormFieldProps {
 
 const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, onChange }) => {
   // Get configuration for basic fields, or use field name for advanced fields
-  const config = basicBackendFieldsConfig[fieldKey as string] || { label: fieldKey }
+  const config = basicBackendFieldsConfig[fieldKey] || { label: fieldKey }
   
   // Get type from Zod schema
   const fieldType = getBackendFieldType(fieldKey)
 
   const handleChange = (newValue: string | number | boolean | string[] | undefined) => {
-    onChange(fieldKey as string, newValue)
+    onChange(fieldKey, newValue)
   }
 
   const renderField = () => {
