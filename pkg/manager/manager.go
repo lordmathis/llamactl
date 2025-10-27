@@ -54,16 +54,10 @@ func New(globalConfig *config.AppConfig) InstanceManager {
 
 	// Initialize port allocator
 	portRange := globalConfig.Instances.PortRange
-	ports, err := newPortAllocator(portRange[0], portRange[1])
-	if err != nil {
-		log.Fatalf("Failed to create port allocator: %v", err)
-	}
+	ports := newPortAllocator(portRange[0], portRange[1])
 
 	// Initialize persistence
-	persistence, err := newInstancePersister(globalConfig.Instances.InstancesDir)
-	if err != nil {
-		log.Fatalf("Failed to create instance persister: %v", err)
-	}
+	persistence := newInstancePersister(globalConfig.Instances.InstancesDir)
 
 	// Initialize remote manager
 	remote := newRemoteManager(globalConfig.Nodes, 30*time.Second)
@@ -116,7 +110,7 @@ func (im *instanceManager) Shutdown() {
 				defer wg.Done()
 				fmt.Printf("Stopping instance %s...\n", inst.Name)
 				if err := inst.Stop(); err != nil {
-					fmt.Printf("Error stopping instance %s: %v\n", inst.Name, err)
+					log.Printf("Error stopping instance %s: %v\n", inst.Name, err)
 				}
 			}(inst)
 		}

@@ -24,15 +24,7 @@ type portAllocator struct {
 }
 
 // newPortAllocator creates a new port allocator for the given port range.
-// Returns an error if the port range is invalid.
-func newPortAllocator(minPort, maxPort int) (*portAllocator, error) {
-	if minPort <= 0 || maxPort <= 0 {
-		return nil, fmt.Errorf("invalid port range: min=%d, max=%d (must be > 0)", minPort, maxPort)
-	}
-	if minPort > maxPort {
-		return nil, fmt.Errorf("invalid port range: min=%d > max=%d", minPort, maxPort)
-	}
-
+func newPortAllocator(minPort, maxPort int) *portAllocator {
 	rangeSize := maxPort - minPort + 1
 	bitmapSize := (rangeSize + 63) / 64 // Round up to nearest uint64
 
@@ -42,7 +34,7 @@ func newPortAllocator(minPort, maxPort int) (*portAllocator, error) {
 		minPort:   minPort,
 		maxPort:   maxPort,
 		rangeSize: rangeSize,
-	}, nil
+	}
 }
 
 // allocate finds and allocates the first available port for the given instance.

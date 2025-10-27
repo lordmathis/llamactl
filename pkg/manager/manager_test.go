@@ -85,7 +85,7 @@ func TestDeleteInstance_RemovesPersistenceFile(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	mgr := createTestManager()
+	mgr := createTestManager(t)
 	defer mgr.Shutdown()
 
 	// Test concurrent operations
@@ -113,7 +113,7 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 
 	// Concurrent list operations
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -134,16 +134,17 @@ func TestConcurrentAccess(t *testing.T) {
 
 // Helper functions for test configuration
 func createTestAppConfig(instancesDir string) *config.AppConfig {
-	// Use 'sleep' as a test command instead of 'llama-server'
-	// This allows tests to run in CI environments without requiring actual LLM binaries
-	// The sleep command will be invoked with model paths and other args, which it ignores
+	// Use 'sh -c "sleep 999999"' as a test command instead of 'llama-server'
+	// The shell ignores all additional arguments passed after the command
 	return &config.AppConfig{
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{
-				Command: "sleep",
+				Command: "sh",
+				Args:    []string{"-c", "sleep 999999"},
 			},
 			MLX: config.BackendSettings{
-				Command: "sleep",
+				Command: "sh",
+				Args:    []string{"-c", "sleep 999999"},
 			},
 		},
 		Instances: config.InstancesConfig{
@@ -162,28 +163,8 @@ func createTestAppConfig(instancesDir string) *config.AppConfig {
 	}
 }
 
-func createTestManager() manager.InstanceManager {
-	appConfig := &config.AppConfig{
-		Backends: config.BackendConfig{
-			LlamaCpp: config.BackendSettings{
-				Command: "sleep",
-			},
-			MLX: config.BackendSettings{
-				Command: "sleep",
-			},
-		},
-		Instances: config.InstancesConfig{
-			PortRange:            [2]int{8000, 9000},
-			LogsDir:              "/tmp/test",
-			MaxInstances:         10,
-			MaxRunningInstances:  10,
-			DefaultAutoRestart:   true,
-			DefaultMaxRestarts:   3,
-			DefaultRestartDelay:  5,
-			TimeoutCheckInterval: 5,
-		},
-		LocalNode: "main",
-		Nodes:     map[string]config.NodeConfig{},
-	}
+func createTestManager(t *testing.T) manager.InstanceManager {
+	tempDir := t.TempDir()
+	appConfig := createTestAppConfig(tempDir)
 	return manager.New(appConfig)
 }

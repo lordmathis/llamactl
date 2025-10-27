@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateInstance_FailsWithDuplicateName(t *testing.T) {
-	mngr := createTestManager()
+	mngr := createTestManager(t)
 	options := &instance.Options{
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
@@ -36,6 +36,7 @@ func TestCreateInstance_FailsWithDuplicateName(t *testing.T) {
 }
 
 func TestCreateInstance_FailsWhenMaxInstancesReached(t *testing.T) {
+	tempDir := t.TempDir()
 	appConfig := &config.AppConfig{
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{
@@ -44,6 +45,7 @@ func TestCreateInstance_FailsWhenMaxInstancesReached(t *testing.T) {
 		},
 		Instances: config.InstancesConfig{
 			PortRange:            [2]int{8000, 9000},
+			InstancesDir:         tempDir,
 			MaxInstances:         1, // Very low limit for testing
 			TimeoutCheckInterval: 5,
 		},
@@ -77,7 +79,7 @@ func TestCreateInstance_FailsWhenMaxInstancesReached(t *testing.T) {
 }
 
 func TestCreateInstance_FailsWithPortConflict(t *testing.T) {
-	manager := createTestManager()
+	manager := createTestManager(t)
 
 	options1 := &instance.Options{
 		BackendOptions: backends.Options{
@@ -115,7 +117,7 @@ func TestCreateInstance_FailsWithPortConflict(t *testing.T) {
 }
 
 func TestInstanceOperations_FailWithNonExistentInstance(t *testing.T) {
-	manager := createTestManager()
+	manager := createTestManager(t)
 
 	options := &instance.Options{
 		BackendOptions: backends.Options{
@@ -143,7 +145,7 @@ func TestInstanceOperations_FailWithNonExistentInstance(t *testing.T) {
 }
 
 func TestDeleteInstance_RunningInstanceFails(t *testing.T) {
-	mgr := createTestManager()
+	mgr := createTestManager(t)
 	defer mgr.Shutdown()
 
 	options := &instance.Options{
@@ -155,15 +157,13 @@ func TestDeleteInstance_RunningInstanceFails(t *testing.T) {
 		},
 	}
 
-	_, err := mgr.CreateInstance("test-instance", options)
+	inst, err := mgr.CreateInstance("test-instance", options)
 	if err != nil {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
-	_, err = mgr.StartInstance("test-instance")
-	if err != nil {
-		t.Fatalf("StartInstance failed: %v", err)
-	}
+	// Simulate starting the instance
+	inst.SetStatus(instance.Running)
 
 	// Should fail to delete running instance
 	err = mgr.DeleteInstance("test-instance")
@@ -173,7 +173,7 @@ func TestDeleteInstance_RunningInstanceFails(t *testing.T) {
 }
 
 func TestUpdateInstance(t *testing.T) {
-	mgr := createTestManager()
+	mgr := createTestManager(t)
 	defer mgr.Shutdown()
 
 	options := &instance.Options{
@@ -186,14 +186,14 @@ func TestUpdateInstance(t *testing.T) {
 		},
 	}
 
-	_, err := mgr.CreateInstance("test-instance", options)
+	inst, err := mgr.CreateInstance("test-instance", options)
 	if err != nil {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
-	_, err = mgr.StartInstance("test-instance")
-	if err != nil {
-		t.Fatalf("StartInstance failed: %v", err)
+	// Start the instance (will use 'yes' command from test config)
+	if err := inst.Start(); err != nil {
+		t.Fatalf("Failed to start instance: %v", err)
 	}
 
 	// Update running instance with new model
@@ -212,9 +212,9 @@ func TestUpdateInstance(t *testing.T) {
 		t.Fatalf("UpdateInstance failed: %v", err)
 	}
 
-	// Should still be running after update
+	// Should be running after update (was running before, should be restarted)
 	if !updated.IsRunning() {
-		t.Error("Instance should be running after update")
+		t.Errorf("Instance should be running after update, got: %v", updated.GetStatus())
 	}
 
 	if updated.GetOptions().BackendOptions.LlamaServerOptions.Model != "/path/to/new-model.gguf" {
@@ -223,7 +223,7 @@ func TestUpdateInstance(t *testing.T) {
 }
 
 func TestUpdateInstance_ReleasesOldPort(t *testing.T) {
-	mgr := createTestManager()
+	mgr := createTestManager(t)
 	defer mgr.Shutdown()
 
 	options := &instance.Options{

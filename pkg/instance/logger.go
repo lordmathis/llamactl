@@ -7,13 +7,14 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type logger struct {
 	name        string
 	logDir      string
-	logFile     *os.File
+	logFile     atomic.Pointer[os.File]
 	logFilePath string
 	mu          sync.RWMutex
 }
@@ -47,11 +48,11 @@ func (i *logger) create() error {
 		return fmt.Errorf("failed to create stdout log file: %w", err)
 	}
 
-	i.logFile = logFile
+	i.logFile.Store(logFile)
 
 	// Write a startup marker to both files
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	fmt.Fprintf(i.logFile, "\n=== Instance %s started at %s ===\n", i.name, timestamp)
+	fmt.Fprintf(logFile, "\n=== Instance %s started at %s ===\n", i.name, timestamp)
 
 	return nil
 }
@@ -102,11 +103,12 @@ func (i *logger) close() {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	if i.logFile != nil {
+	logFile := i.logFile.Swap(nil)
+	if logFile != nil {
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		fmt.Fprintf(i.logFile, "=== Instance %s stopped at %s ===\n\n", i.name, timestamp)
-		i.logFile.Close()
-		i.logFile = nil
+		fmt.Fprintf(logFile, "=== Instance %s stopped at %s ===\n\n", i.name, timestamp)
+		logFile.Sync() // Ensure all buffered data is written to disk
+		logFile.Close()
 	}
 }
 
@@ -117,9 +119,9 @@ func (i *logger) readOutput(reader io.ReadCloser) {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if i.logFile != nil {
-			fmt.Fprintln(i.logFile, line)
-			i.logFile.Sync() // Ensure data is written to disk
+		// Use atomic load to avoid lock contention on every line
+		if logFile := i.logFile.Load(); logFile != nil {
+			fmt.Fprintln(logFile, line)
 		}
 	}
 }

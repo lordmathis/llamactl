@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -159,7 +159,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 
 	// Serve WebUI files
 	if err := webui.SetupWebUI(r); err != nil {
-		fmt.Printf("Failed to set up WebUI: %v\n", err)
+		log.Printf("Failed to set up WebUI: %v\n", err)
 	}
 
 	return r
