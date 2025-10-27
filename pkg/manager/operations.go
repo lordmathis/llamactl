@@ -330,7 +330,8 @@ func (im *instanceManager) DeleteInstance(name string) error {
 	lock.Lock()
 	defer im.unlockAndCleanup(name)
 
-	if inst.IsRunning() {
+	status := inst.GetStatus()
+	if status == instance.Running || status == instance.Restarting {
 		return fmt.Errorf("instance with name %s is still running, stop it before deleting", name)
 	}
 
