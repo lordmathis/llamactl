@@ -54,7 +54,7 @@ const ParseCommandDialog: React.FC<ParseCommandDialogProps> = ({
           options = await backendsApi.vllm.parseCommand(command);
           break;
         default:
-          throw new Error(`Unsupported backend type: ${backendType}`);
+          throw new Error(`Unsupported backend type: ${String(backendType)}`);
       }
 
       onParsed(options);

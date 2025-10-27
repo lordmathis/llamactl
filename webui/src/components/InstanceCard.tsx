@@ -2,12 +2,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Instance } from "@/types/instance";
-import { Edit, FileText, Play, Square, Trash2, MoreHorizontal } from "lucide-react";
+import { Edit, FileText, Play, Square, Trash2, MoreHorizontal, Download } from "lucide-react";
 import LogsDialog from "@/components/LogDialog";
 import HealthBadge from "@/components/HealthBadge";
 import BackendBadge from "@/components/BackendBadge";
 import { useState } from "react";
 import { useInstanceHealth } from "@/hooks/useInstanceHealth";
+import { instancesApi } from "@/lib/api";
 
 interface InstanceCardProps {
   instance: Instance;
@@ -50,6 +51,40 @@ function InstanceCard({
 
   const handleLogs = () => {
     setIsLogsOpen(true);
+  };
+
+  const handleExport = () => {
+    void (async () => {
+      try {
+        // Fetch the most up-to-date instance data from the backend
+        const instanceData = await instancesApi.get(instance.name);
+
+        // Remove docker_enabled as it's a computed field, not persisted to disk
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { docker_enabled, ...persistedData } = instanceData;
+
+        // Convert to JSON string with pretty formatting (matching backend format)
+        const jsonString = JSON.stringify(persistedData, null, 2);
+
+        // Create a blob and download link
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${instance.name}.json`;
+
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+
+        // Cleanup
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Failed to export instance:", error);
+        alert(`Failed to export instance: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    })();
   };
 
   const running = instance.status === "running";
@@ -129,6 +164,18 @@ function InstanceCard({
               >
                 <FileText className="h-4 w-4 mr-1" />
                 Logs
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleExport}
+                title="Export instance"
+                data-testid="export-instance-button"
+                className="flex-1"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Export
               </Button>
 
               <Button
