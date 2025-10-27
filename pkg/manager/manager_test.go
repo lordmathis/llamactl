@@ -134,16 +134,17 @@ func TestConcurrentAccess(t *testing.T) {
 
 // Helper functions for test configuration
 func createTestAppConfig(instancesDir string) *config.AppConfig {
-	// Use 'sleep' as a test command instead of 'llama-server'
-	// This allows tests to run in CI environments without requiring actual LLM binaries
-	// The sleep command will be invoked with model paths and other args, which it ignores
+	// Use 'sh -c "sleep 999999"' as a test command instead of 'llama-server'
+	// The shell ignores all additional arguments passed after the command
 	return &config.AppConfig{
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{
-				Command: "yes",
+				Command: "sh",
+				Args:    []string{"-c", "sleep 999999"},
 			},
 			MLX: config.BackendSettings{
-				Command: "yes",
+				Command: "sh",
+				Args:    []string{"-c", "sleep 999999"},
 			},
 		},
 		Instances: config.InstancesConfig{
