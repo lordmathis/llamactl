@@ -85,7 +85,7 @@ func TestDeleteInstance_RemovesPersistenceFile(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	mgr := createTestManager()
+	mgr := createTestManager(t)
 	defer mgr.Shutdown()
 
 	// Test concurrent operations
@@ -162,29 +162,8 @@ func createTestAppConfig(instancesDir string) *config.AppConfig {
 	}
 }
 
-func createTestManager() manager.InstanceManager {
-	appConfig := &config.AppConfig{
-		Backends: config.BackendConfig{
-			LlamaCpp: config.BackendSettings{
-				Command: "sleep",
-			},
-			MLX: config.BackendSettings{
-				Command: "sleep",
-			},
-		},
-		Instances: config.InstancesConfig{
-			PortRange:            [2]int{8000, 9000},
-			LogsDir:              "/tmp/test",
-			InstancesDir:         "/tmp/test",
-			MaxInstances:         10,
-			MaxRunningInstances:  10,
-			DefaultAutoRestart:   true,
-			DefaultMaxRestarts:   3,
-			DefaultRestartDelay:  5,
-			TimeoutCheckInterval: 5,
-		},
-		LocalNode: "main",
-		Nodes:     map[string]config.NodeConfig{},
-	}
+func createTestManager(t *testing.T) manager.InstanceManager {
+	tempDir := t.TempDir()
+	appConfig := createTestAppConfig(tempDir)
 	return manager.New(appConfig)
 }

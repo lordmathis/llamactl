@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateInstance_FailsWithDuplicateName(t *testing.T) {
-	mngr := createTestManager()
+	mngr := createTestManager(t)
 	options := &instance.Options{
 		BackendOptions: backends.Options{
 			BackendType: backends.BackendTypeLlamaCpp,
@@ -36,6 +36,7 @@ func TestCreateInstance_FailsWithDuplicateName(t *testing.T) {
 }
 
 func TestCreateInstance_FailsWhenMaxInstancesReached(t *testing.T) {
+	tempDir := t.TempDir()
 	appConfig := &config.AppConfig{
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{
@@ -44,6 +45,7 @@ func TestCreateInstance_FailsWhenMaxInstancesReached(t *testing.T) {
 		},
 		Instances: config.InstancesConfig{
 			PortRange:            [2]int{8000, 9000},
+			InstancesDir:         tempDir,
 			MaxInstances:         1, // Very low limit for testing
 			TimeoutCheckInterval: 5,
 		},
@@ -77,7 +79,7 @@ func TestCreateInstance_FailsWhenMaxInstancesReached(t *testing.T) {
 }
 
 func TestCreateInstance_FailsWithPortConflict(t *testing.T) {
-	manager := createTestManager()
+	manager := createTestManager(t)
 
 	options1 := &instance.Options{
 		BackendOptions: backends.Options{
@@ -115,7 +117,7 @@ func TestCreateInstance_FailsWithPortConflict(t *testing.T) {
 }
 
 func TestInstanceOperations_FailWithNonExistentInstance(t *testing.T) {
-	manager := createTestManager()
+	manager := createTestManager(t)
 
 	options := &instance.Options{
 		BackendOptions: backends.Options{
@@ -143,7 +145,7 @@ func TestInstanceOperations_FailWithNonExistentInstance(t *testing.T) {
 }
 
 func TestDeleteInstance_RunningInstanceFails(t *testing.T) {
-	mgr := createTestManager()
+	mgr := createTestManager(t)
 	defer mgr.Shutdown()
 
 	options := &instance.Options{
@@ -171,7 +173,7 @@ func TestDeleteInstance_RunningInstanceFails(t *testing.T) {
 }
 
 func TestUpdateInstance(t *testing.T) {
-	mgr := createTestManager()
+	mgr := createTestManager(t)
 	defer mgr.Shutdown()
 
 	options := &instance.Options{
@@ -220,7 +222,7 @@ func TestUpdateInstance(t *testing.T) {
 }
 
 func TestUpdateInstance_ReleasesOldPort(t *testing.T) {
-	mgr := createTestManager()
+	mgr := createTestManager(t)
 	defer mgr.Shutdown()
 
 	options := &instance.Options{

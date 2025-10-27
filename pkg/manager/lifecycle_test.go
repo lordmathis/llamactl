@@ -10,7 +10,7 @@ import (
 )
 
 func TestInstanceTimeoutLogic(t *testing.T) {
-	testManager := createTestManager()
+	testManager := createTestManager(t)
 	defer testManager.Shutdown()
 
 	idleTimeout := 1 // 1 minute
@@ -42,7 +42,7 @@ func TestInstanceTimeoutLogic(t *testing.T) {
 }
 
 func TestInstanceWithoutTimeoutNeverExpires(t *testing.T) {
-	testManager := createTestManager()
+	testManager := createTestManager(t)
 	defer testManager.Shutdown()
 
 	noTimeoutInst := createInstanceWithTimeout(t, testManager, "no-timeout-test", "/path/to/model.gguf", nil)
@@ -64,7 +64,7 @@ func TestInstanceWithoutTimeoutNeverExpires(t *testing.T) {
 }
 
 func TestEvictLRUInstance_Success(t *testing.T) {
-	manager := createTestManager()
+	manager := createTestManager(t)
 	defer manager.Shutdown()
 
 	// Create 3 instances with idle timeout enabled (value doesn't matter for LRU logic)
@@ -121,7 +121,7 @@ func TestEvictLRUInstance_Success(t *testing.T) {
 }
 
 func TestEvictLRUInstance_NoRunningInstances(t *testing.T) {
-	manager := createTestManager()
+	manager := createTestManager(t)
 	defer manager.Shutdown()
 
 	err := manager.EvictLRUInstance()
@@ -134,7 +134,7 @@ func TestEvictLRUInstance_NoRunningInstances(t *testing.T) {
 }
 
 func TestEvictLRUInstance_OnlyEvictsTimeoutEnabledInstances(t *testing.T) {
-	manager := createTestManager()
+	manager := createTestManager(t)
 	defer manager.Shutdown()
 
 	// Create mix of instances: some with timeout enabled, some disabled
