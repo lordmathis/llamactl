@@ -5,6 +5,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/manager"
 	"llamactl/pkg/server"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -38,8 +39,7 @@ func main() {
 	configPath := os.Getenv("LLAMACTL_CONFIG_PATH")
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		fmt.Printf("Error loading config: %w\n", err)
-		fmt.Println("Using default configuration.")
+		log.Printf("Error loading config: %v\nUsing default configuration.", err)
 	}
 
 	// Set version information
@@ -50,13 +50,11 @@ func main() {
 	// Create the data directory if it doesn't exist
 	if cfg.Instances.AutoCreateDirs {
 		if err := os.MkdirAll(cfg.Instances.InstancesDir, 0755); err != nil {
-			fmt.Printf("Error creating config directory %s: %w\n", cfg.Instances.InstancesDir, err)
-			fmt.Println("Persistence will not be available.")
+			log.Printf("Error creating config directory %s: %v\nPersistence will not be available.", cfg.Instances.InstancesDir, err)
 		}
 
 		if err := os.MkdirAll(cfg.Instances.LogsDir, 0755); err != nil {
-			fmt.Printf("Error creating log directory %s: %w\n", cfg.Instances.LogsDir, err)
-			fmt.Println("Instance logs will not be available.")
+			log.Printf("Error creating log directory %s: %v\nInstance logs will not be available.", cfg.Instances.LogsDir, err)
 		}
 	}
 
@@ -81,7 +79,7 @@ func main() {
 	go func() {
 		fmt.Printf("Llamactl server listening on %s:%d\n", cfg.Server.Host, cfg.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Error starting server: %w\n", err)
+			log.Printf("Error starting server: %v\n", err)
 		}
 	}()
 
@@ -90,7 +88,7 @@ func main() {
 	fmt.Println("Shutting down server...")
 
 	if err := server.Close(); err != nil {
-		fmt.Printf("Error shutting down server: %w\n", err)
+		log.Printf("Error shutting down server: %v\n", err)
 	} else {
 		fmt.Println("Server shut down gracefully.")
 	}
