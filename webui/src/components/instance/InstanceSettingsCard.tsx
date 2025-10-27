@@ -1,16 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { CreateInstanceOptions } from '@/types/instance'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import AutoRestartConfiguration from '@/components/instance/AutoRestartConfiguration'
 import NumberInput from '@/components/form/NumberInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
 import EnvironmentVariablesInput from '@/components/form/EnvironmentVariablesInput'
 import SelectInput from '@/components/form/SelectInput'
 import { nodesApi, type NodesMap } from '@/lib/api'
-import { Upload } from 'lucide-react'
 
 interface InstanceSettingsCardProps {
   instanceName: string
@@ -31,7 +29,6 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
 }) => {
   const [nodes, setNodes] = useState<NodesMap>({})
   const [loadingNodes, setLoadingNodes] = useState(true)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const fetchNodes = async () => {
@@ -70,79 +67,12 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
 
   const selectedNode = formData.nodes && formData.nodes.length > 0 ? formData.nodes[0] : ''
 
-  const handleImportFile = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string
-        const importedData = JSON.parse(content)
-
-        // Validate that it's an instance export
-        if (!importedData.name || !importedData.options) {
-          alert('Invalid instance file: Missing required fields (name, options)')
-          return
-        }
-
-        // Set the instance name (only for new instances, not editing)
-        if (!isEditing) {
-          onNameChange(importedData.name)
-        }
-
-        // Populate all the options from the imported file
-        if (importedData.options) {
-          // Set all the options fields
-          Object.entries(importedData.options).forEach(([key, value]) => {
-            onChange(key as keyof CreateInstanceOptions, value)
-          })
-        }
-
-        // Reset the file input
-        event.target.value = ''
-      } catch (error) {
-        console.error('Failed to parse instance file:', error)
-        alert(`Failed to parse instance file: ${error instanceof Error ? error.message : 'Invalid JSON'}`)
-      }
-    }
-
-    reader.readAsText(file)
-  }
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Instance Settings</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Import Instance Section - only show when creating new instance */}
-        {!isEditing && (
-          <div className="pb-4 border-b">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleImportFile}
-              size="sm"
-              title="Import instance configuration from JSON file"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Import
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </div>
-        )}
-
         {/* Instance Name */}
         <div className="grid gap-2">
           <Label htmlFor="name">
