@@ -54,16 +54,10 @@ func New(globalConfig *config.AppConfig) InstanceManager {
 
 	// Initialize port allocator
 	portRange := globalConfig.Instances.PortRange
-	ports, err := newPortAllocator(portRange[0], portRange[1])
-	if err != nil {
-		log.Fatalf("Failed to create port allocator: %w", err)
-	}
+	ports := newPortAllocator(portRange[0], portRange[1])
 
 	// Initialize persistence
-	persistence, err := newInstancePersister(globalConfig.Instances.InstancesDir)
-	if err != nil {
-		log.Fatalf("Failed to create instance persister: %w", err)
-	}
+	persistence := newInstancePersister(globalConfig.Instances.InstancesDir)
 
 	// Initialize remote manager
 	remote := newRemoteManager(globalConfig.Nodes, 30*time.Second)

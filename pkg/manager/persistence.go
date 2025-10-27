@@ -15,35 +15,18 @@ import (
 type instancePersister struct {
 	mu           sync.Mutex
 	instancesDir string
-	enabled      bool
 }
 
 // newInstancePersister creates a new instance persister.
 // If instancesDir is empty, persistence is disabled.
-func newInstancePersister(instancesDir string) (*instancePersister, error) {
-	if instancesDir == "" {
-		return &instancePersister{
-			enabled: false,
-		}, nil
-	}
-
-	// Ensure the instances directory exists
-	if err := os.MkdirAll(instancesDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create instances directory: %w", err)
-	}
-
+func newInstancePersister(instancesDir string) *instancePersister {
 	return &instancePersister{
 		instancesDir: instancesDir,
-		enabled:      true,
-	}, nil
+	}
 }
 
 // Save persists an instance to disk with atomic write
 func (p *instancePersister) save(inst *instance.Instance) error {
-	if !p.enabled {
-		return nil
-	}
-
 	if inst == nil {
 		return fmt.Errorf("cannot save nil instance")
 	}
@@ -103,10 +86,6 @@ func (p *instancePersister) save(inst *instance.Instance) error {
 
 // Delete removes an instance's persistence file from disk.
 func (p *instancePersister) delete(name string) error {
-	if !p.enabled {
-		return nil
-	}
-
 	validatedName, err := p.validateInstanceName(name)
 	if err != nil {
 		return err
@@ -131,10 +110,6 @@ func (p *instancePersister) delete(name string) error {
 // LoadAll loads all persisted instances from disk.
 // Returns a slice of instances and any errors encountered during loading.
 func (p *instancePersister) loadAll() ([]*instance.Instance, error) {
-	if !p.enabled {
-		return nil, nil
-	}
-
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
