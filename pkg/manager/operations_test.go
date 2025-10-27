@@ -191,8 +191,10 @@ func TestUpdateInstance(t *testing.T) {
 		t.Fatalf("CreateInstance failed: %v", err)
 	}
 
-	// Simulate starting the instance
-	inst.SetStatus(instance.Running)
+	// Start the instance (will use 'yes' command from test config)
+	if err := inst.Start(); err != nil {
+		t.Fatalf("Failed to start instance: %v", err)
+	}
 
 	// Update running instance with new model
 	newOptions := &instance.Options{
@@ -210,10 +212,9 @@ func TestUpdateInstance(t *testing.T) {
 		t.Fatalf("UpdateInstance failed: %v", err)
 	}
 
-	// Should be either running or restarting after update
-	status := updated.GetStatus()
-	if status != instance.Running && status != instance.Restarting {
-		t.Error("Instance should be running or restarting after update")
+	// Should be running after update (was running before, should be restarted)
+	if !updated.IsRunning() {
+		t.Errorf("Instance should be running after update, got: %v", updated.GetStatus())
 	}
 
 	if updated.GetOptions().BackendOptions.LlamaServerOptions.Model != "/path/to/new-model.gguf" {
