@@ -102,7 +102,7 @@ func (l *lifecycleManager) checkTimeouts() {
 	for _, name := range timeoutInstances {
 		log.Printf("Instance %s has timed out, stopping it", name)
 		if _, err := l.manager.StopInstance(name); err != nil {
-			log.Printf("Error stopping instance %s: %v", name, err)
+			log.Printf("Error stopping instance %s: %w", name, err)
 		} else {
 			log.Printf("Instance %s stopped successfully", name)
 		}

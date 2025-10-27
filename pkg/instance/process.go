@@ -143,7 +143,7 @@ func (p *process) stop() error {
 	// Stop the process with SIGINT if cmd exists
 	if p.cmd != nil && p.cmd.Process != nil {
 		if err := p.cmd.Process.Signal(syscall.SIGINT); err != nil {
-			log.Printf("Failed to send SIGINT to instance %s: %v", p.instance.Name, err)
+			log.Printf("Failed to send SIGINT to instance %s: %w", p.instance.Name, err)
 		}
 	}
 
@@ -161,7 +161,7 @@ func (p *process) stop() error {
 		if p.cmd != nil && p.cmd.Process != nil {
 			killErr := p.cmd.Process.Kill()
 			if killErr != nil {
-				log.Printf("Failed to force kill instance %s: %v", p.instance.Name, killErr)
+				log.Printf("Failed to force kill instance %s: %w", p.instance.Name, killErr)
 			}
 			log.Printf("Instance %s did not stop in time, force killed", p.instance.Name)
 
@@ -292,7 +292,7 @@ func (p *process) monitorProcess() {
 
 	// Log the exit
 	if err != nil {
-		log.Printf("Instance %s crashed with error: %v", p.instance.Name, err)
+		log.Printf("Instance %s crashed with error: %w", p.instance.Name, err)
 		// Handle auto-restart logic
 		p.handleAutoRestart(err)
 	} else {
@@ -376,7 +376,7 @@ func (p *process) handleAutoRestart(err error) {
 
 	// Restart the instance
 	if err := p.start(); err != nil {
-		log.Printf("Failed to restart instance %s: %v", p.instance.Name, err)
+		log.Printf("Failed to restart instance %s: %w", p.instance.Name, err)
 	} else {
 		log.Printf("Successfully restarted instance %s", p.instance.Name)
 		// Clear the cancel function

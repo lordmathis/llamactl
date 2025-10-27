@@ -159,7 +159,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 
 	// Serve WebUI files
 	if err := webui.SetupWebUI(r); err != nil {
-		fmt.Printf("Failed to set up WebUI: %v\n", err)
+		fmt.Printf("Failed to set up WebUI: %w\n", err)
 	}
 
 	return r

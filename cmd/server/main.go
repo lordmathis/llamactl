@@ -38,7 +38,7 @@ func main() {
 	configPath := os.Getenv("LLAMACTL_CONFIG_PATH")
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
+		fmt.Printf("Error loading config: %w\n", err)
 		fmt.Println("Using default configuration.")
 	}
 
@@ -50,12 +50,12 @@ func main() {
 	// Create the data directory if it doesn't exist
 	if cfg.Instances.AutoCreateDirs {
 		if err := os.MkdirAll(cfg.Instances.InstancesDir, 0755); err != nil {
-			fmt.Printf("Error creating config directory %s: %v\n", cfg.Instances.InstancesDir, err)
+			fmt.Printf("Error creating config directory %s: %w\n", cfg.Instances.InstancesDir, err)
 			fmt.Println("Persistence will not be available.")
 		}
 
 		if err := os.MkdirAll(cfg.Instances.LogsDir, 0755); err != nil {
-			fmt.Printf("Error creating log directory %s: %v\n", cfg.Instances.LogsDir, err)
+			fmt.Printf("Error creating log directory %s: %w\n", cfg.Instances.LogsDir, err)
 			fmt.Println("Instance logs will not be available.")
 		}
 	}
@@ -81,7 +81,7 @@ func main() {
 	go func() {
 		fmt.Printf("Llamactl server listening on %s:%d\n", cfg.Server.Host, cfg.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Error starting server: %v\n", err)
+			fmt.Printf("Error starting server: %w\n", err)
 		}
 	}()
 
@@ -90,7 +90,7 @@ func main() {
 	fmt.Println("Shutting down server...")
 
 	if err := server.Close(); err != nil {
-		fmt.Printf("Error shutting down server: %v\n", err)
+		fmt.Printf("Error shutting down server: %w\n", err)
 	} else {
 		fmt.Println("Server shut down gracefully.")
 	}

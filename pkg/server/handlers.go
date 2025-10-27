@@ -25,7 +25,7 @@ func writeError(w http.ResponseWriter, status int, code, details string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(errorResponse{Error: code, Details: details}); err != nil {
-		log.Printf("Failed to encode error response: %v", err)
+		log.Printf("Failed to encode error response: %w", err)
 	}
 }
 
@@ -34,7 +34,7 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("Failed to encode JSON response: %v", err)
+		log.Printf("Failed to encode JSON response: %w", err)
 	}
 }
 
@@ -43,7 +43,7 @@ func writeText(w http.ResponseWriter, status int, data string) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(status)
 	if _, err := w.Write([]byte(data)); err != nil {
-		log.Printf("Failed to write text response: %v", err)
+		log.Printf("Failed to write text response: %w", err)
 	}
 }
 

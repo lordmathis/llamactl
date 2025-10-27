@@ -162,8 +162,8 @@ func (p *instancePersister) loadAll() ([]*instance.Instance, error) {
 
 		inst, err := p.loadInstanceFile(instanceName, instancePath)
 		if err != nil {
-			log.Printf("Failed to load instance %s: %v", instanceName, err)
-			loadErrors = append(loadErrors, fmt.Sprintf("%s: %v", instanceName, err))
+			log.Printf("Failed to load instance %s: %w", instanceName, err)
+			loadErrors = append(loadErrors, fmt.Sprintf("%s: %w", instanceName, err))
 			continue
 		}
 

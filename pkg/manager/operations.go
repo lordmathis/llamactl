@@ -166,7 +166,7 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 
 	// Persist instance (best-effort, don't fail if persistence fails)
 	if err := im.persistInstance(inst); err != nil {
-		log.Printf("Warning: failed to persist instance %s: %v", name, err)
+		log.Printf("Warning: failed to persist instance %s: %w", name, err)
 	}
 
 	return inst, nil
@@ -394,7 +394,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 
 	// Persist instance (best-effort, don't fail if persistence fails)
 	if err := im.persistInstance(inst); err != nil {
-		log.Printf("Warning: failed to persist instance %s: %v", name, err)
+		log.Printf("Warning: failed to persist instance %s: %w", name, err)
 	}
 
 	return inst, nil
@@ -453,7 +453,7 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 
 	// Persist instance (best-effort, don't fail if persistence fails)
 	if err := im.persistInstance(inst); err != nil {
-		log.Printf("Warning: failed to persist instance %s: %v", name, err)
+		log.Printf("Warning: failed to persist instance %s: %w", name, err)
 	}
 
 	return inst, nil
@@ -499,7 +499,7 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Instance, err
 
 	// Persist the restarted instance
 	if err := im.persistInstance(inst); err != nil {
-		log.Printf("Warning: failed to persist instance %s: %v", name, err)
+		log.Printf("Warning: failed to persist instance %s: %w", name, err)
 	}
 
 	return inst, nil
