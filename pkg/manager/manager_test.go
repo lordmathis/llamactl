@@ -140,10 +140,10 @@ func createTestAppConfig(instancesDir string) *config.AppConfig {
 	return &config.AppConfig{
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{
-				Command: "sleep",
+				Command: "yes",
 			},
 			MLX: config.BackendSettings{
-				Command: "sleep",
+				Command: "yes",
 			},
 		},
 		Instances: config.InstancesConfig{
