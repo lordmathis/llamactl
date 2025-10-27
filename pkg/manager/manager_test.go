@@ -175,6 +175,7 @@ func createTestManager() manager.InstanceManager {
 		Instances: config.InstancesConfig{
 			PortRange:            [2]int{8000, 9000},
 			LogsDir:              "/tmp/test",
+			InstancesDir:         "/tmp/test",
 			MaxInstances:         10,
 			MaxRunningInstances:  10,
 			DefaultAutoRestart:   true,
