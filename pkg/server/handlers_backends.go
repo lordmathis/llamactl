@@ -66,17 +66,16 @@ func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
 			return
 		}
 
-		proxy, err := inst.GetProxy()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to get proxy", err.Error())
-			return
-		}
-
 		if !inst.IsRemote() {
 			h.stripLlamaCppPrefix(r, inst.Name)
 		}
 
-		proxy.ServeHTTP(w, r)
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }
 
@@ -118,17 +117,16 @@ func (h *Handler) LlamaCppProxy() http.HandlerFunc {
 			}
 		}
 
-		proxy, err := inst.GetProxy()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to get proxy", err.Error())
-			return
-		}
-
 		if !inst.IsRemote() {
 			h.stripLlamaCppPrefix(r, inst.Name)
 		}
 
-		proxy.ServeHTTP(w, r)
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }
 

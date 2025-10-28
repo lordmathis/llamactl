@@ -114,16 +114,15 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			}
 		}
 
-		proxy, err := inst.GetProxy()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "proxy_failed", err.Error())
-			return
-		}
-
 		// Recreate the request body from the bytes we read
 		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		r.ContentLength = int64(len(bodyBytes))
 
-		proxy.ServeHTTP(w, r)
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }
