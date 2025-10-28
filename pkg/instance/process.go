@@ -132,13 +132,27 @@ func (p *process) stop() error {
 		p.restartCancel = nil
 	}
 
-	// Set status to stopped first to signal intentional stop
-	p.instance.SetStatus(Stopped)
+	// Set status to ShuttingDown first to reject new requests
+	p.instance.SetStatus(ShuttingDown)
 
 	// Get the monitor done channel before releasing the lock
 	monitorDone := p.monitorDone
 
 	p.mu.Unlock()
+
+	// Wait for inflight requests to complete (max 30 seconds)
+	log.Printf("Instance %s shutting down, waiting for inflight requests to complete...", p.instance.Name)
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		inflight := p.instance.GetInflightRequests()
+		if inflight == 0 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	// Now set status to stopped to signal intentional stop
+	p.instance.SetStatus(Stopped)
 
 	// Stop the process with SIGINT if cmd exists
 	if p.cmd != nil && p.cmd.Process != nil {
@@ -156,6 +170,7 @@ func (p *process) stop() error {
 	select {
 	case <-monitorDone:
 		// Process exited normally
+		log.Printf("Instance %s shut down gracefully", p.instance.Name)
 	case <-time.After(30 * time.Second):
 		// Force kill if it doesn't exit within 30 seconds
 		if p.cmd != nil && p.cmd.Process != nil {
