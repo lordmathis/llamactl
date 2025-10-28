@@ -171,64 +171,6 @@ func TestSetOptions(t *testing.T) {
 	}
 }
 
-func TestGetProxy(t *testing.T) {
-	globalConfig := &config.AppConfig{
-		Backends: config.BackendConfig{
-			LlamaCpp: config.BackendSettings{
-				Command: "llama-server",
-				Args:    []string{},
-			},
-			MLX: config.BackendSettings{
-				Command: "mlx_lm.server",
-				Args:    []string{},
-			},
-			VLLM: config.BackendSettings{
-				Command: "vllm",
-				Args:    []string{"serve"},
-			},
-		},
-		Instances: config.InstancesConfig{
-			LogsDir: "/tmp/test",
-		},
-		Nodes:     map[string]config.NodeConfig{},
-		LocalNode: "main",
-	}
-
-	options := &instance.Options{
-		Nodes: map[string]struct{}{"main": {}},
-		BackendOptions: backends.Options{
-			BackendType: backends.BackendTypeLlamaCpp,
-			LlamaServerOptions: &backends.LlamaServerOptions{
-				Host: "localhost",
-				Port: 8080,
-			},
-		},
-	}
-
-	// Mock onStatusChange function
-	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
-
-	inst := instance.New("test-instance", globalConfig, options, mockOnStatusChange)
-
-	// Get proxy for the first time
-	proxy1, err := inst.GetProxy()
-	if err != nil {
-		t.Fatalf("GetProxy failed: %v", err)
-	}
-	if proxy1 == nil {
-		t.Error("Expected proxy to be created")
-	}
-
-	// Get proxy again - should return cached version
-	proxy2, err := inst.GetProxy()
-	if err != nil {
-		t.Fatalf("GetProxy failed: %v", err)
-	}
-	if proxy1 != proxy2 {
-		t.Error("Expected cached proxy to be returned")
-	}
-}
-
 func TestMarshalJSON(t *testing.T) {
 	globalConfig := &config.AppConfig{
 		Backends: config.BackendConfig{
@@ -611,11 +553,6 @@ func TestRemoteInstanceOperations(t *testing.T) {
 	// Restart should fail for remote instance
 	if err := inst.Restart(); err == nil {
 		t.Error("Expected error when restarting remote instance")
-	}
-
-	// GetProxy should fail for remote instance
-	if _, err := inst.GetProxy(); err != nil {
-		t.Error("Expected no error when getting proxy for remote instance")
 	}
 
 	// GetLogs should fail for remote instance
