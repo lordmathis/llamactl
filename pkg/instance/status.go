@@ -14,20 +14,23 @@ const (
 	Running
 	Failed
 	Restarting
+	ShuttingDown
 )
 
 var nameToStatus = map[string]Status{
-	"stopped":    Stopped,
-	"running":    Running,
-	"failed":     Failed,
-	"restarting": Restarting,
+	"stopped":       Stopped,
+	"running":       Running,
+	"failed":        Failed,
+	"restarting":    Restarting,
+	"shutting_down": ShuttingDown,
 }
 
 var statusToName = map[Status]string{
-	Stopped:    "stopped",
-	Running:    "running",
-	Failed:     "failed",
-	Restarting: "restarting",
+	Stopped:      "stopped",
+	Running:      "running",
+	Failed:       "failed",
+	Restarting:   "restarting",
+	ShuttingDown: "shutting_down",
 }
 
 // Status enum JSON marshaling methods
