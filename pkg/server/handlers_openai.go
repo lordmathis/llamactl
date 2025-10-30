@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
 	"net/http"
 )
@@ -103,6 +104,12 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
+			return
+		}
+
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
 			return
 		}
 

@@ -109,6 +109,12 @@ func (h *Handler) LlamaCppProxy() http.HandlerFunc {
 			return
 		}
 
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
+			return
+		}
+
 		if !inst.IsRemote() && !inst.IsRunning() {
 			err := h.ensureInstanceRunning(inst)
 			if err != nil {

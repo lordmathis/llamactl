@@ -154,16 +154,8 @@ func (p *proxy) build() (*httputil.ReverseProxy, error) {
 	return proxy, nil
 }
 
-// serveHTTP handles HTTP requests with inflight tracking and shutting down state checks
+// serveHTTP handles HTTP requests with inflight tracking
 func (p *proxy) serveHTTP(w http.ResponseWriter, r *http.Request) error {
-	// Check if instance is shutting down
-	status := p.instance.GetStatus()
-	if status == ShuttingDown {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte("Instance is shutting down"))
-		return fmt.Errorf("instance is shutting down")
-	}
-
 	// Get the reverse proxy
 	reverseProxy, err := p.get()
 	if err != nil {
