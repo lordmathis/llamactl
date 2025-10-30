@@ -37,8 +37,9 @@ type proxy struct {
 	proxyOnce sync.Once
 	proxyErr  error
 
-	lastRequestTime atomic.Int64
-	timeProvider    TimeProvider
+	lastRequestTime  atomic.Int64
+	inflightRequests atomic.Int32
+	timeProvider     TimeProvider
 }
 
 // newProxy creates a new Proxy for the given instance
@@ -153,6 +154,23 @@ func (p *proxy) build() (*httputil.ReverseProxy, error) {
 	return proxy, nil
 }
 
+// serveHTTP handles HTTP requests with inflight tracking
+func (p *proxy) serveHTTP(w http.ResponseWriter, r *http.Request) error {
+	// Get the reverse proxy
+	reverseProxy, err := p.get()
+	if err != nil {
+		return err
+	}
+
+	// Track inflight requests
+	p.incInflightRequests()
+	defer p.decInflightRequests()
+
+	// Serve the request
+	reverseProxy.ServeHTTP(w, r)
+	return nil
+}
+
 // clear resets the proxy, allowing it to be recreated when options change.
 func (p *proxy) clear() {
 	p.mu.Lock()
@@ -160,7 +178,7 @@ func (p *proxy) clear() {
 
 	p.proxy = nil
 	p.proxyErr = nil
-	p.proxyOnce = sync.Once{} // Reset Once for next GetProxy call
+	p.proxyOnce = sync.Once{}
 }
 
 // updateLastRequestTime updates the last request access time for the instance
@@ -198,4 +216,19 @@ func (p *proxy) shouldTimeout() bool {
 // setTimeProvider sets a custom time provider for testing
 func (p *proxy) setTimeProvider(tp TimeProvider) {
 	p.timeProvider = tp
+}
+
+// incInflightRequests increments the inflight request counter
+func (p *proxy) incInflightRequests() {
+	p.inflightRequests.Add(1)
+}
+
+// decInflightRequests decrements the inflight request counter
+func (p *proxy) decInflightRequests() {
+	p.inflightRequests.Add(-1)
+}
+
+// getInflightRequests returns the current number of inflight requests
+func (p *proxy) getInflightRequests() int32 {
+	return p.inflightRequests.Load()
 }

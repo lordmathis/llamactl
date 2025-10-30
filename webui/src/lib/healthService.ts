@@ -5,11 +5,12 @@ type HealthCallback = (health: HealthStatus) => void
 
 // Polling intervals based on health state (in milliseconds)
 const POLLING_INTERVALS: Record<HealthState, number> = {
-  'starting': 5000,    // 5 seconds - frequent during startup
-  'restarting': 5000,  // 5 seconds - restart in progress
-  'ready': 60000,      // 60 seconds - stable state
-  'stopped': 0,        // No polling
-  'failed': 0,         // No polling
+  'starting': 5000,      // 5 seconds - frequent during startup
+  'restarting': 5000,    // 5 seconds - restart in progress
+  'shutting_down': 3000, // 3 seconds - monitor shutdown progress
+  'ready': 60000,        // 60 seconds - stable state
+  'stopped': 0,          // No polling
+  'failed': 0,           // No polling
 }
 
 class HealthService {
@@ -96,6 +97,7 @@ class HealthService {
       case 'running': return 'starting' // Should not happen as we check HTTP for running
       case 'failed': return 'failed'
       case 'restarting': return 'restarting'
+      case 'shutting_down': return 'shutting_down'
     }
   }
 

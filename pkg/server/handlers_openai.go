@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
 	"net/http"
 )
@@ -106,6 +107,12 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
+			return
+		}
+
 		if !inst.IsRemote() && !inst.IsRunning() {
 			err := h.ensureInstanceRunning(inst)
 			if err != nil {
@@ -114,16 +121,15 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			}
 		}
 
-		proxy, err := inst.GetProxy()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "proxy_failed", err.Error())
-			return
-		}
-
 		// Recreate the request body from the bytes we read
 		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		r.ContentLength = int64(len(bodyBytes))
 
-		proxy.ServeHTTP(w, r)
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }

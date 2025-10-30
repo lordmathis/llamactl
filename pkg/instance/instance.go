@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"llamactl/pkg/config"
 	"log"
-	"net/http/httputil"
+	"net/http"
 	"time"
 )
 
@@ -182,15 +182,6 @@ func (i *Instance) GetPort() int {
 	return i.options.GetPort()
 }
 
-// GetProxy returns the reverse proxy for this instance
-func (i *Instance) GetProxy() (*httputil.ReverseProxy, error) {
-	if i.proxy == nil {
-		return nil, fmt.Errorf("instance %s has no proxy component", i.Name)
-	}
-
-	return i.proxy.get()
-}
-
 func (i *Instance) IsRemote() bool {
 	opts := i.GetOptions()
 	if opts == nil {
@@ -240,6 +231,22 @@ func (i *Instance) ShouldTimeout() bool {
 		return false
 	}
 	return i.proxy.shouldTimeout()
+}
+
+// GetInflightRequests returns the current number of inflight requests
+func (i *Instance) GetInflightRequests() int32 {
+	if i.proxy == nil {
+		return 0
+	}
+	return i.proxy.getInflightRequests()
+}
+
+// ServeHTTP serves HTTP requests through the proxy with request tracking and shutdown handling
+func (i *Instance) ServeHTTP(w http.ResponseWriter, r *http.Request) error {
+	if i.proxy == nil {
+		return fmt.Errorf("instance %s has no proxy component", i.Name)
+	}
+	return i.proxy.serveHTTP(w, r)
 }
 
 func (i *Instance) getCommand() string {

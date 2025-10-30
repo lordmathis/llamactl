@@ -21,6 +21,8 @@ const HealthBadge: React.FC<HealthBadgeProps> = ({ health }) => {
         return <Loader2 className="h-3 w-3 animate-spin" />;
       case "restarting":
         return <Loader2 className="h-3 w-3 animate-spin" />;
+      case "shutting_down":
+        return <Loader2 className="h-3 w-3 animate-spin" />;
       case "stopped":
         return <Clock className="h-3 w-3" />;
       case "failed":
@@ -35,6 +37,8 @@ const HealthBadge: React.FC<HealthBadgeProps> = ({ health }) => {
       case "starting":
         return "outline";
       case "restarting":
+        return "outline";
+      case "shutting_down":
         return "outline";
       case "stopped":
         return "secondary";
@@ -51,6 +55,8 @@ const HealthBadge: React.FC<HealthBadgeProps> = ({ health }) => {
         return "Starting";
       case "restarting":
         return "Restarting";
+      case "shutting_down":
+        return "Shutting Down";
       case "stopped":
         return "Stopped";
       case "failed":

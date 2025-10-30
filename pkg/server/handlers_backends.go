@@ -66,17 +66,16 @@ func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
 			return
 		}
 
-		proxy, err := inst.GetProxy()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to get proxy", err.Error())
-			return
-		}
-
 		if !inst.IsRemote() {
 			h.stripLlamaCppPrefix(r, inst.Name)
 		}
 
-		proxy.ServeHTTP(w, r)
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }
 
@@ -110,6 +109,12 @@ func (h *Handler) LlamaCppProxy() http.HandlerFunc {
 			return
 		}
 
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
+			return
+		}
+
 		if !inst.IsRemote() && !inst.IsRunning() {
 			err := h.ensureInstanceRunning(inst)
 			if err != nil {
@@ -118,17 +123,16 @@ func (h *Handler) LlamaCppProxy() http.HandlerFunc {
 			}
 		}
 
-		proxy, err := inst.GetProxy()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to get proxy", err.Error())
-			return
-		}
-
 		if !inst.IsRemote() {
 			h.stripLlamaCppPrefix(r, inst.Name)
 		}
 
-		proxy.ServeHTTP(w, r)
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }
 

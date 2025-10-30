@@ -332,12 +332,6 @@ func (h *Handler) InstanceProxy() http.HandlerFunc {
 			return
 		}
 
-		proxy, err := inst.GetProxy()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "proxy_failed", "Failed to get proxy: "+err.Error())
-			return
-		}
-
 		if !inst.IsRemote() {
 			// Strip the "/api/v1/instances/<name>/proxy" prefix from the request URL
 			prefix := fmt.Sprintf("/api/v1/instances/%s/proxy", inst.Name)
@@ -348,6 +342,11 @@ func (h *Handler) InstanceProxy() http.HandlerFunc {
 		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
 		r.Header.Set("X-Forwarded-Proto", "http")
 
-		proxy.ServeHTTP(w, r)
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }
