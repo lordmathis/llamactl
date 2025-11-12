@@ -346,7 +346,7 @@ func TestParseLlamaCommand(t *testing.T) {
 		},
 		{
 			name:      "multiple value types",
-			command:   "llama-server --model /test/model.gguf --gpu-layers 32 --temp 0.7 --verbose --no-mmap",
+			command:   "llama-server --model /test/model.gguf --n-gpu-layers 32 --temp 0.7 --verbose --no-mmap",
 			expectErr: false,
 			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
 				if opts.Model != "/test/model.gguf" {
@@ -432,5 +432,25 @@ func TestParseLlamaCommandArrays(t *testing.T) {
 		if result.Lora[i] != v {
 			t.Errorf("expected lora[%d]=%s got %s", i, v, result.Lora[i])
 		}
+	}
+}
+
+func TestLlamaCppBuildCommandArgs_ExtraArgs(t *testing.T) {
+	options := backends.LlamaServerOptions{
+		Model: "/models/test.gguf",
+		ExtraArgs: map[string]string{
+			"flash-attn": "",               // boolean flag
+			"log-file":   "/logs/test.log", // value flag
+		},
+	}
+
+	args := options.BuildCommandArgs()
+
+	// Check that extra args are present
+	if !testutil.Contains(args, "--flash-attn") {
+		t.Error("Expected --flash-attn flag not found")
+	}
+	if !testutil.Contains(args, "--log-file") || !testutil.Contains(args, "/logs/test.log") {
+		t.Error("Expected --log-file flag or value not found")
 	}
 }
