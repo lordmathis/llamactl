@@ -41,7 +41,7 @@ type LlamaServerOptions struct {
 	BatchSize               int      `json:"batch_size,omitempty"`
 	UBatchSize              int      `json:"ubatch_size,omitempty"`
 	Keep                    int      `json:"keep,omitempty"`
-	FlashAttn               bool     `json:"flash_attn,omitempty"`
+	FlashAttn               string   `json:"flash_attn,omitempty"`
 	NoPerf                  bool     `json:"no_perf,omitempty"`
 	Escape                  bool     `json:"escape,omitempty"`
 	NoEscape                bool     `json:"no_escape,omitempty"`

@@ -33,12 +33,11 @@ func TestLlamaCppBuildCommandArgs_BooleanFields(t *testing.T) {
 		{
 			name: "multiple booleans",
 			options: backends.LlamaServerOptions{
-				Verbose:   true,
-				FlashAttn: true,
-				Mlock:     false,
-				NoMmap:    true,
+				Verbose: true,
+				Mlock:   false,
+				NoMmap:  true,
 			},
-			expected: []string{"--verbose", "--flash-attn", "--no-mmap"},
+			expected: []string{"--verbose", "--no-mmap"},
 			excluded: []string{"--mlock"},
 		},
 	}

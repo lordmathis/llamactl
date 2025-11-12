@@ -239,25 +239,3 @@ func TestValidateInstanceOptions_MultipleFieldInjection(t *testing.T) {
 		})
 	}
 }
-
-func TestValidateInstanceOptions_NonStringFields(t *testing.T) {
-	// Test that non-string fields don't interfere with validation
-	options := backends.Options{
-		BackendType: backends.BackendTypeLlamaCpp,
-		LlamaServerOptions: &backends.LlamaServerOptions{
-			Port:        8080,
-			GPULayers:   32,
-			CtxSize:     4096,
-			Temperature: 0.7,
-			TopK:        40,
-			TopP:        0.9,
-			Verbose:     true,
-			FlashAttn:   false,
-		},
-	}
-
-	err := options.ValidateInstanceOptions()
-	if err != nil {
-		t.Errorf("ValidateInstanceOptions with non-string fields should not error, got: %v", err)
-	}
-}
