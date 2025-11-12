@@ -47,6 +47,16 @@ const BackendConfiguration: React.FC<BackendConfigurationProps> = ({
             ))}
         </div>
       )}
+
+      {/* Extra Args - Always visible as a separate section */}
+      <div className="space-y-4">
+        <BackendFormField
+          key="extra_args"
+          fieldKey="extra_args"
+          value={(formData.backend_options as any)?.extra_args}
+          onChange={onBackendFieldChange}
+        />
+      </div>
     </div>
   )
 }

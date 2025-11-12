@@ -109,6 +109,16 @@ const BackendConfigurationCard: React.FC<BackendConfigurationCardProps> = ({
             )}
           </div>
         )}
+
+        {/* Extra Arguments - Always visible */}
+        <div className="space-y-4">
+          <BackendFormField
+            key="extra_args"
+            fieldKey="extra_args"
+            value={(formData.backend_options as Record<string, unknown>)?.extra_args as Record<string, string> | undefined}
+            onChange={onBackendFieldChange}
+          />
+        </div>
       </CardContent>
     </Card>
   )

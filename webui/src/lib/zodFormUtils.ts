@@ -126,7 +126,7 @@ export function getAdvancedBackendFields(backendType?: string): string[] {
   const fieldGetter = backendFieldGetters[normalizedType] || getAllLlamaCppFieldKeys
   const basicConfig = backendFieldConfigs[normalizedType] || basicLlamaCppFieldsConfig
 
-  return fieldGetter().filter(key => !(key in basicConfig))
+  return fieldGetter().filter(key => !(key in basicConfig) && key !== 'extra_args')
 }
 
 // Combined backend fields config for use in BackendFormField

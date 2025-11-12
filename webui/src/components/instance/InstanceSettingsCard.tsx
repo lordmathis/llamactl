@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import AutoRestartConfiguration from '@/components/instance/AutoRestartConfiguration'
 import NumberInput from '@/components/form/NumberInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
-import EnvironmentVariablesInput from '@/components/form/EnvironmentVariablesInput'
+import EnvVarsInput from '@/components/form/EnvironmentVariablesInput'
 import SelectInput from '@/components/form/SelectInput'
 import { nodesApi, type NodesMap } from '@/lib/api'
 
@@ -132,7 +132,7 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
             description="Start instance only when needed"
           />
 
-          <EnvironmentVariablesInput
+          <EnvVarsInput
             id="environment"
             label="Environment Variables"
             value={formData.environment}

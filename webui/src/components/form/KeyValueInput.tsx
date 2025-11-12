@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { X, Plus } from 'lucide-react'
 
-interface EnvironmentVariablesInputProps {
+interface KeyValueInputProps {
   id: string
   label: string
   value: Record<string, string> | undefined
@@ -12,76 +12,88 @@ interface EnvironmentVariablesInputProps {
   description?: string
   disabled?: boolean
   className?: string
+  keyPlaceholder?: string
+  valuePlaceholder?: string
+  addButtonText?: string
+  helperText?: string
+  allowEmptyValues?: boolean // If true, entries with empty values are considered valid
 }
 
-interface EnvVar {
+interface KeyValuePair {
   key: string
   value: string
 }
 
-const EnvironmentVariablesInput: React.FC<EnvironmentVariablesInputProps> = ({
+const KeyValueInput: React.FC<KeyValueInputProps> = ({
   id,
   label,
   value,
   onChange,
   description,
   disabled = false,
-  className
+  className,
+  keyPlaceholder = 'Key',
+  valuePlaceholder = 'Value',
+  addButtonText = 'Add Entry',
+  helperText,
+  allowEmptyValues = false
 }) => {
   // Convert the value object to an array of key-value pairs for editing
-  const envVarsFromValue = value
+  const pairsFromValue = value
     ? Object.entries(value).map(([key, val]) => ({ key, value: val }))
     : []
 
-  const [envVars, setEnvVars] = useState<EnvVar[]>(
-    envVarsFromValue.length > 0 ? envVarsFromValue : [{ key: '', value: '' }]
+  const [pairs, setPairs] = useState<KeyValuePair[]>(
+    pairsFromValue.length > 0 ? pairsFromValue : [{ key: '', value: '' }]
   )
 
-  // Update parent component when env vars change
-  const updateParent = (newEnvVars: EnvVar[]) => {
-    // Filter out empty entries
-    const validVars = newEnvVars.filter(env => env.key.trim() !== '' && env.value.trim() !== '')
+  // Update parent component when pairs change
+  const updateParent = (newPairs: KeyValuePair[]) => {
+    // Filter based on validation rules
+    const validPairs = allowEmptyValues
+      ? newPairs.filter(pair => pair.key.trim() !== '')
+      : newPairs.filter(pair => pair.key.trim() !== '' && pair.value.trim() !== '')
 
-    if (validVars.length === 0) {
+    if (validPairs.length === 0) {
       onChange(undefined)
     } else {
-      const envObject = validVars.reduce((acc, env) => {
-        acc[env.key.trim()] = env.value.trim()
+      const pairsObject = validPairs.reduce((acc, pair) => {
+        acc[pair.key.trim()] = pair.value.trim()
         return acc
       }, {} as Record<string, string>)
-      onChange(envObject)
+      onChange(pairsObject)
     }
   }
 
   const handleKeyChange = (index: number, newKey: string) => {
-    const newEnvVars = [...envVars]
-    newEnvVars[index].key = newKey
-    setEnvVars(newEnvVars)
-    updateParent(newEnvVars)
+    const newPairs = [...pairs]
+    newPairs[index].key = newKey
+    setPairs(newPairs)
+    updateParent(newPairs)
   }
 
   const handleValueChange = (index: number, newValue: string) => {
-    const newEnvVars = [...envVars]
-    newEnvVars[index].value = newValue
-    setEnvVars(newEnvVars)
-    updateParent(newEnvVars)
+    const newPairs = [...pairs]
+    newPairs[index].value = newValue
+    setPairs(newPairs)
+    updateParent(newPairs)
   }
 
-  const addEnvVar = () => {
-    const newEnvVars = [...envVars, { key: '', value: '' }]
-    setEnvVars(newEnvVars)
+  const addPair = () => {
+    const newPairs = [...pairs, { key: '', value: '' }]
+    setPairs(newPairs)
   }
 
-  const removeEnvVar = (index: number) => {
-    if (envVars.length === 1) {
+  const removePair = (index: number) => {
+    if (pairs.length === 1) {
       // Reset to empty if it's the last one
-      const newEnvVars = [{ key: '', value: '' }]
-      setEnvVars(newEnvVars)
-      updateParent(newEnvVars)
+      const newPairs = [{ key: '', value: '' }]
+      setPairs(newPairs)
+      updateParent(newPairs)
     } else {
-      const newEnvVars = envVars.filter((_, i) => i !== index)
-      setEnvVars(newEnvVars)
-      updateParent(newEnvVars)
+      const newPairs = pairs.filter((_, i) => i !== index)
+      setPairs(newPairs)
+      updateParent(newPairs)
     }
   }
 
@@ -91,18 +103,18 @@ const EnvironmentVariablesInput: React.FC<EnvironmentVariablesInputProps> = ({
         {label}
       </Label>
       <div className="space-y-2">
-        {envVars.map((envVar, index) => (
+        {pairs.map((pair, index) => (
           <div key={index} className="flex gap-2 items-center">
             <Input
-              placeholder="Variable name"
-              value={envVar.key}
+              placeholder={keyPlaceholder}
+              value={pair.key}
               onChange={(e) => handleKeyChange(index, e.target.value)}
               disabled={disabled}
               className="flex-1"
             />
             <Input
-              placeholder="Variable value"
-              value={envVar.value}
+              placeholder={valuePlaceholder}
+              value={pair.value}
               onChange={(e) => handleValueChange(index, e.target.value)}
               disabled={disabled}
               className="flex-1"
@@ -111,7 +123,7 @@ const EnvironmentVariablesInput: React.FC<EnvironmentVariablesInputProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => removeEnvVar(index)}
+              onClick={() => removePair(index)}
               disabled={disabled}
               className="shrink-0"
             >
@@ -123,22 +135,22 @@ const EnvironmentVariablesInput: React.FC<EnvironmentVariablesInputProps> = ({
           type="button"
           variant="outline"
           size="sm"
-          onClick={addEnvVar}
+          onClick={addPair}
           disabled={disabled}
           className="w-fit"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Add Variable
+          {addButtonText}
         </Button>
       </div>
       {description && (
         <p className="text-sm text-muted-foreground">{description}</p>
       )}
-      <p className="text-xs text-muted-foreground">
-        Environment variables that will be passed to the backend process
-      </p>
+      {helperText && (
+        <p className="text-xs text-muted-foreground">{helperText}</p>
+      )}
     </div>
   )
 }
 
-export default EnvironmentVariablesInput
+export default KeyValueInput

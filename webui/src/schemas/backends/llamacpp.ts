@@ -167,6 +167,9 @@ export const LlamaCppBackendOptionsSchema = z.object({
   fim_qwen_7b_default: z.boolean().optional(),
   fim_qwen_7b_spec: z.boolean().optional(),
   fim_qwen_14b_spec: z.boolean().optional(),
+
+  // Extra args
+  extra_args: z.record(z.string(), z.string()).optional(),
 })
 
 // Infer the TypeScript type from the schema
