@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import AutoRestartConfiguration from '@/components/instance/AutoRestartConfiguration'
 import NumberInput from '@/components/form/NumberInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
-import EnvVarsInput from '@/components/form/EnvironmentVariablesInput'
+import EnvVarsInput from '@/components/form/EnvVarsInput'
 import SelectInput from '@/components/form/SelectInput'
 import { nodesApi, type NodesMap } from '@/lib/api'
 
