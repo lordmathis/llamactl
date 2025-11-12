@@ -7,16 +7,17 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
     groups:
       go-dependencies:
         patterns:
           - "*"
-        update-types:
-          - "minor"
-          - "patch"
     labels:
       - "dependencies"
-      - "go"
 
   # npm dependencies for webui
   - package-ecosystem: "npm"
@@ -25,17 +26,15 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
     groups:
       npm-production:
         dependency-type: "production"
-        update-types:
-          - "minor"
-          - "patch"
       npm-development:
         dependency-type: "development"
-        update-types:
-          - "minor"
-          - "patch"
     labels:
       - "dependencies"
-      - "npm"
