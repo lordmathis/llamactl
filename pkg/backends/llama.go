@@ -187,6 +187,10 @@ type LlamaServerOptions struct {
 	FIMQwen7BDefault      bool `json:"fim_qwen_7b_default,omitempty"`
 	FIMQwen7BSpec         bool `json:"fim_qwen_7b_spec,omitempty"`
 	FIMQwen14BSpec        bool `json:"fim_qwen_14b_spec,omitempty"`
+
+	// ExtraArgs are additional command line arguments.
+	// Example: {"verbose": "", "log-file": "/logs/llama.log"}
+	ExtraArgs map[string]string `json:"extra_args,omitempty"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling to support multiple field names
@@ -354,6 +358,18 @@ func (o *LlamaServerOptions) Validate() error {
 		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
 	}
 
+	// Validate extra_args keys and values
+	for key, value := range o.ExtraArgs {
+		if err := validation.ValidateStringForInjection(key); err != nil {
+			return validation.ValidationError(fmt.Errorf("extra_args key %q: %w", key, err))
+		}
+		if value != "" {
+			if err := validation.ValidateStringForInjection(value); err != nil {
+				return validation.ValidationError(fmt.Errorf("extra_args value for %q: %w", key, err))
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -361,7 +377,12 @@ func (o *LlamaServerOptions) Validate() error {
 func (o *LlamaServerOptions) BuildCommandArgs() []string {
 	// Llama uses multiple flags for arrays by default (not comma-separated)
 	// Use package-level llamaMultiValuedFlags variable
-	return BuildCommandArgs(o, llamaMultiValuedFlags)
+	args := BuildCommandArgs(o, llamaMultiValuedFlags)
+
+	// Append extra args at the end
+	args = append(args, convertExtraArgsToFlags(o.ExtraArgs)...)
+
+	return args
 }
 
 func (o *LlamaServerOptions) BuildDockerArgs() []string {

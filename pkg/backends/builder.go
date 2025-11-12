@@ -93,3 +93,22 @@ func BuildDockerCommand(backendConfig *config.BackendSettings, instanceArgs []st
 
 	return "docker", dockerArgs, nil
 }
+
+// convertExtraArgsToFlags converts map[string]string to command flags
+// Empty values become boolean flags: {"flag": ""} → ["--flag"]
+// Non-empty values: {"flag": "value"} → ["--flag", "value"]
+func convertExtraArgsToFlags(extraArgs map[string]string) []string {
+	var args []string
+
+	for key, value := range extraArgs {
+		if value == "" {
+			// Boolean flag
+			args = append(args, "--"+key)
+		} else {
+			// Value flag
+			args = append(args, "--"+key, value)
+		}
+	}
+
+	return args
+}

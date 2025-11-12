@@ -142,6 +142,10 @@ type VllmServerOptions struct {
 	OverridePoolingConfig     string `json:"override_pooling_config,omitempty"`
 	OverrideNeuronConfig      string `json:"override_neuron_config,omitempty"`
 	OverrideKVCacheALIGNSize  int    `json:"override_kv_cache_align_size,omitempty"`
+
+	// ExtraArgs are additional command line arguments.
+	// Example: {"verbose": "", "log-file": "/logs/vllm.log"}
+	ExtraArgs map[string]string `json:"extra_args,omitempty"`
 }
 
 func (o *VllmServerOptions) GetPort() int {
@@ -171,6 +175,18 @@ func (o *VllmServerOptions) Validate() error {
 		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
 	}
 
+	// Validate extra_args keys and values
+	for key, value := range o.ExtraArgs {
+		if err := validation.ValidateStringForInjection(key); err != nil {
+			return validation.ValidationError(fmt.Errorf("extra_args key %q: %w", key, err))
+		}
+		if value != "" {
+			if err := validation.ValidateStringForInjection(value); err != nil {
+				return validation.ValidationError(fmt.Errorf("extra_args value for %q: %w", key, err))
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -193,6 +209,9 @@ func (o *VllmServerOptions) BuildCommandArgs() []string {
 	flagArgs := BuildCommandArgs(&optionsCopy, vllmMultiValuedFlags)
 	args = append(args, flagArgs...)
 
+	// Append extra args at the end
+	args = append(args, convertExtraArgsToFlags(o.ExtraArgs)...)
+
 	return args
 }
 
@@ -202,6 +221,9 @@ func (o *VllmServerOptions) BuildDockerArgs() []string {
 	// Use package-level multipleFlags variable
 	flagArgs := BuildCommandArgs(o, vllmMultiValuedFlags)
 	args = append(args, flagArgs...)
+
+	// Append extra args at the end
+	args = append(args, convertExtraArgsToFlags(o.ExtraArgs)...)
 
 	return args
 }
