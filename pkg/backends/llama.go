@@ -224,7 +224,7 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"Crb":           "cpu_range_batch", // -Crb, --cpu-range-batch lo-hi
 		"c":             "ctx_size",        // -c, --ctx-size N
 		"n":             "predict",         // -n, --predict N
-		"n-predict":     "predict",         // --n-predict N
+		"n_predict":     "predict",         // -n-predict N
 		"b":             "batch_size",      // -b, --batch-size N
 		"ub":            "ubatch_size",     // -ub, --ubatch-size N
 		"fa":            "flash_attn",      // -fa, --flash-attn
@@ -238,7 +238,7 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"dev":           "device",          // -dev, --device <dev1,dev2,..>
 		"ot":            "override_tensor", // --override-tensor, -ot
 		"ngl":           "gpu_layers",      // -ngl, --gpu-layers, --n-gpu-layers N
-		"n-gpu-layers":  "gpu_layers",      // --n-gpu-layers N
+		"n_gpu_layers":  "gpu_layers",      // --n-gpu-layers N
 		"sm":            "split_mode",      // -sm, --split-mode
 		"ts":            "tensor_split",    // -ts, --tensor-split N0,N1,N2,...
 		"mg":            "main_gpu",        // -mg, --main-gpu INDEX
@@ -254,9 +254,9 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"hffv":          "hf_file_v",       // -hffv, --hf-file-v FILE
 		"hft":           "hf_token",        // -hft, --hf-token TOKEN
 		"v":             "verbose",         // -v, --verbose, --log-verbose
-		"log-verbose":   "verbose",         // --log-verbose
+		"log_verbose":   "verbose",         // --log-verbose
 		"lv":            "verbosity",       // -lv, --verbosity, --log-verbosity N
-		"log-verbosity": "verbosity",       // --log-verbosity N
+		"log_verbosity": "verbosity",       // --log-verbosity N
 
 		// Sampling params
 		"s":  "seed",             // -s, --seed SEED
@@ -274,12 +274,12 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"to":                 "timeout",                // -to, --timeout N
 		"sps":                "slot_prompt_similarity", // -sps, --slot-prompt-similarity
 		"draft":              "draft-max",              // -draft, --draft-max N
-		"draft-n":            "draft-max",              // --draft-n-max N
-		"draft-n-min":        "draft_min",              // --draft-n-min N
+		"draft_n":            "draft-max",              // --draft-n-max N
+		"draft_n_min":        "draft_min",              // --draft-n-min N
 		"cd":                 "ctx_size_draft",         // -cd, --ctx-size-draft N
 		"devd":               "device_draft",           // -devd, --device-draft
 		"ngld":               "gpu_layers_draft",       // -ngld, --gpu-layers-draft
-		"n-gpu-layers-draft": "gpu_layers_draft",       // --n-gpu-layers-draft N
+		"n_gpu_layers_draft": "gpu_layers_draft",       // --n-gpu-layers-draft N
 		"md":                 "model_draft",            // -md, --model-draft FNAME
 		"ctkd":               "cache_type_k_draft",     // -ctkd, --cache-type-k-draft TYPE
 		"ctvd":               "cache_type_v_draft",     // -ctvd, --cache-type-v-draft TYPE
