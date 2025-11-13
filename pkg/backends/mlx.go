@@ -1,6 +1,7 @@
 package backends
 
 import (
+	"encoding/json"
 	"fmt"
 	"llamactl/pkg/validation"
 )
@@ -29,6 +30,46 @@ type MlxServerOptions struct {
 	TopK      int     `json:"top_k,omitempty"`
 	MinP      float64 `json:"min_p,omitempty"`
 	MaxTokens int     `json:"max_tokens,omitempty"`
+
+	// ExtraArgs are additional command line arguments.
+	// Example: {"verbose": "", "log-file": "/logs/mlx.log"}
+	ExtraArgs map[string]string `json:"extra_args,omitempty"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling to collect unknown fields into ExtraArgs
+func (o *MlxServerOptions) UnmarshalJSON(data []byte) error {
+	// First unmarshal into a map to capture all fields
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	// Create a temporary struct for standard unmarshaling
+	type tempOptions MlxServerOptions
+	temp := tempOptions{}
+
+	// Standard unmarshal first
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	// Copy to our struct
+	*o = MlxServerOptions(temp)
+
+	// Get all known canonical field names from struct tags
+	knownFields := getKnownFieldNames(o)
+
+	// Collect unknown fields into ExtraArgs
+	if o.ExtraArgs == nil {
+		o.ExtraArgs = make(map[string]string)
+	}
+	for key, value := range raw {
+		if !knownFields[key] {
+			o.ExtraArgs[key] = fmt.Sprintf("%v", value)
+		}
+	}
+
+	return nil
 }
 
 func (o *MlxServerOptions) GetPort() int {
@@ -57,13 +98,30 @@ func (o *MlxServerOptions) Validate() error {
 		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
 	}
 
+	// Validate extra_args keys and values
+	for key, value := range o.ExtraArgs {
+		if err := validation.ValidateStringForInjection(key); err != nil {
+			return validation.ValidationError(fmt.Errorf("extra_args key %q: %w", key, err))
+		}
+		if value != "" {
+			if err := validation.ValidateStringForInjection(value); err != nil {
+				return validation.ValidationError(fmt.Errorf("extra_args value for %q: %w", key, err))
+			}
+		}
+	}
+
 	return nil
 }
 
 // BuildCommandArgs converts to command line arguments
 func (o *MlxServerOptions) BuildCommandArgs() []string {
 	multipleFlags := map[string]struct{}{} // MLX doesn't currently have []string fields
-	return BuildCommandArgs(o, multipleFlags)
+	args := BuildCommandArgs(o, multipleFlags)
+
+	// Append extra args at the end
+	args = append(args, convertExtraArgsToFlags(o.ExtraArgs)...)
+
+	return args
 }
 
 func (o *MlxServerOptions) BuildDockerArgs() []string {

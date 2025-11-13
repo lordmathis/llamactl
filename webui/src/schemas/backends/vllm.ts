@@ -125,6 +125,9 @@ export const VllmBackendOptionsSchema = z.object({
   override_pooling_config: z.string().optional(),
   override_neuron_config: z.string().optional(),
   override_kv_cache_align_size: z.number().optional(),
+
+  // Extra args
+  extra_args: z.record(z.string(), z.string()).optional(),
 })
 
 // Infer the TypeScript type from the schema

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"llamactl/pkg/validation"
 	"reflect"
-	"strconv"
 )
 
 // llamaMultiValuedFlags defines flags that should be repeated for each value rather than comma-separated
@@ -41,7 +40,7 @@ type LlamaServerOptions struct {
 	BatchSize               int      `json:"batch_size,omitempty"`
 	UBatchSize              int      `json:"ubatch_size,omitempty"`
 	Keep                    int      `json:"keep,omitempty"`
-	FlashAttn               bool     `json:"flash_attn,omitempty"`
+	FlashAttn               string   `json:"flash_attn,omitempty"`
 	NoPerf                  bool     `json:"no_perf,omitempty"`
 	Escape                  bool     `json:"escape,omitempty"`
 	NoEscape                bool     `json:"no_escape,omitempty"`
@@ -187,6 +186,10 @@ type LlamaServerOptions struct {
 	FIMQwen7BDefault      bool `json:"fim_qwen_7b_default,omitempty"`
 	FIMQwen7BSpec         bool `json:"fim_qwen_7b_spec,omitempty"`
 	FIMQwen14BSpec        bool `json:"fim_qwen_14b_spec,omitempty"`
+
+	// ExtraArgs are additional command line arguments.
+	// Example: {"verbose": "", "log-file": "/logs/llama.log"}
+	ExtraArgs map[string]string `json:"extra_args,omitempty"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling to support multiple field names
@@ -209,6 +212,15 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 	// Copy to our struct
 	*o = LlamaServerOptions(temp)
 
+	// Track which fields we've processed
+	processedFields := make(map[string]bool)
+
+	// Get all known canonical field names from struct tags
+	knownFields := getKnownFieldNames(o)
+	for field := range knownFields {
+		processedFields[field] = true
+	}
+
 	// Handle alternative field names
 	fieldMappings := map[string]string{
 		// Common params
@@ -220,7 +232,7 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"Crb":           "cpu_range_batch", // -Crb, --cpu-range-batch lo-hi
 		"c":             "ctx_size",        // -c, --ctx-size N
 		"n":             "predict",         // -n, --predict N
-		"n-predict":     "predict",         // --n-predict N
+		"n_predict":     "predict",         // -n-predict N
 		"b":             "batch_size",      // -b, --batch-size N
 		"ub":            "ubatch_size",     // -ub, --ubatch-size N
 		"fa":            "flash_attn",      // -fa, --flash-attn
@@ -234,7 +246,7 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"dev":           "device",          // -dev, --device <dev1,dev2,..>
 		"ot":            "override_tensor", // --override-tensor, -ot
 		"ngl":           "gpu_layers",      // -ngl, --gpu-layers, --n-gpu-layers N
-		"n-gpu-layers":  "gpu_layers",      // --n-gpu-layers N
+		"n_gpu_layers":  "gpu_layers",      // --n-gpu-layers N
 		"sm":            "split_mode",      // -sm, --split-mode
 		"ts":            "tensor_split",    // -ts, --tensor-split N0,N1,N2,...
 		"mg":            "main_gpu",        // -mg, --main-gpu INDEX
@@ -250,9 +262,9 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"hffv":          "hf_file_v",       // -hffv, --hf-file-v FILE
 		"hft":           "hf_token",        // -hft, --hf-token TOKEN
 		"v":             "verbose",         // -v, --verbose, --log-verbose
-		"log-verbose":   "verbose",         // --log-verbose
+		"log_verbose":   "verbose",         // --log-verbose
 		"lv":            "verbosity",       // -lv, --verbosity, --log-verbosity N
-		"log-verbosity": "verbosity",       // --log-verbosity N
+		"log_verbosity": "verbosity",       // --log-verbosity N
 
 		// Sampling params
 		"s":  "seed",             // -s, --seed SEED
@@ -269,21 +281,23 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"rerank":             "reranking",              // --reranking
 		"to":                 "timeout",                // -to, --timeout N
 		"sps":                "slot_prompt_similarity", // -sps, --slot-prompt-similarity
-		"draft":              "draft-max",              // -draft, --draft-max N
-		"draft-n":            "draft-max",              // --draft-n-max N
-		"draft-n-min":        "draft_min",              // --draft-n-min N
+		"draft":              "draft_max",              // -draft, --draft-max N
+		"draft_n":            "draft_max",              // --draft-n-max N
+		"draft_n_min":        "draft_min",              // --draft-n-min N
 		"cd":                 "ctx_size_draft",         // -cd, --ctx-size-draft N
 		"devd":               "device_draft",           // -devd, --device-draft
 		"ngld":               "gpu_layers_draft",       // -ngld, --gpu-layers-draft
-		"n-gpu-layers-draft": "gpu_layers_draft",       // --n-gpu-layers-draft N
+		"n_gpu_layers_draft": "gpu_layers_draft",       // --n-gpu-layers-draft N
 		"md":                 "model_draft",            // -md, --model-draft FNAME
 		"ctkd":               "cache_type_k_draft",     // -ctkd, --cache-type-k-draft TYPE
 		"ctvd":               "cache_type_v_draft",     // -ctvd, --cache-type-v-draft TYPE
 		"mv":                 "model_vocoder",          // -mv, --model-vocoder FNAME
 	}
 
-	// Process alternative field names
+	// Process alternative field names and mark them as processed
 	for altName, canonicalName := range fieldMappings {
+		processedFields[altName] = true // Mark alternatives as known
+
 		if value, exists := raw[altName]; exists {
 			// Use reflection to set the field value
 			v := reflect.ValueOf(o).Elem()
@@ -294,33 +308,18 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 			})
 
 			if field.IsValid() && field.CanSet() {
-				switch field.Kind() {
-				case reflect.Int:
-					if intVal, ok := value.(float64); ok {
-						field.SetInt(int64(intVal))
-					} else if strVal, ok := value.(string); ok {
-						if intVal, err := strconv.Atoi(strVal); err == nil {
-							field.SetInt(int64(intVal))
-						}
-					}
-				case reflect.Float64:
-					if floatVal, ok := value.(float64); ok {
-						field.SetFloat(floatVal)
-					} else if strVal, ok := value.(string); ok {
-						if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
-							field.SetFloat(floatVal)
-						}
-					}
-				case reflect.String:
-					if strVal, ok := value.(string); ok {
-						field.SetString(strVal)
-					}
-				case reflect.Bool:
-					if boolVal, ok := value.(bool); ok {
-						field.SetBool(boolVal)
-					}
-				}
+				setFieldValue(field, value)
 			}
+		}
+	}
+
+	// Collect unknown fields into ExtraArgs
+	if o.ExtraArgs == nil {
+		o.ExtraArgs = make(map[string]string)
+	}
+	for key, value := range raw {
+		if !processedFields[key] {
+			o.ExtraArgs[key] = fmt.Sprintf("%v", value)
 		}
 	}
 
@@ -354,6 +353,18 @@ func (o *LlamaServerOptions) Validate() error {
 		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
 	}
 
+	// Validate extra_args keys and values
+	for key, value := range o.ExtraArgs {
+		if err := validation.ValidateStringForInjection(key); err != nil {
+			return validation.ValidationError(fmt.Errorf("extra_args key %q: %w", key, err))
+		}
+		if value != "" {
+			if err := validation.ValidateStringForInjection(value); err != nil {
+				return validation.ValidationError(fmt.Errorf("extra_args value for %q: %w", key, err))
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -361,7 +372,12 @@ func (o *LlamaServerOptions) Validate() error {
 func (o *LlamaServerOptions) BuildCommandArgs() []string {
 	// Llama uses multiple flags for arrays by default (not comma-separated)
 	// Use package-level llamaMultiValuedFlags variable
-	return BuildCommandArgs(o, llamaMultiValuedFlags)
+	args := BuildCommandArgs(o, llamaMultiValuedFlags)
+
+	// Append extra args at the end
+	args = append(args, convertExtraArgsToFlags(o.ExtraArgs)...)
+
+	return args
 }
 
 func (o *LlamaServerOptions) BuildDockerArgs() []string {

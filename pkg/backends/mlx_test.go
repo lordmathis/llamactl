@@ -202,3 +202,75 @@ func TestMlxBuildCommandArgs_ZeroValues(t *testing.T) {
 		}
 	}
 }
+
+func TestParseMlxCommand_ExtraArgs(t *testing.T) {
+	tests := []struct {
+		name      string
+		command   string
+		expectErr bool
+		validate  func(*testing.T, *backends.MlxServerOptions)
+	}{
+		{
+			name:      "extra args with known fields",
+			command:   "mlx_lm.server --model /path/to/model --port 8080 --unknown-flag value --new-bool-flag",
+			expectErr: false,
+			validate: func(t *testing.T, opts *backends.MlxServerOptions) {
+				if opts.Model != "/path/to/model" {
+					t.Errorf("expected model '/path/to/model', got '%s'", opts.Model)
+				}
+				if opts.Port != 8080 {
+					t.Errorf("expected port 8080, got %d", opts.Port)
+				}
+				if opts.ExtraArgs == nil {
+					t.Fatal("expected extra_args to be non-nil")
+				}
+				if val, ok := opts.ExtraArgs["unknown_flag"]; !ok || val != "value" {
+					t.Errorf("expected extra_args[unknown_flag]='value', got '%s'", val)
+				}
+				if val, ok := opts.ExtraArgs["new_bool_flag"]; !ok || val != "true" {
+					t.Errorf("expected extra_args[new_bool_flag]='true', got '%s'", val)
+				}
+			},
+		},
+		{
+			name:      "only extra args",
+			command:   "mlx_lm.server --experimental-feature --custom-param test",
+			expectErr: false,
+			validate: func(t *testing.T, opts *backends.MlxServerOptions) {
+				if opts.ExtraArgs == nil {
+					t.Fatal("expected extra_args to be non-nil")
+				}
+				if val, ok := opts.ExtraArgs["experimental_feature"]; !ok || val != "true" {
+					t.Errorf("expected extra_args[experimental_feature]='true', got '%s'", val)
+				}
+				if val, ok := opts.ExtraArgs["custom_param"]; !ok || val != "test" {
+					t.Errorf("expected extra_args[custom_param]='test', got '%s'", val)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var opts backends.MlxServerOptions
+			result, err := opts.ParseCommand(tt.command)
+
+			if tt.expectErr && err == nil {
+				t.Error("expected error but got none")
+				return
+			}
+			if !tt.expectErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if !tt.expectErr && tt.validate != nil {
+				mlxOpts, ok := result.(*backends.MlxServerOptions)
+				if !ok {
+					t.Fatal("result is not *MlxServerOptions")
+				}
+				tt.validate(t, mlxOpts)
+			}
+		})
+	}
+}

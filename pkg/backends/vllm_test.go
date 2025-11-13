@@ -321,3 +321,94 @@ func TestVllmBuildCommandArgs_PositionalModel(t *testing.T) {
 		t.Errorf("Expected --port 8080 not found in %v", args)
 	}
 }
+
+func TestParseVllmCommand_ExtraArgs(t *testing.T) {
+	tests := []struct {
+		name      string
+		command   string
+		expectErr bool
+		validate  func(*testing.T, *backends.VllmServerOptions)
+	}{
+		{
+			name:      "extra args with known fields",
+			command:   "vllm serve llama-model --tensor-parallel-size 2 --unknown-flag value --new-bool-flag",
+			expectErr: false,
+			validate: func(t *testing.T, opts *backends.VllmServerOptions) {
+				if opts.Model != "llama-model" {
+					t.Errorf("expected model 'llama-model', got '%s'", opts.Model)
+				}
+				if opts.TensorParallelSize != 2 {
+					t.Errorf("expected tensor_parallel_size 2, got %d", opts.TensorParallelSize)
+				}
+				if opts.ExtraArgs == nil {
+					t.Fatal("expected extra_args to be non-nil")
+				}
+				if val, ok := opts.ExtraArgs["unknown_flag"]; !ok || val != "value" {
+					t.Errorf("expected extra_args[unknown_flag]='value', got '%s'", val)
+				}
+				if val, ok := opts.ExtraArgs["new_bool_flag"]; !ok || val != "true" {
+					t.Errorf("expected extra_args[new_bool_flag]='true', got '%s'", val)
+				}
+			},
+		},
+		{
+			name:      "only extra args",
+			command:   "vllm serve model --experimental-feature --custom-param test",
+			expectErr: false,
+			validate: func(t *testing.T, opts *backends.VllmServerOptions) {
+				if opts.ExtraArgs == nil {
+					t.Fatal("expected extra_args to be non-nil")
+				}
+				if val, ok := opts.ExtraArgs["experimental_feature"]; !ok || val != "true" {
+					t.Errorf("expected extra_args[experimental_feature]='true', got '%s'", val)
+				}
+				if val, ok := opts.ExtraArgs["custom_param"]; !ok || val != "test" {
+					t.Errorf("expected extra_args[custom_param]='test', got '%s'", val)
+				}
+			},
+		},
+		{
+			name:      "extra args without model positional",
+			command:   "vllm serve --model my-model --new-feature enabled --beta-flag",
+			expectErr: false,
+			validate: func(t *testing.T, opts *backends.VllmServerOptions) {
+				if opts.Model != "my-model" {
+					t.Errorf("expected model 'my-model', got '%s'", opts.Model)
+				}
+				if opts.ExtraArgs == nil {
+					t.Fatal("expected extra_args to be non-nil")
+				}
+				if val, ok := opts.ExtraArgs["new_feature"]; !ok || val != "enabled" {
+					t.Errorf("expected extra_args[new_feature]='enabled', got '%s'", val)
+				}
+				if val, ok := opts.ExtraArgs["beta_flag"]; !ok || val != "true" {
+					t.Errorf("expected extra_args[beta_flag]='true', got '%s'", val)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var opts backends.VllmServerOptions
+			result, err := opts.ParseCommand(tt.command)
+
+			if tt.expectErr && err == nil {
+				t.Error("expected error but got none")
+				return
+			}
+			if !tt.expectErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if !tt.expectErr && tt.validate != nil {
+				vllmOpts, ok := result.(*backends.VllmServerOptions)
+				if !ok {
+					t.Fatal("result is not *VllmServerOptions")
+				}
+				tt.validate(t, vllmOpts)
+			}
+		})
+	}
+}
