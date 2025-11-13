@@ -3,17 +3,31 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { getBackendFieldType, basicBackendFieldsConfig } from '@/lib/zodFormUtils'
+import ExtraArgsInput from '@/components/form/ExtraArgsInput'
 
 interface BackendFormFieldProps {
   fieldKey: string
-  value: string | number | boolean | string[] | undefined
-  onChange: (key: string, value: string | number | boolean | string[] | undefined) => void
+  value: string | number | boolean | string[] | Record<string, string> | undefined
+  onChange: (key: string, value: string | number | boolean | string[] | Record<string, string> | undefined) => void
 }
 
 const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, onChange }) => {
+  // Special handling for extra_args
+  if (fieldKey === 'extra_args') {
+    return (
+      <ExtraArgsInput
+        id={fieldKey}
+        label="Extra Arguments"
+        value={value as Record<string, string> | undefined}
+        onChange={(newValue) => onChange(fieldKey, newValue)}
+        description="Additional command line arguments to pass to the backend"
+      />
+    )
+  }
+
   // Get configuration for basic fields, or use field name for advanced fields
   const config = basicBackendFieldsConfig[fieldKey] || { label: fieldKey }
-  
+
   // Get type from Zod schema
   const fieldType = getBackendFieldType(fieldKey)
 

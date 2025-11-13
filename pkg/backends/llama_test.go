@@ -33,12 +33,11 @@ func TestLlamaCppBuildCommandArgs_BooleanFields(t *testing.T) {
 		{
 			name: "multiple booleans",
 			options: backends.LlamaServerOptions{
-				Verbose:   true,
-				FlashAttn: true,
-				Mlock:     false,
-				NoMmap:    true,
+				Verbose: true,
+				Mlock:   false,
+				NoMmap:  true,
 			},
-			expected: []string{"--verbose", "--flash-attn", "--no-mmap"},
+			expected: []string{"--verbose", "--no-mmap"},
 			excluded: []string{"--mlock"},
 		},
 	}
@@ -346,7 +345,7 @@ func TestParseLlamaCommand(t *testing.T) {
 		},
 		{
 			name:      "multiple value types",
-			command:   "llama-server --model /test/model.gguf --gpu-layers 32 --temp 0.7 --verbose --no-mmap",
+			command:   "llama-server --model /test/model.gguf --n-gpu-layers 32 --temp 0.7 --verbose --no-mmap",
 			expectErr: false,
 			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
 				if opts.Model != "/test/model.gguf" {
@@ -432,5 +431,121 @@ func TestParseLlamaCommandArrays(t *testing.T) {
 		if result.Lora[i] != v {
 			t.Errorf("expected lora[%d]=%s got %s", i, v, result.Lora[i])
 		}
+	}
+}
+
+func TestLlamaCppBuildCommandArgs_ExtraArgs(t *testing.T) {
+	options := backends.LlamaServerOptions{
+		Model: "/models/test.gguf",
+		ExtraArgs: map[string]string{
+			"flash-attn": "",               // boolean flag
+			"log-file":   "/logs/test.log", // value flag
+		},
+	}
+
+	args := options.BuildCommandArgs()
+
+	// Check that extra args are present
+	if !testutil.Contains(args, "--flash-attn") {
+		t.Error("Expected --flash-attn flag not found")
+	}
+	if !testutil.Contains(args, "--log-file") || !testutil.Contains(args, "/logs/test.log") {
+		t.Error("Expected --log-file flag or value not found")
+	}
+}
+
+func TestParseLlamaCommand_ExtraArgs(t *testing.T) {
+	tests := []struct {
+		name      string
+		command   string
+		expectErr bool
+		validate  func(*testing.T, *backends.LlamaServerOptions)
+	}{
+		{
+			name:      "extra args with known fields",
+			command:   "llama-server --model /path/to/model.gguf --gpu-layers 32 --unknown-flag value --another-bool-flag",
+			expectErr: false,
+			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
+				if opts.Model != "/path/to/model.gguf" {
+					t.Errorf("expected model '/path/to/model.gguf', got '%s'", opts.Model)
+				}
+				if opts.GPULayers != 32 {
+					t.Errorf("expected gpu_layers 32, got %d", opts.GPULayers)
+				}
+				if opts.ExtraArgs == nil {
+					t.Fatal("expected extra_args to be non-nil")
+				}
+				if val, ok := opts.ExtraArgs["unknown_flag"]; !ok || val != "value" {
+					t.Errorf("expected extra_args[unknown_flag]='value', got '%s'", val)
+				}
+				if val, ok := opts.ExtraArgs["another_bool_flag"]; !ok || val != "true" {
+					t.Errorf("expected extra_args[another_bool_flag]='true', got '%s'", val)
+				}
+			},
+		},
+		{
+			name:      "extra args with alternative field names",
+			command:   "llama-server -m /model.gguf -ngl 16 --custom-arg test --new-feature",
+			expectErr: false,
+			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
+				// Check that alternative names worked for known fields
+				if opts.Model != "/model.gguf" {
+					t.Errorf("expected model '/model.gguf', got '%s'", opts.Model)
+				}
+				if opts.GPULayers != 16 {
+					t.Errorf("expected gpu_layers 16, got %d", opts.GPULayers)
+				}
+				// Check that unknown args went to ExtraArgs
+				if opts.ExtraArgs == nil {
+					t.Fatal("expected extra_args to be non-nil")
+				}
+				if val, ok := opts.ExtraArgs["custom_arg"]; !ok || val != "test" {
+					t.Errorf("expected extra_args[custom_arg]='test', got '%s'", val)
+				}
+				if val, ok := opts.ExtraArgs["new_feature"]; !ok || val != "true" {
+					t.Errorf("expected extra_args[new_feature]='true', got '%s'", val)
+				}
+			},
+		},
+		{
+			name:      "only extra args",
+			command:   "llama-server --experimental-feature --beta-mode enabled",
+			expectErr: false,
+			validate: func(t *testing.T, opts *backends.LlamaServerOptions) {
+				if opts.ExtraArgs == nil {
+					t.Fatal("expected extra_args to be non-nil")
+				}
+				if val, ok := opts.ExtraArgs["experimental_feature"]; !ok || val != "true" {
+					t.Errorf("expected extra_args[experimental_feature]='true', got '%s'", val)
+				}
+				if val, ok := opts.ExtraArgs["beta_mode"]; !ok || val != "enabled" {
+					t.Errorf("expected extra_args[beta_mode]='enabled', got '%s'", val)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var opts backends.LlamaServerOptions
+			result, err := opts.ParseCommand(tt.command)
+
+			if tt.expectErr && err == nil {
+				t.Error("expected error but got none")
+				return
+			}
+			if !tt.expectErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if !tt.expectErr && tt.validate != nil {
+				llamaOpts, ok := result.(*backends.LlamaServerOptions)
+				if !ok {
+					t.Fatal("result is not *LlamaServerOptions")
+				}
+				tt.validate(t, llamaOpts)
+			}
+		})
 	}
 }

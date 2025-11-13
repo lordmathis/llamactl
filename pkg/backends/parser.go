@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -210,4 +211,66 @@ func parseValue(value string) any {
 
 	// Return as string
 	return value
+}
+
+// setFieldValue sets a field value using reflection, handling type conversions
+// Used by UnmarshalJSON implementations to handle alternative field names
+func setFieldValue(field reflect.Value, value any) {
+	switch field.Kind() {
+	case reflect.Int:
+		if intVal, ok := value.(float64); ok {
+			field.SetInt(int64(intVal))
+		} else if strVal, ok := value.(string); ok {
+			if intVal, err := strconv.Atoi(strVal); err == nil {
+				field.SetInt(int64(intVal))
+			}
+		}
+	case reflect.Float64:
+		if floatVal, ok := value.(float64); ok {
+			field.SetFloat(floatVal)
+		} else if strVal, ok := value.(string); ok {
+			if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
+				field.SetFloat(floatVal)
+			}
+		}
+	case reflect.String:
+		if strVal, ok := value.(string); ok {
+			field.SetString(strVal)
+		}
+	case reflect.Bool:
+		if boolVal, ok := value.(bool); ok {
+			field.SetBool(boolVal)
+		}
+	case reflect.Slice:
+		// Handle string slices
+		if field.Type().Elem().Kind() == reflect.String {
+			if slice, ok := value.([]any); ok {
+				strSlice := make([]string, 0, len(slice))
+				for _, v := range slice {
+					if s, ok := v.(string); ok {
+						strSlice = append(strSlice, s)
+					}
+				}
+				field.Set(reflect.ValueOf(strSlice))
+			}
+		}
+	}
+}
+
+// getKnownFieldNames extracts all known field names from struct json tags
+// Used by UnmarshalJSON implementations to identify unknown fields for ExtraArgs
+func getKnownFieldNames(v any) map[string]bool {
+	fields := make(map[string]bool)
+	t := reflect.TypeOf(v).Elem()
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		jsonTag := field.Tag.Get("json")
+		if jsonTag != "" && jsonTag != "-" {
+			// Handle "name,omitempty" format
+			name := strings.Split(jsonTag, ",")[0]
+			fields[name] = true
+		}
+	}
+	return fields
 }
