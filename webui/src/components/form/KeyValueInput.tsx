@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -46,6 +46,21 @@ const KeyValueInput: React.FC<KeyValueInputProps> = ({
   const [pairs, setPairs] = useState<KeyValuePair[]>(
     pairsFromValue.length > 0 ? pairsFromValue : [{ key: '', value: '' }]
   )
+
+  // Sync internal state when value prop changes
+  useEffect(() => {
+    const newPairsFromValue = value
+      ? Object.entries(value).map(([key, val]) => ({ key, value: val }))
+      : []
+
+    if (newPairsFromValue.length > 0) {
+      setPairs(newPairsFromValue)
+    } else if (!value) {
+      // Reset to single empty row if value is explicitly undefined/null
+      setPairs([{ key: '', value: '' }])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
 
   // Update parent component when pairs change
   const updateParent = (newPairs: KeyValuePair[]) => {
