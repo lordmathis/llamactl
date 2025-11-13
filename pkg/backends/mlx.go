@@ -1,6 +1,7 @@
 package backends
 
 import (
+	"encoding/json"
 	"fmt"
 	"llamactl/pkg/validation"
 )
@@ -33,6 +34,42 @@ type MlxServerOptions struct {
 	// ExtraArgs are additional command line arguments.
 	// Example: {"verbose": "", "log-file": "/logs/mlx.log"}
 	ExtraArgs map[string]string `json:"extra_args,omitempty"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling to collect unknown fields into ExtraArgs
+func (o *MlxServerOptions) UnmarshalJSON(data []byte) error {
+	// First unmarshal into a map to capture all fields
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	// Create a temporary struct for standard unmarshaling
+	type tempOptions MlxServerOptions
+	temp := tempOptions{}
+
+	// Standard unmarshal first
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	// Copy to our struct
+	*o = MlxServerOptions(temp)
+
+	// Get all known canonical field names from struct tags
+	knownFields := getKnownFieldNames(o)
+
+	// Collect unknown fields into ExtraArgs
+	if o.ExtraArgs == nil {
+		o.ExtraArgs = make(map[string]string)
+	}
+	for key, value := range raw {
+		if !knownFields[key] {
+			o.ExtraArgs[key] = fmt.Sprintf("%v", value)
+		}
+	}
+
+	return nil
 }
 
 func (o *MlxServerOptions) GetPort() int {

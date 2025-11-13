@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"llamactl/pkg/validation"
 	"reflect"
-	"strconv"
 )
 
 // llamaMultiValuedFlags defines flags that should be repeated for each value rather than comma-separated
@@ -213,6 +212,15 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 	// Copy to our struct
 	*o = LlamaServerOptions(temp)
 
+	// Track which fields we've processed
+	processedFields := make(map[string]bool)
+
+	// Get all known canonical field names from struct tags
+	knownFields := getKnownFieldNames(o)
+	for field := range knownFields {
+		processedFields[field] = true
+	}
+
 	// Handle alternative field names
 	fieldMappings := map[string]string{
 		// Common params
@@ -273,8 +281,8 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"rerank":             "reranking",              // --reranking
 		"to":                 "timeout",                // -to, --timeout N
 		"sps":                "slot_prompt_similarity", // -sps, --slot-prompt-similarity
-		"draft":              "draft-max",              // -draft, --draft-max N
-		"draft_n":            "draft-max",              // --draft-n-max N
+		"draft":              "draft_max",              // -draft, --draft-max N
+		"draft_n":            "draft_max",              // --draft-n-max N
 		"draft_n_min":        "draft_min",              // --draft-n-min N
 		"cd":                 "ctx_size_draft",         // -cd, --ctx-size-draft N
 		"devd":               "device_draft",           // -devd, --device-draft
@@ -286,8 +294,10 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		"mv":                 "model_vocoder",          // -mv, --model-vocoder FNAME
 	}
 
-	// Process alternative field names
+	// Process alternative field names and mark them as processed
 	for altName, canonicalName := range fieldMappings {
+		processedFields[altName] = true // Mark alternatives as known
+
 		if value, exists := raw[altName]; exists {
 			// Use reflection to set the field value
 			v := reflect.ValueOf(o).Elem()
@@ -298,33 +308,18 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 			})
 
 			if field.IsValid() && field.CanSet() {
-				switch field.Kind() {
-				case reflect.Int:
-					if intVal, ok := value.(float64); ok {
-						field.SetInt(int64(intVal))
-					} else if strVal, ok := value.(string); ok {
-						if intVal, err := strconv.Atoi(strVal); err == nil {
-							field.SetInt(int64(intVal))
-						}
-					}
-				case reflect.Float64:
-					if floatVal, ok := value.(float64); ok {
-						field.SetFloat(floatVal)
-					} else if strVal, ok := value.(string); ok {
-						if floatVal, err := strconv.ParseFloat(strVal, 64); err == nil {
-							field.SetFloat(floatVal)
-						}
-					}
-				case reflect.String:
-					if strVal, ok := value.(string); ok {
-						field.SetString(strVal)
-					}
-				case reflect.Bool:
-					if boolVal, ok := value.(bool); ok {
-						field.SetBool(boolVal)
-					}
-				}
+				setFieldValue(field, value)
 			}
+		}
+	}
+
+	// Collect unknown fields into ExtraArgs
+	if o.ExtraArgs == nil {
+		o.ExtraArgs = make(map[string]string)
+	}
+	for key, value := range raw {
+		if !processedFields[key] {
+			o.ExtraArgs[key] = fmt.Sprintf("%v", value)
 		}
 	}
 
