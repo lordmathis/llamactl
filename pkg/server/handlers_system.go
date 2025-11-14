@@ -32,8 +32,11 @@ func (h *Handler) VersionHandler() http.HandlerFunc {
 // @Router /api/v1/config [get]
 func (h *Handler) ConfigHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Return a sanitized copy of the configuration
-		sanitizedConfig := h.cfg.SanitizedCopy()
+		sanitizedConfig, err := h.cfg.SanitizedCopy()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "sanitized_copy_error", "Failed to get sanitized config")
+			return
+		}
 		writeJSON(w, http.StatusOK, sanitizedConfig)
 	}
 }
