@@ -36,6 +36,10 @@ export const CreateInstanceOptionsSchema = z.object({
   // Environment variables
   environment: z.record(z.string(), z.string()).optional(),
 
+  // Execution context overrides
+  docker_enabled: z.boolean().optional(),
+  command_override: z.string().optional(),
+
   // Backend configuration
   backend_type: z.enum([BackendType.LLAMA_CPP, BackendType.MLX_LM, BackendType.VLLM]).optional(),
   backend_options: BackendOptionsSchema.optional(),

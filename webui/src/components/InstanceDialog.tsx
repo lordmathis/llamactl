@@ -106,6 +106,14 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
       return;
     }
 
+    // Validate docker_enabled and command_override relationship
+    if (formData.backend_type !== BackendType.MLX_LM) {
+      if (formData.docker_enabled === true && formData.command_override) {
+        setNameError("Command override cannot be set when Docker is enabled");
+        return;
+      }
+    }
+
     // Clean up undefined values to avoid sending empty fields
     const cleanOptions: CreateInstanceOptions = {} as CreateInstanceOptions;
     Object.entries(formData).forEach(([key, value]) => {
