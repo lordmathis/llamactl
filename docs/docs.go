@@ -1512,16 +1512,16 @@ const docTemplate = `{
                 "backends": {
                     "$ref": "#/definitions/config.BackendConfig"
                 },
-                "buildTime": {
+                "build_time": {
                     "type": "string"
                 },
-                "commitHash": {
+                "commit_hash": {
                     "type": "string"
                 },
                 "instances": {
                     "$ref": "#/definitions/config.InstancesConfig"
                 },
-                "localNode": {
+                "local_node": {
                     "type": "string"
                 },
                 "nodes": {
@@ -1541,25 +1541,25 @@ const docTemplate = `{
         "config.AuthConfig": {
             "type": "object",
             "properties": {
-                "inferenceKeys": {
+                "inference_keys": {
                     "description": "List of keys for OpenAI compatible inference endpoints",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "managementKeys": {
+                "management_keys": {
                     "description": "List of keys for management endpoints",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "requireInferenceAuth": {
+                "require_inference_auth": {
                     "description": "Require authentication for OpenAI compatible inference endpoints",
                     "type": "boolean"
                 },
-                "requireManagementAuth": {
+                "require_management_auth": {
                     "description": "Require authentication for management endpoints",
                     "type": "boolean"
                 }
@@ -1568,7 +1568,7 @@ const docTemplate = `{
         "config.BackendConfig": {
             "type": "object",
             "properties": {
-                "llamaCpp": {
+                "llama-cpp": {
                     "$ref": "#/definitions/config.BackendSettings"
                 },
                 "mlx": {
@@ -1600,7 +1600,7 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "responseHeaders": {
+                "response_headers": {
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -1634,62 +1634,62 @@ const docTemplate = `{
         "config.InstancesConfig": {
             "type": "object",
             "properties": {
-                "autoCreateDirs": {
+                "auto_create_dirs": {
                     "description": "Automatically create the data directory if it doesn't exist",
                     "type": "boolean"
                 },
-                "dataDir": {
-                    "description": "Directory where all llamactl data will be stored (instances.json, logs, etc.)",
-                    "type": "string"
-                },
-                "defaultAutoRestart": {
-                    "description": "Default auto-restart setting for new instances",
-                    "type": "boolean"
-                },
-                "defaultMaxRestarts": {
-                    "description": "Default max restarts for new instances",
-                    "type": "integer"
-                },
-                "defaultOnDemandStart": {
-                    "description": "Default on-demand start setting for new instances",
-                    "type": "boolean"
-                },
-                "defaultRestartDelay": {
-                    "description": "Default restart delay for new instances (in seconds)",
-                    "type": "integer"
-                },
-                "enableLRUEviction": {
-                    "description": "Enable LRU eviction for instance logs",
-                    "type": "boolean"
-                },
-                "instancesDir": {
+                "configs_dir": {
                     "description": "Instance config directory override",
                     "type": "string"
                 },
-                "logsDir": {
+                "data_dir": {
+                    "description": "Directory where all llamactl data will be stored (instances.json, logs, etc.)",
+                    "type": "string"
+                },
+                "default_auto_restart": {
+                    "description": "Default auto-restart setting for new instances",
+                    "type": "boolean"
+                },
+                "default_max_restarts": {
+                    "description": "Default max restarts for new instances",
+                    "type": "integer"
+                },
+                "default_on_demand_start": {
+                    "description": "Default on-demand start setting for new instances",
+                    "type": "boolean"
+                },
+                "default_restart_delay": {
+                    "description": "Default restart delay for new instances (in seconds)",
+                    "type": "integer"
+                },
+                "enable_lru_eviction": {
+                    "description": "Enable LRU eviction for instance logs",
+                    "type": "boolean"
+                },
+                "logs_dir": {
                     "description": "Logs directory override",
                     "type": "string"
                 },
-                "maxInstances": {
+                "max_instances": {
                     "description": "Maximum number of instances that can be created",
                     "type": "integer"
                 },
-                "maxRunningInstances": {
+                "max_running_instances": {
                     "description": "Maximum number of instances that can be running at the same time",
                     "type": "integer"
                 },
-                "onDemandStartTimeout": {
+                "on_demand_start_timeout": {
                     "description": "How long to wait for an instance to start on demand (in seconds)",
                     "type": "integer"
                 },
-                "portRange": {
+                "port_range": {
                     "description": "Port range for instances (e.g., 8000,9000)",
                     "type": "array",
                     "items": {
                         "type": "integer"
                     }
                 },
-                "timeoutCheckInterval": {
+                "timeout_check_interval": {
                     "description": "Interval for checking instance timeouts (in minutes)",
                     "type": "integer"
                 }
@@ -1701,7 +1701,7 @@ const docTemplate = `{
                 "address": {
                     "type": "string"
                 },
-                "apikey": {
+                "api_key": {
                     "type": "string"
                 }
             }
@@ -1709,21 +1709,21 @@ const docTemplate = `{
         "config.ServerConfig": {
             "type": "object",
             "properties": {
-                "allowedHeaders": {
+                "allowed_headers": {
                     "description": "Allowed headers for CORS (e.g., \"Accept\", \"Authorization\", \"Content-Type\", \"X-CSRF-Token\")",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "allowedOrigins": {
+                "allowed_origins": {
                     "description": "Allowed origins for CORS (e.g., \"http://localhost:3000\")",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "enableSwagger": {
+                "enable_swagger": {
                     "description": "Enable Swagger UI for API documentation",
                     "type": "boolean"
                 },
@@ -1735,7 +1735,7 @@ const docTemplate = `{
                     "description": "Server port to bind to",
                     "type": "integer"
                 },
-                "responseHeaders": {
+                "response_headers": {
                     "description": "Response headers to send with responses",
                     "type": "object",
                     "additionalProperties": {
