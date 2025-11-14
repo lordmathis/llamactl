@@ -7,6 +7,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/validation"
 	"log"
+	"maps"
 	"slices"
 	"sync"
 )
@@ -144,15 +145,25 @@ func (c *Options) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON implements custom JSON marshaling for Options
 func (c *Options) MarshalJSON() ([]byte, error) {
-	// Use anonymous struct to avoid recursion
 	type Alias Options
-	aux := struct {
+
+	// Make a copy of the struct
+	temp := *c
+
+	// Copy environment map to avoid concurrent access issues
+	if temp.Environment != nil {
+		envCopy := make(map[string]string, len(temp.Environment))
+		maps.Copy(envCopy, temp.Environment)
+		temp.Environment = envCopy
+	}
+
+	aux := &struct {
 		Nodes          []string             `json:"nodes,omitempty"` // Output as JSON array
 		BackendType    backends.BackendType `json:"backend_type"`
 		BackendOptions map[string]any       `json:"backend_options,omitempty"`
 		*Alias
 	}{
-		Alias: (*Alias)(c),
+		Alias: (*Alias)(&temp),
 	}
 
 	// Convert nodes map to array (sorted for consistency)
@@ -169,13 +180,12 @@ func (c *Options) MarshalJSON() ([]byte, error) {
 	aux.BackendType = c.BackendOptions.BackendType
 
 	// Marshal the backends.Options struct to get the properly formatted backend options
-	// Marshal a pointer to trigger the pointer receiver MarshalJSON method
 	backendData, err := json.Marshal(&c.BackendOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal backend options: %w", err)
 	}
 
-	// Unmarshal into a temporary struct to extract the backend_options map
+	// Unmarshal into a new temporary map to extract the backend_options
 	var tempBackend struct {
 		BackendOptions map[string]any `json:"backend_options,omitempty"`
 	}

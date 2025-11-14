@@ -79,14 +79,8 @@ func (o *Options) UnmarshalJSON(data []byte) error {
 }
 
 func (o *Options) MarshalJSON() ([]byte, error) {
-	type Alias Options
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(o),
-	}
-
 	// Get backend and marshal it
+	var backendOptions map[string]any
 	backend := o.getBackend()
 	if backend != nil {
 		optionsData, err := json.Marshal(backend)
@@ -94,13 +88,19 @@ func (o *Options) MarshalJSON() ([]byte, error) {
 			return nil, fmt.Errorf("failed to marshal backend options: %w", err)
 		}
 		// Create a new map to avoid concurrent map writes
-		aux.BackendOptions = make(map[string]any)
-		if err := json.Unmarshal(optionsData, &aux.BackendOptions); err != nil {
+		backendOptions = make(map[string]any)
+		if err := json.Unmarshal(optionsData, &backendOptions); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal backend options to map: %w", err)
 		}
 	}
 
-	return json.Marshal(aux)
+	return json.Marshal(&struct {
+		BackendType    BackendType    `json:"backend_type"`
+		BackendOptions map[string]any `json:"backend_options,omitempty"`
+	}{
+		BackendType:    o.BackendType,
+		BackendOptions: backendOptions,
+	})
 }
 
 // setBackendOptions stores the backend in the appropriate typed field
