@@ -610,3 +610,20 @@ func getDefaultConfigLocations() []string {
 
 	return locations
 }
+
+// SanitizedCopy returns a copy of the AppConfig with sensitive information removed
+func (cfg *AppConfig) SanitizedCopy() AppConfig {
+	// Create a copy of the config
+	sanitized := *cfg
+
+	// Clear sensitive information
+	sanitized.Auth.InferenceKeys = []string{}
+	sanitized.Auth.ManagementKeys = []string{}
+
+	for nodeName, node := range sanitized.Nodes {
+		node.APIKey = ""
+		sanitized.Nodes[nodeName] = node
+	}
+
+	return sanitized
+}

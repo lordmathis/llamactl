@@ -20,3 +20,20 @@ func (h *Handler) VersionHandler() http.HandlerFunc {
 		writeText(w, http.StatusOK, versionInfo)
 	}
 }
+
+// ConfigHandler godoc
+// @Summary Get server configuration
+// @Description Returns the current server configuration (sanitized)
+// @Tags System
+// @Security ApiKeyAuth
+// @Produces application/json
+// @Success 200 {object} config.AppConfig "Sanitized configuration"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/v1/config [get]
+func (h *Handler) ConfigHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Return a sanitized copy of the configuration
+		sanitizedConfig := h.cfg.SanitizedCopy()
+		writeJSON(w, http.StatusOK, sanitizedConfig)
+	}
+}
