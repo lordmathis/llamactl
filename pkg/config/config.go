@@ -637,10 +637,5 @@ func (cfg *AppConfig) SanitizedCopy() (AppConfig, error) {
 		sanitized.Nodes[nodeName] = node
 	}
 
-	// Preserve non-serialized fields
-	sanitized.Version = cfg.Version
-	sanitized.CommitHash = cfg.CommitHash
-	sanitized.BuildTime = cfg.BuildTime
-
 	return sanitized, nil
 }
