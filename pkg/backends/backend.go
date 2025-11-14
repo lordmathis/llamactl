@@ -163,9 +163,9 @@ func (o *Options) isDockerEnabled(backend *config.BackendSettings, dockerEnabled
 	return backend.Docker.Enabled
 }
 
-func (o *Options) IsDockerEnabled(backendConfig *config.BackendConfig) bool {
+func (o *Options) IsDockerEnabled(backendConfig *config.BackendConfig, dockerEnabled *bool) bool {
 	backendSettings := o.getBackendSettings(backendConfig)
-	return o.isDockerEnabled(backendSettings, nil)
+	return o.isDockerEnabled(backendSettings, dockerEnabled)
 }
 
 // GetCommand builds the command to run the backend
@@ -189,7 +189,7 @@ func (o *Options) GetCommand(backendConfig *config.BackendConfig, dockerEnabled 
 }
 
 // buildCommandArgs builds command line arguments for the backend
-func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig) []string {
+func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig, dockerEnabled *bool) []string {
 
 	var args []string
 
@@ -199,7 +199,7 @@ func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig) []string
 		return args
 	}
 
-	if o.isDockerEnabled(backendSettings, nil) {
+	if o.isDockerEnabled(backendSettings, dockerEnabled) {
 		// For Docker, start with Docker args
 		args = append(args, backendSettings.Docker.Args...)
 		args = append(args, backendSettings.Docker.Image)
@@ -215,7 +215,7 @@ func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig) []string
 }
 
 // BuildEnvironment builds the environment variables for the backend process
-func (o *Options) BuildEnvironment(backendConfig *config.BackendConfig, environment map[string]string) map[string]string {
+func (o *Options) BuildEnvironment(backendConfig *config.BackendConfig, dockerEnabled *bool, environment map[string]string) map[string]string {
 
 	backendSettings := o.getBackendSettings(backendConfig)
 	env := map[string]string{}
@@ -224,7 +224,7 @@ func (o *Options) BuildEnvironment(backendConfig *config.BackendConfig, environm
 		maps.Copy(env, backendSettings.Environment)
 	}
 
-	if o.isDockerEnabled(backendSettings, nil) {
+	if o.isDockerEnabled(backendSettings, dockerEnabled) {
 		if backendSettings.Docker.Environment != nil {
 			maps.Copy(env, backendSettings.Docker.Environment)
 		}

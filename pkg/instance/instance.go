@@ -264,7 +264,7 @@ func (i *Instance) buildCommandArgs() []string {
 		return nil
 	}
 
-	return opts.BackendOptions.BuildCommandArgs(i.globalBackendSettings)
+	return opts.BackendOptions.BuildCommandArgs(i.globalBackendSettings, opts.DockerEnabled)
 }
 
 func (i *Instance) buildEnvironment() map[string]string {
@@ -273,29 +273,21 @@ func (i *Instance) buildEnvironment() map[string]string {
 		return nil
 	}
 
-	return opts.BackendOptions.BuildEnvironment(i.globalBackendSettings, opts.Environment)
+	return opts.BackendOptions.BuildEnvironment(i.globalBackendSettings, opts.DockerEnabled, opts.Environment)
 }
 
 // MarshalJSON implements json.Marshaler for Instance
 func (i *Instance) MarshalJSON() ([]byte, error) {
-	// Get options
-	opts := i.GetOptions()
-
-	// Determine if docker is enabled for this instance's backend
-	dockerEnabled := opts.BackendOptions.IsDockerEnabled(i.globalBackendSettings)
-
 	return json.Marshal(&struct {
-		Name          string   `json:"name"`
-		Status        *status  `json:"status"`
-		Created       int64    `json:"created,omitempty"`
-		Options       *options `json:"options,omitempty"`
-		DockerEnabled bool     `json:"docker_enabled,omitempty"`
+		Name    string   `json:"name"`
+		Status  *status  `json:"status"`
+		Created int64    `json:"created,omitempty"`
+		Options *options `json:"options,omitempty"`
 	}{
-		Name:          i.Name,
-		Status:        i.status,
-		Created:       i.Created,
-		Options:       i.options,
-		DockerEnabled: dockerEnabled,
+		Name:    i.Name,
+		Status:  i.status,
+		Created: i.Created,
+		Options: i.options,
 	})
 }
 

@@ -59,12 +59,8 @@ function InstanceCard({
         // Fetch the most up-to-date instance data from the backend
         const instanceData = await instancesApi.get(instance.name);
 
-        // Remove docker_enabled as it's a computed field, not persisted to disk
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { docker_enabled, ...persistedData } = instanceData;
-
         // Convert to JSON string with pretty formatting (matching backend format)
-        const jsonString = JSON.stringify(persistedData, null, 2);
+        const jsonString = JSON.stringify(instanceData, null, 2);
 
         // Create a blob and download link
         const blob = new Blob([jsonString], { type: "application/json" });
@@ -101,7 +97,7 @@ function InstanceCard({
             
             {/* Badges row */}
             <div className="flex items-center gap-2 flex-wrap">
-              <BackendBadge backend={instance.options?.backend_type} docker={instance.docker_enabled} />
+              <BackendBadge backend={instance.options?.backend_type} docker={instance.options?.docker_enabled} />
               {running && <HealthBadge health={health} />}
             </div>
           </div>
