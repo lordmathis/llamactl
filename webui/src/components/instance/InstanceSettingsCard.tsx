@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { BackendType, type CreateInstanceOptions } from '@/types/instance'
+import { type CreateInstanceOptions } from '@/types/instance'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import AutoRestartConfiguration from '@/components/instance/AutoRestartConfiguration'
 import NumberInput from '@/components/form/NumberInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
-import EnvVarsInput from '@/components/form/EnvVarsInput'
 import SelectInput from '@/components/form/SelectInput'
-import TextInput from '@/components/form/TextInput'
 import { nodesApi, type NodesMap } from '@/lib/api'
 
 interface InstanceSettingsCardProps {
@@ -105,48 +103,6 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
             disabled={isEditing}
           />
         )}
-
-        {/* Execution Context */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Execution Context</h3>
-
-          {/* Docker Mode Toggle - only for backends that support Docker */}
-          {formData.backend_type !== BackendType.MLX_LM && (
-            <CheckboxInput
-              id="docker_enabled"
-              label="Enable Docker"
-              value={formData.docker_enabled}
-              onChange={(value) => onChange('docker_enabled', value)}
-              description="Run backend in Docker container (overrides config default)"
-            />
-          )}
-
-          {/* Command Override - only shown when Docker is disabled or backend is MLX */}
-          {(formData.backend_type === BackendType.MLX_LM || formData.docker_enabled !== true) && (
-            <TextInput
-              id="command_override"
-              label="Command Override"
-              value={formData.command_override || ''}
-              onChange={(value) => onChange('command_override', value)}
-              placeholder={
-                formData.backend_type === BackendType.LLAMA_CPP
-                  ? "/usr/local/bin/llama-server"
-                  : formData.backend_type === BackendType.VLLM
-                  ? "/usr/local/bin/vllm"
-                  : "/usr/local/bin/mlx_lm.server"
-              }
-              description="Custom path to backend executable"
-            />
-          )}
-
-          <EnvVarsInput
-            id="environment"
-            label="Environment Variables"
-            value={formData.environment}
-            onChange={(value) => onChange('environment', value)}
-            description="Custom environment variables for the instance"
-          />
-        </div>
 
         {/* Auto Restart Configuration */}
         <AutoRestartConfiguration

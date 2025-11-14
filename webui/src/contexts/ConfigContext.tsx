@@ -1,18 +1,13 @@
-import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { type ReactNode, createContext, useContext, useEffect, useState, useRef } from 'react'
 import { serverApi } from '@/lib/api'
 import type { AppConfig } from '@/types/config'
+import { useAuth } from './AuthContext'
 
-interface ConfigContextState {
+interface ConfigContextType {
   config: AppConfig | null
   isLoading: boolean
   error: string | null
 }
-
-interface ConfigContextActions {
-  refetchConfig: () => Promise<void>
-}
-
-type ConfigContextType = ConfigContextState & ConfigContextActions
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined)
 
@@ -21,44 +16,38 @@ interface ConfigProviderProps {
 }
 
 export const ConfigProvider = ({ children }: ConfigProviderProps) => {
+  const { isAuthenticated } = useAuth()
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const loadedRef = useRef(false)
 
-  const fetchConfig = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const data = await serverApi.getConfig()
-      setConfig(data)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load configuration'
-      setError(errorMessage)
-      console.error('Error loading config:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  // Load config on mount
   useEffect(() => {
-    void fetchConfig()
-  }, [fetchConfig])
+    if (!isAuthenticated || loadedRef.current) {
+      setIsLoading(false)
+      return
+    }
 
-  const refetchConfig = useCallback(async () => {
-    await fetchConfig()
-  }, [fetchConfig])
+    loadedRef.current = true
 
-  const value: ConfigContextType = {
-    config,
-    isLoading,
-    error,
-    refetchConfig,
-  }
+    const loadConfig = async () => {
+      try {
+        const data = await serverApi.getConfig()
+        setConfig(data)
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load configuration'
+        setError(errorMessage)
+        console.error('Error loading config:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    void loadConfig()
+  }, [isAuthenticated])
 
   return (
-    <ConfigContext.Provider value={value}>
+    <ConfigContext.Provider value={{ config, isLoading, error }}>
       {children}
     </ConfigContext.Provider>
   )
@@ -76,7 +65,7 @@ export const useConfig = (): ConfigContextType => {
 export const useInstanceDefaults = () => {
   const { config } = useConfig()
 
-  if (!config) {
+  if (!config || !config.instances) {
     return null
   }
 
@@ -88,13 +77,36 @@ export const useInstanceDefaults = () => {
   }
 }
 
-// Helper hook to get backend settings from config
-export const useBackendConfig = () => {
+// Helper hook to get specific backend settings by backend type
+export const useBackendSettings = (backendType: string | undefined) => {
   const { config } = useConfig()
 
-  if (!config) {
+  if (!config || !config.backends || !backendType) {
     return null
   }
 
-  return config.backends
+  // Map backend type to config key
+  const backendKey = backendType === 'llama_cpp'
+    ? 'llama-cpp'
+    : backendType === 'mlx_lm'
+    ? 'mlx'
+    : backendType === 'vllm'
+    ? 'vllm'
+    : null
+
+  if (!backendKey) {
+    return null
+  }
+
+  const backendConfig = config.backends[backendKey as keyof typeof config.backends]
+
+  if (!backendConfig) {
+    return null
+  }
+
+  return {
+    command: backendConfig.command || '',
+    dockerEnabled: backendConfig.docker?.enabled ?? false,
+    dockerImage: backendConfig.docker?.image || '',
+  }
 }

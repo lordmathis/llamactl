@@ -14,7 +14,7 @@ import ParseCommandDialog from "@/components/ParseCommandDialog";
 import InstanceSettingsCard from "@/components/instance/InstanceSettingsCard";
 import BackendConfigurationCard from "@/components/instance/BackendConfigurationCard";
 import { Upload } from "lucide-react";
-import { useInstanceDefaults } from "@/contexts/ConfigContext";
+import { useInstanceDefaults, useBackendSettings } from "@/contexts/ConfigContext";
 
 interface InstanceDialogProps {
   open: boolean;
@@ -38,6 +38,10 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   const [showParseDialog, setShowParseDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Get backend settings for all backends (we'll use this to update docker_enabled on backend type change)
+  const llamaCppSettings = useBackendSettings(BackendType.LLAMA_CPP);
+  const vllmSettings = useBackendSettings(BackendType.VLLM);
+  const mlxSettings = useBackendSettings(BackendType.MLX_LM);
 
   // Reset form when dialog opens/closes or when instance changes
   useEffect(() => {
@@ -55,20 +59,32 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
           restart_delay: instanceDefaults?.restartDelay,
           on_demand_start: instanceDefaults?.onDemandStart,
           backend_type: BackendType.LLAMA_CPP, // Default backend type
+          docker_enabled: llamaCppSettings?.dockerEnabled ?? false,
           backend_options: {},
         });
       }
       setNameError(""); // Reset any name errors
     }
-  }, [open, instance, instanceDefaults]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, instance]);
 
   const handleFieldChange = (key: keyof CreateInstanceOptions, value: unknown) => {
     setFormData((prev) => {
-      // If backend_type is changing, clear backend_options
+      // If backend_type is changing, update docker_enabled default and clear backend_options
       if (key === 'backend_type' && prev.backend_type !== value) {
+        let dockerEnabled = false;
+        if (value === BackendType.LLAMA_CPP) {
+          dockerEnabled = llamaCppSettings?.dockerEnabled ?? false;
+        } else if (value === BackendType.VLLM) {
+          dockerEnabled = vllmSettings?.dockerEnabled ?? false;
+        } else if (value === BackendType.MLX_LM) {
+          dockerEnabled = mlxSettings?.dockerEnabled ?? false;
+        }
+
         return {
           ...prev,
           backend_type: value as CreateInstanceOptions['backend_type'],
+          docker_enabled: dockerEnabled,
           backend_options: {}, // Clear backend options when backend type changes
         };
       }

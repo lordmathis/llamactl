@@ -43,3 +43,6 @@ llamactl.dev.yaml
 
 # Debug files
 __debug*
+
+# Binary
+llamactl-*
