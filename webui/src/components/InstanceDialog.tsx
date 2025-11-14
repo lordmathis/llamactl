@@ -14,6 +14,7 @@ import ParseCommandDialog from "@/components/ParseCommandDialog";
 import InstanceSettingsCard from "@/components/instance/InstanceSettingsCard";
 import BackendConfigurationCard from "@/components/instance/BackendConfigurationCard";
 import { Upload } from "lucide-react";
+import { useInstanceDefaults } from "@/contexts/ConfigContext";
 
 interface InstanceDialogProps {
   open: boolean;
@@ -29,6 +30,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   instance,
 }) => {
   const isEditing = !!instance;
+  const instanceDefaults = useInstanceDefaults();
 
   const [instanceName, setInstanceName] = useState("");
   const [formData, setFormData] = useState<CreateInstanceOptions>({});
@@ -45,17 +47,20 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
         setInstanceName(instance.name);
         setFormData(instance.options || {});
       } else {
-        // Reset form for new instance
+        // Reset form for new instance with defaults from config
         setInstanceName("");
         setFormData({
-          auto_restart: true, // Default value
+          auto_restart: instanceDefaults?.autoRestart ?? true,
+          max_restarts: instanceDefaults?.maxRestarts,
+          restart_delay: instanceDefaults?.restartDelay,
+          on_demand_start: instanceDefaults?.onDemandStart,
           backend_type: BackendType.LLAMA_CPP, // Default backend type
           backend_options: {},
         });
       }
       setNameError(""); // Reset any name errors
     }
-  }, [open, instance]);
+  }, [open, instance, instanceDefaults]);
 
   const handleFieldChange = (key: keyof CreateInstanceOptions, value: unknown) => {
     setFormData((prev) => {
