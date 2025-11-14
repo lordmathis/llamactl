@@ -49,6 +49,21 @@ vi.mock('@/lib/healthService', () => ({
   })),
 }))
 
+// Mock the ConfigContext hooks
+vi.mock('@/contexts/ConfigContext', () => ({
+  useInstanceDefaults: () => ({
+    autoRestart: true,
+    maxRestarts: 3,
+    restartDelay: 5,
+    onDemandStart: false,
+  }),
+  useBackendSettings: () => ({
+    command: '/usr/bin/llama-server',
+    dockerEnabled: false,
+    dockerImage: '',
+  }),
+}))
+
 function renderApp() {
   return render(
     <AuthProvider>
@@ -119,8 +134,12 @@ describe('App Component - Critical Business Logic Only', () => {
       // Verify correct API call
       await waitFor(() => {
         expect(instancesApi.create).toHaveBeenCalledWith('new-test-instance', {
-          auto_restart: true, // Default value
-          backend_type: BackendType.LLAMA_CPP
+          auto_restart: true, // Default value from config
+          backend_type: BackendType.LLAMA_CPP,
+          docker_enabled: false,
+          max_restarts: 3,
+          on_demand_start: false,
+          restart_delay: 5
         })
       })
 
