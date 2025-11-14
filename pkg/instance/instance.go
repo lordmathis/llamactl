@@ -255,7 +255,7 @@ func (i *Instance) getCommand() string {
 		return ""
 	}
 
-	return opts.BackendOptions.GetCommand(i.globalBackendSettings)
+	return opts.BackendOptions.GetCommand(i.globalBackendSettings, opts.DockerEnabled, opts.CommandOverride)
 }
 
 func (i *Instance) buildCommandArgs() []string {

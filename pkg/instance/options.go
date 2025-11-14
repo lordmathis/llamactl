@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/config"
+	"llamactl/pkg/validation"
 	"log"
 	"slices"
 	"sync"
@@ -22,6 +23,11 @@ type Options struct {
 	IdleTimeout *int `json:"idle_timeout,omitempty"` // minutes
 	// Environment variables
 	Environment map[string]string `json:"environment,omitempty"`
+
+	// Execution context overrides
+	DockerEnabled   *bool  `json:"docker_enabled,omitempty"`
+	CommandOverride string `json:"command_override,omitempty"`
+
 	// Assigned nodes
 	Nodes map[string]struct{} `json:"-"`
 	// Backend options
@@ -198,6 +204,28 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 	if c.IdleTimeout != nil && *c.IdleTimeout < 0 {
 		log.Printf("Instance %s IdleTimeout value (%d) cannot be negative, setting to 0 minutes", name, *c.IdleTimeout)
 		*c.IdleTimeout = 0
+	}
+
+	// Validate docker_enabled and command_override relationship
+	if c.DockerEnabled != nil && *c.DockerEnabled && c.CommandOverride != "" {
+		log.Printf("Instance %s: command_override cannot be set when docker_enabled is true, ignoring command_override", name)
+		c.CommandOverride = "" // Clear invalid configuration
+	}
+
+	// Validate command_override if set
+	if c.CommandOverride != "" {
+		if err := validation.ValidateStringForInjection(c.CommandOverride); err != nil {
+			log.Printf("Instance %s: invalid command_override: %v, clearing value", name, err)
+			c.CommandOverride = "" // Clear invalid value
+		}
+	}
+
+	// Validate docker_enabled for MLX backend
+	if c.BackendOptions.BackendType == backends.BackendTypeMlxLm {
+		if c.DockerEnabled != nil && *c.DockerEnabled {
+			log.Printf("Instance %s: docker_enabled is not supported for MLX backend, ignoring", name)
+			c.DockerEnabled = nil // Clear invalid configuration
+		}
 	}
 
 	// Apply defaults from global settings for nil fields

@@ -2,6 +2,7 @@ package backends_test
 
 import (
 	"llamactl/pkg/backends"
+	"llamactl/pkg/config"
 	"llamactl/pkg/testutil"
 	"testing"
 )
@@ -270,6 +271,60 @@ func TestParseMlxCommand_ExtraArgs(t *testing.T) {
 					t.Fatal("result is not *MlxServerOptions")
 				}
 				tt.validate(t, mlxOpts)
+			}
+		})
+	}
+}
+func TestMlxGetCommand_NoDocker(t *testing.T) {
+	// MLX backend should never use Docker
+	backendConfig := &config.BackendConfig{
+		MLX: config.BackendSettings{
+			Command: "/usr/bin/mlx-server",
+			Docker: &config.DockerSettings{
+				Enabled: true, // Even if enabled in config
+				Image:   "test-image",
+			},
+		},
+	}
+
+	opts := backends.Options{
+		BackendType: backends.BackendTypeMlxLm,
+		MlxServerOptions: &backends.MlxServerOptions{
+			Model: "test-model",
+		},
+	}
+
+	tests := []struct {
+		name            string
+		dockerEnabled   *bool
+		commandOverride string
+		expected        string
+	}{
+		{
+			name:            "ignores docker in config",
+			dockerEnabled:   nil,
+			commandOverride: "",
+			expected:        "/usr/bin/mlx-server",
+		},
+		{
+			name:            "ignores docker override",
+			dockerEnabled:   boolPtr(true),
+			commandOverride: "",
+			expected:        "/usr/bin/mlx-server",
+		},
+		{
+			name:            "respects command override",
+			dockerEnabled:   nil,
+			commandOverride: "/custom/mlx-server",
+			expected:        "/custom/mlx-server",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := opts.GetCommand(backendConfig, tt.dockerEnabled, tt.commandOverride)
+			if result != tt.expected {
+				t.Errorf("GetCommand() = %v, want %v", result, tt.expected)
 			}
 		})
 	}
