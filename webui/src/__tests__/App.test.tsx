@@ -48,8 +48,8 @@ vi.mock('@/lib/healthService', () => ({
   })),
 }))
 
-// Mock the ConfigContext hooks
-vi.mock('@/contexts/ConfigContext', () => ({
+// Mock the ConfigContext helper hooks
+vi.mock('@/hooks/useConfig', () => ({
   useInstanceDefaults: () => ({
     autoRestart: true,
     maxRestarts: 3,

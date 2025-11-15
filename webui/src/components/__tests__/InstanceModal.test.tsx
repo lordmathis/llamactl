@@ -2,11 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceDialog from '@/components/InstanceDialog'
-import type { Instance } from '@/types/instance'
-import { BackendType } from '@/types/instance'
+import { BackendType, type Instance } from '@/types/instance'
 
-// Mock the ConfigContext hooks
-vi.mock('@/contexts/ConfigContext', () => ({
+// Mock the ConfigContext helper hooks
+vi.mock('@/hooks/useConfig', () => ({
   useInstanceDefaults: () => ({
     autoRestart: true,
     maxRestarts: 3,

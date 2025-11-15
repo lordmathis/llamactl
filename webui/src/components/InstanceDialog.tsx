@@ -14,7 +14,7 @@ import ParseCommandDialog from "@/components/ParseCommandDialog";
 import InstanceSettingsCard from "@/components/instance/InstanceSettingsCard";
 import BackendConfigurationCard from "@/components/instance/BackendConfigurationCard";
 import { Upload } from "lucide-react";
-import { useInstanceDefaults, useBackendSettings } from "@/contexts/ConfigContext";
+import { useInstanceDefaults, useBackendSettings } from "@/hooks/useConfig";
 
 interface InstanceDialogProps {
   open: boolean;
