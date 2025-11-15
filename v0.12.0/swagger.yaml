@@ -1,0 +1,1204 @@
+basePath: /api/v1
+definitions:
+  config.AppConfig:
+    properties:
+      auth:
+        $ref: '#/definitions/config.AuthConfig'
+      backends:
+        $ref: '#/definitions/config.BackendConfig'
+      build_time:
+        type: string
+      commit_hash:
+        type: string
+      instances:
+        $ref: '#/definitions/config.InstancesConfig'
+      local_node:
+        type: string
+      nodes:
+        additionalProperties:
+          $ref: '#/definitions/config.NodeConfig'
+        type: object
+      server:
+        $ref: '#/definitions/config.ServerConfig'
+      version:
+        type: string
+    type: object
+  config.AuthConfig:
+    properties:
+      inference_keys:
+        description: List of keys for OpenAI compatible inference endpoints
+        items:
+          type: string
+        type: array
+      management_keys:
+        description: List of keys for management endpoints
+        items:
+          type: string
+        type: array
+      require_inference_auth:
+        description: Require authentication for OpenAI compatible inference endpoints
+        type: boolean
+      require_management_auth:
+        description: Require authentication for management endpoints
+        type: boolean
+    type: object
+  config.BackendConfig:
+    properties:
+      llama-cpp:
+        $ref: '#/definitions/config.BackendSettings'
+      mlx:
+        $ref: '#/definitions/config.BackendSettings'
+      vllm:
+        $ref: '#/definitions/config.BackendSettings'
+    type: object
+  config.BackendSettings:
+    properties:
+      args:
+        items:
+          type: string
+        type: array
+      command:
+        type: string
+      docker:
+        $ref: '#/definitions/config.DockerSettings'
+      environment:
+        additionalProperties:
+          type: string
+        type: object
+      response_headers:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  config.DockerSettings:
+    properties:
+      args:
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
+      environment:
+        additionalProperties:
+          type: string
+        type: object
+      image:
+        type: string
+    type: object
+  config.InstancesConfig:
+    properties:
+      auto_create_dirs:
+        description: Automatically create the data directory if it doesn't exist
+        type: boolean
+      configs_dir:
+        description: Instance config directory override
+        type: string
+      data_dir:
+        description: Directory where all llamactl data will be stored (instances.json,
+          logs, etc.)
+        type: string
+      default_auto_restart:
+        description: Default auto-restart setting for new instances
+        type: boolean
+      default_max_restarts:
+        description: Default max restarts for new instances
+        type: integer
+      default_on_demand_start:
+        description: Default on-demand start setting for new instances
+        type: boolean
+      default_restart_delay:
+        description: Default restart delay for new instances (in seconds)
+        type: integer
+      enable_lru_eviction:
+        description: Enable LRU eviction for instance logs
+        type: boolean
+      logs_dir:
+        description: Logs directory override
+        type: string
+      max_instances:
+        description: Maximum number of instances that can be created
+        type: integer
+      max_running_instances:
+        description: Maximum number of instances that can be running at the same time
+        type: integer
+      on_demand_start_timeout:
+        description: How long to wait for an instance to start on demand (in seconds)
+        type: integer
+      port_range:
+        description: Port range for instances (e.g., 8000,9000)
+        items:
+          type: integer
+        type: array
+      timeout_check_interval:
+        description: Interval for checking instance timeouts (in minutes)
+        type: integer
+    type: object
+  config.NodeConfig:
+    properties:
+      address:
+        type: string
+      api_key:
+        type: string
+    type: object
+  config.ServerConfig:
+    properties:
+      allowed_headers:
+        description: Allowed headers for CORS (e.g., "Accept", "Authorization", "Content-Type",
+          "X-CSRF-Token")
+        items:
+          type: string
+        type: array
+      allowed_origins:
+        description: Allowed origins for CORS (e.g., "http://localhost:3000")
+        items:
+          type: string
+        type: array
+      enable_swagger:
+        description: Enable Swagger UI for API documentation
+        type: boolean
+      host:
+        description: Server host to bind to
+        type: string
+      port:
+        description: Server port to bind to
+        type: integer
+      response_headers:
+        additionalProperties:
+          type: string
+        description: Response headers to send with responses
+        type: object
+    type: object
+  instance.Instance:
+    properties:
+      created:
+        description: Unix timestamp when the instance was created
+        type: integer
+      name:
+        type: string
+    type: object
+  instance.Options:
+    properties:
+      auto_restart:
+        description: Auto restart
+        type: boolean
+      command_override:
+        type: string
+      docker_enabled:
+        description: Execution context overrides
+        type: boolean
+      environment:
+        additionalProperties:
+          type: string
+        description: Environment variables
+        type: object
+      idle_timeout:
+        description: Idle timeout
+        type: integer
+      max_restarts:
+        type: integer
+      on_demand_start:
+        description: On demand start
+        type: boolean
+      restart_delay:
+        description: seconds
+        type: integer
+    type: object
+  server.NodeResponse:
+    properties:
+      address:
+        type: string
+    type: object
+  server.OpenAIInstance:
+    properties:
+      created:
+        type: integer
+      id:
+        type: string
+      object:
+        type: string
+      owned_by:
+        type: string
+    type: object
+  server.OpenAIListInstancesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/server.OpenAIInstance'
+        type: array
+      object:
+        type: string
+    type: object
+  server.ParseCommandRequest:
+    properties:
+      command:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: llamactl is a control server for managing Llama Server instances.
+  license:
+    name: MIT License
+    url: https://opensource.org/license/mit/
+  title: llamactl API
+  version: "1.0"
+paths:
+  /api/v1/backends/llama-cpp/devices:
+    get:
+      description: Returns a list of available devices for the llama server
+      responses:
+        "200":
+          description: List of devices
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List available devices for llama server
+      tags:
+      - Backends
+  /api/v1/backends/llama-cpp/help:
+    get:
+      description: Returns the help text for the llama server command
+      responses:
+        "200":
+          description: Help text
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get help for llama server
+      tags:
+      - Backends
+  /api/v1/backends/llama-cpp/parse-command:
+    post:
+      consumes:
+      - application/json
+      description: Parses a llama-server command string into instance options
+      parameters:
+      - description: Command to parse
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.ParseCommandRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Parsed options
+          schema:
+            $ref: '#/definitions/instance.Options'
+        "400":
+          description: Invalid request or command
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Parse llama-server command
+      tags:
+      - Backends
+  /api/v1/backends/llama-cpp/version:
+    get:
+      description: Returns the version of the llama server command
+      responses:
+        "200":
+          description: Version information
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get version of llama server
+      tags:
+      - Backends
+  /api/v1/backends/mlx/parse-command:
+    post:
+      consumes:
+      - application/json
+      description: Parses MLX-LM server command string into instance options
+      parameters:
+      - description: Command to parse
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.ParseCommandRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Parsed options
+          schema:
+            $ref: '#/definitions/instance.Options'
+        "400":
+          description: Invalid request or command
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Parse mlx_lm.server command
+      tags:
+      - Backends
+  /api/v1/backends/vllm/parse-command:
+    post:
+      consumes:
+      - application/json
+      description: Parses a vLLM serve command string into instance options
+      parameters:
+      - description: Command to parse
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.ParseCommandRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Parsed options
+          schema:
+            $ref: '#/definitions/instance.Options'
+        "400":
+          description: Invalid request or command
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Parse vllm serve command
+      tags:
+      - Backends
+  /api/v1/config:
+    get:
+      description: Returns the current server configuration (sanitized)
+      responses:
+        "200":
+          description: Sanitized configuration
+          schema:
+            $ref: '#/definitions/config.AppConfig'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get server configuration
+      tags:
+      - System
+  /api/v1/instances:
+    get:
+      description: Returns a list of all instances managed by the server
+      responses:
+        "200":
+          description: List of instances
+          schema:
+            items:
+              $ref: '#/definitions/instance.Instance'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List all instances
+      tags:
+      - Instances
+  /api/v1/instances/{name}:
+    delete:
+      description: Stops and removes a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Delete an instance
+      tags:
+      - Instances
+    get:
+      description: Returns the details of a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Instance details
+          schema:
+            $ref: '#/definitions/instance.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get details of a specific instance
+      tags:
+      - Instances
+    post:
+      consumes:
+      - application/json
+      description: Creates a new instance with the provided configuration options
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Instance configuration options
+        in: body
+        name: options
+        required: true
+        schema:
+          $ref: '#/definitions/instance.Options'
+      responses:
+        "201":
+          description: Created instance details
+          schema:
+            $ref: '#/definitions/instance.Instance'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Create and start a new instance
+      tags:
+      - Instances
+    put:
+      consumes:
+      - application/json
+      description: Updates the configuration of a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Instance configuration options
+        in: body
+        name: options
+        required: true
+        schema:
+          $ref: '#/definitions/instance.Options'
+      responses:
+        "200":
+          description: Updated instance details
+          schema:
+            $ref: '#/definitions/instance.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Update an instance's configuration
+      tags:
+      - Instances
+  /api/v1/instances/{name}/logs:
+    get:
+      description: Returns the logs from a specific instance by name with optional
+        line limit
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: 'Number of lines to retrieve (default: all lines)'
+        in: query
+        name: lines
+        type: string
+      responses:
+        "200":
+          description: Instance logs
+          schema:
+            type: string
+        "400":
+          description: Invalid name format or lines parameter
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get logs from a specific instance
+      tags:
+      - Instances
+  /api/v1/instances/{name}/proxy:
+    get:
+      description: Forwards HTTP requests to the llama-server instance running on
+        a specific port
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Request successfully proxied to instance
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+        "503":
+          description: Instance is not running
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to a specific instance, does not autostart instance
+        if stopped
+      tags:
+      - Instances
+    post:
+      description: Forwards HTTP requests to the llama-server instance running on
+        a specific port
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Request successfully proxied to instance
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+        "503":
+          description: Instance is not running
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to a specific instance, does not autostart instance
+        if stopped
+      tags:
+      - Instances
+  /api/v1/instances/{name}/restart:
+    post:
+      description: Restarts a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Restarted instance details
+          schema:
+            $ref: '#/definitions/instance.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Restart a running instance
+      tags:
+      - Instances
+  /api/v1/instances/{name}/start:
+    post:
+      description: Starts a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Started instance details
+          schema:
+            $ref: '#/definitions/instance.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Start a stopped instance
+      tags:
+      - Instances
+  /api/v1/instances/{name}/stop:
+    post:
+      description: Stops a specific instance by name
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Stopped instance details
+          schema:
+            $ref: '#/definitions/instance.Instance'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Stop a running instance
+      tags:
+      - Instances
+  /api/v1/nodes:
+    get:
+      description: Returns a map of all nodes configured in the server (node name
+        -> node config)
+      responses:
+        "200":
+          description: Map of nodes
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/server.NodeResponse'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List all configured nodes
+      tags:
+      - Nodes
+  /api/v1/nodes/{name}:
+    get:
+      description: Returns the details of a specific node by name
+      parameters:
+      - description: Node Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Node details
+          schema:
+            $ref: '#/definitions/server.NodeResponse'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "404":
+          description: Node not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get details of a specific node
+      tags:
+      - Nodes
+  /api/v1/version:
+    get:
+      description: Returns the version of the llamactl command
+      responses:
+        "200":
+          description: Version information
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get llamactl version
+      tags:
+      - System
+  /llama-cpp/{name}/:
+    get:
+      description: Proxies requests to the llama.cpp UI for the specified instance
+      parameters:
+      - description: Instance Name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Proxied HTML response
+          schema:
+            type: string
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp UI for the instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/apply-template:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/completion:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/detokenize:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/embeddings:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/infill:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/metrics:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/props:
+    get:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/reranking:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/slots:
+    get:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /llama-cpp/{name}/tokenize:
+    post:
+      description: Proxies requests to the specified llama.cpp server instance, starting
+        it on-demand if configured
+      parameters:
+      - description: Instance Name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Proxied response
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid instance
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Proxy requests to llama.cpp server instance
+      tags:
+      - Llama.cpp
+  /v1/:
+    post:
+      consumes:
+      - application/json
+      description: Handles all POST requests to /v1/*, routing to the appropriate
+        instance based on the request body. Requires API key authentication via the
+        `Authorization` header.
+      responses:
+        "200":
+          description: OpenAI response
+        "400":
+          description: Invalid request body or instance name
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: OpenAI-compatible proxy endpoint
+      tags:
+      - OpenAI
+  /v1/models:
+    get:
+      description: Returns a list of instances in a format compatible with OpenAI
+        API
+      responses:
+        "200":
+          description: List of OpenAI-compatible instances
+          schema:
+            $ref: '#/definitions/server.OpenAIListInstancesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List instances in OpenAI-compatible format
+      tags:
+      - OpenAI
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-API-Key
+    type: apiKey
+swagger: "2.0"
