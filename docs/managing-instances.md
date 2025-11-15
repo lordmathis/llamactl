@@ -42,33 +42,41 @@ Each instance is displayed as a card showing:
 ![Create Instance Screenshot](images/create_instance.png)
 
 1. Click the **"Create Instance"** button on the dashboard
-2. *Optional*: Click **"Import"** in the dialog header to load a previously exported configuration
-2. Enter a unique **Name** for your instance (only required field)
-3. **Select Target Node**: Choose which node to deploy the instance to from the dropdown
-4. **Choose Backend Type**:
-    - **llama.cpp**: For GGUF models using llama-server
-    - **MLX**: For MLX-optimized models (macOS only)
+2. *Optional*: Click **"Import"** to load a previously exported configuration
+
+**Instance Settings:**
+
+3. Enter a unique **Instance Name** (required)
+4. **Select Node**: Choose which node to deploy the instance to
+5. Configure **Auto Restart** settings:
+    - Enable automatic restart on failure
+    - Set max restarts and delay between attempts
+6. Configure basic instance options:
+    - **Idle Timeout**: Minutes before stopping idle instance
+    - **On Demand Start**: Start instance only when needed
+
+**Backend Configuration:**
+
+7. **Select Backend Type**:
+    - **Llama Server**: For GGUF models using llama-server
+    - **MLX LM**: For MLX-optimized models (macOS only)
     - **vLLM**: For distributed serving and high-throughput inference
-5. Configure model source:
-    - **For llama.cpp**: GGUF model path or HuggingFace repo
-    - **For MLX**: MLX model path or identifier (e.g., `mlx-community/Mistral-7B-Instruct-v0.3-4bit`)
-    - **For vLLM**: HuggingFace model identifier (e.g., `microsoft/DialoGPT-medium`)
-6. Configure optional instance management settings:
-    - **Auto Restart**: Automatically restart instance on failure
-    - **Max Restarts**: Maximum number of restart attempts
-    - **Restart Delay**: Delay in seconds between restart attempts
-    - **On Demand Start**: Start instance when receiving a request to the OpenAI compatible endpoint
-    - **Idle Timeout**: Minutes before stopping idle instance (set to 0 to disable)
-    - **Environment Variables**: Set custom environment variables for the instance process
-7. Configure backend-specific options:
-    - **llama.cpp**: Threads, context size, GPU layers, port, etc.
-    - **MLX**: Temperature, top-p, adapter path, Python environment, etc.
-    - **vLLM**: Tensor parallel size, GPU memory utilization, quantization, etc.
+8. *Optional*: Click **"Parse Command"** to import settings from an existing backend command
+9. Configure **Execution Context**:
+    - **Enable Docker**: Run backend in Docker container
+    - **Command Override**: Custom path to backend executable
+    - **Environment Variables**: Custom environment variables
 
 !!! tip "Auto-Assignment"
     Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.
-
-8. Click **"Create"** to save the instance  
+  
+10. Configure **Basic Backend Options** (varies by backend):
+    - **llama.cpp**: Model path, threads, context size, GPU layers, etc.
+    - **MLX**: Model identifier, temperature, max tokens, etc.
+    - **vLLM**: Model identifier, tensor parallel size, GPU memory utilization, etc.
+11. *Optional*: Expand **Advanced Backend Options** for additional settings
+12. *Optional*: Add **Extra Args** as key-value pairs for custom command-line arguments
+13. Click **"Create"** to save the instance  
 
 **Via API**
 
@@ -83,9 +91,32 @@ curl -X POST http://localhost:8080/api/v1/instances/my-llama-instance \
       "model": "/path/to/model.gguf",
       "threads": 8,
       "ctx_size": 4096,
-      "gpu_layers": 32
+      "gpu_layers": 32,
+      "flash_attn": "on"
     },
+    "auto_restart": true,
+    "max_restarts": 3,
+    "docker_enabled": false,
+    "command_override": "/opt/llama-server-dev",
     "nodes": ["main"]
+  }'
+
+# Create vLLM instance with environment variables
+curl -X POST http://localhost:8080/api/v1/instances/my-vllm-instance \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "backend_type": "vllm",
+    "backend_options": {
+      "model": "microsoft/DialoGPT-medium",
+      "tensor_parallel_size": 2,
+      "gpu_memory_utilization": 0.9
+    },
+    "on_demand_start": true,
+    "environment": {
+      "CUDA_VISIBLE_DEVICES": "0,1"
+    },
+    "nodes": ["worker1", "worker2"]
   }'
 
 # Create MLX instance (macOS only)
@@ -97,73 +128,9 @@ curl -X POST http://localhost:8080/api/v1/instances/my-mlx-instance \
     "backend_options": {
       "model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
       "temp": 0.7,
-      "top_p": 0.9,
       "max_tokens": 2048
     },
-    "auto_restart": true,
-    "max_restarts": 3,
     "nodes": ["main"]
-  }'
-
-# Create vLLM instance
-curl -X POST http://localhost:8080/api/v1/instances/my-vllm-instance \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{
-    "backend_type": "vllm",
-    "backend_options": {
-      "model": "microsoft/DialoGPT-medium",
-      "tensor_parallel_size": 2,
-      "gpu_memory_utilization": 0.9
-    },
-    "auto_restart": true,
-    "on_demand_start": true,
-    "environment": {
-      "CUDA_VISIBLE_DEVICES": "0,1",
-      "NCCL_DEBUG": "INFO",
-      "PYTHONPATH": "/custom/path"
-    },
-    "nodes": ["main"]
-  }'
-
-# Create llama.cpp instance with HuggingFace model
-curl -X POST http://localhost:8080/api/v1/instances/gemma-3-27b \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{
-    "backend_type": "llama_cpp",
-    "backend_options": {
-      "hf_repo": "unsloth/gemma-3-27b-it-GGUF",
-      "hf_file": "gemma-3-27b-it-GGUF.gguf",
-      "gpu_layers": 32
-    },
-    "nodes": ["main"]
-  }'
-
-# Create instance on specific remote node
-curl -X POST http://localhost:8080/api/v1/instances/remote-llama \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{
-    "backend_type": "llama_cpp",
-    "backend_options": {
-      "model": "/models/llama-7b.gguf",
-      "gpu_layers": 32
-    },
-    "nodes": ["worker1"]
-  }'
-
-# Create instance on multiple nodes for high availability
-curl -X POST http://localhost:8080/api/v1/instances/multi-node-llama \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d '{
-    "backend_type": "llama_cpp",
-    "backend_options": {
-      "model": "/models/llama-7b.gguf",
-      "gpu_layers": 32
-    },
-    "nodes": ["worker1", "worker2", "worker3"]
   }'
 ```
 

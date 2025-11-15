@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import type { CreateInstanceOptions } from '@/types/instance'
+import { type CreateInstanceOptions } from '@/types/instance'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import AutoRestartConfiguration from '@/components/instance/AutoRestartConfiguration'
 import NumberInput from '@/components/form/NumberInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
-import EnvVarsInput from '@/components/form/EnvVarsInput'
 import SelectInput from '@/components/form/SelectInput'
 import { nodesApi, type NodesMap } from '@/lib/api'
 
@@ -130,14 +129,6 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
             value={formData.on_demand_start}
             onChange={(value) => onChange('on_demand_start', value)}
             description="Start instance only when needed"
-          />
-
-          <EnvVarsInput
-            id="environment"
-            label="Environment Variables"
-            value={formData.environment}
-            onChange={(value) => onChange('environment', value)}
-            description="Custom environment variables for the instance"
           />
         </div>
       </CardContent>

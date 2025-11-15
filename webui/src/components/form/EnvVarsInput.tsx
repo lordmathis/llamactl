@@ -18,7 +18,6 @@ const EnvVarsInput: React.FC<EnvVarsInputProps> = (props) => {
       keyPlaceholder="Variable name"
       valuePlaceholder="Variable value"
       addButtonText="Add Variable"
-      helperText="Environment variables that will be passed to the backend process"
       allowEmptyValues={false}
     />
   )

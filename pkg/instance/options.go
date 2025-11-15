@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/config"
+	"llamactl/pkg/validation"
 	"log"
+	"maps"
 	"slices"
 	"sync"
 )
@@ -22,6 +24,11 @@ type Options struct {
 	IdleTimeout *int `json:"idle_timeout,omitempty"` // minutes
 	// Environment variables
 	Environment map[string]string `json:"environment,omitempty"`
+
+	// Execution context overrides
+	DockerEnabled   *bool  `json:"docker_enabled,omitempty"`
+	CommandOverride string `json:"command_override,omitempty"`
+
 	// Assigned nodes
 	Nodes map[string]struct{} `json:"-"`
 	// Backend options
@@ -138,15 +145,25 @@ func (c *Options) UnmarshalJSON(data []byte) error {
 
 // MarshalJSON implements custom JSON marshaling for Options
 func (c *Options) MarshalJSON() ([]byte, error) {
-	// Use anonymous struct to avoid recursion
 	type Alias Options
-	aux := struct {
+
+	// Make a copy of the struct
+	temp := *c
+
+	// Copy environment map to avoid concurrent access issues
+	if temp.Environment != nil {
+		envCopy := make(map[string]string, len(temp.Environment))
+		maps.Copy(envCopy, temp.Environment)
+		temp.Environment = envCopy
+	}
+
+	aux := &struct {
 		Nodes          []string             `json:"nodes,omitempty"` // Output as JSON array
 		BackendType    backends.BackendType `json:"backend_type"`
 		BackendOptions map[string]any       `json:"backend_options,omitempty"`
 		*Alias
 	}{
-		Alias: (*Alias)(c),
+		Alias: (*Alias)(&temp),
 	}
 
 	// Convert nodes map to array (sorted for consistency)
@@ -163,13 +180,12 @@ func (c *Options) MarshalJSON() ([]byte, error) {
 	aux.BackendType = c.BackendOptions.BackendType
 
 	// Marshal the backends.Options struct to get the properly formatted backend options
-	// Marshal a pointer to trigger the pointer receiver MarshalJSON method
 	backendData, err := json.Marshal(&c.BackendOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal backend options: %w", err)
 	}
 
-	// Unmarshal into a temporary struct to extract the backend_options map
+	// Unmarshal into a new temporary map to extract the backend_options
 	var tempBackend struct {
 		BackendOptions map[string]any `json:"backend_options,omitempty"`
 	}
@@ -198,6 +214,28 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 	if c.IdleTimeout != nil && *c.IdleTimeout < 0 {
 		log.Printf("Instance %s IdleTimeout value (%d) cannot be negative, setting to 0 minutes", name, *c.IdleTimeout)
 		*c.IdleTimeout = 0
+	}
+
+	// Validate docker_enabled and command_override relationship
+	if c.DockerEnabled != nil && *c.DockerEnabled && c.CommandOverride != "" {
+		log.Printf("Instance %s: command_override cannot be set when docker_enabled is true, ignoring command_override", name)
+		c.CommandOverride = "" // Clear invalid configuration
+	}
+
+	// Validate command_override if set
+	if c.CommandOverride != "" {
+		if err := validation.ValidateStringForInjection(c.CommandOverride); err != nil {
+			log.Printf("Instance %s: invalid command_override: %v, clearing value", name, err)
+			c.CommandOverride = "" // Clear invalid value
+		}
+	}
+
+	// Validate docker_enabled for MLX backend
+	if c.BackendOptions.BackendType == backends.BackendTypeMlxLm {
+		if c.DockerEnabled != nil && *c.DockerEnabled {
+			log.Printf("Instance %s: docker_enabled is not supported for MLX backend, ignoring", name)
+			c.DockerEnabled = nil // Clear invalid configuration
+		}
 	}
 
 	// Apply defaults from global settings for nil fields

@@ -79,14 +79,8 @@ func (o *Options) UnmarshalJSON(data []byte) error {
 }
 
 func (o *Options) MarshalJSON() ([]byte, error) {
-	type Alias Options
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(o),
-	}
-
 	// Get backend and marshal it
+	var backendOptions map[string]any
 	backend := o.getBackend()
 	if backend != nil {
 		optionsData, err := json.Marshal(backend)
@@ -94,13 +88,19 @@ func (o *Options) MarshalJSON() ([]byte, error) {
 			return nil, fmt.Errorf("failed to marshal backend options: %w", err)
 		}
 		// Create a new map to avoid concurrent map writes
-		aux.BackendOptions = make(map[string]any)
-		if err := json.Unmarshal(optionsData, &aux.BackendOptions); err != nil {
+		backendOptions = make(map[string]any)
+		if err := json.Unmarshal(optionsData, &backendOptions); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal backend options to map: %w", err)
 		}
 	}
 
-	return json.Marshal(aux)
+	return json.Marshal(&struct {
+		BackendType    BackendType    `json:"backend_type"`
+		BackendOptions map[string]any `json:"backend_options,omitempty"`
+	}{
+		BackendType:    o.BackendType,
+		BackendOptions: backendOptions,
+	})
 }
 
 // setBackendOptions stores the backend in the appropriate typed field
@@ -142,32 +142,54 @@ func (o *Options) getBackend() backend {
 	}
 }
 
-func (o *Options) isDockerEnabled(backend *config.BackendSettings) bool {
-	if backend.Docker != nil && backend.Docker.Enabled && o.BackendType != BackendTypeMlxLm {
-		return true
+// isDockerEnabled checks if Docker is enabled with an optional override
+func (o *Options) isDockerEnabled(backend *config.BackendSettings, dockerEnabledOverride *bool) bool {
+	// Check if backend supports Docker
+	if backend.Docker == nil {
+		return false
 	}
-	return false
+
+	// MLX doesn't support Docker
+	if o.BackendType == BackendTypeMlxLm {
+		return false
+	}
+
+	// Check for instance-level override
+	if dockerEnabledOverride != nil {
+		return *dockerEnabledOverride
+	}
+
+	// Fall back to config value
+	return backend.Docker.Enabled
 }
 
-func (o *Options) IsDockerEnabled(backendConfig *config.BackendConfig) bool {
+func (o *Options) IsDockerEnabled(backendConfig *config.BackendConfig, dockerEnabled *bool) bool {
 	backendSettings := o.getBackendSettings(backendConfig)
-	return o.isDockerEnabled(backendSettings)
+	return o.isDockerEnabled(backendSettings, dockerEnabled)
 }
 
 // GetCommand builds the command to run the backend
-func (o *Options) GetCommand(backendConfig *config.BackendConfig) string {
-
+func (o *Options) GetCommand(backendConfig *config.BackendConfig, dockerEnabled *bool, commandOverride string) string {
 	backendSettings := o.getBackendSettings(backendConfig)
 
-	if o.isDockerEnabled(backendSettings) {
+	// Determine if Docker is enabled
+	useDocker := o.isDockerEnabled(backendSettings, dockerEnabled)
+
+	if useDocker {
 		return "docker"
 	}
 
+	// Check for command override (only applies when not in Docker mode)
+	if commandOverride != "" {
+		return commandOverride
+	}
+
+	// Fall back to config command
 	return backendSettings.Command
 }
 
 // buildCommandArgs builds command line arguments for the backend
-func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig) []string {
+func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig, dockerEnabled *bool) []string {
 
 	var args []string
 
@@ -177,7 +199,7 @@ func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig) []string
 		return args
 	}
 
-	if o.isDockerEnabled(backendSettings) {
+	if o.isDockerEnabled(backendSettings, dockerEnabled) {
 		// For Docker, start with Docker args
 		args = append(args, backendSettings.Docker.Args...)
 		args = append(args, backendSettings.Docker.Image)
@@ -193,7 +215,7 @@ func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig) []string
 }
 
 // BuildEnvironment builds the environment variables for the backend process
-func (o *Options) BuildEnvironment(backendConfig *config.BackendConfig, environment map[string]string) map[string]string {
+func (o *Options) BuildEnvironment(backendConfig *config.BackendConfig, dockerEnabled *bool, environment map[string]string) map[string]string {
 
 	backendSettings := o.getBackendSettings(backendConfig)
 	env := map[string]string{}
@@ -202,7 +224,7 @@ func (o *Options) BuildEnvironment(backendConfig *config.BackendConfig, environm
 		maps.Copy(env, backendSettings.Environment)
 	}
 
-	if o.isDockerEnabled(backendSettings) {
+	if o.isDockerEnabled(backendSettings, dockerEnabled) {
 		if backendSettings.Docker.Environment != nil {
 			maps.Copy(env, backendSettings.Docker.Environment)
 		}

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -14,126 +15,126 @@ import (
 
 // BackendSettings contains structured backend configuration
 type BackendSettings struct {
-	Command         string            `yaml:"command"`
-	Args            []string          `yaml:"args"`
-	Environment     map[string]string `yaml:"environment,omitempty"`
-	Docker          *DockerSettings   `yaml:"docker,omitempty"`
-	ResponseHeaders map[string]string `yaml:"response_headers,omitempty"`
+	Command         string            `yaml:"command" json:"command"`
+	Args            []string          `yaml:"args" json:"args"`
+	Environment     map[string]string `yaml:"environment,omitempty" json:"environment,omitempty"`
+	Docker          *DockerSettings   `yaml:"docker,omitempty" json:"docker,omitempty"`
+	ResponseHeaders map[string]string `yaml:"response_headers,omitempty" json:"response_headers,omitempty"`
 }
 
 // DockerSettings contains Docker-specific configuration
 type DockerSettings struct {
-	Enabled     bool              `yaml:"enabled"`
-	Image       string            `yaml:"image"`
-	Args        []string          `yaml:"args"`
-	Environment map[string]string `yaml:"environment,omitempty"`
+	Enabled     bool              `yaml:"enabled" json:"enabled"`
+	Image       string            `yaml:"image" json:"image"`
+	Args        []string          `yaml:"args" json:"args"`
+	Environment map[string]string `yaml:"environment,omitempty" json:"environment,omitempty"`
 }
 
 // BackendConfig contains backend executable configurations
 type BackendConfig struct {
-	LlamaCpp BackendSettings `yaml:"llama-cpp"`
-	VLLM     BackendSettings `yaml:"vllm"`
-	MLX      BackendSettings `yaml:"mlx"`
+	LlamaCpp BackendSettings `yaml:"llama-cpp" json:"llama-cpp"`
+	VLLM     BackendSettings `yaml:"vllm" json:"vllm"`
+	MLX      BackendSettings `yaml:"mlx" json:"mlx"`
 }
 
 // AppConfig represents the configuration for llamactl
 type AppConfig struct {
-	Server     ServerConfig          `yaml:"server"`
-	Backends   BackendConfig         `yaml:"backends"`
-	Instances  InstancesConfig       `yaml:"instances"`
-	Auth       AuthConfig            `yaml:"auth"`
-	LocalNode  string                `yaml:"local_node,omitempty"`
-	Nodes      map[string]NodeConfig `yaml:"nodes,omitempty"`
-	Version    string                `yaml:"-"`
-	CommitHash string                `yaml:"-"`
-	BuildTime  string                `yaml:"-"`
+	Server     ServerConfig          `yaml:"server" json:"server"`
+	Backends   BackendConfig         `yaml:"backends" json:"backends"`
+	Instances  InstancesConfig       `yaml:"instances" json:"instances"`
+	Auth       AuthConfig            `yaml:"auth" json:"auth"`
+	LocalNode  string                `yaml:"local_node,omitempty" json:"local_node,omitempty"`
+	Nodes      map[string]NodeConfig `yaml:"nodes,omitempty" json:"nodes,omitempty"`
+	Version    string                `yaml:"-" json:"version"`
+	CommitHash string                `yaml:"-" json:"commit_hash"`
+	BuildTime  string                `yaml:"-" json:"build_time"`
 }
 
 // ServerConfig contains HTTP server configuration
 type ServerConfig struct {
 	// Server host to bind to
-	Host string `yaml:"host"`
+	Host string `yaml:"host" json:"host"`
 
 	// Server port to bind to
-	Port int `yaml:"port"`
+	Port int `yaml:"port" json:"port"`
 
 	// Allowed origins for CORS (e.g., "http://localhost:3000")
-	AllowedOrigins []string `yaml:"allowed_origins"`
+	AllowedOrigins []string `yaml:"allowed_origins" json:"allowed_origins"`
 
 	// Allowed headers for CORS (e.g., "Accept", "Authorization", "Content-Type", "X-CSRF-Token")
-	AllowedHeaders []string `yaml:"allowed_headers"`
+	AllowedHeaders []string `yaml:"allowed_headers" json:"allowed_headers"`
 
 	// Enable Swagger UI for API documentation
-	EnableSwagger bool `yaml:"enable_swagger"`
+	EnableSwagger bool `yaml:"enable_swagger" json:"enable_swagger"`
 
 	// Response headers to send with responses
-	ResponseHeaders map[string]string `yaml:"response_headers,omitempty"`
+	ResponseHeaders map[string]string `yaml:"response_headers,omitempty" json:"response_headers,omitempty"`
 }
 
 // InstancesConfig contains instance management configuration
 type InstancesConfig struct {
 	// Port range for instances (e.g., 8000,9000)
-	PortRange [2]int `yaml:"port_range"`
+	PortRange [2]int `yaml:"port_range" json:"port_range"`
 
 	// Directory where all llamactl data will be stored (instances.json, logs, etc.)
-	DataDir string `yaml:"data_dir"`
+	DataDir string `yaml:"data_dir" json:"data_dir"`
 
 	// Instance config directory override
-	InstancesDir string `yaml:"configs_dir"`
+	InstancesDir string `yaml:"configs_dir" json:"configs_dir"`
 
 	// Logs directory override
-	LogsDir string `yaml:"logs_dir"`
+	LogsDir string `yaml:"logs_dir" json:"logs_dir"`
 
 	// Automatically create the data directory if it doesn't exist
-	AutoCreateDirs bool `yaml:"auto_create_dirs"`
+	AutoCreateDirs bool `yaml:"auto_create_dirs" json:"auto_create_dirs"`
 
 	// Maximum number of instances that can be created
-	MaxInstances int `yaml:"max_instances"`
+	MaxInstances int `yaml:"max_instances" json:"max_instances"`
 
 	// Maximum number of instances that can be running at the same time
-	MaxRunningInstances int `yaml:"max_running_instances,omitempty"`
+	MaxRunningInstances int `yaml:"max_running_instances,omitempty" json:"max_running_instances,omitempty"`
 
 	// Enable LRU eviction for instance logs
-	EnableLRUEviction bool `yaml:"enable_lru_eviction"`
+	EnableLRUEviction bool `yaml:"enable_lru_eviction" json:"enable_lru_eviction"`
 
 	// Default auto-restart setting for new instances
-	DefaultAutoRestart bool `yaml:"default_auto_restart"`
+	DefaultAutoRestart bool `yaml:"default_auto_restart" json:"default_auto_restart"`
 
 	// Default max restarts for new instances
-	DefaultMaxRestarts int `yaml:"default_max_restarts"`
+	DefaultMaxRestarts int `yaml:"default_max_restarts" json:"default_max_restarts"`
 
 	// Default restart delay for new instances (in seconds)
-	DefaultRestartDelay int `yaml:"default_restart_delay"`
+	DefaultRestartDelay int `yaml:"default_restart_delay" json:"default_restart_delay"`
 
 	// Default on-demand start setting for new instances
-	DefaultOnDemandStart bool `yaml:"default_on_demand_start"`
+	DefaultOnDemandStart bool `yaml:"default_on_demand_start" json:"default_on_demand_start"`
 
 	// How long to wait for an instance to start on demand (in seconds)
-	OnDemandStartTimeout int `yaml:"on_demand_start_timeout,omitempty"`
+	OnDemandStartTimeout int `yaml:"on_demand_start_timeout,omitempty" json:"on_demand_start_timeout,omitempty"`
 
 	// Interval for checking instance timeouts (in minutes)
-	TimeoutCheckInterval int `yaml:"timeout_check_interval"`
+	TimeoutCheckInterval int `yaml:"timeout_check_interval" json:"timeout_check_interval"`
 }
 
 // AuthConfig contains authentication settings
 type AuthConfig struct {
 
 	// Require authentication for OpenAI compatible inference endpoints
-	RequireInferenceAuth bool `yaml:"require_inference_auth"`
+	RequireInferenceAuth bool `yaml:"require_inference_auth" json:"require_inference_auth"`
 
 	// List of keys for OpenAI compatible inference endpoints
-	InferenceKeys []string `yaml:"inference_keys"`
+	InferenceKeys []string `yaml:"inference_keys" json:"inference_keys"`
 
 	// Require authentication for management endpoints
-	RequireManagementAuth bool `yaml:"require_management_auth"`
+	RequireManagementAuth bool `yaml:"require_management_auth" json:"require_management_auth"`
 
 	// List of keys for management endpoints
-	ManagementKeys []string `yaml:"management_keys"`
+	ManagementKeys []string `yaml:"management_keys" json:"management_keys"`
 }
 
 type NodeConfig struct {
-	Address string `yaml:"address"`
-	APIKey  string `yaml:"api_key,omitempty"`
+	Address string `yaml:"address" json:"address"`
+	APIKey  string `yaml:"api_key,omitempty" json:"api_key,omitempty"`
 }
 
 // LoadConfig loads configuration with the following precedence:
@@ -609,4 +610,32 @@ func getDefaultConfigLocations() []string {
 	}
 
 	return locations
+}
+
+// SanitizedCopy returns a copy of the AppConfig with sensitive information removed
+func (cfg *AppConfig) SanitizedCopy() (AppConfig, error) {
+	// Deep copy via JSON marshal/unmarshal to avoid concurrent map access
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		log.Printf("Failed to marshal config for sanitization: %v", err)
+		return AppConfig{}, err
+	}
+
+	var sanitized AppConfig
+	if err := json.Unmarshal(data, &sanitized); err != nil {
+		log.Printf("Failed to unmarshal config for sanitization: %v", err)
+		return AppConfig{}, err
+	}
+
+	// Clear sensitive information
+	sanitized.Auth.InferenceKeys = []string{}
+	sanitized.Auth.ManagementKeys = []string{}
+
+	// Clear API keys from nodes
+	for nodeName, node := range sanitized.Nodes {
+		node.APIKey = ""
+		sanitized.Nodes[nodeName] = node
+	}
+
+	return sanitized, nil
 }

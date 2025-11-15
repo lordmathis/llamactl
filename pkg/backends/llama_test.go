@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/backends"
+	"llamactl/pkg/config"
 	"llamactl/pkg/testutil"
 	"reflect"
 	"testing"
@@ -548,4 +549,80 @@ func TestParseLlamaCommand_ExtraArgs(t *testing.T) {
 			}
 		})
 	}
+}
+func TestLlamaCppGetCommand_WithOverrides(t *testing.T) {
+	tests := []struct {
+		name            string
+		dockerInConfig  bool
+		dockerEnabled   *bool
+		commandOverride string
+		expected        string
+	}{
+		{
+			name:            "no overrides - use config command",
+			dockerInConfig:  false,
+			dockerEnabled:   nil,
+			commandOverride: "",
+			expected:        "/usr/bin/llama-server",
+		},
+		{
+			name:            "override to enable docker",
+			dockerInConfig:  false,
+			dockerEnabled:   boolPtr(true),
+			commandOverride: "",
+			expected:        "docker",
+		},
+		{
+			name:            "override to disable docker",
+			dockerInConfig:  true,
+			dockerEnabled:   boolPtr(false),
+			commandOverride: "",
+			expected:        "/usr/bin/llama-server",
+		},
+		{
+			name:            "command override",
+			dockerInConfig:  false,
+			dockerEnabled:   nil,
+			commandOverride: "/custom/llama-server",
+			expected:        "/custom/llama-server",
+		},
+		{
+			name:            "docker takes precedence over command override",
+			dockerInConfig:  false,
+			dockerEnabled:   boolPtr(true),
+			commandOverride: "/custom/llama-server",
+			expected:        "docker",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			backendConfig := &config.BackendConfig{
+				LlamaCpp: config.BackendSettings{
+					Command: "/usr/bin/llama-server",
+					Docker: &config.DockerSettings{
+						Enabled: tt.dockerInConfig,
+						Image:   "test-image",
+					},
+				},
+			}
+
+			opts := backends.Options{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &backends.LlamaServerOptions{
+					Model: "test-model.gguf",
+				},
+			}
+
+			result := opts.GetCommand(backendConfig, tt.dockerEnabled, tt.commandOverride)
+			if result != tt.expected {
+				t.Errorf("GetCommand() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+// Helper function to create bool pointer
+func boolPtr(b bool) *bool {
+	return &b
 }

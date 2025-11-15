@@ -42,7 +42,9 @@ func SetupRouter(handler *Handler) *chi.Mux {
 			r.Use(authMiddleware.AuthMiddleware(KeyTypeManagement))
 		}
 
-		r.Get("/version", handler.VersionHandler()) // Get server version
+		r.Get("/version", handler.VersionHandler())
+
+		r.Get("/config", handler.ConfigHandler())
 
 		// Backend-specific endpoints
 		r.Route("/backends", func(r chi.Router) {

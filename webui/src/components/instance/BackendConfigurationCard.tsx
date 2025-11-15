@@ -6,6 +6,7 @@ import { Terminal, ChevronDown, ChevronRight } from 'lucide-react'
 import { getBasicBackendFields, getAdvancedBackendFields } from '@/lib/zodFormUtils'
 import BackendFormField from '@/components/BackendFormField'
 import SelectInput from '@/components/form/SelectInput'
+import ExecutionContextSection from '@/components/instance/ExecutionContextSection'
 
 interface BackendConfigurationCardProps {
   formData: CreateInstanceOptions
@@ -58,6 +59,12 @@ const BackendConfigurationCard: React.FC<BackendConfigurationCardProps> = ({
             Import settings from your backend command
           </p>
         </div>
+
+        {/* Execution Context Section */}
+        <ExecutionContextSection
+          formData={formData}
+          onChange={onChange}
+        />
 
         {/* Basic Backend Options */}
         {basicBackendFields.length > 0 && (

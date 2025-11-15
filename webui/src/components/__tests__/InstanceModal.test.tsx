@@ -2,8 +2,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceDialog from '@/components/InstanceDialog'
-import type { Instance } from '@/types/instance'
-import { BackendType } from '@/types/instance'
+import { BackendType, type Instance } from '@/types/instance'
+
+// Mock the ConfigContext helper hooks
+vi.mock('@/hooks/useConfig', () => ({
+  useInstanceDefaults: () => ({
+    autoRestart: true,
+    maxRestarts: 3,
+    restartDelay: 5,
+    onDemandStart: false,
+  }),
+  useBackendSettings: () => ({
+    command: '/usr/bin/llama-server',
+    dockerEnabled: false,
+    dockerImage: '',
+  }),
+}))
 
 describe('InstanceModal - Form Logic and Validation', () => {
   const mockOnSave = vi.fn()
@@ -75,7 +89,7 @@ afterEach(() => {
 
     it('submits form with correct data structure', async () => {
       const user = userEvent.setup()
-      
+
       render(
         <InstanceDialog
           open={true}
@@ -86,13 +100,17 @@ afterEach(() => {
 
       // Fill required name
       await user.type(screen.getByLabelText(/Instance Name/), 'my-instance')
-      
+
       // Submit form
       await user.click(screen.getByTestId('dialog-save-button'))
 
       expect(mockOnSave).toHaveBeenCalledWith('my-instance', {
-        auto_restart: true, // Default value
-        backend_type: BackendType.LLAMA_CPP
+        auto_restart: true, // Default value from config
+        backend_type: BackendType.LLAMA_CPP,
+        docker_enabled: false,
+        max_restarts: 3,
+        on_demand_start: false,
+        restart_delay: 5
       })
     })
 
@@ -253,7 +271,7 @@ afterEach(() => {
 
     it('includes restart options in form submission when enabled', async () => {
       const user = userEvent.setup()
-      
+
       render(
         <InstanceDialog
           open={true}
@@ -264,17 +282,23 @@ afterEach(() => {
 
       // Fill form
       await user.type(screen.getByLabelText(/Instance Name/), 'test-instance')
-      
-      // Set restart options
-      await user.type(screen.getByLabelText(/Max Restarts/), '5')
-      await user.type(screen.getByLabelText(/Restart Delay/), '10')
+
+      // Clear default values and set new restart options
+      const maxRestartsInput = screen.getByLabelText(/Max Restarts/)
+      const restartDelayInput = screen.getByLabelText(/Restart Delay/)
+      await user.clear(maxRestartsInput)
+      await user.type(maxRestartsInput, '5')
+      await user.clear(restartDelayInput)
+      await user.type(restartDelayInput, '10')
 
       await user.click(screen.getByTestId('dialog-save-button'))
 
       expect(mockOnSave).toHaveBeenCalledWith('test-instance', {
         auto_restart: true,
         backend_type: BackendType.LLAMA_CPP,
+        docker_enabled: false,
         max_restarts: 5,
+        on_demand_start: false,
         restart_delay: 10
       })
     })
@@ -284,7 +308,7 @@ afterEach(() => {
   describe('Form Data Handling', () => {
     it('cleans up undefined values before submission', async () => {
       const user = userEvent.setup()
-      
+
       render(
         <InstanceDialog
           open={true}
@@ -298,16 +322,20 @@ afterEach(() => {
 
       await user.click(screen.getByTestId('dialog-save-button'))
 
-      // Should only include non-empty values
+      // Should include default values from config
       expect(mockOnSave).toHaveBeenCalledWith('clean-instance', {
-        auto_restart: true, // Only this default value should be included
-        backend_type: BackendType.LLAMA_CPP
+        auto_restart: true,
+        backend_type: BackendType.LLAMA_CPP,
+        docker_enabled: false,
+        max_restarts: 3,
+        on_demand_start: false,
+        restart_delay: 5
       })
     })
 
     it('handles numeric fields correctly', async () => {
       const user = userEvent.setup()
-      
+
       render(
         <InstanceDialog
           open={true}
@@ -317,7 +345,7 @@ afterEach(() => {
       )
 
       await user.type(screen.getByLabelText(/Instance Name/), 'numeric-test')
-      
+
       // Test GPU layers field (numeric)
       const gpuLayersInput = screen.getByLabelText(/GPU Layers/)
       await user.type(gpuLayersInput, '15')
@@ -328,6 +356,10 @@ afterEach(() => {
         auto_restart: true,
         backend_type: BackendType.LLAMA_CPP,
         backend_options: { gpu_layers: 15 }, // Should be number, not string
+        docker_enabled: false,
+        max_restarts: 3,
+        on_demand_start: false,
+        restart_delay: 5
       })
     })
   })

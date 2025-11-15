@@ -147,16 +147,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context
 }
-
-// Helper hook for getting auth headers
-export const useAuthHeaders = (): HeadersInit => {
-  const { apiKey, isAuthenticated } = useAuth()
-  
-  if (!isAuthenticated || !apiKey) {
-    return {}
-  }
-  
-  return {
-    'Authorization': `Bearer ${apiKey}`
-  }
-}

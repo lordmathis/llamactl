@@ -4,8 +4,7 @@ import userEvent from '@testing-library/user-event'
 import App from '@/App'
 import { InstancesProvider } from '@/contexts/InstancesContext'
 import { instancesApi } from '@/lib/api'
-import type { Instance } from '@/types/instance'
-import { BackendType } from '@/types/instance'
+import {BackendType, type Instance } from '@/types/instance'
 import { AuthProvider } from '@/contexts/AuthContext'
 
 // Mock the API
@@ -47,6 +46,21 @@ vi.mock('@/lib/healthService', () => ({
     lastChecked: new Date(),
     source: 'http'
   })),
+}))
+
+// Mock the ConfigContext helper hooks
+vi.mock('@/hooks/useConfig', () => ({
+  useInstanceDefaults: () => ({
+    autoRestart: true,
+    maxRestarts: 3,
+    restartDelay: 5,
+    onDemandStart: false,
+  }),
+  useBackendSettings: () => ({
+    command: '/usr/bin/llama-server',
+    dockerEnabled: false,
+    dockerImage: '',
+  }),
 }))
 
 function renderApp() {
@@ -119,8 +133,12 @@ describe('App Component - Critical Business Logic Only', () => {
       // Verify correct API call
       await waitFor(() => {
         expect(instancesApi.create).toHaveBeenCalledWith('new-test-instance', {
-          auto_restart: true, // Default value
-          backend_type: BackendType.LLAMA_CPP
+          auto_restart: true, // Default value from config
+          backend_type: BackendType.LLAMA_CPP,
+          docker_enabled: false,
+          max_restarts: 3,
+          on_demand_start: false,
+          restart_delay: 5
         })
       })
 

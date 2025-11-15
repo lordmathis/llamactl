@@ -1,4 +1,5 @@
 import type { CreateInstanceOptions, Instance } from "@/types/instance";
+import type { AppConfig } from "@/types/config";
 import { handleApiError } from "./errorUtils";
 
 // Adding baseURI as a prefix to support being served behind a subpath
@@ -73,6 +74,9 @@ export const serverApi = {
 
   // GET /backends/llama-cpp/devices
   getDevices: () => apiCall<string>("/backends/llama-cpp/devices", {}, "text"),
+
+  // GET /config
+  getConfig: () => apiCall<AppConfig>("/config"),
 };
 
 // Backend API functions
