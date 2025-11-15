@@ -648,6 +648,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#system" class="md-nav__link">
+    <span class="md-ellipsis">
+      System
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1config" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/config
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1version" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/version
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#instances" class="md-nav__link">
     <span class="md-ellipsis">
       Instances
@@ -784,30 +817,6 @@
   <a href="#get-apiv1nodesname" class="md-nav__link">
     <span class="md-ellipsis">
       GET /api/v1/nodes/{name}
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#system" class="md-nav__link">
-    <span class="md-ellipsis">
-      System
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="System">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#get-apiv1version" class="md-nav__link">
-    <span class="md-ellipsis">
-      GET /api/v1/version
     </span>
   </a>
   
@@ -1304,6 +1313,87 @@ Most likely, it is not desirable to edit this file by hand!
 
 <p class="response-title">
     <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<h2 id="system"><span class="api-tag">System</span><a class="headerlink" href="#system" title="Permanent link">&para;</a></h2>
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1config"><span class="http-get">GET</span> /api/v1/config<a class="headerlink" href="#get-apiv1config" title="Permanent link">&para;</a></h3>
+<p>Get server configuration  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns the current server configuration (sanitized)  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1version"><span class="http-get">GET</span> /api/v1/version<a class="headerlink" href="#get-apiv1version" title="Permanent link">&para;</a></h3>
+<p>Get llamactl version  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns the version of the llamactl command  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
 </p>
 
 <h2 id="instances"><span class="api-tag">Instances</span><a class="headerlink" href="#instances" title="Permanent link">&para;</a></h2>
@@ -1993,47 +2083,6 @@ config)  </p>
 
 <p class="response-title">
     <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
-</p>
-
-<p class="response-title">
-    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
-</p>
-
-<h2 id="system"><span class="api-tag">System</span><a class="headerlink" href="#system" title="Permanent link">&para;</a></h2>
-<hr class="operation-separator" />
-
-<h3 id="get-apiv1version"><span class="http-get">GET</span> /api/v1/version<a class="headerlink" href="#get-apiv1version" title="Permanent link">&para;</a></h3>
-<p>Get llamactl version  </p>
-<details class="note">
-<summary>Description</summary>
-<p>Returns the version of the llamactl command  </p>
-</details>
-<p><strong>Input parameters</strong>  </p>
-<table>
-    <thead>
-        <tr>
-            <th>Parameter</th>
-            <th>In</th>
-            <th>Type</th>
-            <th>Default</th>
-            <th>Nullable</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td class="parameter-name"><code>ApiKeyAuth</code></td>
-            <td>header</td>
-            <td>string</td>
-            <td>N/A</td>
-            <td>No</td>
-            <td></td>
-        </tr>
-    </tbody>
-</table>
-
-<p class="response-title">
-    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
 </p>
 
 <p class="response-title">

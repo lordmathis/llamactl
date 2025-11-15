@@ -789,34 +789,36 @@
 <p><img alt="Create Instance Screenshot" src="../images/create_instance.png" />  </p>
 <ol>
 <li>Click the <strong>"Create Instance"</strong> button on the dashboard  </li>
-<li><em>Optional</em>: Click <strong>"Import"</strong> in the dialog header to load a previously exported configuration  </li>
-<li>Enter a unique <strong>Name</strong> for your instance (only required field)  </li>
-<li><strong>Select Target Node</strong>: Choose which node to deploy the instance to from the dropdown  </li>
-<li><strong>Choose Backend Type</strong>:  <ul>
-<li><strong>llama.cpp</strong>: For GGUF models using llama-server  </li>
-<li><strong>MLX</strong>: For MLX-optimized models (macOS only)  </li>
+<li><em>Optional</em>: Click <strong>"Import"</strong> to load a previously exported configuration  </li>
+</ol>
+<p><strong>Instance Settings:</strong>  </p>
+<ol>
+<li>Enter a unique <strong>Instance Name</strong> (required)  </li>
+<li><strong>Select Node</strong>: Choose which node to deploy the instance to  </li>
+<li>Configure <strong>Auto Restart</strong> settings:  <ul>
+<li>Enable automatic restart on failure  </li>
+<li>Set max restarts and delay between attempts  </li>
+</ul>
+</li>
+<li>Configure basic instance options:  <ul>
+<li><strong>Idle Timeout</strong>: Minutes before stopping idle instance  </li>
+<li><strong>On Demand Start</strong>: Start instance only when needed  </li>
+</ul>
+</li>
+</ol>
+<p><strong>Backend Configuration:</strong>  </p>
+<ol>
+<li><strong>Select Backend Type</strong>:  <ul>
+<li><strong>Llama Server</strong>: For GGUF models using llama-server  </li>
+<li><strong>MLX LM</strong>: For MLX-optimized models (macOS only)  </li>
 <li><strong>vLLM</strong>: For distributed serving and high-throughput inference  </li>
 </ul>
 </li>
-<li>Configure model source:  <ul>
-<li><strong>For llama.cpp</strong>: GGUF model path or HuggingFace repo  </li>
-<li><strong>For MLX</strong>: MLX model path or identifier (e.g., <code>mlx-community/Mistral-7B-Instruct-v0.3-4bit</code>)  </li>
-<li><strong>For vLLM</strong>: HuggingFace model identifier (e.g., <code>microsoft/DialoGPT-medium</code>)  </li>
-</ul>
-</li>
-<li>Configure optional instance management settings:  <ul>
-<li><strong>Auto Restart</strong>: Automatically restart instance on failure  </li>
-<li><strong>Max Restarts</strong>: Maximum number of restart attempts  </li>
-<li><strong>Restart Delay</strong>: Delay in seconds between restart attempts  </li>
-<li><strong>On Demand Start</strong>: Start instance when receiving a request to the OpenAI compatible endpoint  </li>
-<li><strong>Idle Timeout</strong>: Minutes before stopping idle instance (set to 0 to disable)  </li>
-<li><strong>Environment Variables</strong>: Set custom environment variables for the instance process  </li>
-</ul>
-</li>
-<li>Configure backend-specific options:  <ul>
-<li><strong>llama.cpp</strong>: Threads, context size, GPU layers, port, etc.  </li>
-<li><strong>MLX</strong>: Temperature, top-p, adapter path, Python environment, etc.  </li>
-<li><strong>vLLM</strong>: Tensor parallel size, GPU memory utilization, quantization, etc.  </li>
+<li><em>Optional</em>: Click <strong>"Parse Command"</strong> to import settings from an existing backend command  </li>
+<li>Configure <strong>Execution Context</strong>:  <ul>
+<li><strong>Enable Docker</strong>: Run backend in Docker container  </li>
+<li><strong>Command Override</strong>: Custom path to backend executable  </li>
+<li><strong>Environment Variables</strong>: Custom environment variables  </li>
 </ul>
 </li>
 </ol>
@@ -825,6 +827,14 @@
 <p>Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.  </p>
 </div>
 <ol>
+<li>Configure <strong>Basic Backend Options</strong> (varies by backend):  <ul>
+<li><strong>llama.cpp</strong>: Model path, threads, context size, GPU layers, etc.  </li>
+<li><strong>MLX</strong>: Model identifier, temperature, max tokens, etc.  </li>
+<li><strong>vLLM</strong>: Model identifier, tensor parallel size, GPU memory utilization, etc.  </li>
+</ul>
+</li>
+<li><em>Optional</em>: Expand <strong>Advanced Backend Options</strong> for additional settings  </li>
+<li><em>Optional</em>: Add <strong>Extra Args</strong> as key-value pairs for custom command-line arguments  </li>
 <li>Click <strong>"Create"</strong> to save the instance  </li>
 </ol>
 <p><strong>Via API</strong>  </p>
@@ -838,88 +848,47 @@
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="s1">      &quot;model&quot;: &quot;/path/to/model.gguf&quot;,</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="s1">      &quot;threads&quot;: 8,</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="s1">      &quot;ctx_size&quot;: 4096,</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="s1">      &quot;gpu_layers&quot;: 32</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="s1">    },</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="s1">    &quot;nodes&quot;: [&quot;main&quot;]</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="s1">  }&#39;</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># Create MLX instance (macOS only)</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-mlx-instance<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="s1">    &quot;backend_type&quot;: &quot;mlx_lm&quot;,</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="s1">    &quot;backend_options&quot;: {</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="s1">      &quot;model&quot;: &quot;mlx-community/Mistral-7B-Instruct-v0.3-4bit&quot;,</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="s1">      &quot;temp&quot;: 0.7,</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="s1">      &quot;top_p&quot;: 0.9,</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="s1">      &quot;max_tokens&quot;: 2048</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="s1">    },</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="s1">    &quot;auto_restart&quot;: true,</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="s1">    &quot;max_restarts&quot;: 3,</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="s1">    &quot;nodes&quot;: [&quot;main&quot;]</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="s1">  }&#39;</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="c1"># Create vLLM instance</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-vllm-instance<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="s1">    &quot;backend_type&quot;: &quot;vllm&quot;,</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="s1">    &quot;backend_options&quot;: {</span>
-<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="s1">      &quot;model&quot;: &quot;microsoft/DialoGPT-medium&quot;,</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="s1">      &quot;tensor_parallel_size&quot;: 2,</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="s1">      &quot;gpu_memory_utilization&quot;: 0.9</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="s1">    },</span>
-<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="s1">    &quot;auto_restart&quot;: true,</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="s1">    &quot;on_demand_start&quot;: true,</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="s1">    &quot;environment&quot;: {</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="s1">      &quot;CUDA_VISIBLE_DEVICES&quot;: &quot;0,1&quot;,</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a><span class="s1">      &quot;NCCL_DEBUG&quot;: &quot;INFO&quot;,</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="s1">      &quot;PYTHONPATH&quot;: &quot;/custom/path&quot;</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="s1">    },</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="s1">    &quot;nodes&quot;: [&quot;main&quot;]</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a><span class="s1">  }&#39;</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a>
-<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a><span class="c1"># Create llama.cpp instance with HuggingFace model</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/gemma-3-27b<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a><span class="s1">    &quot;backend_type&quot;: &quot;llama_cpp&quot;,</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a><span class="s1">    &quot;backend_options&quot;: {</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a><span class="s1">      &quot;hf_repo&quot;: &quot;unsloth/gemma-3-27b-it-GGUF&quot;,</span>
-<a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a><span class="s1">      &quot;hf_file&quot;: &quot;gemma-3-27b-it-GGUF.gguf&quot;,</span>
-<a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a><span class="s1">      &quot;gpu_layers&quot;: 32</span>
-<a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a><span class="s1">    },</span>
-<a id="__codelineno-0-65" name="__codelineno-0-65" href="#__codelineno-0-65"></a><span class="s1">    &quot;nodes&quot;: [&quot;main&quot;]</span>
-<a id="__codelineno-0-66" name="__codelineno-0-66" href="#__codelineno-0-66"></a><span class="s1">  }&#39;</span>
-<a id="__codelineno-0-67" name="__codelineno-0-67" href="#__codelineno-0-67"></a>
-<a id="__codelineno-0-68" name="__codelineno-0-68" href="#__codelineno-0-68"></a><span class="c1"># Create instance on specific remote node</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69" href="#__codelineno-0-69"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/remote-llama<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-70" name="__codelineno-0-70" href="#__codelineno-0-70"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-71" name="__codelineno-0-71" href="#__codelineno-0-71"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-72" name="__codelineno-0-72" href="#__codelineno-0-72"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73" href="#__codelineno-0-73"></a><span class="s1">    &quot;backend_type&quot;: &quot;llama_cpp&quot;,</span>
-<a id="__codelineno-0-74" name="__codelineno-0-74" href="#__codelineno-0-74"></a><span class="s1">    &quot;backend_options&quot;: {</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75" href="#__codelineno-0-75"></a><span class="s1">      &quot;model&quot;: &quot;/models/llama-7b.gguf&quot;,</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76" href="#__codelineno-0-76"></a><span class="s1">      &quot;gpu_layers&quot;: 32</span>
-<a id="__codelineno-0-77" name="__codelineno-0-77" href="#__codelineno-0-77"></a><span class="s1">    },</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78" href="#__codelineno-0-78"></a><span class="s1">    &quot;nodes&quot;: [&quot;worker1&quot;]</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79" href="#__codelineno-0-79"></a><span class="s1">  }&#39;</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80" href="#__codelineno-0-80"></a>
-<a id="__codelineno-0-81" name="__codelineno-0-81" href="#__codelineno-0-81"></a><span class="c1"># Create instance on multiple nodes for high availability</span>
-<a id="__codelineno-0-82" name="__codelineno-0-82" href="#__codelineno-0-82"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/multi-node-llama<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-83" name="__codelineno-0-83" href="#__codelineno-0-83"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-84" name="__codelineno-0-84" href="#__codelineno-0-84"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85" href="#__codelineno-0-85"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-0-86" name="__codelineno-0-86" href="#__codelineno-0-86"></a><span class="s1">    &quot;backend_type&quot;: &quot;llama_cpp&quot;,</span>
-<a id="__codelineno-0-87" name="__codelineno-0-87" href="#__codelineno-0-87"></a><span class="s1">    &quot;backend_options&quot;: {</span>
-<a id="__codelineno-0-88" name="__codelineno-0-88" href="#__codelineno-0-88"></a><span class="s1">      &quot;model&quot;: &quot;/models/llama-7b.gguf&quot;,</span>
-<a id="__codelineno-0-89" name="__codelineno-0-89" href="#__codelineno-0-89"></a><span class="s1">      &quot;gpu_layers&quot;: 32</span>
-<a id="__codelineno-0-90" name="__codelineno-0-90" href="#__codelineno-0-90"></a><span class="s1">    },</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91" href="#__codelineno-0-91"></a><span class="s1">    &quot;nodes&quot;: [&quot;worker1&quot;, &quot;worker2&quot;, &quot;worker3&quot;]</span>
-<a id="__codelineno-0-92" name="__codelineno-0-92" href="#__codelineno-0-92"></a><span class="s1">  }&#39;</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="s1">      &quot;gpu_layers&quot;: 32,</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="s1">      &quot;flash_attn&quot;: &quot;on&quot;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="s1">    },</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="s1">    &quot;auto_restart&quot;: true,</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="s1">    &quot;max_restarts&quot;: 3,</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="s1">    &quot;docker_enabled&quot;: false,</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="s1">    &quot;command_override&quot;: &quot;/opt/llama-server-dev&quot;,</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="s1">    &quot;nodes&quot;: [&quot;main&quot;]</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="s1">  }&#39;</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="c1"># Create vLLM instance with environment variables</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-vllm-instance<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="s1">    &quot;backend_type&quot;: &quot;vllm&quot;,</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="s1">    &quot;backend_options&quot;: {</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="s1">      &quot;model&quot;: &quot;microsoft/DialoGPT-medium&quot;,</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="s1">      &quot;tensor_parallel_size&quot;: 2,</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="s1">      &quot;gpu_memory_utilization&quot;: 0.9</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="s1">    },</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="s1">    &quot;on_demand_start&quot;: true,</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="s1">    &quot;environment&quot;: {</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="s1">      &quot;CUDA_VISIBLE_DEVICES&quot;: &quot;0,1&quot;</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="s1">    },</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="s1">    &quot;nodes&quot;: [&quot;worker1&quot;, &quot;worker2&quot;]</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="s1">  }&#39;</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="c1"># Create MLX instance (macOS only)</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-mlx-instance<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="s1">    &quot;backend_type&quot;: &quot;mlx_lm&quot;,</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="s1">    &quot;backend_options&quot;: {</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="s1">      &quot;model&quot;: &quot;mlx-community/Mistral-7B-Instruct-v0.3-4bit&quot;,</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="s1">      &quot;temp&quot;: 0.7,</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a><span class="s1">      &quot;max_tokens&quot;: 2048</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="s1">    },</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="s1">    &quot;nodes&quot;: [&quot;main&quot;]</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="s1">  }&#39;</span>
 </code></pre></div>
 <h2 id="start-instance">Start Instance<a class="headerlink" href="#start-instance" title="Permanent link">&para;</a></h2>
 <p><strong>Via Web UI</strong><br />
@@ -1026,7 +995,7 @@ Check instance status in real-time:  </p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 27, 2025 19:44:28 UTC">October 27, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 14, 2025 23:18:55 UTC">November 14, 2025</span>
   </span>
 
     
