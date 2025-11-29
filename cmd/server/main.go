@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"llamactl/pkg/config"
+	"llamactl/pkg/database"
 	"llamactl/pkg/manager"
 	"llamactl/pkg/server"
 	"log"
@@ -58,8 +59,29 @@ func main() {
 		}
 	}
 
-	// Initialize the instance manager
-	instanceManager := manager.New(&cfg)
+	// Initialize database
+	db, err := database.Open(&database.Config{
+		Path:               cfg.Database.Path,
+		MaxOpenConnections: cfg.Database.MaxOpenConnections,
+		MaxIdleConnections: cfg.Database.MaxIdleConnections,
+		ConnMaxLifetime:    cfg.Database.ConnMaxLifetime,
+	})
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+
+	// Run database migrations
+	if err := database.RunMigrations(db); err != nil {
+		log.Fatalf("Failed to run database migrations: %v", err)
+	}
+
+	// Migrate from JSON files if needed (one-time migration)
+	if err := migrateFromJSON(&cfg, db); err != nil {
+		log.Printf("Warning: Failed to migrate from JSON: %v", err)
+	}
+
+	// Initialize the instance manager with dependency injection
+	instanceManager := manager.New(&cfg, db)
 
 	// Create a new handler with the instance manager
 	handler := server.NewHandler(instanceManager, cfg)

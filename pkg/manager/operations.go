@@ -317,9 +317,9 @@ func (im *instanceManager) DeleteInstance(name string) error {
 		im.remote.removeInstance(name)
 		im.registry.remove(name)
 
-		// Delete the instance's persistence file
-		if err := im.persistence.delete(name); err != nil {
-			return fmt.Errorf("failed to delete config file for remote instance %s: %w", name, err)
+		// Delete the instance's persistence
+		if err := im.db.Delete(name); err != nil {
+			return fmt.Errorf("failed to delete remote instance %s: %w", name, err)
 		}
 
 		return nil
@@ -343,9 +343,9 @@ func (im *instanceManager) DeleteInstance(name string) error {
 		return fmt.Errorf("failed to remove instance from registry: %w", err)
 	}
 
-	// Delete persistence file
-	if err := im.persistence.delete(name); err != nil {
-		return fmt.Errorf("failed to delete config file for instance %s: %w", name, err)
+	// Delete from persistence
+	if err := im.db.Delete(name); err != nil {
+		return fmt.Errorf("failed to delete instance from persistence %s: %w", name, err)
 	}
 
 	return nil

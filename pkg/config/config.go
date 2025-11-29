@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -42,6 +43,7 @@ type AppConfig struct {
 	Server     ServerConfig          `yaml:"server" json:"server"`
 	Backends   BackendConfig         `yaml:"backends" json:"backends"`
 	Instances  InstancesConfig       `yaml:"instances" json:"instances"`
+	Database   DatabaseConfig        `yaml:"database" json:"database"`
 	Auth       AuthConfig            `yaml:"auth" json:"auth"`
 	LocalNode  string                `yaml:"local_node,omitempty" json:"local_node,omitempty"`
 	Nodes      map[string]NodeConfig `yaml:"nodes,omitempty" json:"nodes,omitempty"`
@@ -69,6 +71,17 @@ type ServerConfig struct {
 
 	// Response headers to send with responses
 	ResponseHeaders map[string]string `yaml:"response_headers,omitempty" json:"response_headers,omitempty"`
+}
+
+// DatabaseConfig contains database configuration settings
+type DatabaseConfig struct {
+	// Database file path (relative to data_dir or absolute)
+	Path string `yaml:"path" json:"path"`
+
+	// Connection settings
+	MaxOpenConnections int           `yaml:"max_open_connections" json:"max_open_connections"`
+	MaxIdleConnections int           `yaml:"max_idle_connections" json:"max_idle_connections"`
+	ConnMaxLifetime    time.Duration `yaml:"connection_max_lifetime" json:"connection_max_lifetime"`
 }
 
 // InstancesConfig contains instance management configuration
@@ -204,6 +217,12 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			OnDemandStartTimeout: 120, // 2 minutes
 			TimeoutCheckInterval: 5,   // Check timeouts every 5 minutes
 		},
+		Database: DatabaseConfig{
+			Path:               "llamactl.db", // Relative to data_dir
+			MaxOpenConnections: 25,
+			MaxIdleConnections: 5,
+			ConnMaxLifetime:    5 * time.Minute,
+		},
 		Auth: AuthConfig{
 			RequireInferenceAuth:  true,
 			InferenceKeys:         []string{},
@@ -231,6 +250,11 @@ func LoadConfig(configPath string) (AppConfig, error) {
 	}
 	if cfg.Instances.LogsDir == "" {
 		cfg.Instances.LogsDir = filepath.Join(cfg.Instances.DataDir, "logs")
+	}
+
+	// Resolve database path relative to DataDir if it's not absolute
+	if cfg.Database.Path != "" && !filepath.IsAbs(cfg.Database.Path) {
+		cfg.Database.Path = filepath.Join(cfg.Instances.DataDir, cfg.Database.Path)
 	}
 
 	// Validate port range
@@ -494,6 +518,26 @@ func loadEnvVars(cfg *AppConfig) {
 	// Local node config
 	if localNode := os.Getenv("LLAMACTL_LOCAL_NODE"); localNode != "" {
 		cfg.LocalNode = localNode
+	}
+
+	// Database config
+	if dbPath := os.Getenv("LLAMACTL_DATABASE_PATH"); dbPath != "" {
+		cfg.Database.Path = dbPath
+	}
+	if maxOpenConns := os.Getenv("LLAMACTL_DATABASE_MAX_OPEN_CONNECTIONS"); maxOpenConns != "" {
+		if m, err := strconv.Atoi(maxOpenConns); err == nil {
+			cfg.Database.MaxOpenConnections = m
+		}
+	}
+	if maxIdleConns := os.Getenv("LLAMACTL_DATABASE_MAX_IDLE_CONNECTIONS"); maxIdleConns != "" {
+		if m, err := strconv.Atoi(maxIdleConns); err == nil {
+			cfg.Database.MaxIdleConnections = m
+		}
+	}
+	if connMaxLifetime := os.Getenv("LLAMACTL_DATABASE_CONN_MAX_LIFETIME"); connMaxLifetime != "" {
+		if d, err := time.ParseDuration(connMaxLifetime); err == nil {
+			cfg.Database.ConnMaxLifetime = d
+		}
 	}
 }
 
