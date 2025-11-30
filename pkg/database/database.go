@@ -11,8 +11,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// Database defines the interface for instance persistence operations
-type Database interface {
+// DB defines the interface for instance persistence operations
+type DB interface {
 	Save(inst *instance.Instance) error
 	Delete(name string) error
 	LoadAll() ([]*instance.Instance, error)
@@ -30,14 +30,14 @@ type Config struct {
 	ConnMaxLifetime    time.Duration
 }
 
-// DB wraps the database connection with configuration
-type DB struct {
+// sqliteDB wraps the database connection with configuration
+type sqliteDB struct {
 	*sql.DB
 	config *Config
 }
 
 // Open creates a new database connection with the provided configuration
-func Open(config *Config) (*DB, error) {
+func Open(config *Config) (*sqliteDB, error) {
 	if config == nil {
 		return nil, fmt.Errorf("database config cannot be nil")
 	}
@@ -56,7 +56,7 @@ func Open(config *Config) (*DB, error) {
 	// Open SQLite database with proper options
 	// - _journal_mode=WAL: Write-Ahead Logging for better concurrency
 	// - _busy_timeout=5000: Wait up to 5 seconds if database is locked
-	// - _foreign_keys=1: Enable foreign key constraints (for future use)
+	// - _foreign_keys=1: Enable foreign key constraints
 	dsn := fmt.Sprintf("file:%s?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=1", config.Path)
 
 	sqlDB, err := sql.Open("sqlite3", dsn)
@@ -83,14 +83,14 @@ func Open(config *Config) (*DB, error) {
 
 	log.Printf("Database connection established: %s", config.Path)
 
-	return &DB{
+	return &sqliteDB{
 		DB:     sqlDB,
 		config: config,
 	}, nil
 }
 
 // Close closes the database connection
-func (db *DB) Close() error {
+func (db *sqliteDB) Close() error {
 	if db.DB != nil {
 		log.Println("Closing database connection")
 		return db.DB.Close()
@@ -99,7 +99,7 @@ func (db *DB) Close() error {
 }
 
 // HealthCheck verifies the database is accessible
-func (db *DB) HealthCheck() error {
+func (db *sqliteDB) HealthCheck() error {
 	if db.DB == nil {
 		return fmt.Errorf("database connection is nil")
 	}

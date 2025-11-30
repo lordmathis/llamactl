@@ -14,7 +14,7 @@ import (
 var migrationFiles embed.FS
 
 // RunMigrations applies all pending database migrations
-func RunMigrations(db *DB) error {
+func RunMigrations(db *sqliteDB) error {
 	if db == nil || db.DB == nil {
 		return fmt.Errorf("database connection is nil")
 	}

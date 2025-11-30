@@ -13,10 +13,7 @@ import (
 
 // migrateFromJSON migrates instances from JSON files to SQLite database
 // This is a one-time migration that runs on first startup with existing JSON files.
-//
-// TODO: This migration code can be removed in a future version (post-1.0)
-// once most users have migrated from JSON to SQLite.
-func migrateFromJSON(cfg *config.AppConfig, db database.Database) error {
+func migrateFromJSON(cfg *config.AppConfig, db database.DB) error {
 	instancesDir := cfg.Instances.InstancesDir
 	if instancesDir == "" {
 		return nil // No instances directory configured
@@ -79,7 +76,7 @@ func migrateFromJSON(cfg *config.AppConfig, db database.Database) error {
 }
 
 // migrateJSONFile migrates a single JSON file to the database
-func migrateJSONFile(filename string, db database.Database) error {
+func migrateJSONFile(filename string, db database.DB) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)

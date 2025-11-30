@@ -29,11 +29,11 @@ type InstanceManager interface {
 
 type instanceManager struct {
 	// Components (each with own synchronization)
-	registry     *instanceRegistry
-	ports        *portAllocator
-	db           database.Database
-	remote       *remoteManager
-	lifecycle    *lifecycleManager
+	registry  *instanceRegistry
+	ports     *portAllocator
+	db        database.DB
+	remote    *remoteManager
+	lifecycle *lifecycleManager
 
 	// Configuration
 	globalConfig *config.AppConfig
@@ -44,7 +44,7 @@ type instanceManager struct {
 }
 
 // New creates a new instance of InstanceManager with dependency injection.
-func New(globalConfig *config.AppConfig, db database.Database) InstanceManager {
+func New(globalConfig *config.AppConfig, db database.DB) InstanceManager {
 
 	if globalConfig.Instances.TimeoutCheckInterval <= 0 {
 		globalConfig.Instances.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
@@ -259,7 +259,7 @@ func (im *instanceManager) autoStartInstances() {
 	}
 }
 
-func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus instance.Status) {
+func (im *instanceManager) onStatusChange(name string, _, newStatus instance.Status) {
 	if newStatus == instance.Running {
 		im.registry.markRunning(name)
 	} else {
