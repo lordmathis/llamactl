@@ -50,10 +50,17 @@ func main() {
 
 	// Create the data directory if it doesn't exist
 	if cfg.Instances.AutoCreateDirs {
-		if err := os.MkdirAll(cfg.Instances.InstancesDir, 0755); err != nil {
-			log.Printf("Error creating config directory %s: %v\nPersistence will not be available.", cfg.Instances.InstancesDir, err)
+		// Create the main data directory
+		if err := os.MkdirAll(cfg.DataDir, 0755); err != nil {
+			log.Printf("Error creating data directory %s: %v\nData persistence may not be available.", cfg.DataDir, err)
 		}
 
+		// Create instances directory
+		if err := os.MkdirAll(cfg.Instances.InstancesDir, 0755); err != nil {
+			log.Printf("Error creating instances directory %s: %v\nPersistence will not be available.", cfg.Instances.InstancesDir, err)
+		}
+
+		// Create logs directory
 		if err := os.MkdirAll(cfg.Instances.LogsDir, 0755); err != nil {
 			log.Printf("Error creating log directory %s: %v\nInstance logs will not be available.", cfg.Instances.LogsDir, err)
 		}

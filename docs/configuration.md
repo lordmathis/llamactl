@@ -49,11 +49,12 @@ backends:
     environment: {}              # Environment variables for the backend process
     response_headers: {}         # Additional response headers to send with responses
 
+data_dir: ~/.local/share/llamactl  # Main data directory (database, instances, logs), default varies by OS
+
 instances:
   port_range: [8000, 9000]       # Port range for instances
-  data_dir: ~/.local/share/llamactl         # Data directory (platform-specific, see below)
-  configs_dir: ~/.local/share/llamactl/instances  # Instance configs directory
-  logs_dir: ~/.local/share/llamactl/logs    # Logs directory
+  configs_dir: data_dir/instances         # Instance configs directory
+  logs_dir: data_dir/logs                 # Logs directory
   auto_create_dirs: true         # Auto-create data/config/logs dirs if missing
   max_instances: -1              # Max instances (-1 = unlimited)
   max_running_instances: -1      # Max running instances (-1 = unlimited)
@@ -64,6 +65,12 @@ instances:
   default_on_demand_start: true  # Default on-demand start setting
   on_demand_start_timeout: 120   # Default on-demand start timeout in seconds
   timeout_check_interval: 5      # Idle instance timeout check in minutes
+
+database:
+  path: data_dir/llamactl.db              # Database file path
+  max_open_connections: 25       # Maximum open database connections
+  max_idle_connections: 5        # Maximum idle database connections
+  connection_max_lifetime: 5m    # Connection max lifetime
 
 auth:
   require_inference_auth: true   # Require auth for inference endpoints
@@ -193,32 +200,44 @@ backends:
 - `LLAMACTL_MLX_ENV` - Environment variables in format "KEY1=value1,KEY2=value2"
 - `LLAMACTL_MLX_RESPONSE_HEADERS` - Response headers in format "KEY1=value1;KEY2=value2"
 
+### Data Directory Configuration
+
+```yaml
+data_dir: "~/.local/share/llamactl"  # Main data directory for database, instances, and logs (default varies by OS)
+```
+
+**Environment Variables:**
+- `LLAMACTL_DATA_DIRECTORY` - Main data directory path
+
+**Default Data Directory by Platform:**
+- **Linux**: `~/.local/share/llamactl`
+- **macOS**: `~/Library/Application Support/llamactl`
+- **Windows**: `%LOCALAPPDATA%\llamactl` or `%PROGRAMDATA%\llamactl`
+
 ### Instance Configuration
 
 ```yaml
 instances:
-  port_range: [8000, 9000]                          # Port range for instances (default: [8000, 9000])
-  data_dir: "~/.local/share/llamactl"               # Directory for all llamactl data (default varies by OS)
-  configs_dir: "~/.local/share/llamactl/instances"  # Directory for instance configs (default: data_dir/instances)
-  logs_dir: "~/.local/share/llamactl/logs"          # Directory for instance logs (default: data_dir/logs)
-  auto_create_dirs: true                            # Automatically create data/config/logs directories (default: true)
-  max_instances: -1                                 # Maximum instances (-1 = unlimited)
-  max_running_instances: -1                         # Maximum running instances (-1 = unlimited)
-  enable_lru_eviction: true                         # Enable LRU eviction for idle instances
-  default_auto_restart: true                        # Default auto-restart setting
-  default_max_restarts: 3                           # Default maximum restart attempts
-  default_restart_delay: 5                          # Default restart delay in seconds
-  default_on_demand_start: true                     # Default on-demand start setting
-  on_demand_start_timeout: 120                      # Default on-demand start timeout in seconds
-  timeout_check_interval: 5                         # Default instance timeout check interval in minutes
+  port_range: [8000, 9000]      # Port range for instances (default: [8000, 9000])
+  configs_dir: "instances"      # Directory for instance configs, default: data_dir/instances
+  logs_dir: "logs"              # Directory for instance logs, default: data_dir/logs
+  auto_create_dirs: true        # Automatically create data/config/logs directories (default: true)
+  max_instances: -1             # Maximum instances (-1 = unlimited)
+  max_running_instances: -1     # Maximum running instances (-1 = unlimited)
+  enable_lru_eviction: true     # Enable LRU eviction for idle instances
+  default_auto_restart: true    # Default auto-restart setting
+  default_max_restarts: 3       # Default maximum restart attempts
+  default_restart_delay: 5      # Default restart delay in seconds
+  default_on_demand_start: true # Default on-demand start setting
+  on_demand_start_timeout: 120  # Default on-demand start timeout in seconds
+  timeout_check_interval: 5     # Default instance timeout check interval in minutes
 ```
 
-**Environment Variables:**  
-- `LLAMACTL_INSTANCE_PORT_RANGE` - Port range (format: "8000-9000" or "8000,9000")  
-- `LLAMACTL_DATA_DIRECTORY` - Data directory path  
-- `LLAMACTL_INSTANCES_DIR` - Instance configs directory path  
-- `LLAMACTL_LOGS_DIR` - Log directory path  
-- `LLAMACTL_AUTO_CREATE_DATA_DIR` - Auto-create data/config/logs directories (true/false)  
+**Environment Variables:**
+- `LLAMACTL_INSTANCE_PORT_RANGE` - Port range (format: "8000-9000" or "8000,9000")
+- `LLAMACTL_INSTANCES_DIR` - Instance configs directory path
+- `LLAMACTL_LOGS_DIR` - Log directory path
+- `LLAMACTL_AUTO_CREATE_DATA_DIR` - Auto-create data/config/logs directories (true/false)
 - `LLAMACTL_MAX_INSTANCES` - Maximum number of instances  
 - `LLAMACTL_MAX_RUNNING_INSTANCES` - Maximum number of running instances
 - `LLAMACTL_ENABLE_LRU_EVICTION` - Enable LRU eviction for idle instances
@@ -226,8 +245,24 @@ instances:
 - `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts  
 - `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds  
 - `LLAMACTL_DEFAULT_ON_DEMAND_START` - Default on-demand start setting (true/false)  
-- `LLAMACTL_ON_DEMAND_START_TIMEOUT` - Default on-demand start timeout in seconds  
-- `LLAMACTL_TIMEOUT_CHECK_INTERVAL` - Default instance timeout check interval in minutes  
+- `LLAMACTL_ON_DEMAND_START_TIMEOUT` - Default on-demand start timeout in seconds
+- `LLAMACTL_TIMEOUT_CHECK_INTERVAL` - Default instance timeout check interval in minutes
+
+### Database Configuration
+
+```yaml
+database:
+  path: "llamactl.db"              # Database file path, default: data_dir/llamactl.db
+  max_open_connections: 25         # Maximum open database connections (default: 25)
+  max_idle_connections: 5          # Maximum idle database connections (default: 5)
+  connection_max_lifetime: 5m      # Connection max lifetime (default: 5m)
+```
+
+**Environment Variables:**
+- `LLAMACTL_DATABASE_PATH` - Database file path (relative to data_dir or absolute)
+- `LLAMACTL_DATABASE_MAX_OPEN_CONNECTIONS` - Maximum open database connections
+- `LLAMACTL_DATABASE_MAX_IDLE_CONNECTIONS` - Maximum idle database connections
+- `LLAMACTL_DATABASE_CONN_MAX_LIFETIME` - Connection max lifetime (e.g., "5m", "1h")
 
 ### Authentication Configuration
 

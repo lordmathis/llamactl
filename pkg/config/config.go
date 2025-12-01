@@ -40,16 +40,20 @@ type BackendConfig struct {
 
 // AppConfig represents the configuration for llamactl
 type AppConfig struct {
-	Server     ServerConfig          `yaml:"server" json:"server"`
-	Backends   BackendConfig         `yaml:"backends" json:"backends"`
-	Instances  InstancesConfig       `yaml:"instances" json:"instances"`
-	Database   DatabaseConfig        `yaml:"database" json:"database"`
-	Auth       AuthConfig            `yaml:"auth" json:"auth"`
-	LocalNode  string                `yaml:"local_node,omitempty" json:"local_node,omitempty"`
-	Nodes      map[string]NodeConfig `yaml:"nodes,omitempty" json:"nodes,omitempty"`
-	Version    string                `yaml:"-" json:"version"`
-	CommitHash string                `yaml:"-" json:"commit_hash"`
-	BuildTime  string                `yaml:"-" json:"build_time"`
+	Server    ServerConfig          `yaml:"server" json:"server"`
+	Backends  BackendConfig         `yaml:"backends" json:"backends"`
+	Instances InstancesConfig       `yaml:"instances" json:"instances"`
+	Database  DatabaseConfig        `yaml:"database" json:"database"`
+	Auth      AuthConfig            `yaml:"auth" json:"auth"`
+	LocalNode string                `yaml:"local_node,omitempty" json:"local_node,omitempty"`
+	Nodes     map[string]NodeConfig `yaml:"nodes,omitempty" json:"nodes,omitempty"`
+
+	// Directory where all llamactl data will be stored (database, instances, logs, etc.)
+	DataDir string `yaml:"data_dir" json:"data_dir"`
+
+	Version    string `yaml:"-" json:"version"`
+	CommitHash string `yaml:"-" json:"commit_hash"`
+	BuildTime  string `yaml:"-" json:"build_time"`
 }
 
 // ServerConfig contains HTTP server configuration
@@ -75,7 +79,7 @@ type ServerConfig struct {
 
 // DatabaseConfig contains database configuration settings
 type DatabaseConfig struct {
-	// Database file path (relative to data_dir or absolute)
+	// Database file path (relative to the top-level data_dir or absolute)
 	Path string `yaml:"path" json:"path"`
 
 	// Connection settings
@@ -89,13 +93,11 @@ type InstancesConfig struct {
 	// Port range for instances (e.g., 8000,9000)
 	PortRange [2]int `yaml:"port_range" json:"port_range"`
 
-	// Directory where all llamactl data will be stored (instances.json, logs, etc.)
-	DataDir string `yaml:"data_dir" json:"data_dir"`
 
-	// Instance config directory override
+	// Instance config directory override (relative to data_dir if not absolute)
 	InstancesDir string `yaml:"configs_dir" json:"configs_dir"`
 
-	// Logs directory override
+	// Logs directory override (relative to data_dir if not absolute)
 	LogsDir string `yaml:"logs_dir" json:"logs_dir"`
 
 	// Automatically create the data directory if it doesn't exist
@@ -156,6 +158,8 @@ type NodeConfig struct {
 // 3. Environment variables
 func LoadConfig(configPath string) (AppConfig, error) {
 	// 1. Start with defaults
+	defaultDataDir := getDefaultDataDirectory()
+
 	cfg := AppConfig{
 		Server: ServerConfig{
 			Host:           "0.0.0.0",
@@ -166,6 +170,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 		},
 		LocalNode: "main",
 		Nodes:     map[string]NodeConfig{},
+		DataDir:   defaultDataDir,
 		Backends: BackendConfig{
 			LlamaCpp: BackendSettings{
 				Command:     "llama-server",
@@ -176,7 +181,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 					Image:   "ghcr.io/ggml-org/llama.cpp:server",
 					Args: []string{
 						"run", "--rm", "--network", "host", "--gpus", "all",
-						"-v", filepath.Join(getDefaultDataDirectory(), "llama.cpp") + ":/root/.cache/llama.cpp"},
+						"-v", filepath.Join(defaultDataDir, "llama.cpp") + ":/root/.cache/llama.cpp"},
 					Environment: map[string]string{},
 				},
 			},
@@ -188,7 +193,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 					Image:   "vllm/vllm-openai:latest",
 					Args: []string{
 						"run", "--rm", "--network", "host", "--gpus", "all", "--shm-size", "1g",
-						"-v", filepath.Join(getDefaultDataDirectory(), "huggingface") + ":/root/.cache/huggingface",
+						"-v", filepath.Join(defaultDataDir, "huggingface") + ":/root/.cache/huggingface",
 					},
 					Environment: map[string]string{},
 				},
@@ -201,7 +206,6 @@ func LoadConfig(configPath string) (AppConfig, error) {
 		},
 		Instances: InstancesConfig{
 			PortRange: [2]int{8000, 9000},
-			DataDir:   getDefaultDataDirectory(),
 			// NOTE: empty strings are set as placeholder values since InstancesDir and LogsDir
 			// should be relative path to DataDir if not explicitly set.
 			InstancesDir:         "",
@@ -218,7 +222,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			TimeoutCheckInterval: 5,   // Check timeouts every 5 minutes
 		},
 		Database: DatabaseConfig{
-			Path:               "llamactl.db", // Relative to data_dir
+			Path:               "", // Will be set to data_dir/llamactl.db if empty
 			MaxOpenConnections: 25,
 			MaxIdleConnections: 5,
 			ConnMaxLifetime:    5 * time.Minute,
@@ -244,17 +248,15 @@ func LoadConfig(configPath string) (AppConfig, error) {
 	// 3. Override with environment variables
 	loadEnvVars(&cfg)
 
-	// If InstancesDir or LogsDir is not set, set it to relative path of DataDir
+	// Set default directories if not specified
 	if cfg.Instances.InstancesDir == "" {
-		cfg.Instances.InstancesDir = filepath.Join(cfg.Instances.DataDir, "instances")
+		cfg.Instances.InstancesDir = filepath.Join(cfg.DataDir, "instances")
 	}
 	if cfg.Instances.LogsDir == "" {
-		cfg.Instances.LogsDir = filepath.Join(cfg.Instances.DataDir, "logs")
+		cfg.Instances.LogsDir = filepath.Join(cfg.DataDir, "logs")
 	}
-
-	// Resolve database path relative to DataDir if it's not absolute
-	if cfg.Database.Path != "" && !filepath.IsAbs(cfg.Database.Path) {
-		cfg.Database.Path = filepath.Join(cfg.Instances.DataDir, cfg.Database.Path)
+	if cfg.Database.Path == "" {
+		cfg.Database.Path = filepath.Join(cfg.DataDir, "llamactl.db")
 	}
 
 	// Validate port range
@@ -312,7 +314,7 @@ func loadEnvVars(cfg *AppConfig) {
 
 	// Data config
 	if dataDir := os.Getenv("LLAMACTL_DATA_DIRECTORY"); dataDir != "" {
-		cfg.Instances.DataDir = dataDir
+		cfg.DataDir = dataDir
 	}
 	if instancesDir := os.Getenv("LLAMACTL_INSTANCES_DIR"); instancesDir != "" {
 		cfg.Instances.InstancesDir = instancesDir

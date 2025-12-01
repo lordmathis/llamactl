@@ -179,11 +179,12 @@ backends:
     args: []
     environment: {}               # Environment variables for the backend process
 
+data_dir: ~/.local/share/llamactl  # Main data directory (database, instances, logs), default varies by OS
+
 instances:
   port_range: [8000, 9000]       # Port range for instances
-  data_dir: ~/.local/share/llamactl         # Data directory (platform-specific, see below)
-  configs_dir: ~/.local/share/llamactl/instances  # Instance configs directory
-  logs_dir: ~/.local/share/llamactl/logs    # Logs directory
+  configs_dir: instances         # Instance configs directory (relative to data_dir)
+  logs_dir: logs                 # Logs directory (relative to data_dir)
   auto_create_dirs: true         # Auto-create data/config/logs dirs if missing
   max_instances: -1              # Max instances (-1 = unlimited)
   max_running_instances: -1      # Max running instances (-1 = unlimited)
@@ -194,6 +195,12 @@ instances:
   default_on_demand_start: true  # Default on-demand start setting
   on_demand_start_timeout: 120   # Default on-demand start timeout in seconds
   timeout_check_interval: 5      # Idle instance timeout check in minutes
+
+database:
+  path: llamactl.db              # Database file path (relative to data_dir)
+  max_open_connections: 25       # Maximum open database connections
+  max_idle_connections: 5        # Maximum idle database connections
+  connection_max_lifetime: 5m    # Connection max lifetime
 
 auth:
   require_inference_auth: true   # Require auth for inference endpoints
