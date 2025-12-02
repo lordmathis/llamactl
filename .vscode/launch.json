@@ -9,7 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/server/main.go",
+            "program": "${workspaceFolder}/cmd/server",
             "env": {
                 "GO_ENV": "development",
                 "LLAMACTL_CONFIG_PATH": "${workspaceFolder}/llamactl.dev.yaml"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"llamactl/pkg/config"
+	"llamactl/pkg/database"
 	"llamactl/pkg/instance"
 	"log"
 	"sync"
@@ -28,11 +29,11 @@ type InstanceManager interface {
 
 type instanceManager struct {
 	// Components (each with own synchronization)
-	registry    *instanceRegistry
-	ports       *portAllocator
-	persistence *instancePersister
-	remote      *remoteManager
-	lifecycle   *lifecycleManager
+	registry  *instanceRegistry
+	ports     *portAllocator
+	db        database.DB
+	remote    *remoteManager
+	lifecycle *lifecycleManager
 
 	// Configuration
 	globalConfig *config.AppConfig
@@ -42,8 +43,8 @@ type instanceManager struct {
 	shutdownOnce  sync.Once
 }
 
-// New creates a new instance of InstanceManager.
-func New(globalConfig *config.AppConfig) InstanceManager {
+// New creates a new instance of InstanceManager with dependency injection.
+func New(globalConfig *config.AppConfig, db database.DB) InstanceManager {
 
 	if globalConfig.Instances.TimeoutCheckInterval <= 0 {
 		globalConfig.Instances.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
@@ -56,9 +57,6 @@ func New(globalConfig *config.AppConfig) InstanceManager {
 	portRange := globalConfig.Instances.PortRange
 	ports := newPortAllocator(portRange[0], portRange[1])
 
-	// Initialize persistence
-	persistence := newInstancePersister(globalConfig.Instances.InstancesDir)
-
 	// Initialize remote manager
 	remote := newRemoteManager(globalConfig.Nodes, 30*time.Second)
 
@@ -66,7 +64,7 @@ func New(globalConfig *config.AppConfig) InstanceManager {
 	im := &instanceManager{
 		registry:     registry,
 		ports:        ports,
-		persistence:  persistence,
+		db:           db,
 		remote:       remote,
 		globalConfig: globalConfig,
 	}
@@ -86,9 +84,9 @@ func New(globalConfig *config.AppConfig) InstanceManager {
 	return im
 }
 
-// persistInstance saves an instance using the persistence component
+// persistInstance saves an instance using the persistence layer
 func (im *instanceManager) persistInstance(inst *instance.Instance) error {
-	return im.persistence.save(inst)
+	return im.db.Save(inst)
 }
 
 func (im *instanceManager) Shutdown() {
@@ -116,13 +114,18 @@ func (im *instanceManager) Shutdown() {
 		}
 		wg.Wait()
 		fmt.Println("All instances stopped.")
+
+		// 4. Close database connection
+		if err := im.db.Close(); err != nil {
+			log.Printf("Error closing database: %v\n", err)
+		}
 	})
 }
 
-// loadInstances restores all instances from disk using the persistence component
+// loadInstances restores all instances from the persistence layer
 func (im *instanceManager) loadInstances() error {
 	// Load all instances from persistence
-	instances, err := im.persistence.loadAll()
+	instances, err := im.db.LoadAll()
 	if err != nil {
 		return fmt.Errorf("failed to load instances: %w", err)
 	}
@@ -256,7 +259,7 @@ func (im *instanceManager) autoStartInstances() {
 	}
 }
 
-func (im *instanceManager) onStatusChange(name string, oldStatus, newStatus instance.Status) {
+func (im *instanceManager) onStatusChange(name string, _, newStatus instance.Status) {
 	if newStatus == instance.Running {
 		im.registry.markRunning(name)
 	} else {

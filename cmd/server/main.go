@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"llamactl/pkg/config"
+	"llamactl/pkg/database"
 	"llamactl/pkg/manager"
 	"llamactl/pkg/server"
 	"log"
@@ -49,17 +50,45 @@ func main() {
 
 	// Create the data directory if it doesn't exist
 	if cfg.Instances.AutoCreateDirs {
-		if err := os.MkdirAll(cfg.Instances.InstancesDir, 0755); err != nil {
-			log.Printf("Error creating config directory %s: %v\nPersistence will not be available.", cfg.Instances.InstancesDir, err)
+		// Create the main data directory
+		if err := os.MkdirAll(cfg.DataDir, 0755); err != nil {
+			log.Printf("Error creating data directory %s: %v\nData persistence may not be available.", cfg.DataDir, err)
 		}
 
+		// Create instances directory
+		if err := os.MkdirAll(cfg.Instances.InstancesDir, 0755); err != nil {
+			log.Printf("Error creating instances directory %s: %v\nPersistence will not be available.", cfg.Instances.InstancesDir, err)
+		}
+
+		// Create logs directory
 		if err := os.MkdirAll(cfg.Instances.LogsDir, 0755); err != nil {
 			log.Printf("Error creating log directory %s: %v\nInstance logs will not be available.", cfg.Instances.LogsDir, err)
 		}
 	}
 
-	// Initialize the instance manager
-	instanceManager := manager.New(&cfg)
+	// Initialize database
+	db, err := database.Open(&database.Config{
+		Path:               cfg.Database.Path,
+		MaxOpenConnections: cfg.Database.MaxOpenConnections,
+		MaxIdleConnections: cfg.Database.MaxIdleConnections,
+		ConnMaxLifetime:    cfg.Database.ConnMaxLifetime,
+	})
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+
+	// Run database migrations
+	if err := database.RunMigrations(db); err != nil {
+		log.Fatalf("Failed to run database migrations: %v", err)
+	}
+
+	// Migrate from JSON files if needed (one-time migration)
+	if err := migrateFromJSON(&cfg, db); err != nil {
+		log.Printf("Warning: Failed to migrate from JSON: %v", err)
+	}
+
+	// Initialize the instance manager with dependency injection
+	instanceManager := manager.New(&cfg, db)
 
 	// Create a new handler with the instance manager
 	handler := server.NewHandler(instanceManager, cfg)

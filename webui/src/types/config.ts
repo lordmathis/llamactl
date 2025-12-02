@@ -30,7 +30,6 @@ export interface ServerConfig {
 
 export interface InstancesConfig {
   port_range: [number, number]
-  data_dir: string
   configs_dir: string
   logs_dir: string
   auto_create_dirs: boolean
@@ -43,6 +42,13 @@ export interface InstancesConfig {
   default_on_demand_start: boolean
   on_demand_start_timeout: number
   timeout_check_interval: number
+}
+
+export interface DatabaseConfig {
+  path: string
+  max_open_connections: number
+  max_idle_connections: number
+  connection_max_lifetime: number
 }
 
 export interface AuthConfig {
@@ -61,9 +67,11 @@ export interface AppConfig {
   server: ServerConfig
   backends: BackendConfig
   instances: InstancesConfig
+  database: DatabaseConfig
   auth: AuthConfig
   local_node: string
   nodes: Record<string, NodeConfig>
+  data_dir: string
   version?: string
   commit_hash?: string
   build_time?: string
