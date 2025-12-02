@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS instances (
 
     -- Future: OIDC user ID for ownership
     owner_user_id TEXT NULL
+);
 
 -- -----------------------------------------------------------------------------
 -- Indexes for performance
