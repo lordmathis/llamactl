@@ -52,19 +52,19 @@ backends:
 data_dir: ~/.local/share/llamactl  # Main data directory (database, instances, logs), default varies by OS
 
 instances:
-  port_range: [8000, 9000]       # Port range for instances
-  configs_dir: data_dir/instances         # Instance configs directory
-  logs_dir: data_dir/logs                 # Logs directory
-  auto_create_dirs: true         # Auto-create data/config/logs dirs if missing
-  max_instances: -1              # Max instances (-1 = unlimited)
-  max_running_instances: -1      # Max running instances (-1 = unlimited)
-  enable_lru_eviction: true      # Enable LRU eviction for idle instances
-  default_auto_restart: true     # Auto-restart new instances by default
-  default_max_restarts: 3        # Max restarts for new instances
-  default_restart_delay: 5       # Restart delay (seconds) for new instances
-  default_on_demand_start: true  # Default on-demand start setting
-  on_demand_start_timeout: 120   # Default on-demand start timeout in seconds
-  timeout_check_interval: 5      # Idle instance timeout check in minutes
+  port_range: [8000, 9000]         # Port range for instances
+  configs_dir: data_dir/instances  # Instance configs directory
+  logs_dir: data_dir/logs          # Logs directory
+  auto_create_dirs: true           # Auto-create data/config/logs dirs if missing
+  max_instances: -1                # Max instances (-1 = unlimited)
+  max_running_instances: -1        # Max running instances (-1 = unlimited)
+  enable_lru_eviction: true        # Enable LRU eviction for idle instances
+  default_auto_restart: true       # Auto-restart new instances by default
+  default_max_restarts: 3          # Max restarts for new instances
+  default_restart_delay: 5         # Restart delay (seconds) for new instances
+  default_on_demand_start: true    # Default on-demand start setting
+  on_demand_start_timeout: 120     # Default on-demand start timeout in seconds
+  timeout_check_interval: 5        # Idle instance timeout check in minutes
 
 database:
   path: data_dir/llamactl.db              # Database file path
