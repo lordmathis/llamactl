@@ -19,15 +19,7 @@ func TestAuthMiddleware(t *testing.T) {
 		method         string
 		expectedStatus int
 	}{
-		// Valid key tests
-		{
-			name:           "valid inference key for inference",
-			keyType:        server.KeyTypeInference,
-			inferenceKeys:  []string{"sk-inference-valid123"},
-			requestKey:     "sk-inference-valid123",
-			method:         "GET",
-			expectedStatus: http.StatusOK,
-		},
+		// Valid key tests - using management keys only since config-based inference keys are deprecated
 		{
 			name:           "valid management key for inference", // Management keys work for inference
 			keyType:        server.KeyTypeInference,
@@ -123,7 +115,7 @@ func TestAuthMiddleware(t *testing.T) {
 				InferenceKeys:  tt.inferenceKeys,
 				ManagementKeys: tt.managementKeys,
 			}
-			middleware := server.NewAPIAuthMiddleware(cfg)
+			middleware := server.NewAPIAuthMiddleware(cfg, nil)
 
 			// Create test request
 			req := httptest.NewRequest(tt.method, "/test", nil)
@@ -131,7 +123,7 @@ func TestAuthMiddleware(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+tt.requestKey)
 			}
 
-			// Create test handler using the appropriate middleware
+			// Create test handler using appropriate middleware
 			var handler http.Handler
 			if tt.keyType == server.KeyTypeInference {
 				handler = middleware.AuthMiddleware(server.KeyTypeInference)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +181,7 @@ func TestGenerateAPIKey(t *testing.T) {
 			}
 
 			// Create middleware - this should trigger key generation
-			middleware := server.NewAPIAuthMiddleware(config)
+			middleware := server.NewAPIAuthMiddleware(config, nil)
 
 			// Test that auth is required (meaning a key was generated)
 			req := httptest.NewRequest("GET", "/", nil)
@@ -214,7 +206,7 @@ func TestGenerateAPIKey(t *testing.T) {
 			}
 
 			// Test uniqueness by creating another middleware instance
-			middleware2 := server.NewAPIAuthMiddleware(config)
+			middleware2 := server.NewAPIAuthMiddleware(config, nil)
 
 			req2 := httptest.NewRequest("GET", "/", nil)
 			recorder2 := httptest.NewRecorder()
@@ -314,7 +306,7 @@ func TestAutoGeneration(t *testing.T) {
 				ManagementKeys:        tt.providedManagement,
 			}
 
-			middleware := server.NewAPIAuthMiddleware(cfg)
+			middleware := server.NewAPIAuthMiddleware(cfg, nil)
 
 			// Test inference behavior if inference auth is required
 			if tt.requireInference {

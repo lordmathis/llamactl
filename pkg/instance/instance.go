@@ -9,10 +9,11 @@ import (
 	"time"
 )
 
-// Instance represents a running instance of the llama server
+// Instance represents a running instance of llama server
 type Instance struct {
+	ID      int    `json:"id"`
 	Name    string `json:"name"`
-	Created int64  `json:"created,omitempty"` // Unix timestamp when the instance was created
+	Created int64  `json:"created,omitempty"` // Unix timestamp when instance was created
 
 	// Global configuration
 	globalInstanceSettings *config.InstancesConfig
@@ -48,6 +49,7 @@ func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusCha
 	options := newOptions(opts)
 
 	instance := &Instance{
+		ID:                     0, // Will be set by database
 		Name:                   name,
 		options:                options,
 		globalInstanceSettings: globalInstanceSettings,
@@ -279,11 +281,13 @@ func (i *Instance) buildEnvironment() map[string]string {
 // MarshalJSON implements json.Marshaler for Instance
 func (i *Instance) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
+		ID      int      `json:"id"`
 		Name    string   `json:"name"`
 		Status  *status  `json:"status"`
 		Created int64    `json:"created,omitempty"`
 		Options *options `json:"options,omitempty"`
 	}{
+		ID:      i.ID,
 		Name:    i.Name,
 		Status:  i.status,
 		Created: i.Created,
@@ -295,6 +299,7 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 func (i *Instance) UnmarshalJSON(data []byte) error {
 	// Explicitly deserialize to match MarshalJSON format
 	aux := &struct {
+		ID      int      `json:"id"`
 		Name    string   `json:"name"`
 		Status  *status  `json:"status"`
 		Created int64    `json:"created,omitempty"`
@@ -306,6 +311,7 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	}
 
 	// Set the fields
+	i.ID = aux.ID
 	i.Name = aux.Name
 	i.Created = aux.Created
 	i.status = aux.Status

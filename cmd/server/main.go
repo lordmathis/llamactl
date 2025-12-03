@@ -48,7 +48,7 @@ func main() {
 	cfg.CommitHash = commitHash
 	cfg.BuildTime = buildTime
 
-	// Create the data directory if it doesn't exist
+	// Create data directory if it doesn't exist
 	if cfg.Instances.AutoCreateDirs {
 		// Create the main data directory
 		if err := os.MkdirAll(cfg.DataDir, 0755); err != nil {
@@ -91,7 +91,7 @@ func main() {
 	instanceManager := manager.New(&cfg, db)
 
 	// Create a new handler with the instance manager
-	handler := server.NewHandler(instanceManager, cfg)
+	handler := server.NewHandler(instanceManager, cfg, db)
 
 	// Setup the router with the handler
 	r := server.SetupRouter(handler)
