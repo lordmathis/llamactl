@@ -85,7 +85,7 @@ type DatabaseConfig struct {
 	// Connection settings
 	MaxOpenConnections int           `yaml:"max_open_connections" json:"max_open_connections"`
 	MaxIdleConnections int           `yaml:"max_idle_connections" json:"max_idle_connections"`
-	ConnMaxLifetime    time.Duration `yaml:"connection_max_lifetime" json:"connection_max_lifetime"`
+	ConnMaxLifetime    time.Duration `yaml:"connection_max_lifetime" json:"connection_max_lifetime" swaggertype:"string" example:"1h"`
 }
 
 // InstancesConfig contains instance management configuration

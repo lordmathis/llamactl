@@ -49,11 +49,11 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		// API key management endpoints
 		r.Route("/auth", func(r chi.Router) {
 			r.Route("/keys", func(r chi.Router) {
-				r.Post("/", handler.CreateInferenceKey())                        // Create API key
-				r.Get("/", handler.ListInferenceKeys())                          // List API keys
-				r.Get("/{id}", handler.GetInferenceKey())                        // Get API key details
-				r.Delete("/{id}", handler.DeleteInferenceKey())                  // Delete API key
-				r.Get("/{id}/permissions", handler.GetInferenceKeyPermissions()) // Get key permissions
+				r.Post("/", handler.CreateKey())                        // Create API key
+				r.Get("/", handler.ListKeys())                          // List API keys
+				r.Get("/{id}", handler.GetKey())                        // Get API key details
+				r.Delete("/{id}", handler.DeleteKey())                  // Delete API key
+				r.Get("/{id}/permissions", handler.GetKeyPermissions()) // Get key permissions
 			})
 		})
 

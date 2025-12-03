@@ -11,12 +11,14 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// InstancePermission defines the permissions for an API key on a specific instance.
 type InstancePermission struct {
 	InstanceID  int  `json:"instance_id"`
 	CanInfer    bool `json:"can_infer"`
 	CanViewLogs bool `json:"can_view_logs"`
 }
 
+// CreateKeyRequest represents the request body for creating a new API key.
 type CreateKeyRequest struct {
 	Name                string
 	PermissionMode      auth.PermissionMode
@@ -24,31 +26,34 @@ type CreateKeyRequest struct {
 	InstancePermissions []InstancePermission
 }
 
+// CreateKeyResponse represents the response returned when creating a new API key.
 type CreateKeyResponse struct {
-	ID             int                     `json:"id"`
-	Name           string                  `json:"name"`
-	UserID         string                  `json:"user_id"`
-	PermissionMode auth.PermissionMode     `json:"permission_mode"`
-	ExpiresAt      *int64                  `json:"expires_at"`
-	Enabled        bool                    `json:"enabled"`
-	CreatedAt      int64                   `json:"created_at"`
-	UpdatedAt      int64                   `json:"updated_at"`
-	LastUsedAt     *int64                  `json:"last_used_at"`
-	Key            string                  `json:"key"`
+	ID             int                 `json:"id"`
+	Name           string              `json:"name"`
+	UserID         string              `json:"user_id"`
+	PermissionMode auth.PermissionMode `json:"permission_mode"`
+	ExpiresAt      *int64              `json:"expires_at"`
+	Enabled        bool                `json:"enabled"`
+	CreatedAt      int64               `json:"created_at"`
+	UpdatedAt      int64               `json:"updated_at"`
+	LastUsedAt     *int64              `json:"last_used_at"`
+	Key            string              `json:"key"`
 }
 
+// KeyResponse represents an API key in responses for list and get operations.
 type KeyResponse struct {
-	ID             int                     `json:"id"`
-	Name           string                  `json:"name"`
-	UserID         string                  `json:"user_id"`
-	PermissionMode auth.PermissionMode     `json:"permission_mode"`
-	ExpiresAt      *int64                  `json:"expires_at"`
-	Enabled        bool                    `json:"enabled"`
-	CreatedAt      int64                   `json:"created_at"`
-	UpdatedAt      int64                   `json:"updated_at"`
-	LastUsedAt     *int64                  `json:"last_used_at"`
+	ID             int                 `json:"id"`
+	Name           string              `json:"name"`
+	UserID         string              `json:"user_id"`
+	PermissionMode auth.PermissionMode `json:"permission_mode"`
+	ExpiresAt      *int64              `json:"expires_at"`
+	Enabled        bool                `json:"enabled"`
+	CreatedAt      int64               `json:"created_at"`
+	UpdatedAt      int64               `json:"updated_at"`
+	LastUsedAt     *int64              `json:"last_used_at"`
 }
 
+// KeyPermissionResponse represents the permissions for an API key on a specific instance.
 type KeyPermissionResponse struct {
 	InstanceID   int    `json:"instance_id"`
 	InstanceName string `json:"instance_name"`
@@ -56,8 +61,18 @@ type KeyPermissionResponse struct {
 	CanViewLogs  bool   `json:"can_view_logs"`
 }
 
-// CreateInferenceKey handles POST /api/v1/keys
-func (h *Handler) CreateInferenceKey() http.HandlerFunc {
+// CreateKey godoc
+// @Summary Create a new API key
+// @Description Creates a new API key with the specified permissions and returns the plain-text key (only shown once)
+// @Tags Keys
+// @Accept json
+// @Produce json
+// @Param key body CreateKeyRequest true "API key configuration"
+// @Success 201 {object} CreateKeyResponse "Created API key with plain-text key"
+// @Failure 400 {string} string "Invalid request body or validation error"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/v1/auth/keys [post]
+func (h *Handler) CreateKey() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateKeyRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -172,8 +187,16 @@ func (h *Handler) CreateInferenceKey() http.HandlerFunc {
 	}
 }
 
-// ListInferenceKeys handles GET /api/v1/keys
-func (h *Handler) ListInferenceKeys() http.HandlerFunc {
+// ListKeys godoc
+// @Summary List all API keys
+// @Description Returns a list of all API keys for the system user (excludes key hash and plain-text key)
+// @Tags Keys
+// @Security ApiKeyAuth
+// @Produce json
+// @Success 200 {array} KeyResponse "List of API keys"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/v1/auth/keys [get]
+func (h *Handler) ListKeys() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		keys, err := h.authStore.GetUserKeys(r.Context(), "system")
 		if err != nil {
@@ -202,8 +225,19 @@ func (h *Handler) ListInferenceKeys() http.HandlerFunc {
 	}
 }
 
-// GetInferenceKey handles GET /api/v1/keys/{id}
-func (h *Handler) GetInferenceKey() http.HandlerFunc {
+// GetKey godoc
+// @Summary Get details of a specific API key
+// @Description Returns details for a specific API key by ID (excludes key hash and plain-text key)
+// @Tags Keys
+// @Security ApiKeyAuth
+// @Produce json
+// @Param id path int true "Key ID"
+// @Success 200 {object} KeyResponse "API key details"
+// @Failure 400 {string} string "Invalid key ID"
+// @Failure 404 {string} string "API key not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/v1/auth/keys/{id} [get]
+func (h *Handler) GetKey() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
@@ -240,8 +274,18 @@ func (h *Handler) GetInferenceKey() http.HandlerFunc {
 	}
 }
 
-// DeleteInferenceKey handles DELETE /api/v1/keys/{id}
-func (h *Handler) DeleteInferenceKey() http.HandlerFunc {
+// DeleteKey godoc
+// @Summary Delete an API key
+// @Description Deletes an API key by ID
+// @Tags Keys
+// @Security ApiKeyAuth
+// @Param id path int true "Key ID"
+// @Success 204 "API key deleted successfully"
+// @Failure 400 {string} string "Invalid key ID"
+// @Failure 404 {string} string "API key not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/v1/auth/keys/{id} [delete]
+func (h *Handler) DeleteKey() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
@@ -264,8 +308,19 @@ func (h *Handler) DeleteInferenceKey() http.HandlerFunc {
 	}
 }
 
-// GetInferenceKeyPermissions handles GET /api/v1/keys/{id}/permissions
-func (h *Handler) GetInferenceKeyPermissions() http.HandlerFunc {
+// GetKeyPermissions godoc
+// @Summary Get API key permissions
+// @Description Returns the instance-level permissions for a specific API key (includes instance names)
+// @Tags Keys
+// @Security ApiKeyAuth
+// @Produce json
+// @Param id path int true "Key ID"
+// @Success 200 {array} KeyPermissionResponse "List of key permissions"
+// @Failure 400 {string} string "Invalid key ID"
+// @Failure 404 {string} string "API key not found"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/v1/auth/keys/{id}/permissions [get]
+func (h *Handler) GetKeyPermissions() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
