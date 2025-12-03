@@ -33,9 +33,8 @@ type KeyPermission struct {
 	CanViewLogs bool
 }
 
-// GenerateKey generates a cryptographically secure inference API key
-// Format: sk-inference-<64-hex-chars>
-func GenerateKey() (string, error) {
+// GenerateKey generates a cryptographically secure API key with the given prefix
+func GenerateKey(prefix string) (string, error) {
 	// Generate 32 random bytes
 	bytes := make([]byte, 32)
 	_, err := rand.Read(bytes)
@@ -46,6 +45,5 @@ func GenerateKey() (string, error) {
 	// Convert to hex (64 characters)
 	hexStr := hex.EncodeToString(bytes)
 
-	// Prefix with "sk-inference-"
-	return fmt.Sprintf("sk-inference-%s", hexStr), nil
+	return fmt.Sprintf("%s-%s", prefix, hexStr), nil
 }

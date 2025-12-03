@@ -24,6 +24,38 @@ type CreateKeyRequest struct {
 	InstancePermissions []InstancePermission
 }
 
+type CreateKeyResponse struct {
+	ID             int                     `json:"id"`
+	Name           string                  `json:"name"`
+	UserID         string                  `json:"user_id"`
+	PermissionMode auth.PermissionMode     `json:"permission_mode"`
+	ExpiresAt      *int64                  `json:"expires_at"`
+	Enabled        bool                    `json:"enabled"`
+	CreatedAt      int64                   `json:"created_at"`
+	UpdatedAt      int64                   `json:"updated_at"`
+	LastUsedAt     *int64                  `json:"last_used_at"`
+	Key            string                  `json:"key"`
+}
+
+type KeyResponse struct {
+	ID             int                     `json:"id"`
+	Name           string                  `json:"name"`
+	UserID         string                  `json:"user_id"`
+	PermissionMode auth.PermissionMode     `json:"permission_mode"`
+	ExpiresAt      *int64                  `json:"expires_at"`
+	Enabled        bool                    `json:"enabled"`
+	CreatedAt      int64                   `json:"created_at"`
+	UpdatedAt      int64                   `json:"updated_at"`
+	LastUsedAt     *int64                  `json:"last_used_at"`
+}
+
+type KeyPermissionResponse struct {
+	InstanceID   int    `json:"instance_id"`
+	InstanceName string `json:"instance_name"`
+	CanInfer     bool   `json:"can_infer"`
+	CanViewLogs  bool   `json:"can_view_logs"`
+}
+
 // CreateInferenceKey handles POST /api/v1/keys
 func (h *Handler) CreateInferenceKey() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +108,7 @@ func (h *Handler) CreateInferenceKey() http.HandlerFunc {
 		}
 
 		// Generate plain-text key
-		plainTextKey, err := auth.GenerateKey()
+		plainTextKey, err := auth.GenerateKey("llamactl-")
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "key_generation_failed", "Failed to generate API key")
 			return
@@ -118,18 +150,20 @@ func (h *Handler) CreateInferenceKey() http.HandlerFunc {
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "creation_failed", fmt.Sprintf("Failed to create API key: %v", err))
 			return
-		} // Return response with plain-text key (only shown once)
-		response := map[string]interface{}{
-			"id":              apiKey.ID,
-			"name":            apiKey.Name,
-			"user_id":         apiKey.UserID,
-			"permission_mode": apiKey.PermissionMode,
-			"expires_at":      apiKey.ExpiresAt,
-			"enabled":         apiKey.Enabled,
-			"created_at":      apiKey.CreatedAt,
-			"updated_at":      apiKey.UpdatedAt,
-			"last_used_at":    apiKey.LastUsedAt,
-			"key":             plainTextKey, // Only returned on creation
+		}
+
+		// Return response with plain-text key (only shown once)
+		response := CreateKeyResponse{
+			ID:             apiKey.ID,
+			Name:           apiKey.Name,
+			UserID:         apiKey.UserID,
+			PermissionMode: apiKey.PermissionMode,
+			ExpiresAt:      apiKey.ExpiresAt,
+			Enabled:        apiKey.Enabled,
+			CreatedAt:      apiKey.CreatedAt,
+			UpdatedAt:      apiKey.UpdatedAt,
+			LastUsedAt:     apiKey.LastUsedAt,
+			Key:            plainTextKey,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -148,18 +182,18 @@ func (h *Handler) ListInferenceKeys() http.HandlerFunc {
 		}
 
 		// Remove key_hash from all keys
-		var response []map[string]interface{}
+		response := make([]KeyResponse, 0, len(keys))
 		for _, key := range keys {
-			response = append(response, map[string]interface{}{
-				"id":              key.ID,
-				"name":            key.Name,
-				"user_id":         key.UserID,
-				"permission_mode": key.PermissionMode,
-				"expires_at":      key.ExpiresAt,
-				"enabled":         key.Enabled,
-				"created_at":      key.CreatedAt,
-				"updated_at":      key.UpdatedAt,
-				"last_used_at":    key.LastUsedAt,
+			response = append(response, KeyResponse{
+				ID:             key.ID,
+				Name:           key.Name,
+				UserID:         key.UserID,
+				PermissionMode: key.PermissionMode,
+				ExpiresAt:      key.ExpiresAt,
+				Enabled:        key.Enabled,
+				CreatedAt:      key.CreatedAt,
+				UpdatedAt:      key.UpdatedAt,
+				LastUsedAt:     key.LastUsedAt,
 			})
 		}
 
@@ -189,16 +223,16 @@ func (h *Handler) GetInferenceKey() http.HandlerFunc {
 		}
 
 		// Remove key_hash from response
-		response := map[string]interface{}{
-			"id":              key.ID,
-			"name":            key.Name,
-			"user_id":         key.UserID,
-			"permission_mode": key.PermissionMode,
-			"expires_at":      key.ExpiresAt,
-			"enabled":         key.Enabled,
-			"created_at":      key.CreatedAt,
-			"updated_at":      key.UpdatedAt,
-			"last_used_at":    key.LastUsedAt,
+		response := KeyResponse{
+			ID:             key.ID,
+			Name:           key.Name,
+			UserID:         key.UserID,
+			PermissionMode: key.PermissionMode,
+			ExpiresAt:      key.ExpiresAt,
+			Enabled:        key.Enabled,
+			CreatedAt:      key.CreatedAt,
+			UpdatedAt:      key.UpdatedAt,
+			LastUsedAt:     key.LastUsedAt,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -268,13 +302,13 @@ func (h *Handler) GetInferenceKeyPermissions() http.HandlerFunc {
 			instanceNameMap[inst.ID] = inst.Name
 		}
 
-		var response []map[string]interface{}
+		response := make([]KeyPermissionResponse, 0, len(permissions))
 		for _, perm := range permissions {
-			response = append(response, map[string]interface{}{
-				"instance_id":   perm.InstanceID,
-				"instance_name": instanceNameMap[perm.InstanceID],
-				"can_infer":     perm.CanInfer,
-				"can_view_logs": perm.CanViewLogs,
+			response = append(response, KeyPermissionResponse{
+				InstanceID:   perm.InstanceID,
+				InstanceName: instanceNameMap[perm.InstanceID],
+				CanInfer:     perm.CanInfer,
+				CanViewLogs:  perm.CanViewLogs,
 			})
 		}
 

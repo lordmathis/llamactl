@@ -39,7 +39,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 	r.Route("/api/v1", func(r chi.Router) {
 
 		if authMiddleware != nil && handler.cfg.Auth.RequireManagementAuth {
-			r.Use(authMiddleware.AuthMiddleware(KeyTypeManagement))
+			r.Use(authMiddleware.ManagementAuthMiddleware())
 		}
 
 		r.Get("/version", handler.VersionHandler())
@@ -108,7 +108,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 	r.Route("/v1", func(r chi.Router) {
 
 		if authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
-			r.Use(authMiddleware.AuthMiddleware(KeyTypeInference))
+			r.Use(authMiddleware.InferenceAuthMiddleware())
 		}
 
 		r.Get("/models", handler.OpenAIListInstances()) // List instances in OpenAI-compatible format
@@ -136,7 +136,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		r.Group(func(r chi.Router) {
 
 			if authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
-				r.Use(authMiddleware.AuthMiddleware(KeyTypeInference))
+				r.Use(authMiddleware.InferenceAuthMiddleware())
 			}
 
 			// This handler auto starts the server if it's not running
