@@ -93,7 +93,6 @@ type InstancesConfig struct {
 	// Port range for instances (e.g., 8000,9000)
 	PortRange [2]int `yaml:"port_range" json:"port_range"`
 
-
 	// Instance config directory override (relative to data_dir if not absolute)
 	InstancesDir string `yaml:"configs_dir" json:"configs_dir"`
 
@@ -248,9 +247,18 @@ func LoadConfig(configPath string) (AppConfig, error) {
 	// 3. Override with environment variables
 	loadEnvVars(&cfg)
 
+	// Log warning if deprecated inference keys are present
+	if len(cfg.Auth.InferenceKeys) > 0 {
+		log.Println("⚠️ Config-based inference keys are no longer supported and will be ignored.")
+		log.Println("    Please create inference keys in web UI or via management API.")
+	}
+
 	// Set default directories if not specified
 	if cfg.Instances.InstancesDir == "" {
 		cfg.Instances.InstancesDir = filepath.Join(cfg.DataDir, "instances")
+	} else {
+		// Log deprecation warning if using custom instances dir
+		log.Println("⚠️ Instances directory is deprecated and will be removed in future versions. Instances are persisted in the database.")
 	}
 	if cfg.Instances.LogsDir == "" {
 		cfg.Instances.LogsDir = filepath.Join(cfg.DataDir, "logs")

@@ -36,12 +36,6 @@ func NewAPIAuthMiddleware(authCfg config.AuthConfig, authStore database.AuthStor
 		managementKeys[key] = true
 	}
 
-	// If len(authCfg.InferenceKeys) > 0, log warning
-	if len(authCfg.InferenceKeys) > 0 {
-		log.Println("⚠️ Config-based inference keys are no longer supported and will be ignored.")
-		log.Println("    Please create inference keys in web UI or via management API.")
-	}
-
 	// Handle legacy auto-generation for management keys if none provided and auth is required
 	var generated bool = false
 	const banner = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
