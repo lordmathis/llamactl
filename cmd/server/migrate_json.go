@@ -58,20 +58,6 @@ func migrateFromJSON(cfg *config.AppConfig, db database.InstanceStore) error {
 
 	log.Printf("Successfully migrated %d/%d instances to SQLite", migrated, len(files))
 
-	// Archive old JSON files
-	if migrated > 0 {
-		archiveDir := filepath.Join(instancesDir, "json_archive")
-		if err := os.MkdirAll(archiveDir, 0755); err == nil {
-			for _, file := range files {
-				newPath := filepath.Join(archiveDir, filepath.Base(file))
-				if err := os.Rename(file, newPath); err != nil {
-					log.Printf("Failed to archive %s: %v", file, err)
-				}
-			}
-			log.Printf("Archived old JSON files to %s", archiveDir)
-		}
-	}
-
 	return nil
 }
 
