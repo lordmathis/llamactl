@@ -49,7 +49,6 @@ CREATE TABLE IF NOT EXISTS key_permissions (
     key_id INTEGER NOT NULL,
     instance_id INTEGER NOT NULL,
     can_infer INTEGER NOT NULL DEFAULT 0,
-    can_view_logs INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (key_id, instance_id),
     FOREIGN KEY (key_id) REFERENCES api_keys (id) ON DELETE CASCADE,
     FOREIGN KEY (instance_id) REFERENCES instances (id) ON DELETE CASCADE

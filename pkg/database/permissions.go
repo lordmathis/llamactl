@@ -10,7 +10,7 @@ import (
 // GetPermissions retrieves all permissions for a key
 func (db *sqliteDB) GetPermissions(ctx context.Context, keyID int) ([]auth.KeyPermission, error) {
 	query := `
-		SELECT key_id, instance_id, can_infer, can_view_logs
+		SELECT key_id, instance_id, can_infer
 		FROM key_permissions
 		WHERE key_id = ?
 		ORDER BY instance_id
@@ -25,7 +25,7 @@ func (db *sqliteDB) GetPermissions(ctx context.Context, keyID int) ([]auth.KeyPe
 	var permissions []auth.KeyPermission
 	for rows.Next() {
 		var perm auth.KeyPermission
-		err := rows.Scan(&perm.KeyID, &perm.InstanceID, &perm.CanInfer, &perm.CanViewLogs)
+		err := rows.Scan(&perm.KeyID, &perm.InstanceID, &perm.CanInfer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan key permission: %w", err)
 		}

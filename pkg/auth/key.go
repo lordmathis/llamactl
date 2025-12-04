@@ -27,10 +27,9 @@ type APIKey struct {
 }
 
 type KeyPermission struct {
-	KeyID       int
-	InstanceID  int
-	CanInfer    bool
-	CanViewLogs bool
+	KeyID      int
+	InstanceID int
+	CanInfer   bool
 }
 
 // GenerateKey generates a cryptographically secure API key with the given prefix
