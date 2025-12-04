@@ -41,7 +41,7 @@ func NewAPIAuthMiddleware(authCfg config.AuthConfig, authStore database.AuthStor
 	const banner = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 	if authCfg.RequireManagementAuth && len(authCfg.ManagementKeys) == 0 {
-		key, err := auth.GenerateKey("llamactl-mgmt-")
+		key, err := auth.GenerateKey("llamactl-mgmt")
 		if err != nil {
 			log.Printf("Warning: Failed to generate management key: %v", err)
 			// Fallback to PID-based key for safety

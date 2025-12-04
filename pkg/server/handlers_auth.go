@@ -121,7 +121,7 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 		}
 
 		// Generate plain-text key
-		plainTextKey, err := auth.GenerateKey("llamactl-")
+		plainTextKey, err := auth.GenerateKey("llamactl")
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "key_generation_failed", "Failed to generate API key")
 			return
