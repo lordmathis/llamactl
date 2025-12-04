@@ -123,8 +123,8 @@ function renderWithProvider(children: ReactNode) {
 
 describe("InstancesContext", () => {
   const mockInstances: Instance[] = [
-    { name: "instance1", status: "running", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model1.gguf" } } },
-    { name: "instance2", status: "stopped", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model2.gguf" } } },
+    { id: 1, name: "instance1", status: "running", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model1.gguf" } } },
+    { id: 2, name: "instance2", status: "stopped", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model2.gguf" } } },
   ];
 
   beforeEach(() => {
@@ -181,6 +181,7 @@ describe("InstancesContext", () => {
   describe("Create Instance", () => {
     it("creates instance and adds it to state", async () => {
       const newInstance: Instance = {
+        id: 3,
         name: "new-instance",
         status: "stopped",
         options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "test.gguf" } },
@@ -238,6 +239,7 @@ describe("InstancesContext", () => {
   describe("Update Instance", () => {
     it("updates instance and maintains it in state", async () => {
       const updatedInstance: Instance = {
+        id: 1,
         name: "instance1",
         status: "running",
         options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "updated.gguf" } },
@@ -408,6 +410,7 @@ describe("InstancesContext", () => {
     it("maintains consistent state during multiple operations", async () => {
       // Test that operations don't interfere with each other
       const newInstance: Instance = {
+        id: 3,
         name: "new-instance",
         status: "stopped",
         options: {},

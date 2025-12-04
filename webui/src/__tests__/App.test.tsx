@@ -75,8 +75,8 @@ function renderApp() {
 
 describe('App Component - Critical Business Logic Only', () => {
   const mockInstances: Instance[] = [
-    { name: 'test-instance-1', status: 'stopped', options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'model1.gguf' } } },
-    { name: 'test-instance-2', status: 'running', options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'model2.gguf' } } }
+    { id: 1, name: 'test-instance-1', status: 'stopped', options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'model1.gguf' } } },
+    { id: 2, name: 'test-instance-2', status: 'running', options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'model2.gguf' } } }
   ]
 
   beforeEach(() => {
@@ -109,6 +109,7 @@ describe('App Component - Critical Business Logic Only', () => {
     it('creates new instance with correct API call and updates UI', async () => {
       const user = userEvent.setup()
       const newInstance: Instance = {
+        id: 3,
         name: 'new-test-instance',
         status: 'stopped',
         options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'new-model.gguf' } }
@@ -151,6 +152,7 @@ describe('App Component - Critical Business Logic Only', () => {
     it('updates existing instance with correct API call', async () => {
       const user = userEvent.setup()
       const updatedInstance: Instance = {
+        id: 1,
         name: 'test-instance-1',
         status: 'stopped',
         options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'updated-model.gguf' } }

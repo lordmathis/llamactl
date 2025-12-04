@@ -4,6 +4,7 @@ import InstanceList from "@/components/InstanceList";
 import InstanceDialog from "@/components/InstanceDialog";
 import LoginDialog from "@/components/LoginDialog";
 import SystemInfoDialog from "./components/SystemInfoDialog";
+import SettingsDialog from "./components/settings/SettingsDialog";
 import { type CreateInstanceOptions, type Instance } from "@/types/instance";
 import { useInstances } from "@/contexts/InstancesContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +15,7 @@ function App() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
   const [isSystemInfoModalOpen, setIsSystemInfoModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [editingInstance, setEditingInstance] = useState<Instance | undefined>(
     undefined
   );
@@ -39,6 +41,10 @@ function App() {
 
   const handleShowSystemInfo = () => {
     setIsSystemInfoModalOpen(true);
+  };
+
+  const handleShowSettings = () => {
+    setIsSettingsModalOpen(true);
   };
 
   // Show loading spinner while checking auth
@@ -70,7 +76,11 @@ function App() {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background">
-        <Header onCreateInstance={handleCreateInstance} onShowSystemInfo={handleShowSystemInfo} />
+        <Header
+          onCreateInstance={handleCreateInstance}
+          onShowSystemInfo={handleShowSystemInfo}
+          onShowSettings={handleShowSettings}
+        />
         <main className="container mx-auto max-w-4xl px-4 py-8">
           <InstanceList editInstance={handleEditInstance} />
         </main>
@@ -86,7 +96,12 @@ function App() {
           open={isSystemInfoModalOpen}
           onOpenChange={setIsSystemInfoModalOpen}
         />
-        
+
+        <SettingsDialog
+          open={isSettingsModalOpen}
+          onOpenChange={setIsSettingsModalOpen}
+        />
+
         <Toaster />
       </div>
     </ThemeProvider>
