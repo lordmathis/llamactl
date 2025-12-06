@@ -9,7 +9,6 @@ export interface ApiKey {
   user_id: string
   permission_mode: PermissionMode
   expires_at: number | null
-  enabled: boolean
   created_at: number
   updated_at: number
   last_used_at: number | null

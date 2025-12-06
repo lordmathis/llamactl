@@ -18,8 +18,8 @@ func (db *sqliteDB) CreateKey(ctx context.Context, key *auth.APIKey, permissions
 
 	// Insert the API key
 	query := `
-		INSERT INTO api_keys (key_hash, name, user_id, permission_mode, expires_at, enabled, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO api_keys (key_hash, name, user_id, permission_mode, expires_at, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
 
 	var expiresAt sql.NullInt64
@@ -29,7 +29,7 @@ func (db *sqliteDB) CreateKey(ctx context.Context, key *auth.APIKey, permissions
 
 	result, err := tx.ExecContext(ctx, query,
 		key.KeyHash, key.Name, key.UserID, key.PermissionMode,
-		expiresAt, key.Enabled, key.CreatedAt, key.UpdatedAt,
+		expiresAt, key.CreatedAt, key.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert API key: %w", err)
@@ -61,7 +61,7 @@ func (db *sqliteDB) CreateKey(ctx context.Context, key *auth.APIKey, permissions
 // GetKeyByID retrieves an API key by ID
 func (db *sqliteDB) GetKeyByID(ctx context.Context, id int) (*auth.APIKey, error) {
 	query := `
-		SELECT id, key_hash, name, user_id, permission_mode, expires_at, enabled, created_at, updated_at, last_used_at
+		SELECT id, key_hash, name, user_id, permission_mode, expires_at, created_at, updated_at, last_used_at
 		FROM api_keys
 		WHERE id = ?
 	`
@@ -72,7 +72,7 @@ func (db *sqliteDB) GetKeyByID(ctx context.Context, id int) (*auth.APIKey, error
 
 	err := db.QueryRowContext(ctx, query, id).Scan(
 		&key.ID, &key.KeyHash, &key.Name, &key.UserID, &key.PermissionMode,
-		&expiresAt, &key.Enabled, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
+		&expiresAt, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -94,7 +94,7 @@ func (db *sqliteDB) GetKeyByID(ctx context.Context, id int) (*auth.APIKey, error
 // GetUserKeys retrieves all API keys for a user
 func (db *sqliteDB) GetUserKeys(ctx context.Context, userID string) ([]*auth.APIKey, error) {
 	query := `
-		SELECT id, key_hash, name, user_id, permission_mode, expires_at, enabled, created_at, updated_at, last_used_at
+		SELECT id, key_hash, name, user_id, permission_mode, expires_at, created_at, updated_at, last_used_at
 		FROM api_keys
 		WHERE user_id = ?
 		ORDER BY created_at DESC
@@ -114,7 +114,7 @@ func (db *sqliteDB) GetUserKeys(ctx context.Context, userID string) ([]*auth.API
 
 		err := rows.Scan(
 			&key.ID, &key.KeyHash, &key.Name, &key.UserID, &key.PermissionMode,
-			&expiresAt, &key.Enabled, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
+			&expiresAt, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan API key: %w", err)
@@ -133,12 +133,12 @@ func (db *sqliteDB) GetUserKeys(ctx context.Context, userID string) ([]*auth.API
 	return keys, nil
 }
 
-// GetActiveKeys retrieves all enabled, non-expired API keys
+// GetActiveKeys retrieves all non-expired API keys
 func (db *sqliteDB) GetActiveKeys(ctx context.Context) ([]*auth.APIKey, error) {
 	query := `
-		SELECT id, key_hash, name, user_id, permission_mode, expires_at, enabled, created_at, updated_at, last_used_at
+		SELECT id, key_hash, name, user_id, permission_mode, expires_at, created_at, updated_at, last_used_at
 		FROM api_keys
-		WHERE enabled = 1 AND (expires_at IS NULL OR expires_at > ?)
+		WHERE expires_at IS NULL OR expires_at > ?
 		ORDER BY created_at DESC
 	`
 
@@ -157,7 +157,7 @@ func (db *sqliteDB) GetActiveKeys(ctx context.Context) ([]*auth.APIKey, error) {
 
 		err := rows.Scan(
 			&key.ID, &key.KeyHash, &key.Name, &key.UserID, &key.PermissionMode,
-			&expiresAt, &key.Enabled, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
+			&expiresAt, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan API key: %w", err)

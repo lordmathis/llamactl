@@ -36,7 +36,6 @@ CREATE TABLE IF NOT EXISTS api_keys (
     user_id TEXT NOT NULL,
     permission_mode TEXT NOT NULL CHECK(permission_mode IN ('allow_all', 'per_instance')) DEFAULT 'per_instance',
     expires_at INTEGER NULL,
-    enabled INTEGER NOT NULL DEFAULT 1,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     last_used_at INTEGER NULL

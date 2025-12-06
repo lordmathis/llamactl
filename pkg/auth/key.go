@@ -20,7 +20,6 @@ type APIKey struct {
 	UserID         string
 	PermissionMode PermissionMode
 	ExpiresAt      *int64
-	Enabled        bool
 	CreatedAt      int64
 	UpdatedAt      int64
 	LastUsedAt     *int64

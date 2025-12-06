@@ -32,7 +32,6 @@ type CreateKeyResponse struct {
 	UserID         string              `json:"user_id"`
 	PermissionMode auth.PermissionMode `json:"permission_mode"`
 	ExpiresAt      *int64              `json:"expires_at"`
-	Enabled        bool                `json:"enabled"`
 	CreatedAt      int64               `json:"created_at"`
 	UpdatedAt      int64               `json:"updated_at"`
 	LastUsedAt     *int64              `json:"last_used_at"`
@@ -46,7 +45,6 @@ type KeyResponse struct {
 	UserID         string              `json:"user_id"`
 	PermissionMode auth.PermissionMode `json:"permission_mode"`
 	ExpiresAt      *int64              `json:"expires_at"`
-	Enabled        bool                `json:"enabled"`
 	CreatedAt      int64               `json:"created_at"`
 	UpdatedAt      int64               `json:"updated_at"`
 	LastUsedAt     *int64              `json:"last_used_at"`
@@ -142,7 +140,6 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			UserID:         "system",
 			PermissionMode: req.PermissionMode,
 			ExpiresAt:      req.ExpiresAt,
-			Enabled:        true,
 			CreatedAt:      now,
 			UpdatedAt:      now,
 		}
@@ -171,7 +168,6 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			UserID:         apiKey.UserID,
 			PermissionMode: apiKey.PermissionMode,
 			ExpiresAt:      apiKey.ExpiresAt,
-			Enabled:        apiKey.Enabled,
 			CreatedAt:      apiKey.CreatedAt,
 			UpdatedAt:      apiKey.UpdatedAt,
 			LastUsedAt:     apiKey.LastUsedAt,
@@ -210,7 +206,6 @@ func (h *Handler) ListKeys() http.HandlerFunc {
 				UserID:         key.UserID,
 				PermissionMode: key.PermissionMode,
 				ExpiresAt:      key.ExpiresAt,
-				Enabled:        key.Enabled,
 				CreatedAt:      key.CreatedAt,
 				UpdatedAt:      key.UpdatedAt,
 				LastUsedAt:     key.LastUsedAt,
@@ -260,7 +255,6 @@ func (h *Handler) GetKey() http.HandlerFunc {
 			UserID:         key.UserID,
 			PermissionMode: key.PermissionMode,
 			ExpiresAt:      key.ExpiresAt,
-			Enabled:        key.Enabled,
 			CreatedAt:      key.CreatedAt,
 			UpdatedAt:      key.UpdatedAt,
 			LastUsedAt:     key.LastUsedAt,
