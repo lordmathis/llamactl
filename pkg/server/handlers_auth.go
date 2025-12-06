@@ -11,17 +11,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// InstancePermission defines the permissions for an API key on a specific instance.
-type InstancePermission struct {
-	InstanceID int `json:"instance_id"`
-}
-
 // CreateKeyRequest represents the request body for creating a new API key.
 type CreateKeyRequest struct {
-	Name                string
-	PermissionMode      auth.PermissionMode
-	ExpiresAt           *int64
-	InstancePermissions []InstancePermission
+	Name           string              `json:"name"`
+	PermissionMode auth.PermissionMode `json:"permission_mode"`
+	ExpiresAt      *int64              `json:"expires_at,omitempty"`
+	InstanceIDs    []int               `json:"instance_ids,omitempty"`
 }
 
 // CreateKeyResponse represents the response returned when creating a new API key.
@@ -87,8 +82,8 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_permission_mode", "Permission mode must be 'allow_all' or 'per_instance'")
 			return
 		}
-		if req.PermissionMode == auth.PermissionModePerInstance && len(req.InstancePermissions) == 0 {
-			writeError(w, http.StatusBadRequest, "missing_permissions", "Instance permissions required when permission mode is 'per_instance'")
+		if req.PermissionMode == auth.PermissionModePerInstance && len(req.InstanceIDs) == 0 {
+			writeError(w, http.StatusBadRequest, "missing_permissions", "Instance IDs required when permission mode is 'per_instance'")
 			return
 		}
 		if req.ExpiresAt != nil && *req.ExpiresAt <= time.Now().Unix() {
@@ -108,9 +103,9 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 				instanceIDMap[inst.ID] = true
 			}
 
-			for _, perm := range req.InstancePermissions {
-				if !instanceIDMap[perm.InstanceID] {
-					writeError(w, http.StatusBadRequest, "invalid_instance_id", fmt.Sprintf("Instance ID %d does not exist", perm.InstanceID))
+			for _, instanceID := range req.InstanceIDs {
+				if !instanceIDMap[instanceID] {
+					writeError(w, http.StatusBadRequest, "invalid_instance_id", fmt.Sprintf("Instance ID %d does not exist", instanceID))
 					return
 				}
 			}
@@ -142,12 +137,12 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			UpdatedAt:      now,
 		}
 
-		// Convert InstancePermissions to KeyPermissions
+		// Convert InstanceIDs to KeyPermissions
 		var keyPermissions []auth.KeyPermission
-		for _, perm := range req.InstancePermissions {
+		for _, instanceID := range req.InstanceIDs {
 			keyPermissions = append(keyPermissions, auth.KeyPermission{
 				KeyID:      0, // Will be set by database after key creation
-				InstanceID: perm.InstanceID,
+				InstanceID: instanceID,
 			})
 		}
 

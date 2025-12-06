@@ -15,14 +15,10 @@ export interface ApiKey {
 }
 
 export interface CreateKeyRequest {
-  Name: string
-  PermissionMode: PermissionMode
-  ExpiresAt?: number
-  InstancePermissions: InstancePermission[]
-}
-
-export interface InstancePermission {
-  InstanceID: number
+  name: string
+  permission_mode: PermissionMode
+  expires_at?: number
+  instance_ids: number[]
 }
 
 export interface CreateKeyResponse extends ApiKey {
