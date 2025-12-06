@@ -45,13 +45,21 @@ func (db *sqliteDB) Create(ctx context.Context, inst *instance.Instance) error {
 		) VALUES (?, ?, ?, ?, ?, ?)
 	`
 
-	_, err = db.DB.ExecContext(ctx, query,
+	result, err := db.DB.ExecContext(ctx, query,
 		row.Name, row.Status, row.CreatedAt, row.UpdatedAt, row.OptionsJSON, row.OwnerUserID,
 	)
 
 	if err != nil {
 		return fmt.Errorf("failed to insert instance: %w", err)
 	}
+
+	// Get the auto-generated ID and set it on the instance
+	id, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+
+	inst.ID = int(id)
 
 	return nil
 }
