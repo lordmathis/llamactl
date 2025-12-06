@@ -176,6 +176,7 @@ func (im *instanceManager) loadInstance(persistedInst *instance.Instance) error 
 	inst := instance.New(name, im.globalConfig, options, statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
+	inst.ID = persistedInst.ID
 	inst.Created = persistedInst.Created
 	inst.SetStatus(persistedInst.GetStatus())
 

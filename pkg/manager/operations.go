@@ -37,7 +37,6 @@ func (im *instanceManager) ListInstances() ([]*instance.Instance, error) {
 		if node := im.getNodeForInstance(inst); node != nil {
 			remoteInst, err := im.remote.getInstance(ctx, node, inst.Name)
 			if err != nil {
-				// Log error but continue with stale data
 				// Don't fail the entire list operation due to one remote failure
 				continue
 			}

@@ -271,6 +271,7 @@ func (db *sqliteDB) rowToInstance(row *instanceRow) (*instance.Instance, error) 
 
 	// Build complete instance JSON with all fields
 	instanceJSON, err := json.Marshal(map[string]any{
+		"id":      row.ID,
 		"name":    row.Name,
 		"created": row.CreatedAt,
 		"status":  row.Status,
