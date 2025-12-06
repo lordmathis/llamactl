@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"llamactl/pkg/config"
 	"llamactl/pkg/database"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 // version is set at build time using -ldflags "-X main.version=1.0.0"
@@ -116,14 +118,23 @@ func main() {
 	<-stop
 	fmt.Println("Shutting down server...")
 
-	if err := server.Close(); err != nil {
+	// Create shutdown context with timeout
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	// Shutdown HTTP server gracefully
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Error shutting down server: %v\n", err)
 	} else {
 		fmt.Println("Server shut down gracefully.")
 	}
 
-	// Wait for all instances to stop
+	// Stop all instances and cleanup
 	instanceManager.Shutdown()
+
+	if err := db.Close(); err != nil {
+		log.Printf("Error closing database: %v\n", err)
+	}
 
 	fmt.Println("Exiting llamactl.")
 }

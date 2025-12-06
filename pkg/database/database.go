@@ -107,6 +107,12 @@ func Open(config *Config) (*sqliteDB, error) {
 func (db *sqliteDB) Close() error {
 	if db.DB != nil {
 		log.Println("Closing database connection")
+
+		// Checkpoint WAL to merge changes back to main database file
+		if _, err := db.DB.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+			log.Printf("Warning: Failed to checkpoint WAL: %v", err)
+		}
+
 		return db.DB.Close()
 	}
 	return nil

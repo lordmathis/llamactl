@@ -114,11 +114,6 @@ func (im *instanceManager) Shutdown() {
 		}
 		wg.Wait()
 		fmt.Println("All instances stopped.")
-
-		// 4. Close database connection
-		if err := im.db.Close(); err != nil {
-			log.Printf("Error closing database: %v\n", err)
-		}
 	})
 }
 
