@@ -249,11 +249,7 @@ function ApiKeysSection() {
                                   <tr key={perm.instance_id} className="border-b">
                                     <td className="py-2">{perm.instance_name}</td>
                                     <td className="py-2">
-                                      {perm.can_infer ? (
-                                        <Check className="h-4 w-4 text-green-600" />
-                                      ) : (
-                                        <X className="h-4 w-4 text-red-600" />
-                                      )}
+                                      <Check className="h-4 w-4 text-green-600" />
                                     </td>
                                   </tr>
                                 ))}

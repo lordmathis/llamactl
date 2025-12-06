@@ -10,7 +10,7 @@ import (
 // GetPermissions retrieves all permissions for a key
 func (db *sqliteDB) GetPermissions(ctx context.Context, keyID int) ([]auth.KeyPermission, error) {
 	query := `
-		SELECT key_id, instance_id, can_infer
+		SELECT key_id, instance_id
 		FROM key_permissions
 		WHERE key_id = ?
 		ORDER BY instance_id
@@ -25,7 +25,7 @@ func (db *sqliteDB) GetPermissions(ctx context.Context, keyID int) ([]auth.KeyPe
 	var permissions []auth.KeyPermission
 	for rows.Next() {
 		var perm auth.KeyPermission
-		err := rows.Scan(&perm.KeyID, &perm.InstanceID, &perm.CanInfer)
+		err := rows.Scan(&perm.KeyID, &perm.InstanceID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan key permission: %w", err)
 		}
@@ -38,13 +38,13 @@ func (db *sqliteDB) GetPermissions(ctx context.Context, keyID int) ([]auth.KeyPe
 // HasPermission checks if key has inference permission for instance
 func (db *sqliteDB) HasPermission(ctx context.Context, keyID, instanceID int) (bool, error) {
 	query := `
-		SELECT can_infer 
-		FROM key_permissions 
+		SELECT 1
+		FROM key_permissions
 		WHERE key_id = ? AND instance_id = ?
 	`
 
-	var canInfer bool
-	err := db.QueryRowContext(ctx, query, keyID, instanceID).Scan(&canInfer)
+	var exists int
+	err := db.QueryRowContext(ctx, query, keyID, instanceID).Scan(&exists)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No permission record found, deny access
@@ -53,5 +53,5 @@ func (db *sqliteDB) HasPermission(ctx context.Context, keyID, instanceID int) (b
 		return false, fmt.Errorf("failed to check key permission: %w", err)
 	}
 
-	return canInfer, nil
+	return true, nil
 }

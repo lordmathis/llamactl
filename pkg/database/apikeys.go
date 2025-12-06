@@ -45,10 +45,10 @@ func (db *sqliteDB) CreateKey(ctx context.Context, key *auth.APIKey, permissions
 	if key.PermissionMode == auth.PermissionModePerInstance {
 		for _, perm := range permissions {
 			query := `
-				INSERT INTO key_permissions (key_id, instance_id, can_infer)
-				VALUES (?, ?, ?)
+				INSERT INTO key_permissions (key_id, instance_id)
+				VALUES (?, ?)
 			`
-			_, err := tx.ExecContext(ctx, query, key.ID, perm.InstanceID, perm.CanInfer)
+			_, err := tx.ExecContext(ctx, query, key.ID, perm.InstanceID)
 			if err != nil {
 				return fmt.Errorf("failed to insert permission for instance %d: %w", perm.InstanceID, err)
 			}

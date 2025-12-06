@@ -23,7 +23,6 @@ export interface CreateKeyRequest {
 
 export interface InstancePermission {
   InstanceID: number
-  CanInfer: boolean
 }
 
 export interface CreateKeyResponse extends ApiKey {
@@ -33,5 +32,4 @@ export interface CreateKeyResponse extends ApiKey {
 export interface KeyPermissionResponse {
   instance_id: number
   instance_name: string
-  can_infer: boolean
 }

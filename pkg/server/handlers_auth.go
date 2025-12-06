@@ -13,8 +13,7 @@ import (
 
 // InstancePermission defines the permissions for an API key on a specific instance.
 type InstancePermission struct {
-	InstanceID int  `json:"instance_id"`
-	CanInfer   bool `json:"can_infer"`
+	InstanceID int `json:"instance_id"`
 }
 
 // CreateKeyRequest represents the request body for creating a new API key.
@@ -54,7 +53,6 @@ type KeyResponse struct {
 type KeyPermissionResponse struct {
 	InstanceID   int    `json:"instance_id"`
 	InstanceName string `json:"instance_name"`
-	CanInfer     bool   `json:"can_infer"`
 }
 
 // CreateKey godoc
@@ -150,7 +148,6 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			keyPermissions = append(keyPermissions, auth.KeyPermission{
 				KeyID:      0, // Will be set by database after key creation
 				InstanceID: perm.InstanceID,
-				CanInfer:   perm.CanInfer,
 			})
 		}
 
@@ -353,7 +350,6 @@ func (h *Handler) GetKeyPermissions() http.HandlerFunc {
 			response = append(response, KeyPermissionResponse{
 				InstanceID:   perm.InstanceID,
 				InstanceName: instanceNameMap[perm.InstanceID],
-				CanInfer:     perm.CanInfer,
 			})
 		}
 
