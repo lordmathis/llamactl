@@ -8,9 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { apiKeysApi } from "@/lib/api";
-import { CreateKeyRequest, PermissionMode, InstancePermission } from "@/types/apiKey";
+import { PermissionMode, type CreateKeyRequest } from "@/types/apiKey";
 import { useInstances } from "@/contexts/InstancesContext";
-import { format, addDays } from "date-fns";
+import { format } from "date-fns";
 
 interface CreateApiKeyDialogProps {
   open: boolean;
@@ -61,22 +61,19 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
     }
 
     // Build request
-    const permissions: InstancePermission[] = [];
+    const instanceIds: number[] = [];
     if (permissionMode === PermissionMode.PerInstance) {
-      Object.entries(instancePermissions).forEach(([instanceId, canInfer]) => {
-        if (canInfer) {
-          permissions.push({
-            InstanceID: parseInt(instanceId),
-            CanInfer: true,
-          });
+      Object.entries(instancePermissions).forEach(([instanceId, hasPermission]) => {
+        if (hasPermission) {
+          instanceIds.push(parseInt(instanceId));
         }
       });
     }
 
     const request: CreateKeyRequest = {
-      Name: name.trim(),
-      PermissionMode: permissionMode,
-      InstancePermissions: permissions,
+      name: name.trim(),
+      permission_mode: permissionMode,
+      instance_ids: instanceIds,
     };
 
     // Add expiration if provided
@@ -87,7 +84,7 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
         setError("Expiration date must be in the future");
         return;
       }
-      request.ExpiresAt = Math.floor(expirationDate.getTime() / 1000);
+      request.expires_at = Math.floor(expirationDate.getTime() / 1000);
     }
 
     setLoading(true);
@@ -107,10 +104,10 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
   };
 
   const handleInstancePermissionChange = (instanceId: number, checked: boolean) => {
-    setInstancePermissions({
-      ...instancePermissions,
+    setInstancePermissions(prev => ({
+      ...prev,
       [instanceId]: checked,
-    });
+    }));
   };
 
   return (
@@ -172,25 +169,30 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
                   <p className="text-sm text-muted-foreground">No instances available</p>
                 ) : (
                   <div className="space-y-2">
-                    {instances.map((instance) => (
-                      <div key={instance.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`instance-${instance.id}`}
-                          checked={instancePermissions[instance.id] || false}
-                          onCheckedChange={(checked) =>
-                            handleInstancePermissionChange(instance.id, checked as boolean)
-                          }
-                          disabled={loading}
-                        />
-                        <Label
-                          htmlFor={`instance-${instance.id}`}
-                          className="font-normal cursor-pointer flex-1"
+                    {instances.map((instance, index) => {
+                      const isChecked = !!instancePermissions[instance.id];
+                      return (
+                        <div
+                          key={`${instance.name}-${index}`}
+                          className="flex items-center space-x-2"
                         >
-                          {instance.name}
-                        </Label>
-                        <span className="text-sm text-muted-foreground">Can Infer</span>
-                      </div>
-                    ))}
+                          <Checkbox
+                            id={`instance-${instance.id}`}
+                            checked={isChecked}
+                            onCheckedChange={(checked) => {
+                              handleInstancePermissionChange(instance.id, checked as boolean);
+                            }}
+                            disabled={loading}
+                          />
+                          <Label
+                            htmlFor={`instance-${instance.id}`}
+                            className="font-normal cursor-pointer flex-1"
+                          >
+                            {instance.name}
+                          </Label>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

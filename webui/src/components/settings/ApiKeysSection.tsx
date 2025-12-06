@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -175,9 +175,8 @@ function ApiKeysSection() {
             </thead>
             <tbody>
               {keys.map((key) => (
-                <>
+                <Fragment key={key.id}>
                   <tr
-                    key={key.id}
                     className="border-t hover:bg-muted/50 cursor-pointer"
                     onClick={() => handleRowClick(key)}
                   >
@@ -236,25 +235,15 @@ function ApiKeysSection() {
                           <p className="text-sm text-muted-foreground">Loading permissions...</p>
                         ) : permissions[key.id] ? (
                           <div className="space-y-2">
-                            <p className="text-sm font-semibold">Instance Permissions:</p>
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b">
-                                  <th className="text-left py-2">Instance Name</th>
-                                  <th className="text-left py-2">Can Infer</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {permissions[key.id].map((perm) => (
-                                  <tr key={perm.instance_id} className="border-b">
-                                    <td className="py-2">{perm.instance_name}</td>
-                                    <td className="py-2">
-                                      <Check className="h-4 w-4 text-green-600" />
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                            <p className="text-sm font-semibold">Allowed Instances:</p>
+                            <ul className="text-sm space-y-1">
+                              {permissions[key.id].map((perm) => (
+                                <li key={perm.instance_id} className="flex items-center gap-2">
+                                  <Check className="h-3 w-3 text-green-600" />
+                                  {perm.instance_name}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         ) : (
                           <p className="text-sm text-muted-foreground">No permissions data</p>
@@ -262,7 +251,7 @@ function ApiKeysSection() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
