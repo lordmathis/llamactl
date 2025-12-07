@@ -156,11 +156,14 @@ class HealthService {
       this.callbacks.set(instanceName, new Set())
     }
 
-    this.callbacks.get(instanceName)!.add(callback)
+    const callbacks = this.callbacks.get(instanceName)
+    if (callbacks) {
+      callbacks.add(callback)
 
-    // Start health checking if this is the first subscriber
-    if (this.callbacks.get(instanceName)!.size === 1) {
-      this.startHealthCheck(instanceName)
+      // Start health checking if this is the first subscriber
+      if (callbacks.size === 1) {
+        this.startHealthCheck(instanceName)
+      }
     }
 
     // Return unsubscribe function
@@ -214,22 +217,24 @@ class HealthService {
     }
 
     // Start new interval with appropriate timing
-    const interval = setInterval(async () => {
-      try {
-        const health = await this.performHealthCheck(instanceName)
-        this.notifyCallbacks(instanceName, health)
+    const interval = setInterval(() => {
+      void (async () => {
+        try {
+          const health = await this.performHealthCheck(instanceName)
+          this.notifyCallbacks(instanceName, health)
 
-        // Check if state changed and adjust interval
-        const previousState = this.lastHealthState.get(instanceName)
-        this.lastHealthState.set(instanceName, health.state)
+          // Check if state changed and adjust interval
+          const previousState = this.lastHealthState.get(instanceName)
+          this.lastHealthState.set(instanceName, health.state)
 
-        if (previousState !== health.state) {
-          this.adjustPollingInterval(instanceName, health.state)
+          if (previousState !== health.state) {
+            this.adjustPollingInterval(instanceName, health.state)
+          }
+        } catch (error) {
+          console.error(`Health check failed for ${instanceName}:`, error)
+          // Continue polling even on error
         }
-      } catch (error) {
-        console.error(`Health check failed for ${instanceName}:`, error)
-        // Continue polling even on error
-      }
+      })()
     }, pollInterval)
 
     this.intervals.set(instanceName, interval)

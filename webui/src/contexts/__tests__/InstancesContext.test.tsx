@@ -3,8 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { InstancesProvider, useInstances } from "@/contexts/InstancesContext";
 import { instancesApi } from "@/lib/api";
-import type { Instance } from "@/types/instance";
-import { BackendType } from "@/types/instance";
+import { BackendType, type Instance } from "@/types/instance";
 import { AuthProvider } from "../AuthContext";
 
 // Mock the API module

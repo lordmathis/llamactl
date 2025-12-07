@@ -4,8 +4,7 @@ import userEvent from '@testing-library/user-event'
 import InstanceList from '@/components/InstanceList'
 import { InstancesProvider } from '@/contexts/InstancesContext'
 import { instancesApi } from '@/lib/api'
-import type { Instance } from '@/types/instance'
-import { BackendType } from '@/types/instance'
+import { BackendType, type Instance } from '@/types/instance'
 import { AuthProvider } from '@/contexts/AuthContext'
 
 // Mock the API
