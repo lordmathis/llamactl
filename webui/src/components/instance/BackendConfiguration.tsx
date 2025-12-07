@@ -3,9 +3,11 @@ import type { CreateInstanceOptions } from '@/types/instance'
 import { getBasicBackendFields, getAdvancedBackendFields } from '@/lib/zodFormUtils'
 import BackendFormField from '@/components/BackendFormField'
 
+type BackendFieldValue = string | number | boolean | string[] | Record<string, string> | undefined
+
 interface BackendConfigurationProps {
   formData: CreateInstanceOptions
-  onBackendFieldChange: (key: string, value: any) => void
+  onBackendFieldChange: (key: string, value: BackendFieldValue) => void
   showAdvanced?: boolean
 }
 
@@ -26,7 +28,7 @@ const BackendConfiguration: React.FC<BackendConfigurationProps> = ({
         <BackendFormField
           key={fieldKey}
           fieldKey={fieldKey}
-          value={(formData.backend_options as any)?.[fieldKey]}
+          value={(formData.backend_options as Record<string, BackendFieldValue> | undefined)?.[fieldKey]}
           onChange={onBackendFieldChange}
         />
       ))}
@@ -41,7 +43,7 @@ const BackendConfiguration: React.FC<BackendConfigurationProps> = ({
               <BackendFormField
                 key={fieldKey}
                 fieldKey={fieldKey}
-                value={(formData.backend_options as any)?.[fieldKey]}
+                value={(formData.backend_options as Record<string, BackendFieldValue> | undefined)?.[fieldKey]}
                 onChange={onBackendFieldChange}
               />
             ))}
@@ -53,7 +55,7 @@ const BackendConfiguration: React.FC<BackendConfigurationProps> = ({
         <BackendFormField
           key="extra_args"
           fieldKey="extra_args"
-          value={(formData.backend_options as any)?.extra_args}
+          value={(formData.backend_options as Record<string, BackendFieldValue> | undefined)?.extra_args}
           onChange={onBackendFieldChange}
         />
       </div>

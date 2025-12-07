@@ -5,7 +5,7 @@ import NumberInput from '@/components/form/NumberInput'
 
 interface AutoRestartConfigurationProps {
   formData: CreateInstanceOptions
-  onChange: (key: keyof CreateInstanceOptions, value: any) => void
+  onChange: <K extends keyof CreateInstanceOptions>(key: K, value: CreateInstanceOptions[K]) => void
 }
 
 const AutoRestartConfiguration: React.FC<AutoRestartConfigurationProps> = ({

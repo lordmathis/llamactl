@@ -70,37 +70,37 @@ function TestComponent() {
 
       {/* Action buttons for testing with specific instances */}
       <button
-        onClick={() => createInstance("new-instance", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "test.gguf" } })}
+        onClick={() => void createInstance("new-instance", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "test.gguf" } })}
         data-testid="create-instance"
       >
         Create Instance
       </button>
       <button
-        onClick={() => updateInstance("instance1", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "updated.gguf" } })}
+        onClick={() => void updateInstance("instance1", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "updated.gguf" } })}
         data-testid="update-instance"
       >
         Update Instance
       </button>
       <button
-        onClick={() => startInstance("instance2")}
+        onClick={() => void startInstance("instance2")}
         data-testid="start-instance"
       >
         Start Instance2
       </button>
       <button
-        onClick={() => stopInstance("instance1")}
+        onClick={() => void stopInstance("instance1")}
         data-testid="stop-instance"
       >
         Stop Instance1
       </button>
       <button
-        onClick={() => restartInstance("instance1")}
+        onClick={() => void restartInstance("instance1")}
         data-testid="restart-instance"
       >
         Restart Instance1
       </button>
       <button
-        onClick={() => deleteInstance("instance2")}
+        onClick={() => void deleteInstance("instance2")}
         data-testid="delete-instance"
       >
         Delete Instance2
