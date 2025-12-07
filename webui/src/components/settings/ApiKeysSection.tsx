@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Trash2, Copy, Check, X, ChevronDown, ChevronRight } from "lucide-react";
 import { apiKeysApi } from "@/lib/api";
-import { ApiKey, KeyPermissionResponse, PermissionMode } from "@/types/apiKey";
+import { type ApiKey, type KeyPermissionResponse, PermissionMode } from "@/types/apiKey";
 import CreateApiKeyDialog from "@/components/apikeys/CreateApiKeyDialog";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -20,7 +20,7 @@ function ApiKeysSection() {
   const [loadingPermissions, setLoadingPermissions] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
-    fetchKeys();
+    void fetchKeys();
   }, []);
 
   const fetchKeys = async () => {
@@ -52,7 +52,7 @@ function ApiKeysSection() {
 
   const handleKeyCreated = (plainTextKey: string) => {
     setNewKeyPlainText(plainTextKey);
-    fetchKeys();
+    void fetchKeys();
     setCreateDialogOpen(false);
   };
 
@@ -75,7 +75,7 @@ function ApiKeysSection() {
 
     try {
       await apiKeysApi.delete(id);
-      fetchKeys();
+      void fetchKeys();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete API key");
     }
@@ -87,7 +87,7 @@ function ApiKeysSection() {
     } else {
       setExpandedRowId(key.id);
       if (key.permission_mode === PermissionMode.PerInstance) {
-        fetchPermissions(key.id);
+        void fetchPermissions(key.id);
       }
     }
   };
@@ -136,7 +136,7 @@ function ApiKeysSection() {
               <code className="flex-1 p-3 bg-white dark:bg-gray-900 border border-green-300 dark:border-green-800 rounded font-mono text-sm break-all">
                 {newKeyPlainText}
               </code>
-              <Button onClick={handleCopyKey} variant="outline" size="sm">
+              <Button onClick={() => void handleCopyKey()} variant="outline" size="sm">
                 {copiedKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
@@ -216,7 +216,7 @@ function ApiKeysSection() {
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteKey(key.id, key.name);
+                          void handleDeleteKey(key.id, key.name);
                         }}
                         title="Delete key"
                       >

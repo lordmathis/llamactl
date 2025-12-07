@@ -116,7 +116,7 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
         <DialogHeader>
           <DialogTitle>Create API Key</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
