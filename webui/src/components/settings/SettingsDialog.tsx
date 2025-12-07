@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ApiKeysSection from "./ApiKeysSection";
 
 interface SettingsDialogProps {
@@ -12,6 +12,9 @@ function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
+          <DialogDescription>
+            Manage your application settings and API keys.
+          </DialogDescription>
         </DialogHeader>
         <ApiKeysSection />
       </DialogContent>
