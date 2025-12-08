@@ -17,10 +17,10 @@ Before you start, let's clarify a few key terms:
 
 Llamactl uses two types of API keys:
 
-- **Management API Key**: Used to authenticate with the Llamactl management API (creating, starting, stopping instances).
-- **Inference API Key**: Used to authenticate requests to the OpenAI-compatible endpoints (`/v1/chat/completions`, `/v1/completions`, etc.).
+- **Management API Key**: Used to authenticate with the Llamactl management API and web UI. If not configured, one is auto-generated at startup and printed to the terminal.
+- **Inference API Key**: Used to authenticate requests to the OpenAI-compatible endpoints (`/v1/chat/completions`, `/v1/completions`, etc.). These are created and managed via the web UI.
 
-By default, authentication is required. If you don't configure these keys in your configuration file, llamactl will auto-generate them and print them to the terminal on startup. You can also configure custom keys or disable authentication entirely in the [Configuration](configuration.md) guide.
+By default, authentication is required for both management and inference endpoints. You can configure custom management keys or disable authentication in the [Configuration](configuration.md) guide.
 
 ## Start Llamactl
 
@@ -39,23 +39,16 @@ llamactl
     sk-management-...
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️  INFERENCE AUTHENTICATION REQUIRED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔑  Generated Inference API Key:
-
-    sk-inference-...
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠️  IMPORTANT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• These keys are auto-generated and will change on restart
-• For production, add explicit keys to your configuration
-• Copy these keys before they disappear from the terminal
+• This key is auto-generated and will change on restart
+• For production, add explicit management_keys to your configuration
+• Copy this key before it disappears from the terminal
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Llamactl server listening on 0.0.0.0:8080
 ```
 
-Copy the **Management** and **Inference** API Keys from the terminal - you'll need them to access the web UI and make inference requests.
+Copy the **Management API Key** from the terminal - you'll need it to access the web UI.
 
 By default, Llamactl will start on `http://localhost:8080`.
 
@@ -82,7 +75,7 @@ You should see the Llamactl web interface.
      - **Additional Options**: Backend-specific parameters
 
     !!! tip "Auto-Assignment"
-        Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.
+        Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and manages API keys if authentication is enabled. You typically don't need to manually specify these values.
 
     !!! note "Remote Node Deployment"
         If you have configured remote nodes in your configuration file, you can select which node to deploy the instance to. This allows you to distribute instances across multiple machines. See the [Configuration](configuration.md#remote-node-configuration) guide for details on setting up remote nodes.
@@ -97,6 +90,24 @@ Once created, you can:
 - **Monitor** its status in real-time
 - **View logs** by clicking the logs button
 - **Stop** the instance when needed
+
+## Create an Inference API Key
+
+To make inference requests to your instances, you'll need an inference API key:
+
+1. In the web UI, click the **Settings** icon (gear icon in the top-right)
+2. Navigate to the **API Keys** tab
+3. Click **Create API Key**
+4. Configure your key:
+   - **Name**: Give it a descriptive name (e.g., "Production Key", "Development Key")
+   - **Expiration**: Optionally set an expiration date for the key
+   - **Permissions**: Choose whether the key can access all instances or only specific ones
+5. Click **Create**
+6. **Copy the generated key** - it will only be shown once!
+
+The key will look like: `llamactl-...`
+
+You can create multiple inference keys with different permissions for different use cases (e.g., one for development, one for production, or keys limited to specific instances).
 
 ## Example Configurations
 
@@ -246,7 +257,7 @@ print(response.choices[0].message.content)
 ```
 
 !!! note "API Key"
-    If you disabled authentication in your config, you can use any value for `api_key` (e.g., `"not-needed"`). Otherwise, use the inference API key shown in the terminal output on startup.
+    If you disabled authentication in your config, you can use any value for `api_key` (e.g., `"not-needed"`). Otherwise, use the inference API key you created via the web UI (Settings → API Keys).
 
 ### List Available Models
 

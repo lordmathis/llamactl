@@ -74,7 +74,6 @@ database:
 
 auth:
   require_inference_auth: true   # Require auth for inference endpoints
-  inference_keys: []             # Keys for inference endpoints
   require_management_auth: true  # Require auth for management endpoints
   management_keys: []            # Keys for management endpoints
 
@@ -266,17 +265,33 @@ database:
 
 ### Authentication Configuration
 
+llamactl supports two types of authentication:
+
+- **Management API Keys**: For accessing the web UI and management API (creating/managing instances). These can be configured in the config file or via environment variables.
+- **Inference API Keys**: For accessing the OpenAI-compatible inference endpoints. These are managed via the web UI (Settings → API Keys) and stored in the database.
+
 ```yaml
 auth:
   require_inference_auth: true           # Require API key for OpenAI endpoints (default: true)
-  inference_keys: []                     # List of valid inference API keys
   require_management_auth: true          # Require API key for management endpoints (default: true)
   management_keys: []                    # List of valid management API keys
 ```
 
+**Managing Inference API Keys:**
+
+Inference API keys are managed through the web UI or management API and stored in the database. To create and manage inference keys:
+
+1. Open the web UI and log in with a management API key
+2. Navigate to **Settings → API Keys**
+3. Click **Create API Key**
+4. Configure the key:
+   - **Name**: A descriptive name for the key
+   - **Expiration**: Optional expiration date
+   - **Permissions**: Grant access to all instances or specific instances only
+5. Copy the generated key - it won't be shown again
+
 **Environment Variables:**
 - `LLAMACTL_REQUIRE_INFERENCE_AUTH` - Require auth for OpenAI endpoints (true/false)
-- `LLAMACTL_INFERENCE_KEYS` - Comma-separated inference API keys
 - `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)
 - `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys
 

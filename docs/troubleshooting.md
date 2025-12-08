@@ -115,14 +115,14 @@ vllm serve microsoft/DialoGPT-medium --port 8081
      require_inference_auth: false
    ```
 
-2. **Configure API keys:**
+2. **Configure management API keys:**
    ```yaml
    auth:
      management_keys:
        - "your-management-key"
-     inference_keys:
-       - "your-inference-key"
    ```
+
+   For inference API keys, create them via the web UI (Settings → API Keys) after logging in with your management key.
 
 3. **Use correct Authorization header:**
    ```bash
