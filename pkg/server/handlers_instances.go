@@ -327,6 +327,12 @@ func (h *Handler) InstanceProxy() http.HandlerFunc {
 			return
 		}
 
+		// Check instance permissions
+		if err := h.authMiddleware.CheckInstancePermission(r.Context(), inst.ID); err != nil {
+			writeError(w, http.StatusForbidden, "permission_denied", err.Error())
+			return
+		}
+
 		if !inst.IsRunning() {
 			writeError(w, http.StatusServiceUnavailable, "instance_not_running", "Instance is not running")
 			return

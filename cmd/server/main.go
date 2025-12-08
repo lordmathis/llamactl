@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"llamactl/pkg/config"
 	"llamactl/pkg/database"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 // version is set at build time using -ldflags "-X main.version=1.0.0"
@@ -48,7 +50,7 @@ func main() {
 	cfg.CommitHash = commitHash
 	cfg.BuildTime = buildTime
 
-	// Create the data directory if it doesn't exist
+	// Create data directory if it doesn't exist
 	if cfg.Instances.AutoCreateDirs {
 		// Create the main data directory
 		if err := os.MkdirAll(cfg.DataDir, 0755); err != nil {
@@ -91,7 +93,7 @@ func main() {
 	instanceManager := manager.New(&cfg, db)
 
 	// Create a new handler with the instance manager
-	handler := server.NewHandler(instanceManager, cfg)
+	handler := server.NewHandler(instanceManager, cfg, db)
 
 	// Setup the router with the handler
 	r := server.SetupRouter(handler)
@@ -116,14 +118,23 @@ func main() {
 	<-stop
 	fmt.Println("Shutting down server...")
 
-	if err := server.Close(); err != nil {
+	// Create shutdown context with timeout
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	// Shutdown HTTP server gracefully
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Error shutting down server: %v\n", err)
 	} else {
 		fmt.Println("Server shut down gracefully.")
 	}
 
-	// Wait for all instances to stop
+	// Stop all instances and cleanup
 	instanceManager.Shutdown()
+
+	if err := db.Close(); err != nil {
+		log.Printf("Error closing database: %v\n", err)
+	}
 
 	fmt.Println("Exiting llamactl.")
 }

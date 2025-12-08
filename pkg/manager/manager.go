@@ -31,7 +31,7 @@ type instanceManager struct {
 	// Components (each with own synchronization)
 	registry  *instanceRegistry
 	ports     *portAllocator
-	db        database.DB
+	db        database.InstanceStore
 	remote    *remoteManager
 	lifecycle *lifecycleManager
 
@@ -44,7 +44,7 @@ type instanceManager struct {
 }
 
 // New creates a new instance of InstanceManager with dependency injection.
-func New(globalConfig *config.AppConfig, db database.DB) InstanceManager {
+func New(globalConfig *config.AppConfig, db database.InstanceStore) InstanceManager {
 
 	if globalConfig.Instances.TimeoutCheckInterval <= 0 {
 		globalConfig.Instances.TimeoutCheckInterval = 5 // Default to 5 minutes if not set
@@ -114,11 +114,6 @@ func (im *instanceManager) Shutdown() {
 		}
 		wg.Wait()
 		fmt.Println("All instances stopped.")
-
-		// 4. Close database connection
-		if err := im.db.Close(); err != nil {
-			log.Printf("Error closing database: %v\n", err)
-		}
 	})
 }
 
@@ -181,6 +176,7 @@ func (im *instanceManager) loadInstance(persistedInst *instance.Instance) error 
 	inst := instance.New(name, im.globalConfig, options, statusCallback)
 
 	// Restore persisted fields that NewInstance doesn't set
+	inst.ID = persistedInst.ID
 	inst.Created = persistedInst.Created
 	inst.SetStatus(persistedInst.GetStatus())
 

@@ -1,14 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { HelpCircle, LogOut, Moon, Sun } from "lucide-react";
+import { HelpCircle, LogOut, Moon, Settings, Sun } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 
 interface HeaderProps {
   onCreateInstance: () => void;
   onShowSystemInfo: () => void;
+  onShowSettings: () => void;
 }
 
-function Header({ onCreateInstance, onShowSystemInfo }: HeaderProps) {
+function Header({ onCreateInstance, onShowSystemInfo, onShowSettings }: HeaderProps) {
   const { logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -39,6 +40,16 @@ function Header({ onCreateInstance, onShowSystemInfo }: HeaderProps) {
               title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
             >
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onShowSettings}
+              data-testid="settings-button"
+              title="Settings"
+            >
+              <Settings className="h-4 w-4" />
             </Button>
 
             <Button

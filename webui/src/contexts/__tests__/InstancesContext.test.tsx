@@ -3,8 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { InstancesProvider, useInstances } from "@/contexts/InstancesContext";
 import { instancesApi } from "@/lib/api";
-import type { Instance } from "@/types/instance";
-import { BackendType } from "@/types/instance";
+import { BackendType, type Instance } from "@/types/instance";
 import { AuthProvider } from "../AuthContext";
 
 // Mock the API module
@@ -71,37 +70,37 @@ function TestComponent() {
 
       {/* Action buttons for testing with specific instances */}
       <button
-        onClick={() => createInstance("new-instance", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "test.gguf" } })}
+        onClick={() => void createInstance("new-instance", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "test.gguf" } })}
         data-testid="create-instance"
       >
         Create Instance
       </button>
       <button
-        onClick={() => updateInstance("instance1", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "updated.gguf" } })}
+        onClick={() => void updateInstance("instance1", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "updated.gguf" } })}
         data-testid="update-instance"
       >
         Update Instance
       </button>
       <button
-        onClick={() => startInstance("instance2")}
+        onClick={() => void startInstance("instance2")}
         data-testid="start-instance"
       >
         Start Instance2
       </button>
       <button
-        onClick={() => stopInstance("instance1")}
+        onClick={() => void stopInstance("instance1")}
         data-testid="stop-instance"
       >
         Stop Instance1
       </button>
       <button
-        onClick={() => restartInstance("instance1")}
+        onClick={() => void restartInstance("instance1")}
         data-testid="restart-instance"
       >
         Restart Instance1
       </button>
       <button
-        onClick={() => deleteInstance("instance2")}
+        onClick={() => void deleteInstance("instance2")}
         data-testid="delete-instance"
       >
         Delete Instance2
@@ -123,8 +122,8 @@ function renderWithProvider(children: ReactNode) {
 
 describe("InstancesContext", () => {
   const mockInstances: Instance[] = [
-    { name: "instance1", status: "running", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model1.gguf" } } },
-    { name: "instance2", status: "stopped", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model2.gguf" } } },
+    { id: 1, name: "instance1", status: "running", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model1.gguf" } } },
+    { id: 2, name: "instance2", status: "stopped", options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "model2.gguf" } } },
   ];
 
   beforeEach(() => {
@@ -181,6 +180,7 @@ describe("InstancesContext", () => {
   describe("Create Instance", () => {
     it("creates instance and adds it to state", async () => {
       const newInstance: Instance = {
+        id: 3,
         name: "new-instance",
         status: "stopped",
         options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "test.gguf" } },
@@ -238,6 +238,7 @@ describe("InstancesContext", () => {
   describe("Update Instance", () => {
     it("updates instance and maintains it in state", async () => {
       const updatedInstance: Instance = {
+        id: 1,
         name: "instance1",
         status: "running",
         options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "updated.gguf" } },
@@ -408,6 +409,7 @@ describe("InstancesContext", () => {
     it("maintains consistent state during multiple operations", async () => {
       // Test that operations don't interfere with each other
       const newInstance: Instance = {
+        id: 3,
         name: "new-instance",
         status: "stopped",
         options: {},

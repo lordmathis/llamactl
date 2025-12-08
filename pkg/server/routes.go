@@ -27,7 +27,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 	}))
 
 	// Add API authentication middleware
-	authMiddleware := NewAPIAuthMiddleware(handler.cfg.Auth)
+	authMiddleware := NewAPIAuthMiddleware(handler.cfg.Auth, handler.authStore)
 
 	if handler.cfg.Server.EnableSwagger {
 		r.Get("/swagger/*", httpSwagger.Handler(
@@ -39,12 +39,23 @@ func SetupRouter(handler *Handler) *chi.Mux {
 	r.Route("/api/v1", func(r chi.Router) {
 
 		if authMiddleware != nil && handler.cfg.Auth.RequireManagementAuth {
-			r.Use(authMiddleware.AuthMiddleware(KeyTypeManagement))
+			r.Use(authMiddleware.ManagementAuthMiddleware())
 		}
 
 		r.Get("/version", handler.VersionHandler())
 
 		r.Get("/config", handler.ConfigHandler())
+
+		// API key management endpoints
+		r.Route("/auth", func(r chi.Router) {
+			r.Route("/keys", func(r chi.Router) {
+				r.Post("/", handler.CreateKey())                        // Create API key
+				r.Get("/", handler.ListKeys())                          // List API keys
+				r.Get("/{id}", handler.GetKey())                        // Get API key details
+				r.Delete("/{id}", handler.DeleteKey())                  // Delete API key
+				r.Get("/{id}/permissions", handler.GetKeyPermissions()) // Get key permissions
+			})
+		})
 
 		// Backend-specific endpoints
 		r.Route("/backends", func(r chi.Router) {
@@ -67,7 +78,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 			r.Get("/", handler.ListNodes()) // List all nodes
 
 			r.Route("/{name}", func(r chi.Router) {
-				r.Get("/", handler.GetNode())
+				r.Get("/", handler.GetNode()) // Get node details
 			})
 		})
 
@@ -94,13 +105,13 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		})
 	})
 
-	r.Route(("/v1"), func(r chi.Router) {
+	r.Route("/v1", func(r chi.Router) {
 
 		if authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
-			r.Use(authMiddleware.AuthMiddleware(KeyTypeInference))
+			r.Use(authMiddleware.InferenceAuthMiddleware())
 		}
 
-		r.Get(("/models"), handler.OpenAIListInstances()) // List instances in OpenAI-compatible format
+		r.Get("/models", handler.OpenAIListInstances()) // List instances in OpenAI-compatible format
 
 		// OpenAI-compatible proxy endpoint
 		// Handles all POST requests to /v1/*, including:
@@ -125,10 +136,10 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		r.Group(func(r chi.Router) {
 
 			if authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
-				r.Use(authMiddleware.AuthMiddleware(KeyTypeInference))
+				r.Use(authMiddleware.InferenceAuthMiddleware())
 			}
 
-			// This handler auto start the server if it's not running
+			// This handler auto starts the server if it's not running
 			llamaCppHandler := handler.LlamaCppProxy()
 
 			// llama.cpp server specific proxy endpoints

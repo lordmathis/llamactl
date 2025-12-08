@@ -21,12 +21,14 @@ describe('InstanceCard - Instance Actions and State', () => {
   const mockEditInstance = vi.fn()
 
   const stoppedInstance: Instance = {
+    id: 1,
     name: 'test-instance',
     status: 'stopped',
     options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'test-model.gguf' } }
   }
 
   const runningInstance: Instance = {
+    id: 2,
     name: 'running-instance',
     status: 'running',
     options: { backend_type: BackendType.LLAMA_CPP, backend_options: { model: 'running-model.gguf' } }
@@ -342,6 +344,7 @@ afterEach(() => {
   describe('Error Edge Cases', () => {
     it('handles instance with minimal data', () => {
       const minimalInstance: Instance = {
+        id: 3,
         name: 'minimal',
         status: 'stopped',
         options: {}
@@ -364,6 +367,7 @@ afterEach(() => {
 
     it('handles instance with undefined options', () => {
       const instanceWithoutOptions: Instance = {
+        id: 4,
         name: 'no-options',
         status: 'running',
         options: undefined

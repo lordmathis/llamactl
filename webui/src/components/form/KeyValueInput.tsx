@@ -59,7 +59,7 @@ const KeyValueInput: React.FC<KeyValueInputProps> = ({
       // Reset to single empty row if value is explicitly undefined/null
       setPairs([{ key: '', value: '' }])
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [value])
 
   // Update parent component when pairs change

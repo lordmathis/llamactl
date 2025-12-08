@@ -1,8 +1,10 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"llamactl/pkg/auth"
 	"llamactl/pkg/instance"
 	"log"
 	"path/filepath"
@@ -11,12 +13,24 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// DB defines the interface for instance persistence operations
-type DB interface {
+// InstanceStore defines interface for instance persistence operations
+type InstanceStore interface {
 	Save(inst *instance.Instance) error
 	Delete(name string) error
 	LoadAll() ([]*instance.Instance, error)
 	Close() error
+}
+
+// AuthStore defines the interface for authentication operations
+type AuthStore interface {
+	CreateKey(ctx context.Context, key *auth.APIKey, permissions []auth.KeyPermission) error
+	GetUserKeys(ctx context.Context, userID string) ([]*auth.APIKey, error)
+	GetActiveKeys(ctx context.Context) ([]*auth.APIKey, error)
+	GetKeyByID(ctx context.Context, id int) (*auth.APIKey, error)
+	DeleteKey(ctx context.Context, id int) error
+	TouchKey(ctx context.Context, id int) error
+	GetPermissions(ctx context.Context, keyID int) ([]auth.KeyPermission, error)
+	HasPermission(ctx context.Context, keyID, instanceID int) (bool, error)
 }
 
 // Config contains database configuration settings
@@ -30,13 +44,13 @@ type Config struct {
 	ConnMaxLifetime    time.Duration
 }
 
-// sqliteDB wraps the database connection with configuration
+// sqliteDB wraps database connection with configuration
 type sqliteDB struct {
 	*sql.DB
 	config *Config
 }
 
-// Open creates a new database connection with the provided configuration
+// Open creates a new database connection with provided configuration
 func Open(config *Config) (*sqliteDB, error) {
 	if config == nil {
 		return nil, fmt.Errorf("database config cannot be nil")
@@ -46,10 +60,10 @@ func Open(config *Config) (*sqliteDB, error) {
 		return nil, fmt.Errorf("database path cannot be empty")
 	}
 
-	// Ensure the database directory exists
+	// Ensure that database directory exists
 	dbDir := filepath.Dir(config.Path)
 	if dbDir != "." && dbDir != "/" {
-		// Directory will be created by the manager if auto_create_dirs is enabled
+		// Directory will be created by manager if auto_create_dirs is enabled
 		log.Printf("Database will be created at: %s", config.Path)
 	}
 
@@ -89,16 +103,22 @@ func Open(config *Config) (*sqliteDB, error) {
 	}, nil
 }
 
-// Close closes the database connection
+// Close closes database connection
 func (db *sqliteDB) Close() error {
 	if db.DB != nil {
 		log.Println("Closing database connection")
+
+		// Checkpoint WAL to merge changes back to main database file
+		if _, err := db.DB.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+			log.Printf("Warning: Failed to checkpoint WAL: %v", err)
+		}
+
 		return db.DB.Close()
 	}
 	return nil
 }
 
-// HealthCheck verifies the database is accessible
+// HealthCheck verifies that database is accessible
 func (db *sqliteDB) HealthCheck() error {
 	if db.DB == nil {
 		return fmt.Errorf("database connection is nil")

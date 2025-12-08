@@ -1,5 +1,6 @@
 import type { CreateInstanceOptions, Instance } from "@/types/instance";
 import type { AppConfig } from "@/types/config";
+import type { ApiKey, CreateKeyRequest, CreateKeyResponse, KeyPermissionResponse } from "@/types/apiKey";
 import { handleApiError } from "./errorUtils";
 
 // Adding baseURI as a prefix to support being served behind a subpath
@@ -177,4 +178,30 @@ export const instancesApi = {
 
   // GET /instances/{name}/proxy/health
   getHealth: (name: string) => apiCall<Record<string, unknown>>(`/instances/${encodeURIComponent(name)}/proxy/health`),
+};
+
+// API Keys API functions
+export const apiKeysApi = {
+  // GET /auth/keys
+  list: () => apiCall<ApiKey[]>("/auth/keys"),
+
+  // GET /auth/keys/{id}
+  get: (id: number) => apiCall<ApiKey>(`/auth/keys/${id}`),
+
+  // POST /auth/keys
+  create: (request: CreateKeyRequest) =>
+    apiCall<CreateKeyResponse>("/auth/keys", {
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+
+  // DELETE /auth/keys/{id}
+  delete: (id: number) =>
+    apiCall<void>(`/auth/keys/${id}`, {
+      method: "DELETE",
+    }),
+
+  // GET /auth/keys/{id}/permissions
+  getPermissions: (id: number) =>
+    apiCall<KeyPermissionResponse[]>(`/auth/keys/${id}/permissions`),
 };

@@ -19,6 +19,235 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/auth/keys": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of all API keys for the system user (excludes key hash and plain-text key)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Keys"
+                ],
+                "summary": "List all API keys",
+                "responses": {
+                    "200": {
+                        "description": "List of API keys",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.KeyResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new API key with the specified permissions and returns the plain-text key (only shown once)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Keys"
+                ],
+                "summary": "Create a new API key",
+                "parameters": [
+                    {
+                        "description": "API key configuration",
+                        "name": "key",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.CreateKeyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created API key with plain-text key",
+                        "schema": {
+                            "$ref": "#/definitions/server.CreateKeyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/keys/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns details for a specific API key by ID (excludes key hash and plain-text key)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Keys"
+                ],
+                "summary": "Get details of a specific API key",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Key ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "API key details",
+                        "schema": {
+                            "$ref": "#/definitions/server.KeyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid key ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "API key not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deletes an API key by ID",
+                "tags": [
+                    "Keys"
+                ],
+                "summary": "Delete an API key",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Key ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "API key deleted successfully"
+                    },
+                    "400": {
+                        "description": "Invalid key ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "API key not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/keys/{id}/permissions": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the instance-level permissions for a specific API key (includes instance names)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Keys"
+                ],
+                "summary": "Get API key permissions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Key ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of key permissions",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/server.KeyPermissionResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid key ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "API key not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/backends/llama-cpp/devices": {
             "get": {
                 "security": [
@@ -1503,6 +1732,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "auth.PermissionMode": {
+            "type": "string",
+            "enum": [
+                "allow_all",
+                "per_instance"
+            ],
+            "x-enum-varnames": [
+                "PermissionModeAllowAll",
+                "PermissionModePerInstance"
+            ]
+        },
         "config.AppConfig": {
             "type": "object",
             "properties": {
@@ -1517,6 +1757,13 @@ const docTemplate = `{
                 },
                 "commit_hash": {
                     "type": "string"
+                },
+                "data_dir": {
+                    "description": "Directory where all llamactl data will be stored (database, instances, logs, etc.)",
+                    "type": "string"
+                },
+                "database": {
+                    "$ref": "#/definitions/config.DatabaseConfig"
                 },
                 "instances": {
                     "$ref": "#/definitions/config.InstancesConfig"
@@ -1608,6 +1855,26 @@ const docTemplate = `{
                 }
             }
         },
+        "config.DatabaseConfig": {
+            "type": "object",
+            "properties": {
+                "connection_max_lifetime": {
+                    "type": "string",
+                    "example": "1h"
+                },
+                "max_idle_connections": {
+                    "type": "integer"
+                },
+                "max_open_connections": {
+                    "description": "Connection settings",
+                    "type": "integer"
+                },
+                "path": {
+                    "description": "Database file path (relative to the top-level data_dir or absolute)",
+                    "type": "string"
+                }
+            }
+        },
         "config.DockerSettings": {
             "type": "object",
             "properties": {
@@ -1639,11 +1906,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "configs_dir": {
-                    "description": "Instance config directory override",
-                    "type": "string"
-                },
-                "data_dir": {
-                    "description": "Directory where all llamactl data will be stored (instances.json, logs, etc.)",
+                    "description": "Instance config directory override (relative to data_dir if not absolute)",
                     "type": "string"
                 },
                 "default_auto_restart": {
@@ -1667,7 +1930,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "logs_dir": {
-                    "description": "Logs directory override",
+                    "description": "Logs directory override (relative to data_dir if not absolute)",
                     "type": "string"
                 },
                 "max_instances": {
@@ -1748,7 +2011,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created": {
-                    "description": "Unix timestamp when the instance was created",
+                    "description": "Unix timestamp when instance was created",
+                    "type": "integer"
+                },
+                "id": {
                     "type": "integer"
                 },
                 "name": {
@@ -1791,6 +2057,125 @@ const docTemplate = `{
                 "restart_delay": {
                     "description": "seconds",
                     "type": "integer"
+                }
+            }
+        },
+        "server.CreateKeyRequest": {
+            "type": "object",
+            "properties": {
+                "expiresAt": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "instancePermissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.InstancePermission"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissionMode": {
+                    "$ref": "#/definitions/auth.PermissionMode"
+                }
+            }
+        },
+        "server.CreateKeyResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "expires_at": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "last_used_at": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permission_mode": {
+                    "$ref": "#/definitions/auth.PermissionMode"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.InstancePermission": {
+            "type": "object",
+            "properties": {
+                "can_infer": {
+                    "type": "boolean"
+                },
+                "can_view_logs": {
+                    "type": "boolean"
+                },
+                "instance_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "server.KeyPermissionResponse": {
+            "type": "object",
+            "properties": {
+                "can_infer": {
+                    "type": "boolean"
+                },
+                "can_view_logs": {
+                    "type": "boolean"
+                },
+                "instance_id": {
+                    "type": "integer"
+                },
+                "instance_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.KeyResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "integer"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "expires_at": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "last_used_at": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permission_mode": {
+                    "$ref": "#/definitions/auth.PermissionMode"
+                },
+                "updated_at": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },

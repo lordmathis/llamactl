@@ -24,6 +24,7 @@ export interface HealthStatus {
 }
 
 export interface Instance {
+  id: number;
   name: string;
   status: InstanceStatus;
   options?: CreateInstanceOptions;

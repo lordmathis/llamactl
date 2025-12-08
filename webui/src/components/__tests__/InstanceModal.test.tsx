@@ -153,6 +153,7 @@ afterEach(() => {
 
   describe('Edit Mode', () => {
     const mockInstance: Instance = {
+      id: 1,
       name: 'existing-instance',
       status: 'stopped',
       options: {

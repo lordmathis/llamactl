@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/config"
+	"llamactl/pkg/database"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
 	"llamactl/pkg/validation"
@@ -52,20 +53,25 @@ type Handler struct {
 	InstanceManager manager.InstanceManager
 	cfg             config.AppConfig
 	httpClient      *http.Client
+	authStore       database.AuthStore
+	authMiddleware  *APIAuthMiddleware
 }
 
 // NewHandler creates a new Handler instance with the provided instance manager and configuration
-func NewHandler(im manager.InstanceManager, cfg config.AppConfig) *Handler {
-	return &Handler{
+func NewHandler(im manager.InstanceManager, cfg config.AppConfig, authStore database.AuthStore) *Handler {
+	handler := &Handler{
 		InstanceManager: im,
 		cfg:             cfg,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		authStore: authStore,
 	}
+	handler.authMiddleware = NewAPIAuthMiddleware(cfg.Auth, authStore)
+	return handler
 }
 
-// getInstance retrieves an instance by name from the request query parameters
+// getInstance retrieves an instance by name from request query parameters
 func (h *Handler) getInstance(r *http.Request) (*instance.Instance, error) {
 	name := chi.URLParam(r, "name")
 	validatedName, err := validation.ValidateInstanceName(name)
@@ -81,7 +87,7 @@ func (h *Handler) getInstance(r *http.Request) (*instance.Instance, error) {
 	return inst, nil
 }
 
-// ensureInstanceRunning ensures the instance is running by starting it if on-demand start is enabled
+// ensureInstanceRunning ensures that an instance is running by starting it if on-demand start is enabled
 // It handles LRU eviction when the maximum number of running instances is reached
 func (h *Handler) ensureInstanceRunning(inst *instance.Instance) error {
 	options := inst.GetOptions()

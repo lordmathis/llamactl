@@ -13,7 +13,8 @@ import (
 
 // migrateFromJSON migrates instances from JSON files to SQLite database
 // This is a one-time migration that runs on first startup with existing JSON files.
-func migrateFromJSON(cfg *config.AppConfig, db database.DB) error {
+// Migrated files are moved to a migrated subdirectory to avoid re-importing.
+func migrateFromJSON(cfg *config.AppConfig, db database.InstanceStore) error {
 	instancesDir := cfg.Instances.InstancesDir
 	if instancesDir == "" {
 		return nil // No instances directory configured
@@ -22,16 +23,6 @@ func migrateFromJSON(cfg *config.AppConfig, db database.DB) error {
 	// Check if instances directory exists
 	if _, err := os.Stat(instancesDir); os.IsNotExist(err) {
 		return nil // No instances directory, nothing to migrate
-	}
-
-	// Check if database is empty (no instances)
-	existing, err := db.LoadAll()
-	if err != nil {
-		return fmt.Errorf("failed to check existing instances: %w", err)
-	}
-
-	if len(existing) > 0 {
-		return nil // Database already has instances, skip migration
 	}
 
 	// Find all JSON files
@@ -46,6 +37,12 @@ func migrateFromJSON(cfg *config.AppConfig, db database.DB) error {
 
 	log.Printf("Migrating %d instances from JSON to SQLite...", len(files))
 
+	// Create migrated directory
+	migratedDir := filepath.Join(instancesDir, "migrated")
+	if err := os.MkdirAll(migratedDir, 0755); err != nil {
+		return fmt.Errorf("failed to create migrated directory: %w", err)
+	}
+
 	// Migrate each JSON file
 	var migrated int
 	for _, file := range files {
@@ -53,30 +50,24 @@ func migrateFromJSON(cfg *config.AppConfig, db database.DB) error {
 			log.Printf("Failed to migrate %s: %v", file, err)
 			continue
 		}
+
+		// Move the file to the migrated directory
+		destPath := filepath.Join(migratedDir, filepath.Base(file))
+		if err := os.Rename(file, destPath); err != nil {
+			log.Printf("Warning: Failed to move %s to migrated directory: %v", file, err)
+			// Don't fail the migration if we can't move the file
+		}
+
 		migrated++
 	}
 
 	log.Printf("Successfully migrated %d/%d instances to SQLite", migrated, len(files))
 
-	// Archive old JSON files
-	if migrated > 0 {
-		archiveDir := filepath.Join(instancesDir, "json_archive")
-		if err := os.MkdirAll(archiveDir, 0755); err == nil {
-			for _, file := range files {
-				newPath := filepath.Join(archiveDir, filepath.Base(file))
-				if err := os.Rename(file, newPath); err != nil {
-					log.Printf("Failed to archive %s: %v", file, err)
-				}
-			}
-			log.Printf("Archived old JSON files to %s", archiveDir)
-		}
-	}
-
 	return nil
 }
 
 // migrateJSONFile migrates a single JSON file to the database
-func migrateJSONFile(filename string, db database.DB) error {
+func migrateJSONFile(filename string, db database.InstanceStore) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
