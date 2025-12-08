@@ -579,6 +579,66 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      Keys
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Keys">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1authkeys" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/auth/keys
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-apiv1authkeys" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /api/v1/auth/keys
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-apiv1authkeysid" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /api/v1/auth/keys/{id}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1authkeysid" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/auth/keys/{id}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1authkeysidpermissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/auth/keys/{id}/permissions
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#backends" class="md-nav__link">
     <span class="md-ellipsis">
       Backends
@@ -1045,6 +1105,263 @@ Most likely, it is not desirable to edit this file by hand!
 <div class="license info-data">
     <strong>License:</strong> <a href="https://opensource.org/license/mit/" target="_blank" rel="noopener noreferrer">MIT License</a>
 </div>
+
+<h2 id="keys"><span class="api-tag">Keys</span><a class="headerlink" href="#keys" title="Permanent link">&para;</a></h2>
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1authkeys"><span class="http-get">GET</span> /api/v1/auth/keys<a class="headerlink" href="#get-apiv1authkeys" title="Permanent link">&para;</a></h3>
+<p>List all API keys  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns a list of all API keys for the system user (excludes key hash and<br />
+plain-text key)  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="post-apiv1authkeys"><span class="http-post">POST</span> /api/v1/auth/keys<a class="headerlink" href="#post-apiv1authkeys" title="Permanent link">&para;</a></h3>
+<p>Create a new API key  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Creates a new API key with the specified permissions and returns the plain-<br />
+text key (only shown once)  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>key</code></td>
+            <td>body</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>API key configuration</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-201">201</span>&nbsp;<span class="status-phrase">Created</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="delete-apiv1authkeysid"><span class="http-delete">DELETE</span> /api/v1/auth/keys/<span class="route-param">{id}</span><a class="headerlink" href="#delete-apiv1authkeysid" title="Permanent link">&para;</a></h3>
+<p>Delete an API key  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Deletes an API key by ID  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>id</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Key ID</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-204">204</span>&nbsp;<span class="status-phrase">No Content</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1authkeysid"><span class="http-get">GET</span> /api/v1/auth/keys/<span class="route-param">{id}</span><a class="headerlink" href="#get-apiv1authkeysid" title="Permanent link">&para;</a></h3>
+<p>Get details of a specific API key  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns details for a specific API key by ID (excludes key hash and plain-<br />
+text key)  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>id</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Key ID</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1authkeysidpermissions"><span class="http-get">GET</span> /api/v1/auth/keys/<span class="route-param">{id}</span>/permissions<a class="headerlink" href="#get-apiv1authkeysidpermissions" title="Permanent link">&para;</a></h3>
+<p>Get API key permissions  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns the instance-level permissions for a specific API key (includes<br />
+instance names)  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>id</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Key ID</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
 
 <h2 id="backends"><span class="api-tag">Backends</span><a class="headerlink" href="#backends" title="Permanent link">&para;</a></h2>
 <hr class="operation-separator" />
