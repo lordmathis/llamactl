@@ -2063,20 +2063,19 @@ const docTemplate = `{
         "server.CreateKeyRequest": {
             "type": "object",
             "properties": {
-                "expiresAt": {
-                    "type": "integer",
-                    "format": "int64"
+                "expires_at": {
+                    "type": "integer"
                 },
-                "instancePermissions": {
+                "instance_ids": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/server.InstancePermission"
+                        "type": "integer"
                     }
                 },
                 "name": {
                     "type": "string"
                 },
-                "permissionMode": {
+                "permission_mode": {
                     "$ref": "#/definitions/auth.PermissionMode"
                 }
             }
@@ -2086,9 +2085,6 @@ const docTemplate = `{
             "properties": {
                 "created_at": {
                     "type": "integer"
-                },
-                "enabled": {
-                    "type": "boolean"
                 },
                 "expires_at": {
                     "type": "integer"
@@ -2116,29 +2112,9 @@ const docTemplate = `{
                 }
             }
         },
-        "server.InstancePermission": {
-            "type": "object",
-            "properties": {
-                "can_infer": {
-                    "type": "boolean"
-                },
-                "can_view_logs": {
-                    "type": "boolean"
-                },
-                "instance_id": {
-                    "type": "integer"
-                }
-            }
-        },
         "server.KeyPermissionResponse": {
             "type": "object",
             "properties": {
-                "can_infer": {
-                    "type": "boolean"
-                },
-                "can_view_logs": {
-                    "type": "boolean"
-                },
                 "instance_id": {
                     "type": "integer"
                 },
@@ -2152,9 +2128,6 @@ const docTemplate = `{
             "properties": {
                 "created_at": {
                     "type": "integer"
-                },
-                "enabled": {
-                    "type": "boolean"
                 },
                 "expires_at": {
                     "type": "integer"

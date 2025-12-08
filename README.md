@@ -183,7 +183,7 @@ data_dir: ~/.local/share/llamactl  # Main data directory (database, instances, l
 
 instances:
   port_range: [8000, 9000]                        # Port range for instances
-  configs_dir: ~/.local/share/llamactl/instances  # Instance configs directory (platform dependent)
+  configs_dir: ~/.local/share/llamactl/instances  # Instance configs directory (platform dependent) [deprecated]
   logs_dir: ~/.local/share/llamactl/logs          # Logs directory (platform dependent)
   auto_create_dirs: true                          # Auto-create data/config/logs dirs if missing
   max_instances: -1                               # Max instances (-1 = unlimited)
@@ -203,8 +203,7 @@ database:
   connection_max_lifetime: 5m                # Connection max lifetime
 
 auth:
-  require_inference_auth: true   # Require auth for inference endpoints
-  inference_keys: []             # Keys for inference endpoints
+  require_inference_auth: true   # Require auth for inference endpoints, API keys are created in web UI
   require_management_auth: true  # Require auth for management endpoints
   management_keys: []            # Keys for management endpoints
 ```
