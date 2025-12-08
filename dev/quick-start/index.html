@@ -567,6 +567,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#create-an-inference-api-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      Create an Inference API Key
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example-configurations" class="md-nav__link">
     <span class="md-ellipsis">
       Example Configurations
@@ -773,10 +782,10 @@
 <h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h2>
 <p>Llamactl uses two types of API keys:  </p>
 <ul>
-<li><strong>Management API Key</strong>: Used to authenticate with the Llamactl management API (creating, starting, stopping instances).  </li>
-<li><strong>Inference API Key</strong>: Used to authenticate requests to the OpenAI-compatible endpoints (<code>/v1/chat/completions</code>, <code>/v1/completions</code>, etc.).  </li>
+<li><strong>Management API Key</strong>: Used to authenticate with the Llamactl management API and web UI. If not configured, one is auto-generated at startup and printed to the terminal.  </li>
+<li><strong>Inference API Key</strong>: Used to authenticate requests to the OpenAI-compatible endpoints (<code>/v1/chat/completions</code>, <code>/v1/completions</code>, etc.). These are created and managed via the web UI.  </li>
 </ul>
-<p>By default, authentication is required. If you don't configure these keys in your configuration file, llamactl will auto-generate them and print them to the terminal on startup. You can also configure custom keys or disable authentication entirely in the <a href="../configuration/">Configuration</a> guide.  </p>
+<p>By default, authentication is required for both management and inference endpoints. You can configure custom management keys or disable authentication in the <a href="../configuration/">Configuration</a> guide.  </p>
 <h2 id="start-llamactl">Start Llamactl<a class="headerlink" href="#start-llamactl" title="Permanent link">&para;</a></h2>
 <p>Start the Llamactl server:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>llamactl
@@ -789,22 +798,15 @@
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    sk-management-...
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>⚠️  INFERENCE AUTHENTICATION REQUIRED
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>⚠️  IMPORTANT
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>🔑  Generated Inference API Key:
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    sk-inference-...
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>⚠️  IMPORTANT
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>• These keys are auto-generated and will change on restart
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>• For production, add explicit keys to your configuration
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>• Copy these keys before they disappear from the terminal
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>Llamactl server listening on 0.0.0.0:8080
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>• This key is auto-generated and will change on restart
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>• For production, add explicit management_keys to your configuration
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>• Copy this key before it disappears from the terminal
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>Llamactl server listening on 0.0.0.0:8080
 </code></pre></div>
-<p>Copy the <strong>Management</strong> and <strong>Inference</strong> API Keys from the terminal - you'll need them to access the web UI and make inference requests.  </p>
+<p>Copy the <strong>Management API Key</strong> from the terminal - you'll need it to access the web UI.  </p>
 <p>By default, Llamactl will start on <code>http://localhost:8080</code>.  </p>
 <h2 id="access-the-web-ui">Access the Web UI<a class="headerlink" href="#access-the-web-ui" title="Permanent link">&para;</a></h2>
 <p>Open your web browser and navigate to:  </p>
@@ -826,7 +828,7 @@
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Auto-Assignment</p>
-<p>Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.  </p>
+<p>Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and manages API keys if authentication is enabled. You typically don't need to manually specify these values.  </p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Remote Node Deployment</p>
@@ -845,6 +847,21 @@
 <li><strong>View logs</strong> by clicking the logs button  </li>
 <li><strong>Stop</strong> the instance when needed  </li>
 </ul>
+<h2 id="create-an-inference-api-key">Create an Inference API Key<a class="headerlink" href="#create-an-inference-api-key" title="Permanent link">&para;</a></h2>
+<p>To make inference requests to your instances, you'll need an inference API key:  </p>
+<ol>
+<li>In the web UI, click the <strong>Settings</strong> icon (gear icon in the top-right)  </li>
+<li>Navigate to the <strong>API Keys</strong> tab  </li>
+<li>Click <strong>Create API Key</strong>  </li>
+<li>Configure your key:  </li>
+<li><strong>Name</strong>: Give it a descriptive name (e.g., "Production Key", "Development Key")  </li>
+<li><strong>Expiration</strong>: Optionally set an expiration date for the key  </li>
+<li><strong>Permissions</strong>: Choose whether the key can access all instances or only specific ones  </li>
+<li>Click <strong>Create</strong>  </li>
+<li><strong>Copy the generated key</strong> - it will only be shown once!  </li>
+</ol>
+<p>The key will look like: <code>llamactl-...</code>  </p>
+<p>You can create multiple inference keys with different permissions for different use cases (e.g., one for development, one for production, or keys limited to specific instances).  </p>
 <h2 id="example-configurations">Example Configurations<a class="headerlink" href="#example-configurations" title="Permanent link">&para;</a></h2>
 <p>Here are basic example configurations for each backend:  </p>
 <p><strong>llama.cpp backend:</strong><br />
@@ -966,7 +983,7 @@
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">API Key</p>
-<p>If you disabled authentication in your config, you can use any value for <code>api_key</code> (e.g., <code>"not-needed"</code>). Otherwise, use the inference API key shown in the terminal output on startup.  </p>
+<p>If you disabled authentication in your config, you can use any value for <code>api_key</code> (e.g., <code>"not-needed"</code>). Otherwise, use the inference API key you created via the web UI (Settings → API Keys).  </p>
 </div>
 <h3 id="list-available-models">List Available Models<a class="headerlink" href="#list-available-models" title="Permanent link">&para;</a></h3>
 <p>Get a list of running instances (models) in OpenAI-compatible format:  </p>
@@ -998,7 +1015,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 26, 2025 16:19:53 UTC">October 26, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="December 8, 2025 18:15:42 UTC">December 8, 2025</span>
   </span>
 
     
