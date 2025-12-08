@@ -232,24 +232,21 @@ definitions:
     type: object
   server.CreateKeyRequest:
     properties:
-      expiresAt:
-        format: int64
+      expires_at:
         type: integer
-      instancePermissions:
+      instance_ids:
         items:
-          $ref: '#/definitions/server.InstancePermission'
+          type: integer
         type: array
       name:
         type: string
-      permissionMode:
+      permission_mode:
         $ref: '#/definitions/auth.PermissionMode'
     type: object
   server.CreateKeyResponse:
     properties:
       created_at:
         type: integer
-      enabled:
-        type: boolean
       expires_at:
         type: integer
       id:
@@ -267,21 +264,8 @@ definitions:
       user_id:
         type: string
     type: object
-  server.InstancePermission:
-    properties:
-      can_infer:
-        type: boolean
-      can_view_logs:
-        type: boolean
-      instance_id:
-        type: integer
-    type: object
   server.KeyPermissionResponse:
     properties:
-      can_infer:
-        type: boolean
-      can_view_logs:
-        type: boolean
       instance_id:
         type: integer
       instance_name:
@@ -291,8 +275,6 @@ definitions:
     properties:
       created_at:
         type: integer
-      enabled:
-        type: boolean
       expires_at:
         type: integer
       id:
