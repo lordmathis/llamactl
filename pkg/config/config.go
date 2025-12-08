@@ -88,6 +88,23 @@ type DatabaseConfig struct {
 	ConnMaxLifetime    time.Duration `yaml:"connection_max_lifetime" json:"connection_max_lifetime" swaggertype:"string" example:"1h"`
 }
 
+// LoggingConfig contains all logging-related configuration for instances
+type LoggingConfig struct {
+	// Logs directory override (relative to data_dir if not absolute)
+	LogsDir string `yaml:"logs_dir" json:"logs_dir"`
+
+	// Log rotation configuration
+	LogRotation LogRotationConfig `yaml:"log_rotation" json:"log_rotation"`
+}
+
+// LogRotationConfig contains log rotation settings for instances
+type LogRotationConfig struct {
+	Enabled    bool `yaml:"enabled" default:"true"`
+	MaxSizeMB  int  `yaml:"max_size_mb" default:"100"` // MB
+	MaxBackups int  `yaml:"max_backups" default:"3"`
+	Compress   bool `yaml:"compress" default:"false"`
+}
+
 // InstancesConfig contains instance management configuration
 type InstancesConfig struct {
 	// Port range for instances (e.g., 8000,9000)
@@ -95,9 +112,6 @@ type InstancesConfig struct {
 
 	// Instance config directory override (relative to data_dir if not absolute)
 	InstancesDir string `yaml:"configs_dir" json:"configs_dir"`
-
-	// Logs directory override (relative to data_dir if not absolute)
-	LogsDir string `yaml:"logs_dir" json:"logs_dir"`
 
 	// Automatically create the data directory if it doesn't exist
 	AutoCreateDirs bool `yaml:"auto_create_dirs" json:"auto_create_dirs"`
@@ -128,6 +142,9 @@ type InstancesConfig struct {
 
 	// Interval for checking instance timeouts (in minutes)
 	TimeoutCheckInterval int `yaml:"timeout_check_interval" json:"timeout_check_interval"`
+
+	// Logging configuration
+	Logging LoggingConfig `yaml:"logging" json:"logging"`
 }
 
 // AuthConfig contains authentication settings
@@ -205,10 +222,9 @@ func LoadConfig(configPath string) (AppConfig, error) {
 		},
 		Instances: InstancesConfig{
 			PortRange: [2]int{8000, 9000},
-			// NOTE: empty strings are set as placeholder values since InstancesDir and LogsDir
+			// NOTE: empty string is set as placeholder value since InstancesDir
 			// should be relative path to DataDir if not explicitly set.
 			InstancesDir:         "",
-			LogsDir:              "",
 			AutoCreateDirs:       true,
 			MaxInstances:         -1, // -1 means unlimited
 			MaxRunningInstances:  -1, // -1 means unlimited
@@ -219,6 +235,15 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			DefaultOnDemandStart: true,
 			OnDemandStartTimeout: 120, // 2 minutes
 			TimeoutCheckInterval: 5,   // Check timeouts every 5 minutes
+			Logging: LoggingConfig{
+				LogsDir: "", // Will be set to data_dir/logs if empty
+				LogRotation: LogRotationConfig{
+					Enabled:    true,
+					MaxSizeMB:  100,
+					MaxBackups: 3,
+					Compress:   false,
+				},
+			},
 		},
 		Database: DatabaseConfig{
 			Path:               "", // Will be set to data_dir/llamactl.db if empty
@@ -260,8 +285,8 @@ func LoadConfig(configPath string) (AppConfig, error) {
 		// Log deprecation warning if using custom instances dir
 		log.Println("⚠️ Instances directory is deprecated and will be removed in future versions. Instances are persisted in the database.")
 	}
-	if cfg.Instances.LogsDir == "" {
-		cfg.Instances.LogsDir = filepath.Join(cfg.DataDir, "logs")
+	if cfg.Instances.Logging.LogsDir == "" {
+		cfg.Instances.Logging.LogsDir = filepath.Join(cfg.DataDir, "logs")
 	}
 	if cfg.Database.Path == "" {
 		cfg.Database.Path = filepath.Join(cfg.DataDir, "llamactl.db")
@@ -328,7 +353,7 @@ func loadEnvVars(cfg *AppConfig) {
 		cfg.Instances.InstancesDir = instancesDir
 	}
 	if logsDir := os.Getenv("LLAMACTL_LOGS_DIR"); logsDir != "" {
-		cfg.Instances.LogsDir = logsDir
+		cfg.Instances.Logging.LogsDir = logsDir
 	}
 	if autoCreate := os.Getenv("LLAMACTL_AUTO_CREATE_DATA_DIR"); autoCreate != "" {
 		if b, err := strconv.ParseBool(autoCreate); err == nil {

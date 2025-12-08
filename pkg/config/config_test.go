@@ -44,8 +44,8 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.Instances.InstancesDir != filepath.Join(homedir, ".local", "share", "llamactl", "instances") {
 		t.Errorf("Expected default instances directory '%s', got %q", filepath.Join(homedir, ".local", "share", "llamactl", "instances"), cfg.Instances.InstancesDir)
 	}
-	if cfg.Instances.LogsDir != filepath.Join(homedir, ".local", "share", "llamactl", "logs") {
-		t.Errorf("Expected default logs directory '%s', got %q", filepath.Join(homedir, ".local", "share", "llamactl", "logs"), cfg.Instances.LogsDir)
+	if cfg.Instances.Logging.LogsDir != filepath.Join(homedir, ".local", "share", "llamactl", "logs") {
+		t.Errorf("Expected default logs directory '%s', got %q", filepath.Join(homedir, ".local", "share", "llamactl", "logs"), cfg.Instances.Logging.LogsDir)
 	}
 	if !cfg.Instances.AutoCreateDirs {
 		t.Error("Expected default instances auto-create to be true")
@@ -78,8 +78,9 @@ server:
   port: 9090
 instances:
   port_range: [7000, 8000]
-  logs_dir: "/custom/logs"
   max_instances: 5
+  logging:
+    logs_dir: "/custom/logs"
   llama_executable: "/usr/bin/llama-server"
   default_auto_restart: false
   default_max_restarts: 10
@@ -106,8 +107,8 @@ instances:
 	if cfg.Instances.PortRange != [2]int{7000, 8000} {
 		t.Errorf("Expected port range [7000, 8000], got %v", cfg.Instances.PortRange)
 	}
-	if cfg.Instances.LogsDir != "/custom/logs" {
-		t.Errorf("Expected logs directory '/custom/logs', got %q", cfg.Instances.LogsDir)
+	if cfg.Instances.Logging.LogsDir != "/custom/logs" {
+		t.Errorf("Expected logs directory '/custom/logs', got %q", cfg.Instances.Logging.LogsDir)
 	}
 	if cfg.Instances.MaxInstances != 5 {
 		t.Errorf("Expected max instances 5, got %d", cfg.Instances.MaxInstances)
@@ -157,8 +158,8 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 	if cfg.Instances.PortRange != [2]int{5000, 6000} {
 		t.Errorf("Expected port range [5000, 6000], got %v", cfg.Instances.PortRange)
 	}
-	if cfg.Instances.LogsDir != "/env/logs" {
-		t.Errorf("Expected logs directory '/env/logs', got %q", cfg.Instances.LogsDir)
+	if cfg.Instances.Logging.LogsDir != "/env/logs" {
+		t.Errorf("Expected logs directory '/env/logs', got %q", cfg.Instances.Logging.LogsDir)
 	}
 	if cfg.Instances.MaxInstances != 20 {
 		t.Errorf("Expected max instances 20, got %d", cfg.Instances.MaxInstances)
@@ -219,7 +220,6 @@ instances:
 	}
 }
 
-
 func TestParsePortRange(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -247,7 +247,6 @@ func TestParsePortRange(t *testing.T) {
 		})
 	}
 }
-
 
 func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
 	bc := &config.BackendConfig{
@@ -304,7 +303,6 @@ func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
 		t.Errorf("Expected command 'custom-mlx', got %q", settings.Command)
 	}
 }
-
 
 func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 	// Test that backend environment variables work correctly
@@ -374,7 +372,6 @@ func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 		t.Errorf("Expected MLX command 'env-mlx', got %q", cfg.Backends.MLX.Command)
 	}
 }
-
 
 func TestLoadConfig_LocalNode(t *testing.T) {
 	t.Run("default local node", func(t *testing.T) {
