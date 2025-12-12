@@ -49,7 +49,7 @@ func (l *logger) create() error {
 	t := &timber.Logger{
 		Filename:   logPath,
 		MaxSize:    l.cfg.MaxSizeMB,
-		MaxBackups: l.cfg.MaxBackups,
+		MaxBackups: 0, // No limit on backups - use index-based naming
 		// Compression: "gzip" if Compress is true, else "none"
 		Compression: func() string {
 			if l.cfg.Compress {
@@ -57,8 +57,8 @@ func (l *logger) create() error {
 			}
 			return "none"
 		}(),
-		FileMode:  0644, // default; timberjack uses 640 if 0
-		LocalTime: true, // use local time for consistency with lumberjack
+		FileMode:  0644,  // default; timberjack uses 640 if 0
+		LocalTime: false, // Use index-based naming instead of timestamps
 	}
 
 	// If rotation is disabled, set MaxSize to 0 so no rotation occurs

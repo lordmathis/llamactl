@@ -27,10 +27,8 @@ func TestNewInstance(t *testing.T) {
 			},
 		},
 		Instances: config.InstancesConfig{
-			DefaultAutoRestart: true,
-			Logging: config.LoggingConfig{
-				LogsDir: "/tmp/test",
-			},
+			DefaultAutoRestart:  true,
+			LogsDir:             "/tmp/test",
 			DefaultMaxRestarts:  3,
 			DefaultRestartDelay: 5,
 		},
@@ -122,10 +120,8 @@ func TestSetOptions(t *testing.T) {
 			},
 		},
 		Instances: config.InstancesConfig{
-			DefaultAutoRestart: true,
-			Logging: config.LoggingConfig{
-				LogsDir: "/tmp/test",
-			},
+			DefaultAutoRestart:  true,
+			LogsDir:             "/tmp/test",
 			DefaultMaxRestarts:  3,
 			DefaultRestartDelay: 5,
 		},
@@ -180,7 +176,7 @@ func TestMarshalJSON(t *testing.T) {
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{Command: "llama-server"},
 		},
-		Instances: config.InstancesConfig{Logging: config.LoggingConfig{LogsDir: "/tmp/test"}},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
 		Nodes:     map[string]config.NodeConfig{},
 		LocalNode: "main",
 	}
@@ -317,9 +313,7 @@ func TestCreateOptionsValidation(t *testing.T) {
 			},
 		},
 		Instances: config.InstancesConfig{
-			Logging: config.LoggingConfig{
-				LogsDir: "/tmp/test",
-			},
+			LogsDir: "/tmp/test",
 		},
 		Nodes:     map[string]config.NodeConfig{},
 		LocalNode: "main",
@@ -364,7 +358,7 @@ func TestStatusChangeCallback(t *testing.T) {
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{Command: "llama-server"},
 		},
-		Instances: config.InstancesConfig{Logging: config.LoggingConfig{LogsDir: "/tmp/test"}},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
 		Nodes:     map[string]config.NodeConfig{},
 		LocalNode: "main",
 	}
@@ -406,7 +400,7 @@ func TestSetOptions_NodesPreserved(t *testing.T) {
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{Command: "llama-server"},
 		},
-		Instances: config.InstancesConfig{Logging: config.LoggingConfig{LogsDir: "/tmp/test"}},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
 		Nodes:     map[string]config.NodeConfig{},
 		LocalNode: "main",
 	}
@@ -488,7 +482,7 @@ func TestProcessErrorCases(t *testing.T) {
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{Command: "llama-server"},
 		},
-		Instances: config.InstancesConfig{Logging: config.LoggingConfig{LogsDir: "/tmp/test"}},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
 		Nodes:     map[string]config.NodeConfig{},
 		LocalNode: "main",
 	}
@@ -524,7 +518,7 @@ func TestRemoteInstanceOperations(t *testing.T) {
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{Command: "llama-server"},
 		},
-		Instances: config.InstancesConfig{Logging: config.LoggingConfig{LogsDir: "/tmp/test"}},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
 		Nodes: map[string]config.NodeConfig{
 			"remote-node": {Address: "http://remote-node:8080"},
 		},
@@ -572,7 +566,7 @@ func TestIdleTimeout(t *testing.T) {
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{Command: "llama-server"},
 		},
-		Instances: config.InstancesConfig{Logging: config.LoggingConfig{LogsDir: "/tmp/test"}},
+		Instances: config.InstancesConfig{LogsDir: "/tmp/test"},
 		Nodes:     map[string]config.NodeConfig{},
 		LocalNode: "main",
 	}
