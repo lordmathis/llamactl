@@ -96,9 +96,6 @@ type InstancesConfig struct {
 	// Instance config directory override (relative to data_dir if not absolute)
 	InstancesDir string `yaml:"configs_dir" json:"configs_dir"`
 
-	// Logs directory override (relative to data_dir if not absolute)
-	LogsDir string `yaml:"logs_dir" json:"logs_dir"`
-
 	// Automatically create the data directory if it doesn't exist
 	AutoCreateDirs bool `yaml:"auto_create_dirs" json:"auto_create_dirs"`
 
@@ -128,6 +125,18 @@ type InstancesConfig struct {
 
 	// Interval for checking instance timeouts (in minutes)
 	TimeoutCheckInterval int `yaml:"timeout_check_interval" json:"timeout_check_interval"`
+
+	// Logs directory override (relative to data_dir if not absolute)
+	LogsDir string `yaml:"logs_dir" json:"logs_dir"`
+
+	// Log rotation enabled
+	LogRotationEnabled bool `yaml:"log_rotation_enabled" default:"true"`
+
+	// Maximum log file size in MB before rotation
+	LogRotationMaxSize int `yaml:"log_rotation_max_size" default:"100"`
+
+	// Whether to compress rotated log files
+	LogRotationCompress bool `yaml:"log_rotation_compress" default:"false"`
 }
 
 // AuthConfig contains authentication settings
@@ -205,10 +214,9 @@ func LoadConfig(configPath string) (AppConfig, error) {
 		},
 		Instances: InstancesConfig{
 			PortRange: [2]int{8000, 9000},
-			// NOTE: empty strings are set as placeholder values since InstancesDir and LogsDir
+			// NOTE: empty string is set as placeholder value since InstancesDir
 			// should be relative path to DataDir if not explicitly set.
 			InstancesDir:         "",
-			LogsDir:              "",
 			AutoCreateDirs:       true,
 			MaxInstances:         -1, // -1 means unlimited
 			MaxRunningInstances:  -1, // -1 means unlimited
@@ -219,6 +227,10 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			DefaultOnDemandStart: true,
 			OnDemandStartTimeout: 120, // 2 minutes
 			TimeoutCheckInterval: 5,   // Check timeouts every 5 minutes
+			LogsDir:              "",  // Will be set to data_dir/logs if empty
+			LogRotationEnabled:   true,
+			LogRotationMaxSize:   100,
+			LogRotationCompress:  false,
 		},
 		Database: DatabaseConfig{
 			Path:               "", // Will be set to data_dir/llamactl.db if empty
@@ -547,6 +559,23 @@ func loadEnvVars(cfg *AppConfig) {
 	if connMaxLifetime := os.Getenv("LLAMACTL_DATABASE_CONN_MAX_LIFETIME"); connMaxLifetime != "" {
 		if d, err := time.ParseDuration(connMaxLifetime); err == nil {
 			cfg.Database.ConnMaxLifetime = d
+		}
+	}
+
+	// Log rotation config
+	if logRotationEnabled := os.Getenv("LLAMACTL_LOG_ROTATION_ENABLED"); logRotationEnabled != "" {
+		if b, err := strconv.ParseBool(logRotationEnabled); err == nil {
+			cfg.Instances.LogRotationEnabled = b
+		}
+	}
+	if logRotationMaxSize := os.Getenv("LLAMACTL_LOG_ROTATION_MAX_SIZE"); logRotationMaxSize != "" {
+		if m, err := strconv.Atoi(logRotationMaxSize); err == nil {
+			cfg.Instances.LogRotationMaxSize = m
+		}
+	}
+	if logRotationCompress := os.Getenv("LLAMACTL_LOG_ROTATION_COMPRESS"); logRotationCompress != "" {
+		if b, err := strconv.ParseBool(logRotationCompress); err == nil {
+			cfg.Instances.LogRotationCompress = b
 		}
 	}
 }

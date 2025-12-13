@@ -78,8 +78,8 @@ server:
   port: 9090
 instances:
   port_range: [7000, 8000]
-  logs_dir: "/custom/logs"
   max_instances: 5
+  logs_dir: "/custom/logs"
   llama_executable: "/usr/bin/llama-server"
   default_auto_restart: false
   default_max_restarts: 10
@@ -219,7 +219,6 @@ instances:
 	}
 }
 
-
 func TestParsePortRange(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -247,7 +246,6 @@ func TestParsePortRange(t *testing.T) {
 		})
 	}
 }
-
 
 func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
 	bc := &config.BackendConfig{
@@ -304,7 +302,6 @@ func TestGetBackendSettings_NewStructuredConfig(t *testing.T) {
 		t.Errorf("Expected command 'custom-mlx', got %q", settings.Command)
 	}
 }
-
 
 func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 	// Test that backend environment variables work correctly
@@ -374,7 +371,6 @@ func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 		t.Errorf("Expected MLX command 'env-mlx', got %q", cfg.Backends.MLX.Command)
 	}
 }
-
 
 func TestLoadConfig_LocalNode(t *testing.T) {
 	t.Run("default local node", func(t *testing.T) {

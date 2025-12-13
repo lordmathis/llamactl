@@ -203,11 +203,11 @@ func createTestAppConfig(instancesDir string) *config.AppConfig {
 		Instances: config.InstancesConfig{
 			PortRange:            [2]int{8000, 9000},
 			InstancesDir:         instancesDir,
-			LogsDir:              instancesDir,
 			MaxInstances:         10,
 			MaxRunningInstances:  10,
 			DefaultAutoRestart:   true,
 			DefaultMaxRestarts:   3,
+			LogsDir:              instancesDir,
 			DefaultRestartDelay:  5,
 			TimeoutCheckInterval: 5,
 		},

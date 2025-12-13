@@ -7,66 +7,117 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
+
+	timber "github.com/DeRuina/timberjack"
 )
+
+// LogRotationConfig contains log rotation settings for instances
+type LogRotationConfig struct {
+	Enabled  bool
+	MaxSize  int
+	Compress bool
+}
 
 type logger struct {
 	name        string
 	logDir      string
-	logFile     atomic.Pointer[os.File]
+	logFile     *timber.Logger
 	logFilePath string
 	mu          sync.RWMutex
+	cfg         *LogRotationConfig
 }
 
-func newLogger(name string, logDir string) *logger {
+func newLogger(name, logDir string, cfg *LogRotationConfig) *logger {
 	return &logger{
 		name:   name,
 		logDir: logDir,
+		cfg:    cfg,
 	}
 }
 
-// create creates and opens the log files for stdout and stderr
-func (i *logger) create() error {
-	i.mu.Lock()
-	defer i.mu.Unlock()
+func (l *logger) create() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-	if i.logDir == "" {
-		return fmt.Errorf("logDir is empty for instance %s", i.name)
+	if l.logDir == "" {
+		return fmt.Errorf("logDir empty for instance %s", l.name)
 	}
 
-	// Set up instance logs
-	logPath := i.logDir + "/" + i.name + ".log"
-
-	i.logFilePath = logPath
-	if err := os.MkdirAll(i.logDir, 0755); err != nil {
+	if err := os.MkdirAll(l.logDir, 0755); err != nil {
 		return fmt.Errorf("failed to create log directory: %w", err)
 	}
 
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to create stdout log file: %w", err)
+	logPath := fmt.Sprintf("%s/%s.log", l.logDir, l.name)
+	l.logFilePath = logPath
+
+	// Build the timber logger
+	t := &timber.Logger{
+		Filename:   logPath,
+		MaxSize:    l.cfg.MaxSize,
+		MaxBackups: 0, // No limit on backups
+		// Compression: "gzip" if Compress is true, else "none"
+		Compression: func() string {
+			if l.cfg.Compress {
+				return "gzip"
+			}
+			return "none"
+		}(),
+		FileMode:  0644,
+		LocalTime: true,
 	}
 
-	i.logFile.Store(logFile)
+	// If rotation is disabled, set MaxSize to 0 so no rotation occurs
+	if !l.cfg.Enabled {
+		t.MaxSize = 0
+	}
 
-	// Write a startup marker to both files
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	fmt.Fprintf(logFile, "\n=== Instance %s started at %s ===\n", i.name, timestamp)
+	l.logFile = t
+
+	// Write a startup marker
+	ts := time.Now().Format("2006-01-02 15:04:05")
+	fmt.Fprintf(t, "\n=== Instance %s started at %s ===\n", l.name, ts)
 
 	return nil
 }
 
-// getLogs retrieves the last n lines of logs from the instance
-func (i *logger) getLogs(num_lines int) (string, error) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
+func (l *logger) readOutput(rc io.ReadCloser) {
+	defer rc.Close()
+	scanner := bufio.NewScanner(rc)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if lg := l.logFile; lg != nil {
+			fmt.Fprintln(lg, line)
+		}
+	}
+}
 
-	if i.logFilePath == "" {
-		return "", fmt.Errorf("log file not created for instance %s", i.name)
+func (l *logger) close() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	lg := l.logFile
+	if lg == nil {
+		return
 	}
 
-	file, err := os.Open(i.logFilePath)
+	ts := time.Now().Format("2006-01-02 15:04:05")
+	fmt.Fprintf(lg, "=== Instance %s stopped at %s ===\n\n", l.name, ts)
+
+	_ = lg.Close()
+	l.logFile = nil
+}
+
+// getLogs retrieves the last n lines of logs from the instance
+func (l *logger) getLogs(num_lines int) (string, error) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
+	if l.logFilePath == "" {
+		return "", fmt.Errorf("log file not created for instance %s", l.name)
+	}
+
+	file, err := os.Open(l.logFilePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open log file: %w", err)
 	}
@@ -96,32 +147,4 @@ func (i *logger) getLogs(num_lines int) (string, error) {
 	start := max(len(lines)-num_lines, 0)
 
 	return strings.Join(lines[start:], "\n"), nil
-}
-
-// close closes the log files
-func (i *logger) close() {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	logFile := i.logFile.Swap(nil)
-	if logFile != nil {
-		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		fmt.Fprintf(logFile, "=== Instance %s stopped at %s ===\n\n", i.name, timestamp)
-		logFile.Sync() // Ensure all buffered data is written to disk
-		logFile.Close()
-	}
-}
-
-// readOutput reads from the given reader and writes lines to the log file
-func (i *logger) readOutput(reader io.ReadCloser) {
-	defer reader.Close()
-
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		line := scanner.Text()
-		// Use atomic load to avoid lock contention on every line
-		if logFile := i.logFile.Load(); logFile != nil {
-			fmt.Fprintln(logFile, line)
-		}
-	}
 }

@@ -3,10 +3,11 @@ package instance
 import (
 	"encoding/json"
 	"fmt"
-	"llamactl/pkg/config"
 	"log"
 	"net/http"
 	"time"
+
+	"llamactl/pkg/config"
 )
 
 // Instance represents a running instance of llama server
@@ -68,7 +69,16 @@ func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusCha
 
 	// Only create logger, proxy, and process for local instances
 	if !instance.IsRemote() {
-		instance.logger = newLogger(name, globalInstanceSettings.LogsDir)
+		logRotationConfig := &LogRotationConfig{
+			Enabled:  globalInstanceSettings.LogRotationEnabled,
+			MaxSize:  globalInstanceSettings.LogRotationMaxSize,
+			Compress: globalInstanceSettings.LogRotationCompress,
+		}
+		instance.logger = newLogger(
+			name,
+			globalInstanceSettings.LogsDir,
+			logRotationConfig,
+		)
 		instance.process = newProcess(instance)
 	}
 

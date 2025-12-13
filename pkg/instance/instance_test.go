@@ -27,8 +27,8 @@ func TestNewInstance(t *testing.T) {
 			},
 		},
 		Instances: config.InstancesConfig{
-			LogsDir:             "/tmp/test",
 			DefaultAutoRestart:  true,
+			LogsDir:             "/tmp/test",
 			DefaultMaxRestarts:  3,
 			DefaultRestartDelay: 5,
 		},
@@ -120,8 +120,8 @@ func TestSetOptions(t *testing.T) {
 			},
 		},
 		Instances: config.InstancesConfig{
-			LogsDir:             "/tmp/test",
 			DefaultAutoRestart:  true,
+			LogsDir:             "/tmp/test",
 			DefaultMaxRestarts:  3,
 			DefaultRestartDelay: 5,
 		},
