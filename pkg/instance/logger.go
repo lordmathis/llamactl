@@ -10,8 +10,14 @@ import (
 	"time"
 
 	timber "github.com/DeRuina/timberjack"
-	"llamactl/pkg/config"
 )
+
+// LogRotationConfig contains log rotation settings for instances
+type LogRotationConfig struct {
+	Enabled   bool `yaml:"enabled" default:"true"`
+	MaxSizeMB int  `yaml:"max_size_mb" default:"100"` // MB
+	Compress  bool `yaml:"compress" default:"false"`
+}
 
 type logger struct {
 	name        string
@@ -19,10 +25,10 @@ type logger struct {
 	logFile     *timber.Logger
 	logFilePath string
 	mu          sync.RWMutex
-	cfg         *config.LogRotationConfig
+	cfg         *LogRotationConfig
 }
 
-func newLogger(name, logDir string, cfg *config.LogRotationConfig) *logger {
+func newLogger(name, logDir string, cfg *LogRotationConfig) *logger {
 	return &logger{
 		name:   name,
 		logDir: logDir,

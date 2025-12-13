@@ -88,13 +88,6 @@ type DatabaseConfig struct {
 	ConnMaxLifetime    time.Duration `yaml:"connection_max_lifetime" json:"connection_max_lifetime" swaggertype:"string" example:"1h"`
 }
 
-// LogRotationConfig contains log rotation settings for instances
-type LogRotationConfig struct {
-	Enabled   bool `yaml:"enabled" default:"true"`
-	MaxSizeMB int  `yaml:"max_size_mb" default:"100"` // MB
-	Compress  bool `yaml:"compress" default:"false"`
-}
-
 // InstancesConfig contains instance management configuration
 type InstancesConfig struct {
 	// Port range for instances (e.g., 8000,9000)
