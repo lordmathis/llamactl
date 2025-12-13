@@ -71,7 +71,7 @@ func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusCha
 	if !instance.IsRemote() {
 		logRotationConfig := &LogRotationConfig{
 			Enabled:   globalInstanceSettings.LogRotationEnabled,
-			MaxSizeMB: globalInstanceSettings.LogRotationMaxSizeMB,
+			MaxSizeMB: globalInstanceSettings.LogRotationMaxSize,
 			Compress:  globalInstanceSettings.LogRotationCompress,
 		}
 		instance.logger = newLogger(

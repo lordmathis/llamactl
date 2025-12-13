@@ -196,7 +196,7 @@ instances:
   on_demand_start_timeout: 120                    # Default on-demand start timeout in seconds
   timeout_check_interval: 5                       # Idle instance timeout check in minutes
   log_rotation_enabled: true                      # Enable log rotation (default: true)
-  log_rotation_max_size_mb: 100                   # Max log file size in MB before rotation (default: 100)
+  log_rotation_max_size: 100                      # Max log file size in MB before rotation (default: 100)
   log_rotation_compress: false                    # Compress rotated log files (default: false)
 
 database:

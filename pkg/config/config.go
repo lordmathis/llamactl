@@ -133,7 +133,7 @@ type InstancesConfig struct {
 	LogRotationEnabled bool `yaml:"log_rotation_enabled" default:"true"`
 
 	// Maximum log file size in MB before rotation
-	LogRotationMaxSizeMB int `yaml:"log_rotation_max_size_mb" default:"100"`
+	LogRotationMaxSize int `yaml:"log_rotation_max_size" default:"100"`
 
 	// Whether to compress rotated log files
 	LogRotationCompress bool `yaml:"log_rotation_compress" default:"false"`
@@ -229,7 +229,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 			TimeoutCheckInterval: 5,   // Check timeouts every 5 minutes
 			LogsDir:              "",  // Will be set to data_dir/logs if empty
 			LogRotationEnabled:   true,
-			LogRotationMaxSizeMB: 100,
+			LogRotationMaxSize:   100,
 			LogRotationCompress:  false,
 		},
 		Database: DatabaseConfig{
@@ -568,9 +568,9 @@ func loadEnvVars(cfg *AppConfig) {
 			cfg.Instances.LogRotationEnabled = b
 		}
 	}
-	if logRotationMaxSizeMB := os.Getenv("LLAMACTL_LOG_ROTATION_MAX_SIZE_MB"); logRotationMaxSizeMB != "" {
-		if m, err := strconv.Atoi(logRotationMaxSizeMB); err == nil {
-			cfg.Instances.LogRotationMaxSizeMB = m
+	if logRotationMaxSize := os.Getenv("LLAMACTL_LOG_ROTATION_MAX_SIZE"); logRotationMaxSize != "" {
+		if m, err := strconv.Atoi(logRotationMaxSize); err == nil {
+			cfg.Instances.LogRotationMaxSize = m
 		}
 	}
 	if logRotationCompress := os.Getenv("LLAMACTL_LOG_ROTATION_COMPRESS"); logRotationCompress != "" {
