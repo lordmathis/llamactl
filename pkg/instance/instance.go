@@ -70,9 +70,9 @@ func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusCha
 	// Only create logger, proxy, and process for local instances
 	if !instance.IsRemote() {
 		logRotationConfig := &LogRotationConfig{
-			Enabled:   globalInstanceSettings.LogRotationEnabled,
-			MaxSizeMB: globalInstanceSettings.LogRotationMaxSize,
-			Compress:  globalInstanceSettings.LogRotationCompress,
+			Enabled:  globalInstanceSettings.LogRotationEnabled,
+			MaxSize:  globalInstanceSettings.LogRotationMaxSize,
+			Compress: globalInstanceSettings.LogRotationCompress,
 		}
 		instance.logger = newLogger(
 			name,

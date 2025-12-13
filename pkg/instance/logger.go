@@ -14,9 +14,9 @@ import (
 
 // LogRotationConfig contains log rotation settings for instances
 type LogRotationConfig struct {
-	Enabled   bool `yaml:"enabled" default:"true"`
-	MaxSizeMB int  `yaml:"max_size_mb" default:"100"` // MB
-	Compress  bool `yaml:"compress" default:"false"`
+	Enabled  bool
+	MaxSize  int
+	Compress bool
 }
 
 type logger struct {
@@ -54,8 +54,8 @@ func (l *logger) create() error {
 	// Build the timber logger
 	t := &timber.Logger{
 		Filename:   logPath,
-		MaxSize:    l.cfg.MaxSizeMB,
-		MaxBackups: 0, // No limit on backups - use index-based naming
+		MaxSize:    l.cfg.MaxSize,
+		MaxBackups: 0, // No limit on backups
 		// Compression: "gzip" if Compress is true, else "none"
 		Compression: func() string {
 			if l.cfg.Compress {
@@ -63,8 +63,8 @@ func (l *logger) create() error {
 			}
 			return "none"
 		}(),
-		FileMode:  0644,  // default; timberjack uses 640 if 0
-		LocalTime: false, // Use index-based naming instead of timestamps
+		FileMode:  0644,
+		LocalTime: true,
 	}
 
 	// If rotation is disabled, set MaxSize to 0 so no rotation occurs
@@ -87,7 +87,7 @@ func (l *logger) readOutput(rc io.ReadCloser) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if lg := l.logFile; lg != nil {
-			fmt.Fprintln(lg, line) // timber.Logger implements io.Writer
+			fmt.Fprintln(lg, line)
 		}
 	}
 }
@@ -104,7 +104,7 @@ func (l *logger) close() {
 	ts := time.Now().Format("2006-01-02 15:04:05")
 	fmt.Fprintf(lg, "=== Instance %s stopped at %s ===\n\n", l.name, ts)
 
-	_ = lg.Close() // shuts down any background goroutines (none in this config)
+	_ = lg.Close()
 	l.logFile = nil
 }
 
