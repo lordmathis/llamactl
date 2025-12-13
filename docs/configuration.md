@@ -230,6 +230,9 @@ instances:
   default_on_demand_start: true # Default on-demand start setting
   on_demand_start_timeout: 120  # Default on-demand start timeout in seconds
   timeout_check_interval: 5     # Default instance timeout check interval in minutes
+  log_rotation_enabled: true    # Enable log rotation (default: true)
+  log_rotation_max_size_mb: 100 # Max log file size in MB before rotation (default: 100)
+  log_rotation_compress: false  # Compress rotated log files (default: false)
 ```
 
 **Environment Variables:**
@@ -246,6 +249,9 @@ instances:
 - `LLAMACTL_DEFAULT_ON_DEMAND_START` - Default on-demand start setting (true/false)  
 - `LLAMACTL_ON_DEMAND_START_TIMEOUT` - Default on-demand start timeout in seconds
 - `LLAMACTL_TIMEOUT_CHECK_INTERVAL` - Default instance timeout check interval in minutes
+- `LLAMACTL_LOG_ROTATION_ENABLED` - Enable log rotation (true/false)
+- `LLAMACTL_LOG_ROTATION_MAX_SIZE_MB` - Max log file size in MB
+- `LLAMACTL_LOG_ROTATION_COMPRESS` - Compress rotated logs (true/false)
 
 ### Database Configuration
 
