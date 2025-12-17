@@ -84,8 +84,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
-      - name: Build binary (Unix)
-        if: matrix.goos != 'windows'
+      - name: Build binary
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -93,8 +92,14 @@ jobs:
           CC: ${{ matrix.cc }}
         shell: bash
         run: |
+          # Set binary extension for Windows
+          BINARY_NAME="llamactl"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BINARY_NAME="${BINARY_NAME}.exe"
+          fi
+          
           # Build the binary
-          go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o llamactl ./cmd/server
+          go build -ldflags="-s -w -X main.version=${{ github.ref_name }} -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o "${BINARY_NAME}" ./cmd/server
           
           # Create archive
           ARCHIVE_OS="${{ matrix.goos }}"
@@ -102,32 +107,17 @@ jobs:
             ARCHIVE_OS="macos"
           fi
           ARCHIVE_NAME="llamactl-${{ github.ref_name }}-${ARCHIVE_OS}-${{ matrix.goarch }}"
-          tar -czf "${ARCHIVE_NAME}.tar.gz" llamactl
-          echo "ASSET_PATH=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+          
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            # Use 7z on Windows (pre-installed)
+            7z a "${ARCHIVE_NAME}.zip" "${BINARY_NAME}"
+            echo "ASSET_PATH=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+          else
+            tar -czf "${ARCHIVE_NAME}.tar.gz" "${BINARY_NAME}"
+            echo "ASSET_PATH=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+          fi
+          
           echo "ASSET_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
-
-      - name: Build binary (Windows)
-        if: matrix.goos == 'windows'
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 1
-        shell: pwsh
-        run: |
-          # Build the binary
-          $version = "${{ github.ref_name }}"
-          $commit = "${{ github.sha }}"
-          $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-          $ldflags = "-s -w -X main.version=$version -X main.commit=$commit -X main.date=$date"
-          
-          go build -ldflags="$ldflags" -o llamactl.exe ./cmd/server
-          
-          # Create archive
-          $archiveName = "llamactl-${{ github.ref_name }}-windows-${{ matrix.goarch }}"
-          Compress-Archive -Path llamactl.exe -DestinationPath "$archiveName.zip"
-          
-          echo "ASSET_PATH=$archiveName.zip" >> $env:GITHUB_ENV
-          echo "ASSET_NAME=$archiveName" >> $env:GITHUB_ENV
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
