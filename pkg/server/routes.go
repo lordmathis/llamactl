@@ -26,9 +26,6 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		MaxAge:           300,
 	}))
 
-	// Add API authentication middleware
-	authMiddleware := NewAPIAuthMiddleware(handler.cfg.Auth, handler.authStore)
-
 	if handler.cfg.Server.EnableSwagger {
 		r.Get("/swagger/*", httpSwagger.Handler(
 			httpSwagger.URL("/swagger/doc.json"),
@@ -38,8 +35,8 @@ func SetupRouter(handler *Handler) *chi.Mux {
 	// Define routes
 	r.Route("/api/v1", func(r chi.Router) {
 
-		if authMiddleware != nil && handler.cfg.Auth.RequireManagementAuth {
-			r.Use(authMiddleware.ManagementAuthMiddleware())
+		if handler.authMiddleware != nil && handler.cfg.Auth.RequireManagementAuth {
+			r.Use(handler.authMiddleware.ManagementAuthMiddleware())
 		}
 
 		r.Get("/version", handler.VersionHandler())
@@ -107,8 +104,8 @@ func SetupRouter(handler *Handler) *chi.Mux {
 
 	r.Route("/v1", func(r chi.Router) {
 
-		if authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
-			r.Use(authMiddleware.InferenceAuthMiddleware())
+		if handler.authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
+			r.Use(handler.authMiddleware.InferenceAuthMiddleware())
 		}
 
 		r.Get("/models", handler.OpenAIListInstances()) // List instances in OpenAI-compatible format
@@ -135,8 +132,8 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		// Private Routes
 		r.Group(func(r chi.Router) {
 
-			if authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
-				r.Use(authMiddleware.InferenceAuthMiddleware())
+			if handler.authMiddleware != nil && handler.cfg.Auth.RequireInferenceAuth {
+				r.Use(handler.authMiddleware.InferenceAuthMiddleware())
 			}
 
 			// This handler auto starts the server if it's not running
