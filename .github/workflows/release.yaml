@@ -45,15 +45,23 @@ jobs:
   build:
     name: Build Binaries
     needs: build-webui
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        goos: [linux, windows, darwin]
-        goarch: [amd64, arm64]
-        exclude:
-          # Windows ARM64 support is limited
-          - goos: windows
+        include:
+          - goos: linux
+            goarch: amd64
+            runner: ubuntu-latest
+          - goos: linux
             goarch: arm64
+            runner: ubuntu-latest
+            cc: aarch64-linux-gnu-gcc
+          - goos: darwin
+            goarch: arm64
+            runner: macos-latest
+          - goos: windows
+            goarch: amd64
+            runner: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -70,11 +78,19 @@ jobs:
           name: webui-dist
           path: webui/dist/
 
+      - name: Install cross-compilation tools (Linux ARM64 only)
+        if: matrix.cc != ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
       - name: Build binary
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
+          CGO_ENABLED: 1
+          CC: ${{ matrix.cc }}
+        shell: bash
         run: |
           # Set binary extension for Windows
           BINARY_NAME="llamactl"
@@ -91,8 +107,10 @@ jobs:
             ARCHIVE_OS="macos"
           fi
           ARCHIVE_NAME="llamactl-${{ github.ref_name }}-${ARCHIVE_OS}-${{ matrix.goarch }}"
+          
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            zip "${ARCHIVE_NAME}.zip" "${BINARY_NAME}"
+            # Use 7z on Windows (pre-installed)
+            7z a "${ARCHIVE_NAME}.zip" "${BINARY_NAME}"
             echo "ASSET_PATH=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
           else
             tar -czf "${ARCHIVE_NAME}.tar.gz" "${BINARY_NAME}"
