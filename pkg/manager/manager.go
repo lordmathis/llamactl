@@ -24,6 +24,8 @@ type InstanceManager interface {
 	EvictLRUInstance() error
 	RestartInstance(name string) (*instance.Instance, error)
 	GetInstanceLogs(name string, numLines int) (string, error)
+	ResolveInstance(modelName string) (string, error)
+	RefreshModelRegistry(inst *instance.Instance) error
 	Shutdown()
 }
 
@@ -34,6 +36,7 @@ type instanceManager struct {
 	db        database.InstanceStore
 	remote    *remoteManager
 	lifecycle *lifecycleManager
+	models    *modelRegistry
 
 	// Configuration
 	globalConfig *config.AppConfig
@@ -60,12 +63,16 @@ func New(globalConfig *config.AppConfig, db database.InstanceStore) InstanceMana
 	// Initialize remote manager
 	remote := newRemoteManager(globalConfig.Nodes, 30*time.Second)
 
+	// Initialize model registry
+	models := newModelRegistry()
+
 	// Create manager instance
 	im := &instanceManager{
 		registry:     registry,
 		ports:        ports,
 		db:           db,
 		remote:       remote,
+		models:       models,
 		globalConfig: globalConfig,
 	}
 
@@ -142,7 +149,25 @@ func (im *instanceManager) loadInstances() error {
 	// Auto-start instances that have auto-restart enabled
 	go im.autoStartInstances()
 
+	// Discover models from all running llama.cpp instances
+	go im.discoverAllModels()
+
 	return nil
+}
+
+// discoverAllModels discovers and registers models for all running llama.cpp instances
+func (im *instanceManager) discoverAllModels() {
+	instances := im.registry.listRunning()
+
+	for _, inst := range instances {
+		if !inst.IsLlamaCpp() {
+			continue
+		}
+
+		if err := im.RefreshModelRegistry(inst); err != nil {
+			log.Printf("Failed to discover models for instance %s: %v", inst.Name, err)
+		}
+	}
 }
 
 // loadInstance loads a single persisted instance and adds it to the registry

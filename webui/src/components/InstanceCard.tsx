@@ -2,13 +2,14 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Instance } from "@/types/instance";
-import { Edit, FileText, Play, Square, Trash2, MoreHorizontal, Download } from "lucide-react";
+import { Edit, FileText, Play, Square, Trash2, MoreHorizontal, Download, Boxes } from "lucide-react";
 import LogsDialog from "@/components/LogDialog";
+import ModelsDialog from "@/components/ModelsDialog";
 import HealthBadge from "@/components/HealthBadge";
 import BackendBadge from "@/components/BackendBadge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useInstanceHealth } from "@/hooks/useInstanceHealth";
-import { instancesApi } from "@/lib/api";
+import { instancesApi, llamaCppApi } from "@/lib/api";
 
 interface InstanceCardProps {
   instance: Instance;
@@ -26,8 +27,30 @@ function InstanceCard({
   editInstance,
 }: InstanceCardProps) {
   const [isLogsOpen, setIsLogsOpen] = useState(false);
+  const [isModelsOpen, setIsModelsOpen] = useState(false);
   const [showAllActions, setShowAllActions] = useState(false);
+  const [modelCount, setModelCount] = useState(0);
   const health = useInstanceHealth(instance.name, instance.status);
+
+  const running = instance.status === "running";
+  const isLlamaCpp = instance.options?.backend_type === "llama_cpp";
+
+  // Fetch model count for llama.cpp instances
+  useEffect(() => {
+    if (!isLlamaCpp || !running) {
+      setModelCount(0);
+      return;
+    }
+
+    void (async () => {
+      try {
+        const models = await llamaCppApi.getModels(instance.name);
+        setModelCount(models.length);
+      } catch {
+        setModelCount(0);
+      }
+    })();
+  }, [instance.name, isLlamaCpp, running]);
 
   const handleStart = () => {
     startInstance(instance.name);
@@ -51,6 +74,10 @@ function InstanceCard({
 
   const handleLogs = () => {
     setIsLogsOpen(true);
+  };
+
+  const handleModels = () => {
+    setIsModelsOpen(true);
   };
 
   const handleExport = () => {
@@ -82,8 +109,6 @@ function InstanceCard({
       }
     })();
   };
-
-  const running = instance.status === "running";
 
   return (
     <>
@@ -162,6 +187,20 @@ function InstanceCard({
                 Logs
               </Button>
 
+              {isLlamaCpp && modelCount > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleModels}
+                  title="Manage models"
+                  data-testid="manage-models-button"
+                  className="flex-1"
+                >
+                  <Boxes className="h-4 w-4 mr-1" />
+                  Models ({modelCount})
+                </Button>
+              )}
+
               <Button
                 size="sm"
                 variant="outline"
@@ -192,6 +231,13 @@ function InstanceCard({
       <LogsDialog
         open={isLogsOpen}
         onOpenChange={setIsLogsOpen}
+        instanceName={instance.name}
+        isRunning={running}
+      />
+
+      <ModelsDialog
+        open={isModelsOpen}
+        onOpenChange={setIsModelsOpen}
         instanceName={instance.name}
         isRunning={running}
       />

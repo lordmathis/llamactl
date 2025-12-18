@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
@@ -40,14 +41,41 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 			return
 		}
 
-		openaiInstances := make([]OpenAIInstance, len(instances))
-		for i, inst := range instances {
-			openaiInstances[i] = OpenAIInstance{
+		var openaiInstances []OpenAIInstance
+
+		// For each llama.cpp instance, try to fetch models and add them as separate entries
+		for _, inst := range instances {
+
+			if inst.IsLlamaCpp() && inst.IsRunning() {
+				// Try to fetch models from the instance
+				models, err := inst.GetModels()
+				if err != nil {
+					fmt.Printf("Failed to fetch models from instance %s: %v", inst.Name, err)
+					continue
+				}
+
+				for _, model := range models {
+					openaiInstances = append(openaiInstances, OpenAIInstance{
+						ID:      model.ID,
+						Object:  "model",
+						Created: model.Created,
+						OwnedBy: inst.Name,
+					})
+				}
+
+				if len(models) > 1 {
+					// Skip adding the instance name if multiple models are present
+					continue
+				}
+			}
+
+			// Add instance name as single entry (for non-llama.cpp or if model fetch failed)
+			openaiInstances = append(openaiInstances, OpenAIInstance{
 				ID:      inst.Name,
 				Object:  "model",
 				Created: inst.Created,
 				OwnedBy: "llamactl",
-			}
+			})
 		}
 
 		openaiResponse := OpenAIListInstancesResponse{
@@ -89,12 +117,19 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 
 		modelName, ok := requestBody["model"].(string)
 		if !ok || modelName == "" {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Instance name is required")
+			writeError(w, http.StatusBadRequest, "invalid_request", "Model name is required")
+			return
+		}
+
+		// Resolve model name to instance name (checks instance names first, then model registry)
+		instanceName, err := h.InstanceManager.ResolveInstance(modelName)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "model_not_found", err.Error())
 			return
 		}
 
 		// Validate instance name at the entry point
-		validatedName, err := validation.ValidateInstanceName(modelName)
+		validatedName, err := validation.ValidateInstanceName(instanceName)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_instance_name", err.Error())
 			return
