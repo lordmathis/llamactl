@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
-	"log"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -371,11 +370,6 @@ func (h *Handler) LlamaCppLoadModel() http.HandlerFunc {
 			return
 		}
 
-		// Refresh the model registry
-		if err := h.InstanceManager.RefreshModelRegistry(inst); err != nil {
-			log.Printf("Warning: failed to refresh model registry after load: %v", err)
-		}
-
 		writeJSON(w, http.StatusOK, map[string]string{
 			"status":  "success",
 			"message": fmt.Sprintf("Model %s loaded successfully", modelName),
@@ -408,11 +402,6 @@ func (h *Handler) LlamaCppUnloadModel() http.HandlerFunc {
 		if err := inst.UnloadModel(modelName); err != nil {
 			writeError(w, http.StatusBadRequest, "unload_model_failed", err.Error())
 			return
-		}
-
-		// Refresh the model registry
-		if err := h.InstanceManager.RefreshModelRegistry(inst); err != nil {
-			log.Printf("Warning: failed to refresh model registry after unload: %v", err)
 		}
 
 		writeJSON(w, http.StatusOK, map[string]string{

@@ -337,9 +337,6 @@ func (im *instanceManager) DeleteInstance(name string) error {
 	// Release port (use ReleaseByInstance for proper cleanup)
 	im.ports.releaseByInstance(name)
 
-	// Unregister models when instance is deleted
-	im.onInstanceStopped(name)
-
 	// Remove from registry
 	if err := im.registry.remove(name); err != nil {
 		return fmt.Errorf("failed to remove instance from registry: %w", err)
@@ -386,7 +383,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 	}
 
 	// Check max running instances limit for local instances only
-	if im.IsMaxRunningInstancesReached() {
+	if im.AtMaxRunning() {
 		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.globalConfig.Instances.MaxRunningInstances))
 	}
 
@@ -399,13 +396,10 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 		log.Printf("Warning: failed to persist instance %s: %v", name, err)
 	}
 
-	// Discover and register models for llama.cpp instances
-	go im.onInstanceStarted(name)
-
 	return inst, nil
 }
 
-func (im *instanceManager) IsMaxRunningInstancesReached() bool {
+func (im *instanceManager) AtMaxRunning() bool {
 	if im.globalConfig.Instances.MaxRunningInstances == -1 {
 		return false
 	}
@@ -460,9 +454,6 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 	if err := im.persistInstance(inst); err != nil {
 		log.Printf("Warning: failed to persist instance %s: %v", name, err)
 	}
-
-	// Unregister models when instance stops
-	im.onInstanceStopped(name)
 
 	return inst, nil
 }
@@ -543,74 +534,4 @@ func (im *instanceManager) setPortInOptions(options *instance.Options, port int)
 // EvictLRUInstance finds and stops the least recently used running instance.
 func (im *instanceManager) EvictLRUInstance() error {
 	return im.lifecycle.evictLRU()
-}
-
-// ResolveInstance resolves a model name to an instance name.
-// Precedence: instance name > model registry
-func (im *instanceManager) ResolveInstance(modelName string) (string, error) {
-	// Check if it's an instance name first
-	if _, err := im.GetInstance(modelName); err == nil {
-		return modelName, nil
-	}
-
-	// Check if it's a model name in the registry
-	if instanceName, exists := im.models.getModelInstance(modelName); exists {
-		return instanceName, nil
-	}
-
-	return "", fmt.Errorf("model or instance '%s' not found", modelName)
-}
-
-// RefreshModelRegistry refreshes the model registry for the given instance
-func (im *instanceManager) RefreshModelRegistry(inst *instance.Instance) error {
-	if !inst.IsRunning() {
-		return fmt.Errorf("instance %s is not running", inst.Name)
-	}
-
-	// Fetch models from instance and register them
-	models, err := inst.GetModels()
-	if err != nil {
-		return fmt.Errorf("failed to fetch models: %w", err)
-	}
-
-	// Register models, skipping conflicts
-	conflicts := im.models.registerModels(inst.Name, models)
-	if len(conflicts) > 0 {
-		log.Printf("Warning: Model name conflicts for instance %s (skipped): %v", inst.Name, conflicts)
-	}
-
-	// Check if instance name shadows any model names
-	if otherInstance, exists := im.models.getModelInstance(inst.Name); exists && otherInstance != inst.Name {
-		log.Printf("Warning: Instance name '%s' shadows model name from instance '%s'", inst.Name, otherInstance)
-	}
-
-	return nil
-}
-
-// onInstanceStarted is called when an instance successfully starts and becomes healthy
-func (im *instanceManager) onInstanceStarted(name string) {
-	inst, err := im.GetInstance(name)
-	if err != nil {
-		log.Printf("Failed to get instance %s for model discovery: %v", name, err)
-		return
-	}
-
-	// Only discover models for llama.cpp instances
-	if !inst.IsLlamaCpp() {
-		return
-	}
-
-	if err := inst.WaitForHealthy(30); err != nil {
-		log.Printf("Instance %s not healthy, skipping model discovery: %v", name, err)
-		return
-	}
-
-	if err := im.RefreshModelRegistry(inst); err != nil {
-		log.Printf("Failed to discover models for instance %s: %v", name, err)
-	}
-}
-
-// onInstanceStopped is called when an instance stops or is deleted
-func (im *instanceManager) onInstanceStopped(name string) {
-	im.models.unregisterModels(name)
 }
