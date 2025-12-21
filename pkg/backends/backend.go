@@ -14,6 +14,7 @@ const (
 	BackendTypeLlamaCpp BackendType = "llama_cpp"
 	BackendTypeMlxLm    BackendType = "mlx_lm"
 	BackendTypeVllm     BackendType = "vllm"
+	BackendTypeUnknown  BackendType = "unknown"
 )
 
 type backend interface {

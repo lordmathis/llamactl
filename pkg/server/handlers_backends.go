@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
-
-	"github.com/go-chi/chi/v5"
 )
 
 // ParseCommandRequest represents the request body for backend command parsing
@@ -322,24 +320,41 @@ func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
 // @Router /api/v1/llama-cpp/{name}/models [get]
 func (h *Handler) LlamaCppListModels() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		inst, err := h.getInstance(r)
+		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
 			return
 		}
 
-		models, err := inst.GetModels()
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "get_models_failed", err.Error())
+		// Check instance permissions
+		if err := h.authMiddleware.CheckInstancePermission(r.Context(), inst.ID); err != nil {
+			writeError(w, http.StatusForbidden, "permission_denied", err.Error())
 			return
 		}
 
-		response := map[string]any{
-			"object": "list",
-			"data":   models,
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
+			return
 		}
 
-		writeJSON(w, http.StatusOK, response)
+		if !inst.IsRemote() && !inst.IsRunning() {
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "instance start failed", err.Error())
+				return
+			}
+		}
+
+		// Modify request path to /models for proxying
+		r.URL.Path = "/models"
+
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }
 
@@ -357,23 +372,41 @@ func (h *Handler) LlamaCppListModels() http.HandlerFunc {
 // @Router /api/v1/llama-cpp/{name}/models/{model}/load [post]
 func (h *Handler) LlamaCppLoadModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		inst, err := h.getInstance(r)
+		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
 			return
 		}
 
-		modelName := chi.URLParam(r, "model")
-
-		if err := inst.LoadModel(modelName); err != nil {
-			writeError(w, http.StatusBadRequest, "load_model_failed", err.Error())
+		// Check instance permissions
+		if err := h.authMiddleware.CheckInstancePermission(r.Context(), inst.ID); err != nil {
+			writeError(w, http.StatusForbidden, "permission_denied", err.Error())
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]string{
-			"status":  "success",
-			"message": fmt.Sprintf("Model %s loaded successfully", modelName),
-		})
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
+			return
+		}
+
+		if !inst.IsRemote() && !inst.IsRunning() {
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "instance start failed", err.Error())
+				return
+			}
+		}
+
+		// Modify request path to /models/load for proxying
+		r.URL.Path = "/models/load"
+
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }
 
@@ -391,22 +424,40 @@ func (h *Handler) LlamaCppLoadModel() http.HandlerFunc {
 // @Router /api/v1/llama-cpp/{name}/models/{model}/unload [post]
 func (h *Handler) LlamaCppUnloadModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		inst, err := h.getInstance(r)
+		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
 			return
 		}
 
-		modelName := chi.URLParam(r, "model")
-
-		if err := inst.UnloadModel(modelName); err != nil {
-			writeError(w, http.StatusBadRequest, "unload_model_failed", err.Error())
+		// Check instance permissions
+		if err := h.authMiddleware.CheckInstancePermission(r.Context(), inst.ID); err != nil {
+			writeError(w, http.StatusForbidden, "permission_denied", err.Error())
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]string{
-			"status":  "success",
-			"message": fmt.Sprintf("Model %s unloaded successfully", modelName),
-		})
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
+			return
+		}
+
+		if !inst.IsRemote() && !inst.IsRunning() {
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "instance start failed", err.Error())
+				return
+			}
+		}
+
+		// Modify request path to /models/unload for proxying
+		r.URL.Path = "/models/unload"
+
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
 	}
 }

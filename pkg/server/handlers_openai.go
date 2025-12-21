@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
 	"net/http"
+	"strings"
 )
 
 // OpenAIListInstancesResponse represents the response structure for listing instances (models) in OpenAI-compatible format
@@ -22,6 +24,53 @@ type OpenAIInstance struct {
 	Object  string `json:"object"`
 	Created int64  `json:"created"`
 	OwnedBy string `json:"owned_by"`
+}
+
+// LlamaCppModel represents a model available in a llama.cpp instance
+type LlamaCppModel struct {
+	ID      string              `json:"id"`
+	Object  string              `json:"object"`
+	OwnedBy string              `json:"owned_by"`
+	Created int64               `json:"created"`
+	InCache bool                `json:"in_cache"`
+	Path    string              `json:"path"`
+	Status  LlamaCppModelStatus `json:"status"`
+}
+
+// LlamaCppModelStatus represents the status of a model in a llama.cpp instance
+type LlamaCppModelStatus struct {
+	Value string   `json:"value"` // "loaded" | "loading" | "unloaded"
+	Args  []string `json:"args"`
+}
+
+// fetchLlamaCppModels fetches models from a llama.cpp instance using the proxy
+func fetchLlamaCppModels(inst *instance.Instance) ([]LlamaCppModel, error) {
+	// Create a request to the instance's /models endpoint
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s:%d/models", inst.GetHost(), inst.GetPort()), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Use a custom response writer to capture the response
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var result struct {
+		Data []LlamaCppModel `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return result.Data, nil
 }
 
 // OpenAIListInstances godoc
@@ -46,9 +95,9 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 		// For each llama.cpp instance, try to fetch models and add them as separate entries
 		for _, inst := range instances {
 
-			if inst.IsLlamaCpp() && inst.IsRunning() {
+			if inst.GetBackendType() == backends.BackendTypeLlamaCpp && inst.IsRunning() {
 				// Try to fetch models from the instance
-				models, err := inst.GetModels()
+				models, err := fetchLlamaCppModels(inst)
 				if err != nil {
 					fmt.Printf("Failed to fetch models from instance %s: %v", inst.Name, err)
 					continue
@@ -56,9 +105,9 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 
 				for _, model := range models {
 					openaiInstances = append(openaiInstances, OpenAIInstance{
-						ID:      model.ID,
+						ID:      inst.Name + "/" + model.ID,
 						Object:  "model",
-						Created: model.Created,
+						Created: inst.Created,
 						OwnedBy: inst.Name,
 					})
 				}
@@ -115,17 +164,24 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
-		modelName, ok := requestBody["model"].(string)
-		if !ok || modelName == "" {
+		reqModelName, ok := requestBody["model"].(string)
+		if !ok || reqModelName == "" {
 			writeError(w, http.StatusBadRequest, "invalid_request", "Model name is required")
 			return
 		}
 
-		// Resolve model name to instance name (checks instance names first, then model registry)
-		instanceName, err := h.InstanceManager.ResolveInstance(modelName)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "model_not_found", err.Error())
-			return
+		// Parse instance name and model name from <instance_name>/<model_name> format
+		var instanceName string
+		var modelName string
+
+		// Check if model name contains "/"
+		if idx := strings.Index(reqModelName, "/"); idx != -1 {
+			// Split into instance and model parts
+			instanceName = reqModelName[:idx]
+			modelName = reqModelName[idx+1:]
+		} else {
+			instanceName = reqModelName
+			modelName = reqModelName
 		}
 
 		// Validate instance name at the entry point
@@ -154,12 +210,27 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
+		if inst.IsRemote() {
+			// Don't replace model name for remote instances
+			modelName = reqModelName
+		}
+
 		if !inst.IsRemote() && !inst.IsRunning() {
 			err := h.ensureInstanceRunning(inst)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, "instance_start_failed", err.Error())
 				return
 			}
+		}
+
+		// Update the request body with just the model name
+		requestBody["model"] = modelName
+
+		// Re-marshal the updated body
+		bodyBytes, err = json.Marshal(requestBody)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "marshal_error", "Failed to update request body")
+			return
 		}
 
 		// Recreate the request body from the bytes we read
