@@ -4,7 +4,6 @@ Simple Python script to interact with local LLM server's OpenAI-compatible API
 """
 
 import requests
-import json
 import sys
 
 # Local LLM server configuration

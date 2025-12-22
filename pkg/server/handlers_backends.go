@@ -306,3 +306,158 @@ func (h *Handler) LlamaServerVersionHandler() http.HandlerFunc {
 func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
 	return h.executeLlamaServerCommand("--list-devices", "Failed to list devices")
 }
+
+// LlamaCppListModels godoc
+// @Summary List models in a llama.cpp instance
+// @Description Returns a list of models available in the specified llama.cpp instance
+// @Tags Llama.cpp
+// @Security ApiKeyAuth
+// @Produces json
+// @Param name path string true "Instance Name"
+// @Success 200 {object} map[string]any "Models list response"
+// @Failure 400 {string} string "Invalid instance"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/v1/llama-cpp/{name}/models [get]
+func (h *Handler) LlamaCppListModels() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		inst, err := h.validateLlamaCppInstance(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			return
+		}
+
+		// Check instance permissions
+		if err := h.authMiddleware.CheckInstancePermission(r.Context(), inst.ID); err != nil {
+			writeError(w, http.StatusForbidden, "permission_denied", err.Error())
+			return
+		}
+
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
+			return
+		}
+
+		if !inst.IsRemote() && !inst.IsRunning() {
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "instance start failed", err.Error())
+				return
+			}
+		}
+
+		// Modify request path to /models for proxying
+		r.URL.Path = "/models"
+
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
+	}
+}
+
+// LlamaCppLoadModel godoc
+// @Summary Load a model in a llama.cpp instance
+// @Description Loads the specified model in the given llama.cpp instance
+// @Tags Llama.cpp
+// @Security ApiKeyAuth
+// @Produces json
+// @Param name path string true "Instance Name"
+// @Param model path string true "Model Name"
+// @Success 200 {object} map[string]string "Success message"
+// @Failure 400 {string} string "Invalid request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/v1/llama-cpp/{name}/models/{model}/load [post]
+func (h *Handler) LlamaCppLoadModel() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		inst, err := h.validateLlamaCppInstance(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			return
+		}
+
+		// Check instance permissions
+		if err := h.authMiddleware.CheckInstancePermission(r.Context(), inst.ID); err != nil {
+			writeError(w, http.StatusForbidden, "permission_denied", err.Error())
+			return
+		}
+
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
+			return
+		}
+
+		if !inst.IsRemote() && !inst.IsRunning() {
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "instance start failed", err.Error())
+				return
+			}
+		}
+
+		// Modify request path to /models/load for proxying
+		r.URL.Path = "/models/load"
+
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
+	}
+}
+
+// LlamaCppUnloadModel godoc
+// @Summary Unload a model in a llama.cpp instance
+// @Description Unloads the specified model in the given llama.cpp instance
+// @Tags Llama.cpp
+// @Security ApiKeyAuth
+// @Produces json
+// @Param name path string true "Instance Name"
+// @Param model path string true "Model Name"
+// @Success 200 {object} map[string]string "Success message"
+// @Failure 400 {string} string "Invalid request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/v1/llama-cpp/{name}/models/{model}/unload [post]
+func (h *Handler) LlamaCppUnloadModel() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		inst, err := h.validateLlamaCppInstance(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			return
+		}
+
+		// Check instance permissions
+		if err := h.authMiddleware.CheckInstancePermission(r.Context(), inst.ID); err != nil {
+			writeError(w, http.StatusForbidden, "permission_denied", err.Error())
+			return
+		}
+
+		// Check if instance is shutting down before autostart logic
+		if inst.GetStatus() == instance.ShuttingDown {
+			writeError(w, http.StatusServiceUnavailable, "instance_shutting_down", "Instance is shutting down")
+			return
+		}
+
+		if !inst.IsRemote() && !inst.IsRunning() {
+			err := h.ensureInstanceRunning(inst)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "instance start failed", err.Error())
+				return
+			}
+		}
+
+		// Modify request path to /models/unload for proxying
+		r.URL.Path = "/models/unload"
+
+		// Use instance's ServeHTTP which tracks inflight requests and handles shutting down state
+		err = inst.ServeHTTP(w, r)
+		if err != nil {
+			// Error is already handled in ServeHTTP (response written)
+			return
+		}
+	}
+}

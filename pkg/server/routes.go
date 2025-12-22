@@ -70,6 +70,13 @@ func SetupRouter(handler *Handler) *chi.Mux {
 			})
 		})
 
+		// Llama.cpp instance-specific endpoints
+		r.Route("/llama-cpp/{name}", func(r chi.Router) {
+			r.Get("/models", handler.LlamaCppListModels())
+			r.Post("/models/{model}/load", handler.LlamaCppLoadModel())
+			r.Post("/models/{model}/unload", handler.LlamaCppUnloadModel())
+		})
+
 		// Node management endpoints
 		r.Route("/nodes", func(r chi.Router) {
 			r.Get("/", handler.ListNodes()) // List all nodes

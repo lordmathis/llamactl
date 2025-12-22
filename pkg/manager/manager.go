@@ -19,7 +19,7 @@ type InstanceManager interface {
 	UpdateInstance(name string, options *instance.Options) (*instance.Instance, error)
 	DeleteInstance(name string) error
 	StartInstance(name string) (*instance.Instance, error)
-	IsMaxRunningInstancesReached() bool
+	AtMaxRunning() bool
 	StopInstance(name string) (*instance.Instance, error)
 	EvictLRUInstance() error
 	RestartInstance(name string) (*instance.Instance, error)

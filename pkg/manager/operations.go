@@ -383,7 +383,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 	}
 
 	// Check max running instances limit for local instances only
-	if im.IsMaxRunningInstancesReached() {
+	if im.AtMaxRunning() {
 		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.globalConfig.Instances.MaxRunningInstances))
 	}
 
@@ -399,7 +399,7 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 	return inst, nil
 }
 
-func (im *instanceManager) IsMaxRunningInstancesReached() bool {
+func (im *instanceManager) AtMaxRunning() bool {
 	if im.globalConfig.Instances.MaxRunningInstances == -1 {
 		return false
 	}

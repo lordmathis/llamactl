@@ -96,7 +96,7 @@ func (h *Handler) ensureInstanceRunning(inst *instance.Instance) error {
 		return fmt.Errorf("instance is not running and on-demand start is not enabled")
 	}
 
-	if h.InstanceManager.IsMaxRunningInstancesReached() {
+	if h.InstanceManager.AtMaxRunning() {
 		if h.cfg.Instances.EnableLRUEviction {
 			err := h.InstanceManager.EvictLRUInstance()
 			if err != nil {

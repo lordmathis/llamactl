@@ -205,3 +205,53 @@ export const apiKeysApi = {
   getPermissions: (id: number) =>
     apiCall<KeyPermissionResponse[]>(`/auth/keys/${id}/permissions`),
 };
+
+// Llama.cpp model management types
+export interface Model {
+  id: string;
+  object: string;
+  owned_by: string;
+  created: number;
+  in_cache: boolean;
+  path: string;
+  status: {
+    value: string; // "loaded" | "loading" | "unloaded"
+    args: string[];
+  };
+}
+
+export interface ModelsListResponse {
+  object: string;
+  data: Model[];
+}
+
+// Llama.cpp model management API functions
+export const llamaCppApi = {
+  // GET /llama-cpp/{name}/models
+  getModels: async (instanceName: string): Promise<Model[]> => {
+    const response = await apiCall<ModelsListResponse>(
+      `/llama-cpp/${encodeURIComponent(instanceName)}/models`
+    );
+    return response.data;
+  },
+
+  // POST /llama-cpp/{name}/models/{model}/load
+  loadModel: (instanceName: string, modelName: string) =>
+    apiCall<{ success: boolean }>(
+      `/llama-cpp/${encodeURIComponent(instanceName)}/models/${encodeURIComponent(modelName)}/load`,
+      {
+        method: "POST",
+        body: JSON.stringify({ model: modelName }),
+      }
+    ),
+
+  // POST /llama-cpp/{name}/models/{model}/unload
+  unloadModel: (instanceName: string, modelName: string) =>
+    apiCall<{ success: boolean }>(
+      `/llama-cpp/${encodeURIComponent(instanceName)}/models/${encodeURIComponent(modelName)}/unload`,
+      {
+        method: "POST",
+        body: JSON.stringify({ model: modelName }),
+      }
+    ),
+};

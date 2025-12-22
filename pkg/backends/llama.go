@@ -327,20 +327,30 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 }
 
 func (o *LlamaServerOptions) GetPort() int {
+	if o == nil {
+		return 0
+	}
 	return o.Port
 }
 
 func (o *LlamaServerOptions) SetPort(port int) {
+	if o == nil {
+		return
+	}
 	o.Port = port
 }
 
 func (o *LlamaServerOptions) GetHost() string {
+	if o == nil {
+		return "localhost"
+	}
 	return o.Host
 }
 
 func (o *LlamaServerOptions) Validate() error {
+	// Allow nil options for router mode where llama.cpp manages models dynamically
 	if o == nil {
-		return validation.ValidationError(fmt.Errorf("llama server options cannot be nil for llama.cpp backend"))
+		return nil
 	}
 
 	// Use reflection to check all string fields for injection patterns
@@ -370,6 +380,9 @@ func (o *LlamaServerOptions) Validate() error {
 
 // BuildCommandArgs converts InstanceOptions to command line arguments
 func (o *LlamaServerOptions) BuildCommandArgs() []string {
+	if o == nil {
+		return []string{}
+	}
 	// Llama uses multiple flags for arrays by default (not comma-separated)
 	// Use package-level llamaMultiValuedFlags variable
 	args := BuildCommandArgs(o, llamaMultiValuedFlags)
@@ -381,6 +394,9 @@ func (o *LlamaServerOptions) BuildCommandArgs() []string {
 }
 
 func (o *LlamaServerOptions) BuildDockerArgs() []string {
+	if o == nil {
+		return []string{}
+	}
 	// For llama, Docker args are the same as normal args
 	return o.BuildCommandArgs()
 }

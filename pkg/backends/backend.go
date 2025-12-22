@@ -14,6 +14,7 @@ const (
 	BackendTypeLlamaCpp BackendType = "llama_cpp"
 	BackendTypeMlxLm    BackendType = "mlx_lm"
 	BackendTypeVllm     BackendType = "vllm"
+	BackendTypeUnknown  BackendType = "unknown"
 )
 
 type backend interface {
@@ -55,13 +56,15 @@ func (o *Options) UnmarshalJSON(data []byte) error {
 	}
 
 	// Create backend from constructor map
-	if o.BackendOptions != nil {
-		constructor, exists := backendConstructors[o.BackendType]
-		if !exists {
-			return fmt.Errorf("unsupported backend type: %s", o.BackendType)
-		}
+	constructor, exists := backendConstructors[o.BackendType]
+	if !exists {
+		return fmt.Errorf("unsupported backend type: %s", o.BackendType)
+	}
 
-		backend := constructor()
+	backend := constructor()
+
+	// If backend_options is provided, unmarshal into the backend
+	if o.BackendOptions != nil {
 		optionsData, err := json.Marshal(o.BackendOptions)
 		if err != nil {
 			return fmt.Errorf("failed to marshal backend options: %w", err)
@@ -70,10 +73,11 @@ func (o *Options) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(optionsData, backend); err != nil {
 			return fmt.Errorf("failed to unmarshal backend options: %w", err)
 		}
-
-		// Store in the appropriate typed field for backward compatibility
-		o.setBackendOptions(backend)
 	}
+	// If backend_options is nil or empty, backend remains as empty struct (for router mode)
+
+	// Store in the appropriate typed field
+	o.setBackendOptions(backend)
 
 	return nil
 }
