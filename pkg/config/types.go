@@ -81,9 +81,6 @@ type InstancesConfig struct {
 	// Port range for instances (e.g., 8000,9000)
 	PortRange [2]int `yaml:"port_range" json:"port_range"`
 
-	// Instance config directory override (relative to data_dir if not absolute)
-	InstancesDir string `yaml:"configs_dir" json:"configs_dir"`
-
 	// Automatically create the data directory if it doesn't exist
 	AutoCreateDirs bool `yaml:"auto_create_dirs" json:"auto_create_dirs"`
 
@@ -132,9 +129,6 @@ type AuthConfig struct {
 
 	// Require authentication for OpenAI compatible inference endpoints
 	RequireInferenceAuth bool `yaml:"require_inference_auth" json:"require_inference_auth"`
-
-	// List of keys for OpenAI compatible inference endpoints
-	InferenceKeys []string `yaml:"inference_keys" json:"inference_keys"`
 
 	// Require authentication for management endpoints
 	RequireManagementAuth bool `yaml:"require_management_auth" json:"require_management_auth"`

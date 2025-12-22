@@ -30,7 +30,6 @@ export interface ServerConfig {
 
 export interface InstancesConfig {
   port_range: [number, number]
-  configs_dir: string
   logs_dir: string
   auto_create_dirs: boolean
   max_instances: number
@@ -53,7 +52,6 @@ export interface DatabaseConfig {
 
 export interface AuthConfig {
   require_inference_auth: boolean
-  inference_keys: string[] // Will be empty in sanitized response
   require_management_auth: boolean
   management_keys: string[] // Will be empty in sanitized response
 }

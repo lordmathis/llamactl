@@ -41,9 +41,6 @@ func TestLoadConfig_Defaults(t *testing.T) {
 		t.Fatalf("Failed to get user home directory: %v", err)
 	}
 
-	if cfg.Instances.InstancesDir != filepath.Join(homedir, ".local", "share", "llamactl", "instances") {
-		t.Errorf("Expected default instances directory '%s', got %q", filepath.Join(homedir, ".local", "share", "llamactl", "instances"), cfg.Instances.InstancesDir)
-	}
 	if cfg.Instances.LogsDir != filepath.Join(homedir, ".local", "share", "llamactl", "logs") {
 		t.Errorf("Expected default logs directory '%s', got %q", filepath.Join(homedir, ".local", "share", "llamactl", "logs"), cfg.Instances.LogsDir)
 	}

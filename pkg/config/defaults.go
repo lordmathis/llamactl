@@ -53,10 +53,7 @@ func getDefaultConfig(dataDir string) AppConfig {
 			},
 		},
 		Instances: InstancesConfig{
-			PortRange: [2]int{8000, 9000},
-			// NOTE: empty string is set as placeholder value since InstancesDir
-			// should be relative path to DataDir if not explicitly set.
-			InstancesDir:         "",
+			PortRange:            [2]int{8000, 9000},
 			AutoCreateDirs:       true,
 			MaxInstances:         -1, // -1 means unlimited
 			MaxRunningInstances:  -1, // -1 means unlimited
@@ -80,7 +77,6 @@ func getDefaultConfig(dataDir string) AppConfig {
 		},
 		Auth: AuthConfig{
 			RequireInferenceAuth:  true,
-			InferenceKeys:         []string{},
 			RequireManagementAuth: true,
 			ManagementKeys:        []string{},
 		},

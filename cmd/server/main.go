@@ -57,11 +57,6 @@ func main() {
 			log.Printf("Error creating data directory %s: %v\nData persistence may not be available.", cfg.DataDir, err)
 		}
 
-		// Create instances directory
-		if err := os.MkdirAll(cfg.Instances.InstancesDir, 0755); err != nil {
-			log.Printf("Error creating instances directory %s: %v\nPersistence will not be available.", cfg.Instances.InstancesDir, err)
-		}
-
 		// Create logs directory
 		if err := os.MkdirAll(cfg.Instances.LogsDir, 0755); err != nil {
 			log.Printf("Error creating log directory %s: %v\nInstance logs will not be available.", cfg.Instances.LogsDir, err)
@@ -82,11 +77,6 @@ func main() {
 	// Run database migrations
 	if err := database.RunMigrations(db); err != nil {
 		log.Fatalf("Failed to run database migrations: %v", err)
-	}
-
-	// Migrate from JSON files if needed (one-time migration)
-	if err := migrateFromJSON(&cfg, db); err != nil {
-		log.Printf("Warning: Failed to migrate from JSON: %v", err)
 	}
 
 	// Initialize the instance manager with dependency injection

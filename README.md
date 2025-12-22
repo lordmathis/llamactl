@@ -184,7 +184,6 @@ data_dir: ~/.local/share/llamactl  # Main data directory (database, instances, l
 
 instances:
   port_range: [8000, 9000]                        # Port range for instances
-  configs_dir: ~/.local/share/llamactl/instances  # Instance configs directory (platform dependent) [deprecated]
   logs_dir: ~/.local/share/llamactl/logs          # Logs directory (platform dependent)
   auto_create_dirs: true                          # Auto-create data/config/logs dirs if missing
   max_instances: -1                               # Max instances (-1 = unlimited)
