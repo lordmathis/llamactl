@@ -38,7 +38,6 @@ func TestCreateInstance_FailsWithDuplicateName(t *testing.T) {
 }
 
 func TestCreateInstance_FailsWhenMaxInstancesReached(t *testing.T) {
-	tempDir := t.TempDir()
 	appConfig := &config.AppConfig{
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{
@@ -47,7 +46,6 @@ func TestCreateInstance_FailsWhenMaxInstancesReached(t *testing.T) {
 		},
 		Instances: config.InstancesConfig{
 			PortRange:            [2]int{8000, 9000},
-			InstancesDir:         tempDir,
 			MaxInstances:         1, // Very low limit for testing
 			TimeoutCheckInterval: 5,
 		},

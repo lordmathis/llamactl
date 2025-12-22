@@ -275,16 +275,3 @@ func TestAutoGenerationScenarios(t *testing.T) {
 		})
 	}
 }
-
-func TestConfigBasedInferenceKeysDeprecationWarning(t *testing.T) {
-	// Test that config-based inference keys trigger a warning (captured in logs)
-	cfg := config.AuthConfig{
-		InferenceKeys: []string{"sk-inference-old"},
-	}
-
-	// Creating middleware should log a warning, but shouldn't fail
-	_ = server.NewAPIAuthMiddleware(cfg, nil)
-
-	// If we get here without panic, the test passes
-	// The warning is logged but not returned as an error
-}

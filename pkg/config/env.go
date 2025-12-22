@@ -31,9 +31,6 @@ func loadEnvVars(cfg *AppConfig) {
 	if dataDir := os.Getenv("LLAMACTL_DATA_DIRECTORY"); dataDir != "" {
 		cfg.DataDir = dataDir
 	}
-	if instancesDir := os.Getenv("LLAMACTL_INSTANCES_DIR"); instancesDir != "" {
-		cfg.Instances.InstancesDir = instancesDir
-	}
 	if logsDir := os.Getenv("LLAMACTL_LOGS_DIR"); logsDir != "" {
 		cfg.Instances.LogsDir = logsDir
 	}
@@ -219,9 +216,6 @@ func loadEnvVars(cfg *AppConfig) {
 		if b, err := strconv.ParseBool(requireInferenceAuth); err == nil {
 			cfg.Auth.RequireInferenceAuth = b
 		}
-	}
-	if inferenceKeys := os.Getenv("LLAMACTL_INFERENCE_KEYS"); inferenceKeys != "" {
-		cfg.Auth.InferenceKeys = strings.Split(inferenceKeys, ",")
 	}
 	if requireManagementAuth := os.Getenv("LLAMACTL_REQUIRE_MANAGEMENT_AUTH"); requireManagementAuth != "" {
 		if b, err := strconv.ParseBool(requireManagementAuth); err == nil {
