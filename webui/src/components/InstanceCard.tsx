@@ -1,6 +1,7 @@
 // ui/src/components/InstanceCard.tsx
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { Instance } from "@/types/instance";
 import { Edit, FileText, Play, Square, Trash2, MoreHorizontal, Download, Boxes } from "lucide-react";
 import LogsDialog from "@/components/LogDialog";
@@ -9,7 +10,7 @@ import HealthBadge from "@/components/HealthBadge";
 import BackendBadge from "@/components/BackendBadge";
 import { useState, useEffect } from "react";
 import { useInstanceHealth } from "@/hooks/useInstanceHealth";
-import { instancesApi, llamaCppApi } from "@/lib/api";
+import { instancesApi, llamaCppApi, type Model } from "@/lib/api";
 
 interface InstanceCardProps {
   instance: Instance;
@@ -29,28 +30,32 @@ function InstanceCard({
   const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [isModelsOpen, setIsModelsOpen] = useState(false);
   const [showAllActions, setShowAllActions] = useState(false);
-  const [modelCount, setModelCount] = useState(0);
+  const [models, setModels] = useState<Model[]>([]);
   const health = useInstanceHealth(instance.name, instance.status);
 
   const running = instance.status === "running";
   const isLlamaCpp = instance.options?.backend_type === "llama_cpp";
 
-  // Fetch model count for llama.cpp instances
+  // Fetch models for llama.cpp instances
   useEffect(() => {
     if (!isLlamaCpp || !running) {
-      setModelCount(0);
+      setModels([]);
       return;
     }
 
     void (async () => {
       try {
-        const models = await llamaCppApi.getModels(instance.name);
-        setModelCount(models.length);
+        const fetchedModels = await llamaCppApi.getModels(instance.name);
+        setModels(fetchedModels);
       } catch {
-        setModelCount(0);
+        setModels([]);
       }
     })();
   }, [instance.name, isLlamaCpp, running]);
+
+  // Calculate model counts
+  const totalModels = models.length;
+  const loadedModels = models.filter(m => m.status.value === "loaded").length;
 
   const handleStart = () => {
     startInstance(instance.name);
@@ -124,6 +129,12 @@ function InstanceCard({
             <div className="flex items-center gap-2 flex-wrap">
               <BackendBadge backend={instance.options?.backend_type} docker={instance.options?.docker_enabled} />
               {running && <HealthBadge health={health} />}
+              {isLlamaCpp && running && totalModels > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  <Boxes className="h-3 w-3 mr-1" />
+                  {loadedModels}/{totalModels} models
+                </Badge>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -174,30 +185,28 @@ function InstanceCard({
 
           {/* Secondary actions - collapsible */}
           {showAllActions && (
-            <div className="flex items-center gap-2 pt-2 border-t border-border">
+            <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleLogs}
                 title="View logs"
                 data-testid="view-logs-button"
-                className="flex-1"
               >
                 <FileText className="h-4 w-4 mr-1" />
                 Logs
               </Button>
 
-              {isLlamaCpp && modelCount > 1 && (
+              {isLlamaCpp && totalModels > 1 && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={handleModels}
                   title="Manage models"
                   data-testid="manage-models-button"
-                  className="flex-1"
                 >
                   <Boxes className="h-4 w-4 mr-1" />
-                  Models ({modelCount})
+                  Models
                 </Button>
               )}
 
@@ -207,7 +216,6 @@ function InstanceCard({
                 onClick={handleExport}
                 title="Export instance"
                 data-testid="export-instance-button"
-                className="flex-1"
               >
                 <Download className="h-4 w-4 mr-1" />
                 Export

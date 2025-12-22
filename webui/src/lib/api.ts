@@ -237,19 +237,21 @@ export const llamaCppApi = {
 
   // POST /llama-cpp/{name}/models/{model}/load
   loadModel: (instanceName: string, modelName: string) =>
-    apiCall<{ status: string; message: string }>(
+    apiCall<{ success: boolean }>(
       `/llama-cpp/${encodeURIComponent(instanceName)}/models/${encodeURIComponent(modelName)}/load`,
       {
         method: "POST",
+        body: JSON.stringify({ model: modelName }),
       }
     ),
 
   // POST /llama-cpp/{name}/models/{model}/unload
   unloadModel: (instanceName: string, modelName: string) =>
-    apiCall<{ status: string; message: string }>(
+    apiCall<{ success: boolean }>(
       `/llama-cpp/${encodeURIComponent(instanceName)}/models/${encodeURIComponent(modelName)}/unload`,
       {
         method: "POST",
+        body: JSON.stringify({ model: modelName }),
       }
     ),
 };
