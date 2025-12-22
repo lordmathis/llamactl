@@ -222,6 +222,100 @@ curl -X DELETE http://localhost:8080/api/v1/instances/{name} \
   -H "Authorization: Bearer <token>"
 ```
 
+## Multi-Model llama.cpp Instances
+
+!!! info "llama.cpp Router Mode"
+    llama.cpp instances support [**router mode**](https://huggingface.co/blog/ggml-org/model-management-in-llamacpp), allowing a single instance to serve multiple models dynamically. Models are loaded on-demand from the llama.cpp cache without restarting the instance.
+
+### Creating a Multi-Model Instance
+
+**Via Web UI**
+
+1. Click **"Create Instance"**
+2. Select **Backend Type**: "Llama Server"
+3. Leave **Backend Options** empty `{}` or omit the model field
+4. Create the instance
+
+**Via API**
+
+```bash
+# Create instance without specifying a model (router mode)
+curl -X POST http://localhost:8080/api/v1/instances/my-router \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "backend_type": "llama_cpp",
+    "backend_options": {},
+    "nodes": ["main"]
+  }'
+```
+
+### Managing Models
+
+**Via Web UI**
+
+1. Start the router mode instance
+2. Instance card displays a badge showing loaded/total models (e.g., "2/5 models")
+3. Click the **"Models"** button on the instance card
+4. Models dialog opens showing:
+    - All available models from llama.cpp instance
+    - Status indicator (loaded, loading, or unloaded)
+    - Load/Unload buttons for each model
+5. Click **"Load"** to load a model into memory
+6. Click **"Unload"** to free up memory
+
+**Via API**
+
+```bash
+# List available models
+curl http://localhost:8080/api/v1/llama-cpp/my-router/models \
+  -H "Authorization: Bearer <token>"
+
+# Load a model
+curl -X POST http://localhost:8080/api/v1/llama-cpp/my-router/models/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf/load \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"model": "Mistral-7B-Instruct-v0.3.Q4_K_M.gguf"}'
+
+# Unload a model
+curl -X POST http://localhost:8080/api/v1/llama-cpp/my-router/models/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf/unload \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"model": "Mistral-7B-Instruct-v0.3.Q4_K_M.gguf"}'
+```
+
+### Using Multi-Model Instances
+
+When making inference requests to a multi-model instance, specify the model using the format `instance_name/model_name`:
+
+```bash
+# OpenAI-compatible chat completion with specific model
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <inference-key>" \
+  -d '{
+    "model": "my-router/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf",
+    "messages": [
+      {"role": "user", "content": "Hello!"}
+    ]
+  }'
+
+# List all available models (includes multi-model instances)
+curl http://localhost:8080/v1/models \
+  -H "Authorization: Bearer <inference-key>"
+```
+
+The response from `/v1/models` will include each model from multi-model instances as separate entries in the format `instance_name/model_name`.
+
+### Model Discovery
+
+Models are automatically discovered from the llama.cpp cache directory. The default cache locations are:
+
+- **Linux/macOS**: `~/.cache/llama.cpp/`
+- **Windows**: `%LOCALAPPDATA%\llama.cpp\`
+
+Place your GGUF model files in the cache directory, and they will appear in the models list when you start a router mode instance.
+
 ## Instance Proxy
 
 Llamactl proxies all requests to the underlying backend instances (llama-server, MLX, or vLLM).

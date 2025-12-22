@@ -12,6 +12,7 @@
 
 **🚀 Easy Model Management**
 - **Multiple Models Simultaneously**: Run different models at the same time (7B for speed, 70B for quality)
+- **Dynamic Multi-Model Instances**: llama.cpp router mode - serve multiple models from a single instance with on-demand loading
 - **Smart Resource Management**: Automatic idle timeout, LRU eviction, and configurable instance limits
 - **Web Dashboard**: Modern React UI for managing instances, monitoring health, and viewing logs
 
