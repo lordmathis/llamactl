@@ -999,6 +999,156 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/llama-cpp/{name}/models": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of models available in the specified llama.cpp instance",
+                "tags": [
+                    "Llama.cpp"
+                ],
+                "summary": "List models in a llama.cpp instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Models list response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/llama-cpp/{name}/models/{model}/load": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Loads the specified model in the given llama.cpp instance",
+                "tags": [
+                    "Llama.cpp"
+                ],
+                "summary": "Load a model in a llama.cpp instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Model Name",
+                        "name": "model",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/llama-cpp/{name}/models/{model}/unload": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Unloads the specified model in the given llama.cpp instance",
+                "tags": [
+                    "Llama.cpp"
+                ],
+                "summary": "Unload a model in a llama.cpp instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Instance Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Model Name",
+                        "name": "model",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/nodes": {
             "get": {
                 "security": [
@@ -1788,13 +1938,6 @@ const docTemplate = `{
         "config.AuthConfig": {
             "type": "object",
             "properties": {
-                "inference_keys": {
-                    "description": "List of keys for OpenAI compatible inference endpoints",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "management_keys": {
                     "description": "List of keys for management endpoints",
                     "type": "array",
@@ -1905,10 +2048,6 @@ const docTemplate = `{
                     "description": "Automatically create the data directory if it doesn't exist",
                     "type": "boolean"
                 },
-                "configs_dir": {
-                    "description": "Instance config directory override (relative to data_dir if not absolute)",
-                    "type": "string"
-                },
                 "default_auto_restart": {
                     "description": "Default auto-restart setting for new instances",
                     "type": "boolean"
@@ -1928,6 +2067,21 @@ const docTemplate = `{
                 "enable_lru_eviction": {
                     "description": "Enable LRU eviction for instance logs",
                     "type": "boolean"
+                },
+                "logRotationCompress": {
+                    "description": "Whether to compress rotated log files",
+                    "type": "boolean",
+                    "default": false
+                },
+                "logRotationEnabled": {
+                    "description": "Log rotation enabled",
+                    "type": "boolean",
+                    "default": true
+                },
+                "logRotationMaxSize": {
+                    "description": "Maximum log file size in MB before rotation",
+                    "type": "integer",
+                    "default": 100
                 },
                 "logs_dir": {
                     "description": "Logs directory override (relative to data_dir if not absolute)",

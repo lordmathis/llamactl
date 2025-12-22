@@ -855,39 +855,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#nodes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Nodes
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Nodes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#get-apiv1nodes" class="md-nav__link">
-    <span class="md-ellipsis">
-      GET /api/v1/nodes
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#get-apiv1nodesname" class="md-nav__link">
-    <span class="md-ellipsis">
-      GET /api/v1/nodes/{name}
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#llamacpp" class="md-nav__link">
     <span class="md-ellipsis">
       Llama.cpp
@@ -896,6 +863,33 @@
   
     <nav class="md-nav" aria-label="Llama.cpp">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1llama-cppnamemodels" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/llama-cpp/{name}/models
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-apiv1llama-cppnamemodelsmodelload" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /api/v1/llama-cpp/{name}/models/{model}/load
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-apiv1llama-cppnamemodelsmodelunload" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /api/v1/llama-cpp/{name}/models/{model}/unload
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#get-llama-cppname" class="md-nav__link">
@@ -1000,6 +994,39 @@
   <a href="#post-llama-cppnametokenize" class="md-nav__link">
     <span class="md-ellipsis">
       POST /llama-cpp/{name}/tokenize
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Nodes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Nodes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/nodes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1nodesname" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/nodes/{name}
     </span>
   </a>
   
@@ -2308,55 +2335,14 @@ port  </p>
     <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
 </p>
 
-<h2 id="nodes"><span class="api-tag">Nodes</span><a class="headerlink" href="#nodes" title="Permanent link">&para;</a></h2>
+<h2 id="llamacpp"><span class="api-tag">Llama.cpp</span><a class="headerlink" href="#llamacpp" title="Permanent link">&para;</a></h2>
 <hr class="operation-separator" />
 
-<h3 id="get-apiv1nodes"><span class="http-get">GET</span> /api/v1/nodes<a class="headerlink" href="#get-apiv1nodes" title="Permanent link">&para;</a></h3>
-<p>List all configured nodes  </p>
+<h3 id="get-apiv1llama-cppnamemodels"><span class="http-get">GET</span> /api/v1/llama-cpp/<span class="route-param">{name}</span>/models<a class="headerlink" href="#get-apiv1llama-cppnamemodels" title="Permanent link">&para;</a></h3>
+<p>List models in a llama.cpp instance  </p>
 <details class="note">
 <summary>Description</summary>
-<p>Returns a map of all nodes configured in the server (node name -&gt; node<br />
-config)  </p>
-</details>
-<p><strong>Input parameters</strong>  </p>
-<table>
-    <thead>
-        <tr>
-            <th>Parameter</th>
-            <th>In</th>
-            <th>Type</th>
-            <th>Default</th>
-            <th>Nullable</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td class="parameter-name"><code>ApiKeyAuth</code></td>
-            <td>header</td>
-            <td>string</td>
-            <td>N/A</td>
-            <td>No</td>
-            <td></td>
-        </tr>
-    </tbody>
-</table>
-
-<p class="response-title">
-    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
-</p>
-
-<p class="response-title">
-    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
-</p>
-
-<hr class="operation-separator" />
-
-<h3 id="get-apiv1nodesname"><span class="http-get">GET</span> /api/v1/nodes/<span class="route-param">{name}</span><a class="headerlink" href="#get-apiv1nodesname" title="Permanent link">&para;</a></h3>
-<p>Get details of a specific node  </p>
-<details class="note">
-<summary>Description</summary>
-<p>Returns the details of a specific node by name  </p>
+<p>Returns a list of models available in the specified llama.cpp instance  </p>
 </details>
 <p><strong>Input parameters</strong>  </p>
 <table>
@@ -2385,7 +2371,7 @@ config)  </p>
             <td>None</td>
             <td></td>
             <td>No</td>
-            <td>Node Name</td>
+            <td>Instance Name</td>
         </tr>
     </tbody>
 </table>
@@ -2399,14 +2385,129 @@ config)  </p>
 </p>
 
 <p class="response-title">
-    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="post-apiv1llama-cppnamemodelsmodelload"><span class="http-post">POST</span> /api/v1/llama-cpp/<span class="route-param">{name}</span>/models/<span class="route-param">{model}</span>/load<a class="headerlink" href="#post-apiv1llama-cppnamemodelsmodelload" title="Permanent link">&para;</a></h3>
+<p>Load a model in a llama.cpp instance  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Loads the specified model in the given llama.cpp instance  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>model</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Model Name</td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>name</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Instance Name</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
 </p>
 
 <p class="response-title">
     <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
 </p>
 
-<h2 id="llamacpp"><span class="api-tag">Llama.cpp</span><a class="headerlink" href="#llamacpp" title="Permanent link">&para;</a></h2>
+<hr class="operation-separator" />
+
+<h3 id="post-apiv1llama-cppnamemodelsmodelunload"><span class="http-post">POST</span> /api/v1/llama-cpp/<span class="route-param">{name}</span>/models/<span class="route-param">{model}</span>/unload<a class="headerlink" href="#post-apiv1llama-cppnamemodelsmodelunload" title="Permanent link">&para;</a></h3>
+<p>Unload a model in a llama.cpp instance  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Unloads the specified model in the given llama.cpp instance  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>model</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Model Name</td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>name</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Instance Name</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
 <hr class="operation-separator" />
 
 <h3 id="get-llama-cppname"><span class="http-get">GET</span> /llama-cpp/<span class="route-param">{name}</span>/<a class="headerlink" href="#get-llama-cppname" title="Permanent link">&para;</a></h3>
@@ -3036,6 +3137,104 @@ demand if configured  </p>
 
 <p class="response-title">
     <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<h2 id="nodes"><span class="api-tag">Nodes</span><a class="headerlink" href="#nodes" title="Permanent link">&para;</a></h2>
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1nodes"><span class="http-get">GET</span> /api/v1/nodes<a class="headerlink" href="#get-apiv1nodes" title="Permanent link">&para;</a></h3>
+<p>List all configured nodes  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns a map of all nodes configured in the server (node name -&gt; node<br />
+config)  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1nodesname"><span class="http-get">GET</span> /api/v1/nodes/<span class="route-param">{name}</span><a class="headerlink" href="#get-apiv1nodesname" title="Permanent link">&para;</a></h3>
+<p>Get details of a specific node  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns the details of a specific node by name  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>name</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Node Name</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
 </p>
 
 <p class="response-title">
