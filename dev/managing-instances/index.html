@@ -662,6 +662,57 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#multi-model-llamacpp-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-Model llama.cpp Instances
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Multi-Model llama.cpp Instances">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-a-multi-model-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating a Multi-Model Instance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#managing-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Managing Models
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-multi-model-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using Multi-Model Instances
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model Discovery
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#instance-proxy" class="md-nav__link">
     <span class="md-ellipsis">
       Instance Proxy
@@ -955,11 +1006,92 @@ Check instance status in real-time:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>http://localhost:8080/api/v1/instances/<span class="o">{</span>name<span class="o">}</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span>
 </code></pre></div></p>
+<h2 id="multi-model-llamacpp-instances">Multi-Model llama.cpp Instances<a class="headerlink" href="#multi-model-llamacpp-instances" title="Permanent link">&para;</a></h2>
+<div class="admonition info">
+<p class="admonition-title">llama.cpp Router Mode</p>
+<p>llama.cpp instances support <a href="https://huggingface.co/blog/ggml-org/model-management-in-llamacpp"><strong>router mode</strong></a>, allowing a single instance to serve multiple models dynamically. Models are loaded on-demand from the llama.cpp cache without restarting the instance.  </p>
+</div>
+<h3 id="creating-a-multi-model-instance">Creating a Multi-Model Instance<a class="headerlink" href="#creating-a-multi-model-instance" title="Permanent link">&para;</a></h3>
+<p><strong>Via Web UI</strong>  </p>
+<ol>
+<li>Click <strong>"Create Instance"</strong>  </li>
+<li>Select <strong>Backend Type</strong>: "Llama Server"  </li>
+<li>Leave <strong>Backend Options</strong> empty <code>{}</code> or omit the model field  </li>
+<li>Create the instance  </li>
+</ol>
+<p><strong>Via API</strong>  </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Create instance without specifying a model (router mode)</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-router<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="s1">    &quot;backend_type&quot;: &quot;llama_cpp&quot;,</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="s1">    &quot;backend_options&quot;: {},</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="s1">    &quot;nodes&quot;: [&quot;main&quot;]</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="s1">  }&#39;</span>
+</code></pre></div>
+<h3 id="managing-models">Managing Models<a class="headerlink" href="#managing-models" title="Permanent link">&para;</a></h3>
+<p><strong>Via Web UI</strong>  </p>
+<ol>
+<li>Start the router mode instance  </li>
+<li>Instance card displays a badge showing loaded/total models (e.g., "2/5 models")  </li>
+<li>Click the <strong>"Models"</strong> button on the instance card  </li>
+<li>Models dialog opens showing:  <ul>
+<li>All available models from llama.cpp instance  </li>
+<li>Status indicator (loaded, loading, or unloaded)  </li>
+<li>Load/Unload buttons for each model  </li>
+</ul>
+</li>
+<li>Click <strong>"Load"</strong> to load a model into memory  </li>
+<li>Click <strong>"Unload"</strong> to free up memory  </li>
+</ol>
+<p><strong>Via API</strong>  </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># List available models</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>curl<span class="w"> </span>http://localhost:8080/api/v1/llama-cpp/my-router/models<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># Load a model</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/llama-cpp/my-router/models/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf/load<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;model&quot;: &quot;Mistral-7B-Instruct-v0.3.Q4_K_M.gguf&quot;}&#39;</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="c1"># Unload a model</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/llama-cpp/my-router/models/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf/unload<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;model&quot;: &quot;Mistral-7B-Instruct-v0.3.Q4_K_M.gguf&quot;}&#39;</span>
+</code></pre></div>
+<h3 id="using-multi-model-instances">Using Multi-Model Instances<a class="headerlink" href="#using-multi-model-instances" title="Permanent link">&para;</a></h3>
+<p>When making inference requests to a multi-model instance, specify the model using the format <code>instance_name/model_name</code>:  </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># OpenAI-compatible chat completion with specific model</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/v1/chat/completions<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;inference-key&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="s1">    &quot;model&quot;: &quot;my-router/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf&quot;,</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="s1">    &quot;messages&quot;: [</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="s1">      {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;Hello!&quot;}</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="s1">    ]</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="s1">  }&#39;</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="c1"># List all available models (includes multi-model instances)</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>curl<span class="w"> </span>http://localhost:8080/v1/models<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;inference-key&gt;&quot;</span>
+</code></pre></div>
+<p>The response from <code>/v1/models</code> will include each model from multi-model instances as separate entries in the format <code>instance_name/model_name</code>.  </p>
+<h3 id="model-discovery">Model Discovery<a class="headerlink" href="#model-discovery" title="Permanent link">&para;</a></h3>
+<p>Models are automatically discovered from the llama.cpp cache directory. The default cache locations are:  </p>
+<ul>
+<li><strong>Linux/macOS</strong>: <code>~/.cache/llama.cpp/</code>  </li>
+<li><strong>Windows</strong>: <code>%LOCALAPPDATA%\llama.cpp\</code>  </li>
+</ul>
+<p>Place your GGUF model files in the cache directory, and they will appear in the models list when you start a router mode instance.  </p>
 <h2 id="instance-proxy">Instance Proxy<a class="headerlink" href="#instance-proxy" title="Permanent link">&para;</a></h2>
 <p>Llamactl proxies all requests to the underlying backend instances (llama-server, MLX, or vLLM).  </p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Proxy requests to the instance</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>curl<span class="w"> </span>http://localhost:8080/api/v1/instances/<span class="o">{</span>name<span class="o">}</span>/proxy/<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Proxy requests to the instance</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>curl<span class="w"> </span>http://localhost:8080/api/v1/instances/<span class="o">{</span>name<span class="o">}</span>/proxy/<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span>
 </code></pre></div>
 <p>All backends provide OpenAI-compatible endpoints. Check the respective documentation:<br />
 - <a href="https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md">llama-server docs</a><br />
@@ -972,8 +1104,8 @@ Check instance status in real-time:  </p>
 </ol>
 <p><strong>Via API</strong>  </p>
 <p>Check the health status of your instances:  </p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>http://localhost:8080/api/v1/instances/<span class="o">{</span>name<span class="o">}</span>/proxy/health<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>curl<span class="w"> </span>http://localhost:8080/api/v1/instances/<span class="o">{</span>name<span class="o">}</span>/proxy/health<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span>
 </code></pre></div>
 
 
@@ -995,7 +1127,7 @@ Check instance status in real-time:  </p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 14, 2025 23:18:55 UTC">November 14, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="December 22, 2025 20:20:42 UTC">December 22, 2025</span>
   </span>
 
     
