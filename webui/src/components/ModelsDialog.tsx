@@ -88,20 +88,30 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
     }
   }, [instanceName, isRunning])
 
-  // Poll for models while dialog is open
+  // Fetch models when dialog opens
   useEffect(() => {
     if (!open || !isRunning) return
 
     // Initial fetch
     void fetchModels()
+  }, [open, isRunning, fetchModels])
 
-    // Poll every 2 seconds
+  // Auto-refresh only when models are loading
+  useEffect(() => {
+    if (!open || !isRunning) return
+
+    // Check if any model is in loading state
+    const hasLoadingModel = models.some(m => m.status.value === 'loading')
+
+    if (!hasLoadingModel) return
+
+    // Poll every 2 seconds when there's a loading model
     const interval = setInterval(() => {
       void fetchModels()
     }, 2000)
 
     return () => clearInterval(interval)
-  }, [open, isRunning, fetchModels])
+  }, [open, isRunning, models, fetchModels])
 
   // Load model
   const loadModel = async (modelName: string) => {
@@ -110,7 +120,10 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
 
     try {
       await llamaCppApi.loadModel(instanceName, modelName)
-      // Polling will pick up the change
+      // Wait a bit for the backend to process the load
+      await new Promise(resolve => setTimeout(resolve, 500))
+      // Refresh models list after loading
+      await fetchModels()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load model')
     } finally {
@@ -129,7 +142,10 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
 
     try {
       await llamaCppApi.unloadModel(instanceName, modelName)
-      // Polling will pick up the change
+      // Wait a bit for the backend to process the unload
+      await new Promise(resolve => setTimeout(resolve, 500))
+      // Refresh models list after unloading
+      await fetchModels()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to unload model')
     } finally {
@@ -230,7 +246,7 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => unloadModel(model.id)}
+                            onClick={() => { void unloadModel(model.id) }}
                             disabled={!isRunning || isLoading || isModelLoading}
                           >
                             {isLoading ? (
@@ -246,7 +262,7 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
                           <Button
                             size="sm"
                             variant="default"
-                            onClick={() => loadModel(model.id)}
+                            onClick={() => { void loadModel(model.id) }}
                             disabled={!isRunning || isLoading || isModelLoading}
                           >
                             {isLoading ? (
@@ -272,11 +288,11 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
           )}
         </div>
 
-        {/* Auto-refresh indicator */}
-        {isRunning && (
+        {/* Auto-refresh indicator - only shown when models are loading */}
+        {isRunning && models.some(m => m.status.value === 'loading') && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            Auto-refreshing every 2 seconds
+            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+            Auto-refreshing while models are loading
           </div>
         )}
       </DialogContent>
