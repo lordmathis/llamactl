@@ -1,6 +1,6 @@
-site_name: Llamatl Documentation
-site_description: User documentation for Llamatl - A management tool for Llama.cpp instances
-site_author: Llamatl Team
+site_name: Llamactl Documentation
+site_description: User documentation for Llamactl - A management tool for Llama.cpp instances
+site_author: Llamactl Team
 site_url: https://llamactl.org
 
 repo_name: lordmathis/llamactl
