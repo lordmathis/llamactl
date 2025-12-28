@@ -55,7 +55,7 @@ function InstanceCard({
 
   // Calculate model counts
   const totalModels = models.length;
-  const loadedModels = models.filter(m => m.status.value === "loaded").length;
+  const loadedModels = models.filter(m => m.status?.value === "loaded").length;
 
   const handleStart = () => {
     startInstance(instance.name);
@@ -129,7 +129,7 @@ function InstanceCard({
             <div className="flex items-center gap-2 flex-wrap">
               <BackendBadge backend={instance.options?.backend_type} docker={instance.options?.docker_enabled} />
               {running && <HealthBadge health={health} />}
-              {isLlamaCpp && running && totalModels > 0 && (
+              {isLlamaCpp && running && totalModels > 1 && (
                 <Badge variant="secondary" className="text-xs">
                   <Boxes className="h-3 w-3 mr-1" />
                   {loadedModels}/{totalModels} models

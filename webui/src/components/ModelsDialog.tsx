@@ -33,7 +33,7 @@ interface Model {
   created: number
   in_cache: boolean
   path: string
-  status: {
+  status?: {
     value: string // "loaded" | "loading" | "unloaded"
     args: string[]
   }
@@ -101,7 +101,7 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
     if (!open || !isRunning) return
 
     // Check if any model is in loading state
-    const hasLoadingModel = models.some(m => m.status.value === 'loading')
+    const hasLoadingModel = models.some(m => m.status?.value === 'loading')
 
     if (!hasLoadingModel) return
 
@@ -226,7 +226,8 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
               <TableBody>
                 {models.map((model) => {
                   const isLoading = loadingModels.has(model.id)
-                  const isModelLoading = model.status.value === 'loading'
+                  const isModelLoading = model.status?.value === 'loading'
+                  const statusValue = model.status?.value || 'unknown'
 
                   return (
                     <TableRow key={model.id}>
@@ -235,14 +236,14 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <StatusIcon status={model.status.value} />
+                          <StatusIcon status={statusValue} />
                           <span className="text-sm capitalize">
-                            {model.status.value}
+                            {statusValue}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        {model.status.value === 'loaded' ? (
+                        {statusValue === 'loaded' ? (
                           <Button
                             size="sm"
                             variant="outline"
@@ -258,7 +259,7 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
                               'Unload'
                             )}
                           </Button>
-                        ) : model.status.value === 'unloaded' ? (
+                        ) : statusValue === 'unloaded' ? (
                           <Button
                             size="sm"
                             variant="default"
@@ -289,7 +290,7 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
         </div>
 
         {/* Auto-refresh indicator - only shown when models are loading */}
-        {isRunning && models.some(m => m.status.value === 'loading') && (
+        {isRunning && models.some(m => m.status?.value === 'loading') && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
             Auto-refreshing while models are loading

@@ -214,7 +214,7 @@ export interface Model {
   created: number;
   in_cache: boolean;
   path: string;
-  status: {
+  status?: {
     value: string; // "loaded" | "loading" | "unloaded"
     args: string[];
   };
