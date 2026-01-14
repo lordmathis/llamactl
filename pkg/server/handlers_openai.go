@@ -211,8 +211,15 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		}
 
 		if inst.IsRemote() {
-			// Don't replace model name for remote instances
 			modelName = reqModelName
+		} else if !strings.Contains(reqModelName, "/") {
+			opts := inst.GetOptions()
+			if opts != nil {
+				backendModel := opts.BackendOptions.GetModel()
+				if backendModel != "" {
+					modelName = backendModel
+				}
+			}
 		}
 
 		if !inst.IsRemote() && !inst.IsRunning() {
@@ -223,7 +230,7 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			}
 		}
 
-		// Update the request body with just the model name
+		// Update the request body with the actual model name
 		requestBody["model"] = modelName
 
 		// Re-marshal the updated body
