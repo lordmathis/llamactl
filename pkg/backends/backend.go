@@ -20,6 +20,7 @@ const (
 type backend interface {
 	BuildCommandArgs() []string
 	BuildDockerArgs() []string
+	GetModel() string
 	GetPort() int
 	SetPort(int)
 	GetHost() string
@@ -239,6 +240,14 @@ func (o *Options) BuildEnvironment(backendConfig *config.BackendConfig, dockerEn
 	}
 
 	return env
+}
+
+func (o *Options) GetModel() string {
+	backend := o.getBackend()
+	if backend != nil {
+		return backend.GetModel()
+	}
+	return ""
 }
 
 func (o *Options) GetPort() int {

@@ -185,6 +185,10 @@ func (o *VllmServerOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (o *VllmServerOptions) GetModel() string {
+	return o.Model
+}
+
 func (o *VllmServerOptions) GetPort() int {
 	return o.Port
 }

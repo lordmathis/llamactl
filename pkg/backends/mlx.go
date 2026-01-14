@@ -72,6 +72,10 @@ func (o *MlxServerOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (o *MlxServerOptions) GetModel() string {
+	return o.Model
+}
+
 func (o *MlxServerOptions) GetPort() int {
 	return o.Port
 }
@@ -136,7 +140,7 @@ func (o *MlxServerOptions) BuildDockerArgs() []string {
 // 4. Multiline commands with backslashes
 func (o *MlxServerOptions) ParseCommand(command string) (any, error) {
 	executableNames := []string{"mlx_lm.server"}
-	var subcommandNames []string            // MLX has no subcommands
+	var subcommandNames []string              // MLX has no subcommands
 	multiValuedFlags := map[string]struct{}{} // MLX has no multi-valued flags
 
 	var mlxOptions MlxServerOptions

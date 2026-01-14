@@ -326,6 +326,15 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (o *LlamaServerOptions) GetModel() string {
+	if o.Model != "" {
+		return o.Model
+	} else if o.HFRepo != "" {
+		return o.HFRepo
+	}
+	return ""
+}
+
 func (o *LlamaServerOptions) GetPort() int {
 	if o == nil {
 		return 0
