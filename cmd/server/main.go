@@ -6,6 +6,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/database"
 	"llamactl/pkg/manager"
+	"llamactl/pkg/models"
 	"llamactl/pkg/server"
 	"log"
 	"net/http"
@@ -82,8 +83,11 @@ func main() {
 	// Initialize the instance manager with dependency injection
 	instanceManager := manager.New(&cfg, db)
 
+	// Initialize model manager
+	modelManager := models.NewManager(cfg.Backends.LlamaCpp.CacheDir, cfg.Backends.LlamaCpp.DownloadTimeout, cfg.Version)
+
 	// Create a new handler with the instance manager
-	handler := server.NewHandler(instanceManager, cfg, db)
+	handler := server.NewHandler(instanceManager, modelManager, cfg, db)
 
 	// Setup the router with the handler
 	r := server.SetupRouter(handler)

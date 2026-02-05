@@ -119,7 +119,7 @@ func loadEnvVars(cfg *AppConfig) {
 	}
 	if llamaDownloadTimeout := os.Getenv("LLAMACTL_LLAMACPP_DOWNLOAD_TIMEOUT"); llamaDownloadTimeout != "" {
 		if t, err := strconv.Atoi(llamaDownloadTimeout); err == nil {
-			cfg.Backends.LlamaCpp.DownloadTimeout = t
+			cfg.Backends.LlamaCpp.DownloadTimeout = time.Duration(t) * time.Second
 		}
 	}
 
