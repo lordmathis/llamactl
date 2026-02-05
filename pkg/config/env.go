@@ -117,6 +117,11 @@ func loadEnvVars(cfg *AppConfig) {
 	if llamaCacheDir := os.Getenv("LLAMA_CACHE"); llamaCacheDir != "" {
 		cfg.Backends.LlamaCpp.CacheDir = llamaCacheDir
 	}
+	if llamaDownloadTimeout := os.Getenv("LLAMACTL_LLAMACPP_DOWNLOAD_TIMEOUT"); llamaDownloadTimeout != "" {
+		if t, err := strconv.Atoi(llamaDownloadTimeout); err == nil {
+			cfg.Backends.LlamaCpp.DownloadTimeout = t
+		}
+	}
 
 	// vLLM backend
 	if vllmCmd := os.Getenv("LLAMACTL_VLLM_COMMAND"); vllmCmd != "" {
