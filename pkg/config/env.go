@@ -110,6 +110,13 @@ func loadEnvVars(cfg *AppConfig) {
 		}
 		parseHeaders(llamaEnv, cfg.Backends.LlamaCpp.ResponseHeaders)
 	}
+	if llamaCacheDir := os.Getenv("LLAMACTL_LLAMACPP_CACHE_DIR"); llamaCacheDir != "" {
+		cfg.Backends.LlamaCpp.CacheDir = llamaCacheDir
+	}
+	// Handle default llama.cpp env var
+	if llamaCacheDir := os.Getenv("LLAMA_CACHE"); llamaCacheDir != "" {
+		cfg.Backends.LlamaCpp.CacheDir = llamaCacheDir
+	}
 
 	// vLLM backend
 	if vllmCmd := os.Getenv("LLAMACTL_VLLM_COMMAND"); vllmCmd != "" {
