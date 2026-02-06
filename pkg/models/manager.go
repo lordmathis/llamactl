@@ -2,12 +2,20 @@ package models
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+)
+
+const (
+	// progressChannelBuffer is the buffer size for progress update channels.
+	// This prevents blocking on progress updates during file downloads.
+	progressChannelBuffer = 100
 )
 
 type Manager struct {
@@ -45,7 +53,7 @@ func (m *Manager) StartDownload(repo, tag string) (string, error) {
 		tag = "latest"
 	}
 
-	jobID, err := m.downloader.generateJobID()
+	jobID, err := m.generateJobID()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate job ID: %w", err)
 	}
@@ -59,7 +67,7 @@ func (m *Manager) StartDownload(repo, tag string) (string, error) {
 		Status:     JobStatusQueued,
 		Progress:   Progress{},
 		CreatedAt:  time.Now(),
-		CancelFunc: &cancelFunc{cancel},
+		CancelFunc: cancel,
 	}
 
 	m.jobsMutex.Lock()
@@ -69,14 +77,6 @@ func (m *Manager) StartDownload(repo, tag string) (string, error) {
 	go m.downloadWorker(ctx, newJob)
 
 	return jobID, nil
-}
-
-type cancelFunc struct {
-	fn context.CancelFunc
-}
-
-func (cf *cancelFunc) Cancel() {
-	cf.fn()
 }
 
 func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
@@ -93,6 +93,9 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 		return
 	}
 
+	// Sanitize filename to prevent path traversal attacks
+	safeGGUFFilename := filepath.Base(manifest.GGUFFile.RFilename)
+
 	tmpFiles := []string{}
 	defer func() {
 		for _, f := range tmpFiles {
@@ -100,17 +103,17 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 		}
 	}()
 
-	tempDest := m.downloader.getCacheFilename(job.Repo, manifest.GGUFFile.RFilename+".tmp")
+	tempDest := m.downloader.getCacheFilename(job.Repo, safeGGUFFilename+".tmp")
 	tempDest = filepath.Join(m.cacheDir, tempDest)
 
-	progressChan := make(chan int64, 100)
+	progressChan := make(chan int64, progressChannelBuffer)
 	go m.trackProgress(job.ID, progressChan)
 
 	tmpFiles = append(tmpFiles, tempDest)
 
 	url := fmt.Sprintf("https://huggingface.co/%s/resolve/main/%s", job.Repo, manifest.GGUFFile.RFilename)
 
-	m.updateJobCurrentFile(job.ID, manifest.GGUFFile.RFilename)
+	m.updateJobCurrentFile(job.ID, safeGGUFFilename)
 
 	contentLength, err := m.downloader.DownloadFile(ctx, url, tempDest, progressChan)
 	if err != nil {
@@ -134,16 +137,17 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 	// Download split files in parallel
 	if splitCount > 1 {
 		var wg sync.WaitGroup
-		errChan := make(chan error, splitCount-1)
 		var splitTempFiles []string
 		var splitMutex sync.Mutex
+		var firstErr error
+		var errOnce sync.Once
 
 		for i := 2; i <= splitCount; i++ {
 			wg.Add(1)
 			go func(part int) {
 				defer wg.Done()
 
-				splitFilename := m.getSplitFilename(manifest.GGUFFile.RFilename, part, splitCount)
+				splitFilename := m.getSplitFilename(safeGGUFFilename, part, splitCount)
 				splitTempDest := m.downloader.getCacheFilename(job.Repo, splitFilename+".tmp")
 				splitTempDest = filepath.Join(m.cacheDir, splitTempDest)
 
@@ -153,14 +157,17 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 
 				splitURL := fmt.Sprintf("https://huggingface.co/%s/resolve/main/%s", job.Repo, splitFilename)
 
-				progressChan := make(chan int64, 100)
+				progressChan := make(chan int64, progressChannelBuffer)
 				go m.trackProgress(job.ID, progressChan)
 
 				m.updateJobCurrentFile(job.ID, splitFilename)
 
 				contentLength, err := m.downloader.DownloadFile(ctx, splitURL, splitTempDest, progressChan)
 				if err != nil {
-					errChan <- fmt.Errorf("failed to download split file %d: %w", part, err)
+					errOnce.Do(func() {
+						firstErr = fmt.Errorf("failed to download split file %d: %w", part, err)
+					})
+					close(progressChan)
 					return
 				}
 
@@ -174,12 +181,10 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 		}
 
 		wg.Wait()
-		close(errChan)
 
 		// Check for errors
-		if len(errChan) > 0 {
-			err := <-errChan
-			m.failJob(job.ID, err.Error())
+		if firstErr != nil {
+			m.failJob(job.ID, firstErr.Error())
 			return
 		}
 
@@ -212,16 +217,19 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 
 	// Download optional mmproj file
 	if manifest.MMProjFile != nil {
+		// Sanitize filename to prevent path traversal attacks
+		safeMMProjFilename := filepath.Base(manifest.MMProjFile.RFilename)
+
 		mmprojURL := fmt.Sprintf("https://huggingface.co/%s/resolve/main/%s", job.Repo, manifest.MMProjFile.RFilename)
-		mmprojTempDest := m.downloader.getCacheFilename(job.Repo, manifest.MMProjFile.RFilename+".tmp")
+		mmprojTempDest := m.downloader.getCacheFilename(job.Repo, safeMMProjFilename+".tmp")
 		mmprojTempDest = filepath.Join(m.cacheDir, mmprojTempDest)
 
 		tmpFiles = append(tmpFiles, mmprojTempDest)
 
-		progressChan := make(chan int64, 100)
+		progressChan := make(chan int64, progressChannelBuffer)
 		go m.trackProgress(job.ID, progressChan)
 
-		m.updateJobCurrentFile(job.ID, manifest.MMProjFile.RFilename)
+		m.updateJobCurrentFile(job.ID, safeMMProjFilename)
 
 		contentLength, err := m.downloader.DownloadFile(ctx, mmprojURL, mmprojTempDest, progressChan)
 		if err != nil {
@@ -235,7 +243,7 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 			m.addToTotalBytes(job.ID, contentLength)
 		}
 
-		mmprojDest := filepath.Join(m.cacheDir, m.downloader.getCacheFilename(job.Repo, manifest.MMProjFile.RFilename))
+		mmprojDest := filepath.Join(m.cacheDir, m.downloader.getCacheFilename(job.Repo, safeMMProjFilename))
 		if err := os.Rename(mmprojTempDest, mmprojDest); err != nil {
 			m.failJob(job.ID, fmt.Sprintf("failed to rename mmproj file: %v", err))
 			return
@@ -251,7 +259,7 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 	}
 
 	// Rename main GGUF file
-	finalDest := filepath.Join(m.cacheDir, m.downloader.getCacheFilename(job.Repo, manifest.GGUFFile.RFilename))
+	finalDest := filepath.Join(m.cacheDir, m.downloader.getCacheFilename(job.Repo, safeGGUFFilename))
 	if err := os.Rename(tempDest, finalDest); err != nil {
 		m.failJob(job.ID, fmt.Sprintf("failed to rename GGUF file: %v", err))
 		return
@@ -268,7 +276,7 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 	// Rename split files
 	if splitCount > 1 {
 		for i := 2; i <= splitCount; i++ {
-			splitFilename := m.getSplitFilename(manifest.GGUFFile.RFilename, i, splitCount)
+			splitFilename := m.getSplitFilename(safeGGUFFilename, i, splitCount)
 			splitTempDest := filepath.Join(m.cacheDir, m.downloader.getCacheFilename(job.Repo, splitFilename+".tmp"))
 			splitDest := filepath.Join(m.cacheDir, m.downloader.getCacheFilename(job.Repo, splitFilename))
 
@@ -385,7 +393,7 @@ func (m *Manager) CancelJob(jobID string) error {
 	}
 
 	if job.CancelFunc != nil {
-		job.CancelFunc.Cancel()
+		job.CancelFunc()
 	}
 
 	now := time.Now()
@@ -424,4 +432,12 @@ func (m *Manager) DeleteJob(jobID string) error {
 
 	delete(m.jobs, jobID)
 	return nil
+}
+
+func (m *Manager) generateJobID() (string, error) {
+	bytes := make([]byte, 8)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }

@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type JobStatus string
 
@@ -19,17 +22,13 @@ type Progress struct {
 }
 
 type Job struct {
-	ID          string     `json:"id"`
-	Repo        string     `json:"repo"`
-	Tag         string     `json:"tag"`
-	Status      JobStatus  `json:"status"`
-	Progress    Progress   `json:"progress"`
-	Error       string     `json:"error,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
-	CompletedAt *time.Time `json:"completed_at,omitempty"`
-	CancelFunc  CancelFunc
-}
-
-type CancelFunc interface {
-	Cancel()
+	ID          string              `json:"id"`
+	Repo        string              `json:"repo"`
+	Tag         string              `json:"tag"`
+	Status      JobStatus           `json:"status"`
+	Progress    Progress            `json:"progress"`
+	Error       string              `json:"error,omitempty"`
+	CreatedAt   time.Time           `json:"created_at"`
+	CompletedAt *time.Time          `json:"completed_at,omitempty"`
+	CancelFunc  context.CancelFunc  `json:"-"`
 }

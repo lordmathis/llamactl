@@ -53,10 +53,6 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 			return
 		}
 
-		if req.Tag == "" {
-			req.Tag = "latest"
-		}
-
 		jobID, err := h.modelManager.StartDownload(req.Repo, req.Tag)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "download_failed", err.Error())

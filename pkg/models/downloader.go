@@ -2,14 +2,13 @@ package models
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -167,55 +166,27 @@ func (pr *progressReader) Read(p []byte) (int, error) {
 }
 
 func (d *Downloader) ParseSplitCount(filepath string) (int, error) {
-	f, err := os.Open(filepath)
-	if err != nil {
-		return 0, fmt.Errorf("failed to open file: %w", err)
-	}
-	defer f.Close()
-
-	// Only read first 1MB (GGUF metadata is at the beginning)
-	const maxMetadataSize = 1024 * 1024
-	buf := make([]byte, maxMetadataSize)
-	n, err := io.ReadAtLeast(f, buf, 1)
-	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-		return 0, fmt.Errorf("failed to read file: %w", err)
+	// Check if the filename follows the split file pattern: name-00001-of-00003.gguf
+	// If it does, extract the total count from the filename
+	filename := filepath
+	if idx := strings.LastIndex(filepath, string(os.PathSeparator)); idx != -1 {
+		filename = filepath[idx+1:]
 	}
 
-	strData := string(buf[:n])
+	// Pattern: -XXXXX-of-YYYYY.gguf where YYYYY is the total count
+	pattern := `-\d{5}-of-(\d{5})\.gguf$`
+	re := regexp.MustCompile(pattern)
 
-	idx := strings.Index(strData, "split.count")
-	if idx == -1 {
-		return 1, nil
+	matches := re.FindStringSubmatch(filename)
+	if len(matches) == 2 {
+		count, err := strconv.Atoi(matches[1])
+		if err == nil {
+			return count, nil
+		}
 	}
 
-	valueStart := strings.Index(strData[idx:], "=")
-	if valueStart == -1 {
-		return 1, nil
-	}
-	valueStart += idx + 1
-
-	valueEnd := strings.IndexAny(strData[valueStart:], " \t\n\r")
-	if valueEnd == -1 {
-		valueEnd = len(strData)
-	} else {
-		valueEnd += valueStart
-	}
-
-	valueStr := strings.TrimSpace(strData[valueStart:valueEnd])
-	count, err := strconv.Atoi(valueStr)
-	if err != nil {
-		return 1, nil
-	}
-
-	return count, nil
-}
-
-func (d *Downloader) generateJobID() (string, error) {
-	bytes := make([]byte, 8)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
+	// If no split pattern found, assume single file
+	return 1, nil
 }
 
 func (d *Downloader) getCacheFilename(repo, filename string) string {
