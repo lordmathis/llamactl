@@ -25,6 +25,15 @@ func (fm *FileManager) getCacheFilename(repo, filename string) string {
 	return strings.ReplaceAll(repo, "/", "_") + "_" + filename
 }
 
+func (fm *FileManager) GetManifestPath(repo, tag string) string {
+	repoUnderscored := strings.ReplaceAll(repo, "/", "_")
+	return filepath.Join(fm.cacheDir, fmt.Sprintf("manifest=%s=%s.json", repoUnderscored, tag))
+}
+
+func (fm *FileManager) GetETagPath(repo, filename string) string {
+	return fm.GetPath(repo, filename) + ".etag"
+}
+
 func (fm *FileManager) GetSplitFilename(baseFilename string, part, total int) string {
 	ext := filepath.Ext(baseFilename)
 	base := strings.TrimSuffix(baseFilename, ext)

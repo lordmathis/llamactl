@@ -65,7 +65,7 @@ func (m *Manager) StartDownload(repo, tag string) (string, error) {
 func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 	m.jobStore.UpdateStatus(job.ID, JobStatusDownloading)
 
-	manifest, err := m.downloader.FetchManifest(ctx, job.Repo, job.Tag)
+	manifest, manifestData, err := m.downloader.FetchManifest(ctx, job.Repo, job.Tag)
 	if err != nil {
 		m.jobStore.Fail(job.ID, err.Error())
 		return
@@ -73,6 +73,12 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 
 	if manifest.GGUFFile == nil {
 		m.jobStore.Fail(job.ID, "no GGUF file in manifest")
+		return
+	}
+
+	// Save manifest to cache
+	if err := m.downloader.SaveManifest(job.Repo, job.Tag, manifestData); err != nil {
+		m.jobStore.Fail(job.ID, fmt.Sprintf("failed to save manifest: %v", err))
 		return
 	}
 
@@ -85,7 +91,8 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 	mainTempPath := m.fileManager.GetPath(job.Repo, safeGGUFFilename+".tmp")
 	cleanup.add(mainTempPath)
 	mainURL := fmt.Sprintf(huggingFaceFileURLFmt, job.Repo, manifest.GGUFFile.RFilename)
-	if err := m.downloader.Download(ctx, job.ID, mainURL, mainTempPath, safeGGUFFilename); err != nil {
+	mainETag, err := m.downloader.Download(ctx, job.ID, mainURL, mainTempPath, safeGGUFFilename)
+	if err != nil {
 		m.jobStore.Fail(job.ID, fmt.Sprintf("failed to download GGUF file: %v", err))
 		return
 	}
@@ -97,8 +104,11 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 	}
 
 	// Download split files if any
+	var splitETags map[string]string
 	if splitCount > 1 {
-		if err := m.downloadSplitFiles(ctx, job.ID, job.Repo, safeGGUFFilename, splitCount, cleanup); err != nil {
+		var err error
+		splitETags, err = m.downloadSplitFiles(ctx, job.ID, job.Repo, safeGGUFFilename, splitCount, cleanup)
+		if err != nil {
 			m.jobStore.Fail(job.ID, err.Error())
 			return
 		}
@@ -108,20 +118,24 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 	presetTempPath := m.fileManager.GetPath(job.Repo, "preset.ini.tmp")
 	cleanup.add(presetTempPath)
 	presetURL := fmt.Sprintf(huggingFaceFileURLFmt, job.Repo, "preset.ini")
-	if err := m.downloader.Download(ctx, job.ID, presetURL, presetTempPath, "preset.ini"); err == nil {
+	if presetETag, err := m.downloader.Download(ctx, job.ID, presetURL, presetTempPath, "preset.ini"); err == nil {
 		presetFinalPath := m.fileManager.GetPath(job.Repo, "preset.ini")
 		if err := os.Rename(presetTempPath, presetFinalPath); err == nil {
 			cleanup.remove(presetTempPath)
+			// Save ETag for preset file
+			m.downloader.SaveETag(job.Repo, "preset.ini", presetETag)
 		}
 	}
 
 	// Download mmproj file if present in manifest
+	var mmprojETag string
 	if manifest.MMProjFile != nil {
 		mmprojFilename := filepath.Base(manifest.MMProjFile.RFilename)
 		mmprojTempPath := m.fileManager.GetPath(job.Repo, mmprojFilename+".tmp")
 		cleanup.add(mmprojTempPath)
 		mmprojURL := fmt.Sprintf(huggingFaceFileURLFmt, job.Repo, manifest.MMProjFile.RFilename)
-		if err := m.downloader.Download(ctx, job.ID, mmprojURL, mmprojTempPath, mmprojFilename); err != nil {
+		mmprojETag, err = m.downloader.Download(ctx, job.ID, mmprojURL, mmprojTempPath, mmprojFilename)
+		if err != nil {
 			m.jobStore.Fail(job.ID, fmt.Sprintf("failed to download mmproj file: %v", err))
 			return
 		}
@@ -139,19 +153,43 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 		return
 	}
 
+	// Save ETag for main GGUF file
+	if err := m.downloader.SaveETag(job.Repo, safeGGUFFilename, mainETag); err != nil {
+		m.jobStore.Fail(job.ID, fmt.Sprintf("failed to save etag: %v", err))
+		return
+	}
+
 	// Rename split files to final paths
 	if err := m.fileManager.RenameSplitFiles(job.Repo, safeGGUFFilename, splitCount, cleanup); err != nil {
 		m.jobStore.Fail(job.ID, err.Error())
 		return
 	}
 
+	// Save ETags for split files (after rename)
+	for splitFilename, etag := range splitETags {
+		if err := m.downloader.SaveETag(job.Repo, splitFilename, etag); err != nil {
+			m.jobStore.Fail(job.ID, fmt.Sprintf("failed to save split file etag: %v", err))
+			return
+		}
+	}
+
+	// Save ETag for mmproj file (after rename)
+	if manifest.MMProjFile != nil {
+		mmprojFilename := filepath.Base(manifest.MMProjFile.RFilename)
+		if err := m.downloader.SaveETag(job.Repo, mmprojFilename, mmprojETag); err != nil {
+			m.jobStore.Fail(job.ID, fmt.Sprintf("failed to save mmproj etag: %v", err))
+			return
+		}
+	}
+
 	m.jobStore.Complete(job.ID)
 }
 
-func (m *Manager) downloadSplitFiles(ctx context.Context, jobID, repo, baseFilename string, splitCount int, cleanup *tempFileCleanup) error {
+func (m *Manager) downloadSplitFiles(ctx context.Context, jobID, repo, baseFilename string, splitCount int, cleanup *tempFileCleanup) (map[string]string, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var firstErr error
+	etags := make(map[string]string)
 
 	// Semaphore to limit concurrent downloads
 	sem := make(chan struct{}, maxConcurrentDownloads)
@@ -173,18 +211,23 @@ func (m *Manager) downloadSplitFiles(ctx context.Context, jobID, repo, baseFilen
 			mu.Unlock()
 
 			url := fmt.Sprintf(huggingFaceFileURLFmt, repo, splitFilename)
-			if err := m.downloader.Download(ctx, jobID, url, tempPath, splitFilename); err != nil {
+			etag, err := m.downloader.Download(ctx, jobID, url, tempPath, splitFilename)
+			if err != nil {
 				mu.Lock()
 				if firstErr == nil {
 					firstErr = fmt.Errorf("failed to download split file %d: %w", part, err)
 				}
+				mu.Unlock()
+			} else {
+				mu.Lock()
+				etags[splitFilename] = etag
 				mu.Unlock()
 			}
 		}(i)
 	}
 
 	wg.Wait()
-	return firstErr
+	return etags, firstErr
 }
 
 func (m *Manager) GetJob(jobID string) (*Job, error) {

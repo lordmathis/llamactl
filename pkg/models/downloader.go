@@ -63,26 +63,26 @@ func NewDownloader(cacheDir string, timeout time.Duration, version string, fileM
 	}
 }
 
-func (md *Downloader) Download(ctx context.Context, jobID, url, destPath, displayName string) error {
+func (md *Downloader) Download(ctx context.Context, jobID, url, destPath, displayName string) (string, error) {
 	progressChan := make(chan int64, progressChannelBuffer)
 	go md.progressTracker.Track(jobID, progressChan)
 	defer close(progressChan)
 
 	md.progressTracker.UpdateCurrentFile(jobID, displayName)
 
-	contentLength, err := md.downloadFile(ctx, url, destPath, progressChan)
+	contentLength, etag, err := md.downloadFile(ctx, url, destPath, progressChan)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if contentLength > 0 {
 		md.progressTracker.AddToTotalBytes(jobID, contentLength)
 	}
 
-	return nil
+	return etag, nil
 }
 
-func (md *Downloader) FetchManifest(ctx context.Context, repo, tag string) (*Manifest, error) {
+func (md *Downloader) FetchManifest(ctx context.Context, repo, tag string) (*Manifest, []byte, error) {
 	if tag == "" {
 		tag = "latest"
 	}
@@ -91,7 +91,7 @@ func (md *Downloader) FetchManifest(ctx context.Context, repo, tag string) (*Man
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("User-Agent", "llamactl/"+md.version)
@@ -101,30 +101,68 @@ func (md *Downloader) FetchManifest(ctx context.Context, repo, tag string) (*Man
 
 	resp, err := md.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch manifest: %w", err)
+		return nil, nil, fmt.Errorf("failed to fetch manifest: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("model not found: %s", repo)
+		return nil, nil, fmt.Errorf("model not found: %s", repo)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("failed to fetch manifest: HTTP %d", resp.StatusCode)
+		return nil, nil, fmt.Errorf("failed to fetch manifest: HTTP %d", resp.StatusCode)
+	}
+
+	// Read the entire response body so we can both decode it and save it
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read manifest: %w", err)
 	}
 
 	var manifest Manifest
-	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
-		return nil, fmt.Errorf("failed to decode manifest: %w", err)
+	if err := json.Unmarshal(body, &manifest); err != nil {
+		return nil, nil, fmt.Errorf("failed to decode manifest: %w", err)
 	}
 
-	return &manifest, nil
+	return &manifest, body, nil
 }
 
-func (md *Downloader) downloadFile(ctx context.Context, url, dest string, progress chan<- int64) (int64, error) {
+func (md *Downloader) SaveManifest(repo, tag string, manifestData []byte) error {
+	manifestPath := md.fileManager.GetManifestPath(repo, tag)
+
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	if err := os.WriteFile(manifestPath, manifestData, 0644); err != nil {
+		return fmt.Errorf("failed to write manifest: %w", err)
+	}
+
+	return nil
+}
+
+func (md *Downloader) SaveETag(repo, filename, etag string) error {
+	if etag == "" {
+		return nil // No ETag to save
+	}
+
+	etagPath := md.fileManager.GetETagPath(repo, filename)
+
+	if err := os.MkdirAll(filepath.Dir(etagPath), 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	if err := os.WriteFile(etagPath, []byte(etag), 0644); err != nil {
+		return fmt.Errorf("failed to write etag: %w", err)
+	}
+
+	return nil
+}
+
+func (md *Downloader) downloadFile(ctx context.Context, url, dest string, progress chan<- int64) (int64, string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create request: %w", err)
+		return 0, "", fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("User-Agent", "llamactl/"+md.version)
@@ -134,23 +172,24 @@ func (md *Downloader) downloadFile(ctx context.Context, url, dest string, progre
 
 	resp, err := md.httpClient.Do(req)
 	if err != nil {
-		return 0, fmt.Errorf("failed to download file: %w", err)
+		return 0, "", fmt.Errorf("failed to download file: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
-		return 0, fmt.Errorf("failed to download file: HTTP %d", resp.StatusCode)
+		return 0, "", fmt.Errorf("failed to download file: HTTP %d", resp.StatusCode)
 	}
 
 	contentLength := resp.ContentLength
+	etag := resp.Header.Get("ETag")
 
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
-		return 0, fmt.Errorf("failed to create directory: %w", err)
+		return 0, "", fmt.Errorf("failed to create directory: %w", err)
 	}
 
 	f, err := os.Create(dest)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create file: %w", err)
+		return 0, "", fmt.Errorf("failed to create file: %w", err)
 	}
 	defer f.Close()
 
@@ -160,10 +199,10 @@ func (md *Downloader) downloadFile(ctx context.Context, url, dest string, progre
 	}
 
 	if _, err := io.Copy(f, reader); err != nil {
-		return 0, fmt.Errorf("failed to write file: %w", err)
+		return 0, "", fmt.Errorf("failed to write file: %w", err)
 	}
 
-	return contentLength, nil
+	return contentLength, etag, nil
 }
 
 type progressReader struct {
