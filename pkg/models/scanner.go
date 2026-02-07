@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,18 +23,14 @@ type File struct {
 	Type      string `json:"type"`
 }
 
-var modelFilenamePattern = regexp.MustCompile(`^([^_]+)_([^_]+)_(.+)$`)
-var splitFilePattern = regexp.MustCompile(`^(.+)-\d{5}-of-\d{5}(\..+)$`)
+var splitFilePattern = regexp.MustCompile(`-\d{5}-of-(\d{5})\.gguf$`)
 
 func ScanCache(cacheDir string) ([]CachedModel, error) {
 	var models []CachedModel
 
-	_, err := os.Stat(cacheDir)
-	if os.IsNotExist(err) {
+	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
 		return models, nil
-	}
-
-	if err != nil {
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -42,8 +39,9 @@ func ScanCache(cacheDir string) ([]CachedModel, error) {
 		return nil, err
 	}
 
-	fileMap := make(map[string]*CachedModel)
+	fileManager := NewFileManager(cacheDir)
 
+	// Scan for manifest files
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -51,94 +49,187 @@ func ScanCache(cacheDir string) ([]CachedModel, error) {
 
 		filename := entry.Name()
 
-		if filepath.Ext(filename) == ".tmp" {
+		// Look for manifest files: manifest={repo}={tag}.json
+		if !strings.HasPrefix(filename, "manifest=") || !strings.HasSuffix(filename, ".json") {
 			continue
 		}
 
-		matches := modelFilenamePattern.FindStringSubmatch(filename)
-		if matches == nil {
-			continue
-		}
-
-		org := matches[1]
-		repo := matches[2]
-		baseFilename := matches[3]
-
-		repoName := org + "/" + repo
-
-		fileInfo, err := entry.Info()
+		repo, tag, err := parseManifestFilename(filename)
 		if err != nil {
 			continue
 		}
 
-		fileType := "unknown"
-		if filepath.Ext(baseFilename) == ".gguf" {
-			fileType = "gguf"
-		} else if baseFilename == "preset.ini" {
-			fileType = "preset"
-		} else if baseFilename == "" && filename != "" {
-			baseFilename = filename
+		manifest, err := readManifest(filepath.Join(cacheDir, filename))
+		if err != nil {
+			continue
 		}
 
-		modelKey := repoName
-		tag := extractTag(baseFilename)
-		modelKey = repoName + ":" + tag
+		cachedModel := buildCachedModel(repo, tag, manifest, fileManager)
 
-		if _, exists := fileMap[modelKey]; !exists {
-			fileMap[modelKey] = &CachedModel{
-				Repo:  repoName,
-				Tag:   tag,
-				Files: []File{},
-			}
+		// Only include models that have at least one file
+		if len(cachedModel.Files) > 0 {
+			models = append(models, cachedModel)
 		}
-
-		model := fileMap[modelKey]
-
-		filePath := filepath.Join(cacheDir, filename)
-		model.Files = append(model.Files, File{
-			Name:      filename,
-			Path:      filePath,
-			SizeBytes: fileInfo.Size(),
-			Type:      fileType,
-		})
-
-		model.SizeBytes += fileInfo.Size()
-	}
-
-	for _, model := range fileMap {
-		models = append(models, *model)
 	}
 
 	return models, nil
 }
 
-func extractTag(filename string) string {
-	if filename == "preset.ini" {
-		return "latest"
+func readManifest(path string) (*Manifest, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
 	}
 
-	ext := filepath.Ext(filename)
-	base := strings.TrimSuffix(filename, ext)
-
-	// Handle split files: remove -00001-of-00003 pattern
-	if splitMatches := splitFilePattern.FindStringSubmatch(base); splitMatches != nil {
-		base = splitMatches[1]
+	var manifest Manifest
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return nil, err
 	}
 
-	// For cache filenames like "Llama-3.2-3B-Instruct-GGUF_Q4_K_M",
-	// the tag is everything after the first underscore
-	// But the filename already has org_repo prefix stripped at this point
-	if idx := strings.Index(base, "_"); idx != -1 {
-		// Everything after first underscore is the tag
-		return base[idx+1:]
+	return &manifest, nil
+}
+
+func buildCachedModel(repo, tag string, manifest *Manifest, fm *FileManager) CachedModel {
+	model := CachedModel{
+		Repo:  repo,
+		Tag:   tag,
+		Files: []File{},
 	}
 
-	// If no underscore, the whole base is the tag
-	if base != "" {
-		return base
+	addGGUFFiles(&model, manifest, repo, fm)
+	addMMProjFile(&model, manifest, repo, fm)
+	addPresetFile(&model, repo, fm)
+
+	return model
+}
+
+func addGGUFFiles(model *CachedModel, manifest *Manifest, repo string, fm *FileManager) {
+	if manifest.GGUFFile == nil {
+		return
 	}
 
-	return "latest"
+	safeFilename := filepath.Base(manifest.GGUFFile.RFilename)
+	filePath := fm.GetPath(repo, safeFilename)
+
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return
+	}
+
+	model.Files = append(model.Files, File{
+		Name:      filepath.Base(filePath),
+		Path:      filePath,
+		SizeBytes: fileInfo.Size(),
+		Type:      "gguf",
+	})
+	model.SizeBytes += fileInfo.Size()
+
+	// Check for split files
+	addSplitFiles(model, safeFilename, repo, fm)
+}
+
+func addSplitFiles(model *CachedModel, baseFilename, repo string, fm *FileManager) {
+	splitCount, _ := parseSplitCount(baseFilename)
+	if splitCount <= 1 {
+		return
+	}
+
+	for i := 2; i <= splitCount; i++ {
+		splitFilename := fm.GetSplitFilename(baseFilename, i, splitCount)
+		splitPath := fm.GetPath(repo, splitFilename)
+
+		splitInfo, err := os.Stat(splitPath)
+		if err != nil {
+			continue
+		}
+
+		model.Files = append(model.Files, File{
+			Name:      filepath.Base(splitPath),
+			Path:      splitPath,
+			SizeBytes: splitInfo.Size(),
+			Type:      "gguf",
+		})
+		model.SizeBytes += splitInfo.Size()
+	}
+}
+
+func addMMProjFile(model *CachedModel, manifest *Manifest, repo string, fm *FileManager) {
+	if manifest.MMProjFile == nil {
+		return
+	}
+
+	mmprojFilename := filepath.Base(manifest.MMProjFile.RFilename)
+	mmprojPath := fm.GetPath(repo, mmprojFilename)
+
+	mmprojInfo, err := os.Stat(mmprojPath)
+	if err != nil {
+		return
+	}
+
+	model.Files = append(model.Files, File{
+		Name:      filepath.Base(mmprojPath),
+		Path:      mmprojPath,
+		SizeBytes: mmprojInfo.Size(),
+		Type:      "mmproj",
+	})
+	model.SizeBytes += mmprojInfo.Size()
+}
+
+func addPresetFile(model *CachedModel, repo string, fm *FileManager) {
+	presetPath := fm.GetPath(repo, "preset.ini")
+
+	presetInfo, err := os.Stat(presetPath)
+	if err != nil {
+		return
+	}
+
+	model.Files = append(model.Files, File{
+		Name:      filepath.Base(presetPath),
+		Path:      presetPath,
+		SizeBytes: presetInfo.Size(),
+		Type:      "preset",
+	})
+	model.SizeBytes += presetInfo.Size()
+}
+
+// parseManifestFilename extracts repo and tag from manifest filename
+// Format: manifest={part1}={part2}=...={tag}.json
+// Example: manifest=bartowski=Qwen=Model-GGUF=Q4_K_M.json
+//   -> repo: bartowski/Qwen/Model-GGUF, tag: Q4_K_M
+func parseManifestFilename(filename string) (repo, tag string, err error) {
+	// Strip "manifest=" prefix and ".json" suffix
+	if !strings.HasPrefix(filename, "manifest=") || !strings.HasSuffix(filename, ".json") {
+		return "", "", fmt.Errorf("invalid manifest filename: %s", filename)
+	}
+
+	trimmed := strings.TrimPrefix(filename, "manifest=")
+	trimmed = strings.TrimSuffix(trimmed, ".json")
+
+	// Split by "="
+	parts := strings.Split(trimmed, "=")
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("manifest filename must have at least 2 parts: %s", filename)
+	}
+
+	// Last part is tag
+	tag = parts[len(parts)-1]
+
+	// Everything before tag is repo (joined with "/")
+	repo = strings.Join(parts[:len(parts)-1], "/")
+
+	return repo, tag, nil
+}
+
+// parseSplitCount extracts split count from filename pattern
+func parseSplitCount(filename string) (int, error) {
+	matches := splitFilePattern.FindStringSubmatch(filename)
+	if len(matches) == 2 {
+		var count int
+		if _, err := fmt.Sscanf(matches[1], "%d", &count); err == nil {
+			return count, nil
+		}
+	}
+	return 1, nil
 }
 
 func (m *Manager) ListCached() ([]CachedModel, error) {
@@ -163,6 +254,16 @@ func (m *Manager) DeleteModel(repo, tag string) error {
 
 		for _, file := range model.Files {
 			filesToDelete = append(filesToDelete, file.Path)
+		}
+
+		// Also delete manifest file
+		manifestPath := m.fileManager.GetManifestPath(repo, model.Tag)
+		filesToDelete = append(filesToDelete, manifestPath)
+
+		// Delete ETag files
+		for _, file := range model.Files {
+			etagPath := file.Path + ".etag"
+			filesToDelete = append(filesToDelete, etagPath)
 		}
 	}
 
