@@ -26,8 +26,8 @@ func (fm *FileManager) getCacheFilename(repo, filename string) string {
 }
 
 func (fm *FileManager) GetManifestPath(repo, tag string) string {
-	repoUnderscored := strings.ReplaceAll(repo, "/", "_")
-	return filepath.Join(fm.cacheDir, fmt.Sprintf("manifest=%s=%s.json", repoUnderscored, tag))
+	repoWithEquals := strings.ReplaceAll(repo, "/", "=")
+	return filepath.Join(fm.cacheDir, fmt.Sprintf("manifest=%s=%s.json", repoWithEquals, tag))
 }
 
 func (fm *FileManager) GetETagPath(repo, filename string) string {
