@@ -208,35 +208,32 @@ func (m *Manager) Close() {
 }
 
 type tempFileCleanup struct {
-	files []string
+	files map[string]bool
 	mu    sync.Mutex
 }
 
 func newTempFileCleanup() *tempFileCleanup {
-	return &tempFileCleanup{}
+	return &tempFileCleanup{
+		files: make(map[string]bool),
+	}
 }
 
 func (t *tempFileCleanup) add(path string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.files = append(t.files, path)
+	t.files[path] = true
 }
 
 func (t *tempFileCleanup) remove(path string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	for i, f := range t.files {
-		if f == path {
-			t.files = append(t.files[:i], t.files[i+1:]...)
-			return
-		}
-	}
+	delete(t.files, path)
 }
 
 func (t *tempFileCleanup) cleanupAll() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	for _, f := range t.files {
+	for f := range t.files {
 		os.Remove(f)
 	}
 }
