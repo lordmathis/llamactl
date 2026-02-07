@@ -17,6 +17,8 @@ import (
 const (
 	progressChannelBuffer       = 100
 	maxConcurrentDownloads      = 5
+	jobRetentionDuration        = 24 * time.Hour
+	jobCleanupInterval          = 1 * time.Hour
 	huggingFaceManifestURLFmt   = "https://huggingface.co/v2/%s/manifests/%s"
 	huggingFaceFileURLFmt       = "https://huggingface.co/%s/resolve/main/%s"
 )

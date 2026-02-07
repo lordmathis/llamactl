@@ -203,6 +203,10 @@ func (m *Manager) DeleteJob(jobID string) error {
 	return m.jobStore.Delete(jobID)
 }
 
+func (m *Manager) Close() {
+	m.jobStore.Close()
+}
+
 type tempFileCleanup struct {
 	files []string
 	mu    sync.Mutex

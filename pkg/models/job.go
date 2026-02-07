@@ -38,14 +38,25 @@ type Job struct {
 }
 
 type JobStore struct {
-	jobs  map[string]*Job
-	mutex sync.RWMutex
+	jobs   map[string]*Job
+	mutex  sync.RWMutex
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func NewJobStore() *JobStore {
-	return &JobStore{
-		jobs: make(map[string]*Job),
+	ctx, cancel := context.WithCancel(context.Background())
+
+	s := &JobStore{
+		jobs:   make(map[string]*Job),
+		ctx:    ctx,
+		cancel: cancel,
 	}
+
+	// Start background job cleanup
+	go s.cleanupLoop()
+
+	return s
 }
 
 func (s *JobStore) Create(repo, tag string) (*Job, error) {
@@ -178,4 +189,46 @@ func (s *JobStore) generateJobID() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
+}
+
+func (s *JobStore) Close() {
+	s.cancel()
+}
+
+func (s *JobStore) cleanupLoop() {
+	ticker := time.NewTicker(jobCleanupInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-ticker.C:
+			s.cleanupOldJobs()
+		}
+	}
+}
+
+func (s *JobStore) cleanupOldJobs() {
+	cutoff := time.Now().Add(-jobRetentionDuration)
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for id, job := range s.jobs {
+		// Only cleanup completed, failed, or cancelled jobs
+		if job.Status != JobStatusCompleted && job.Status != JobStatusFailed && job.Status != JobStatusCancelled {
+			continue
+		}
+
+		// Skip if job doesn't have a completion time
+		if job.CompletedAt == nil {
+			continue
+		}
+
+		// Delete if older than retention duration
+		if job.CompletedAt.Before(cutoff) {
+			delete(s.jobs, id)
+		}
+	}
 }
