@@ -61,22 +61,22 @@ func SetupRouter(handler *Handler) *chi.Mux {
 				r.Get("/version", handler.LlamaServerVersionHandler())
 				r.Get("/devices", handler.LlamaServerListDevicesHandler())
 				r.Post("/parse-command", handler.ParseLlamaCommand())
+
+				// Model download endpoints
+				r.Route("/models", func(r chi.Router) {
+					r.Post("/download", handler.DownloadModel())
+					r.Route("/jobs", func(r chi.Router) {
+						r.Get("/", handler.ListJobs())
+						r.Get("/{id}", handler.GetJob())
+						r.Delete("/{id}", handler.CancelJob())
+					})
+				})
 			})
 			r.Route("/mlx", func(r chi.Router) {
 				r.Post("/parse-command", handler.ParseMlxCommand())
 			})
 			r.Route("/vllm", func(r chi.Router) {
 				r.Post("/parse-command", handler.ParseVllmCommand())
-			})
-		})
-
-		// Model download endpoints
-		r.Route("/models", func(r chi.Router) {
-			r.Post("/download", handler.DownloadModel())
-			r.Route("/jobs", func(r chi.Router) {
-				r.Get("/", handler.ListJobs())
-				r.Get("/{id}", handler.GetJob())
-				r.Delete("/{id}", handler.CancelJob())
 			})
 		})
 
