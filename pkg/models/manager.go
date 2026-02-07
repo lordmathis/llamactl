@@ -18,11 +18,6 @@ type Manager struct {
 }
 
 func NewManager(cacheDir string, timeout time.Duration, version string) *Manager {
-	if cacheDir == "" {
-		homeDir, _ := os.UserHomeDir()
-		cacheDir = filepath.Join(homeDir, ".cache", "llama.cpp")
-	}
-
 	jobStore := NewJobStore()
 	fileManager := NewFileManager(cacheDir)
 	progressTracker := NewProgressTracker(jobStore)

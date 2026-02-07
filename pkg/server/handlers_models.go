@@ -141,6 +141,42 @@ func (h *Handler) CancelJob() http.HandlerFunc {
 	}
 }
 
+func (h *Handler) ListModels() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		models, err := h.modelManager.ListCached()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "scan_failed", err.Error())
+			return
+		}
+
+		writeJSON(w, http.StatusOK, models)
+	}
+}
+
+func (h *Handler) DeleteModel() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		repo := r.URL.Query().Get("repo")
+		if repo == "" {
+			writeError(w, http.StatusBadRequest, "invalid_request", "repo is required")
+			return
+		}
+
+		tag := r.URL.Query().Get("tag")
+
+		err := h.modelManager.DeleteModel(repo, tag)
+		if err != nil {
+			if strings.Contains(err.Error(), "model not found") {
+				writeError(w, http.StatusNotFound, "model_not_found", err.Error())
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "delete_failed", err.Error())
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 func jobToResponse(job *models.Job) JobResponse {
 	var completedAt *int64
 	if job.CompletedAt != nil {

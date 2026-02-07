@@ -126,6 +126,9 @@ func main() {
 	// Stop all instances and cleanup
 	instanceManager.Shutdown()
 
+	// Stop model manager background jobs
+	modelManager.Close()
+
 	if err := db.Close(); err != nil {
 		log.Printf("Error closing database: %v\n", err)
 	}
