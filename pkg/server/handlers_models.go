@@ -11,7 +11,6 @@ import (
 
 type DownloadRequest struct {
 	Repo string `json:"repo"`
-	Tag  string `json:"tag,omitempty"`
 }
 
 type DownloadResponse struct {
@@ -48,12 +47,20 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 			return
 		}
 
-		if !strings.Contains(req.Repo, "/") {
-			writeError(w, http.StatusBadRequest, "invalid_request", "repo must be in format 'org/model'")
+		// Parse repo and tag from format "org/model:tag"
+		repo := req.Repo
+		tag := ""
+		if colonIdx := strings.LastIndex(req.Repo, ":"); colonIdx != -1 {
+			repo = req.Repo[:colonIdx]
+			tag = req.Repo[colonIdx+1:]
+		}
+
+		if !strings.Contains(repo, "/") {
+			writeError(w, http.StatusBadRequest, "invalid_request", "repo must be in format 'org/model' or 'org/model:tag'")
 			return
 		}
 
-		jobID, err := h.modelManager.StartDownload(req.Repo, req.Tag)
+		jobID, err := h.modelManager.StartDownload(repo, tag)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "download_failed", err.Error())
 			return
@@ -61,8 +68,8 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 
 		response := DownloadResponse{
 			JobID: jobID,
-			Repo:  req.Repo,
-			Tag:   req.Tag,
+			Repo:  repo,
+			Tag:   tag,
 		}
 
 		writeJSON(w, http.StatusAccepted, response)

@@ -11,16 +11,22 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
+const (
+	progressChannelBuffer       = 100
+	maxConcurrentDownloads      = 5
+	huggingFaceManifestURLFmt   = "https://huggingface.co/v2/%s/manifests/%s"
+	huggingFaceFileURLFmt       = "https://huggingface.co/%s/resolve/main/%s"
+)
+
 type Downloader struct {
-	httpClient    *http.Client
-	cacheDir      string
-	version       string
-	manifestCache map[string]*Manifest
-	manifestMutex sync.RWMutex
+	httpClient      *http.Client
+	cacheDir        string
+	version         string
+	fileManager     *FileManager
+	progressTracker *ProgressTracker
 }
 
 type Manifest struct {
@@ -32,12 +38,12 @@ type FileRef struct {
 	RFilename string `json:"rfilename"`
 }
 
-func NewDownloader(cacheDir string, timeout time.Duration, version string) *Downloader {
+func NewDownloader(cacheDir string, timeout time.Duration, version string, fileManager *FileManager, progressTracker *ProgressTracker) *Downloader {
 	if timeout == 0 {
 		timeout = 60 * time.Minute
 	}
 	if version == "" {
-		version = "1.0.0"
+		version = "0.1.0"
 	}
 	return &Downloader{
 		httpClient: &http.Client{
@@ -48,39 +54,50 @@ func NewDownloader(cacheDir string, timeout time.Duration, version string) *Down
 				DisableCompression: true,
 			},
 		},
-		cacheDir:      cacheDir,
-		version:       version,
-		manifestCache: make(map[string]*Manifest),
+		cacheDir:        cacheDir,
+		version:         version,
+		fileManager:     fileManager,
+		progressTracker: progressTracker,
 	}
 }
 
-func (d *Downloader) FetchManifest(ctx context.Context, repo, tag string) (*Manifest, error) {
+func (md *Downloader) Download(ctx context.Context, jobID, url, destPath, displayName string) error {
+	progressChan := make(chan int64, progressChannelBuffer)
+	go md.progressTracker.Track(jobID, progressChan)
+	defer close(progressChan)
+
+	md.progressTracker.UpdateCurrentFile(jobID, displayName)
+
+	contentLength, err := md.downloadFile(ctx, url, destPath, progressChan)
+	if err != nil {
+		return err
+	}
+
+	if contentLength > 0 {
+		md.progressTracker.AddToTotalBytes(jobID, contentLength)
+	}
+
+	return nil
+}
+
+func (md *Downloader) FetchManifest(ctx context.Context, repo, tag string) (*Manifest, error) {
 	if tag == "" {
 		tag = "latest"
 	}
 
-	// Check cache first
-	cacheKey := repo + ":" + tag
-	d.manifestMutex.RLock()
-	if cached, ok := d.manifestCache[cacheKey]; ok {
-		d.manifestMutex.RUnlock()
-		return cached, nil
-	}
-	d.manifestMutex.RUnlock()
-
-	url := fmt.Sprintf("https://huggingface.co/v2/%s/manifests/%s", repo, tag)
+	url := fmt.Sprintf(huggingFaceManifestURLFmt, repo, tag)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "llamactl/"+d.version)
+	req.Header.Set("User-Agent", "llamactl/"+md.version)
 	if token := os.Getenv("HF_TOKEN"); token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	resp, err := d.httpClient.Do(req)
+	resp, err := md.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch manifest: %w", err)
 	}
@@ -99,26 +116,21 @@ func (d *Downloader) FetchManifest(ctx context.Context, repo, tag string) (*Mani
 		return nil, fmt.Errorf("failed to decode manifest: %w", err)
 	}
 
-	// Cache the manifest
-	d.manifestMutex.Lock()
-	d.manifestCache[cacheKey] = &manifest
-	d.manifestMutex.Unlock()
-
 	return &manifest, nil
 }
 
-func (d *Downloader) DownloadFile(ctx context.Context, url, dest string, progress chan<- int64) (int64, error) {
+func (md *Downloader) downloadFile(ctx context.Context, url, dest string, progress chan<- int64) (int64, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "llamactl/"+d.version)
+	req.Header.Set("User-Agent", "llamactl/"+md.version)
 	if token := os.Getenv("HF_TOKEN"); token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
-	resp, err := d.httpClient.Do(req)
+	resp, err := md.httpClient.Do(req)
 	if err != nil {
 		return 0, fmt.Errorf("failed to download file: %w", err)
 	}
@@ -165,7 +177,7 @@ func (pr *progressReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func (d *Downloader) ParseSplitCount(filepath string) (int, error) {
+func (md *Downloader) ParseSplitCount(filepath string) (int, error) {
 	// Check if the filename follows the split file pattern: name-00001-of-00003.gguf
 	// If it does, extract the total count from the filename
 	filename := filepath
@@ -187,8 +199,4 @@ func (d *Downloader) ParseSplitCount(filepath string) (int, error) {
 
 	// If no split pattern found, assume single file
 	return 1, nil
-}
-
-func (d *Downloader) getCacheFilename(repo, filename string) string {
-	return strings.ReplaceAll(repo, "/", "_") + "_" + filename
 }
