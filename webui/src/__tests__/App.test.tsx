@@ -20,6 +20,9 @@ vi.mock('@/lib/api', () => ({
     delete: vi.fn(),
     getHealth: vi.fn(),
   },
+  nodesApi: {
+    list: vi.fn(() => Promise.resolve({})),
+  },
   serverApi: {
     getHelp: vi.fn(),
     getVersion: vi.fn(),
@@ -125,10 +128,14 @@ describe('App Component - Critical Business Logic Only', () => {
 
       // Complete create flow: button → form → API call → UI update
       await user.click(screen.getByText('Create Instance'))
-      
+
       const nameInput = screen.getByLabelText(/Instance Name/)
       await user.type(nameInput, 'new-test-instance')
-      
+
+      // Navigate to the advanced tab where the save button is
+      const advancedTab = screen.getByRole('tab', { name: /Advanced/i })
+      await user.click(advancedTab)
+
       await user.click(screen.getByTestId('dialog-save-button'))
 
       // Verify correct API call
@@ -168,7 +175,11 @@ describe('App Component - Critical Business Logic Only', () => {
       // Complete edit flow: edit button → form → API call
       const editButtons = screen.getAllByTitle('Edit instance')
       await user.click(editButtons[0])
-      
+
+      // Navigate to the advanced tab where the save button is
+      const advancedTab = screen.getByRole('tab', { name: /Advanced/i })
+      await user.click(advancedTab)
+
       await user.click(screen.getByTestId('dialog-save-button'))
 
       // Verify correct API call with existing instance data

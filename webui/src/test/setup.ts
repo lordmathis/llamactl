@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { afterEach, beforeEach } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
 
 // Create a working localStorage implementation for tests
 // This ensures localStorage works in both CLI and VSCode test runner
@@ -26,7 +26,7 @@ class LocalStorageMock implements Storage {
     this.store.delete(key)
   }
 
-  setItem(key: string, value: string): void {
+  setItem(key: string, value: string) {
     this.store.set(key, value)
   }
 }
@@ -34,9 +34,35 @@ class LocalStorageMock implements Storage {
 // Replace global localStorage
 global.localStorage = new LocalStorageMock()
 
+// Create a default fetch mock that handles common API endpoints
+const createMockFetch = () => {
+  return vi.fn((url: string) => {
+    // Handle API endpoints that return JSON
+    if (url.includes('/api/v1/')) {
+      return Promise.resolve(
+        new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    }
+    // Default response for other requests
+    return Promise.resolve(
+      new Response(null, { status: 200 })
+    )
+  })
+}
+
 // Clean up before each test
 beforeEach(() => {
   localStorage.clear()
+  // Set up default fetch mock
+  global.fetch = createMockFetch() as typeof fetch
+})
+
+afterEach(() => {
+  localStorage.clear()
+  vi.restoreAllMocks()
 })
 
 afterEach(() => {

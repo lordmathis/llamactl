@@ -8,11 +8,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BackendType, type CreateInstanceOptions, type Instance } from "@/types/instance";
 import type { BackendOptions } from "@/schemas/instanceOptions";
 import ParseCommandDialog from "@/components/ParseCommandDialog";
-import InstanceSettingsCard from "@/components/instance/InstanceSettingsCard";
-import BackendConfigurationCard from "@/components/instance/BackendConfigurationCard";
+import GeneralTab from "@/components/instance/GeneralTab";
+import BackendTab from "@/components/instance/BackendTab";
+import AdvancedTab from "@/components/instance/AdvancedTab";
 import { Upload } from "lucide-react";
 import { useInstanceDefaults, useBackendSettings } from "@/hooks/useConfig";
 
@@ -36,6 +39,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   const [formData, setFormData] = useState<CreateInstanceOptions>({});
   const [nameError, setNameError] = useState("");
   const [showParseDialog, setShowParseDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("general");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get backend settings for all backends (we'll use this to update docker_enabled on backend type change)
@@ -201,18 +205,15 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
         const content = e.target?.result as string;
         const importedData = JSON.parse(content) as { name?: string; options?: CreateInstanceOptions };
 
-        // Validate that it's an instance export
         if (!importedData.name || !importedData.options) {
           alert('Invalid instance file: Missing required fields (name, options)');
           return;
         }
 
-        // Set the instance name (only for new instances, not editing)
         if (!isEditing && typeof importedData.name === 'string') {
           handleNameChange(importedData.name);
         }
 
-        // Populate all the options from the imported file
         if (importedData.options) {
           setFormData(prev => ({
             ...prev,
@@ -220,7 +221,6 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
           }));
         }
 
-        // Reset the file input
         event.target.value = '';
       } catch (error) {
         console.error('Failed to parse instance file:', error);
@@ -230,6 +230,25 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
 
     reader.readAsText(file);
   };
+
+  const tabs = ["general", "backend", "advanced"];
+
+  const handleNext = () => {
+    const currentIndex = tabs.indexOf(activeTab);
+    if (currentIndex < tabs.length - 1) {
+      setActiveTab(tabs[currentIndex + 1]);
+    }
+  };
+
+  const handleBack = () => {
+    const currentIndex = tabs.indexOf(activeTab);
+    if (currentIndex > 0) {
+      setActiveTab(tabs[currentIndex - 1]);
+    }
+  };
+
+  const isLastTab = activeTab === tabs[tabs.length - 1];
+  const isFirstTab = activeTab === tabs[0];
 
   // Save button label logic
   let saveButtonLabel = "Create Instance";
@@ -243,7 +262,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -279,28 +298,42 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
           />
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="space-y-6 py-4">
-            {/* Instance Settings Card */}
-            <InstanceSettingsCard
-              instanceName={instanceName}
-              nameError={nameError}
-              isEditing={isEditing}
-              formData={formData}
-              onNameChange={handleNameChange}
-              onChange={handleFieldChange}
-            />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="w-full justify-start">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="backend">Backend</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+          </TabsList>
 
-            {/* Backend Configuration Card */}
-            <BackendConfigurationCard
-              formData={formData}
-              onBackendFieldChange={handleBackendFieldChange}
-              onChange={handleFieldChange}
-              onParseCommand={() => setShowParseDialog(true)}
-            />
+          <div className="flex-1 overflow-y-auto">
+            <TabsContent value="general" className="h-full">
+              <GeneralTab
+                instanceName={instanceName}
+                nameError={nameError}
+                isEditing={isEditing}
+                formData={formData}
+                onNameChange={handleNameChange}
+                onChange={handleFieldChange}
+              />
+            </TabsContent>
 
+            <TabsContent value="backend" className="h-full">
+              <BackendTab
+                formData={formData}
+                onBackendFieldChange={handleBackendFieldChange}
+                onChange={handleFieldChange}
+                onParseCommand={() => setShowParseDialog(true)}
+              />
+            </TabsContent>
+
+            <TabsContent value="advanced" className="h-full">
+              <AdvancedTab
+                formData={formData}
+                onBackendFieldChange={handleBackendFieldChange}
+              />
+            </TabsContent>
           </div>
-        </div>
+        </Tabs>
 
         <DialogFooter className="pt-4 border-t">
           <Button
@@ -310,16 +343,37 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!instanceName.trim() || !!nameError}
-            data-testid="dialog-save-button"
-          >
-            {saveButtonLabel}
-          </Button>
+          {!isFirstTab && (
+            <Button
+              variant="outline"
+              onClick={handleBack}
+            >
+              Back
+            </Button>
+          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    onClick={isLastTab ? handleSave : handleNext}
+                    disabled={!instanceName.trim() || !!nameError}
+                    data-testid={isLastTab ? "dialog-save-button" : "dialog-next-button"}
+                  >
+                    {isLastTab ? saveButtonLabel : "Next"}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {(!instanceName.trim() || !!nameError) && (
+                <TooltipContent>
+                  <p>{nameError || "Instance name is required"}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </DialogFooter>
       </DialogContent>
-      
+
       <ParseCommandDialog
         open={showParseDialog}
         onOpenChange={setShowParseDialog}

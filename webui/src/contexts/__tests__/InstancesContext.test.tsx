@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { InstancesProvider, useInstances } from "@/contexts/InstancesContext";
 import { instancesApi } from "@/lib/api";
@@ -194,7 +194,9 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("instances-count")).toHaveTextContent("2");
       });
 
-      screen.getByTestId("create-instance").click();
+      await act(async () => {
+        screen.getByTestId("create-instance").click();
+      });
 
       await waitFor(() => {
         expect(instancesApi.create).toHaveBeenCalledWith("new-instance", {
@@ -222,7 +224,9 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("instances-count")).toHaveTextContent("2");
       });
 
-      screen.getByTestId("create-instance").click();
+      await act(async () => {
+        screen.getByTestId("create-instance").click();
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId("error")).toHaveTextContent(errorMessage);
@@ -252,7 +256,9 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("instances-count")).toHaveTextContent("2");
       });
 
-      screen.getByTestId("update-instance").click();
+      await act(async () => {
+        screen.getByTestId("update-instance").click();
+      });
 
       await waitFor(() => {
         expect(instancesApi.update).toHaveBeenCalledWith("instance1", {
@@ -283,7 +289,9 @@ describe("InstancesContext", () => {
       });
 
       // Start instance2 (button already configured to start instance2)
-      screen.getByTestId("start-instance").click();
+      await act(async () => {
+        screen.getByTestId("start-instance").click();
+      });
 
       await waitFor(() => {
         expect(instancesApi.start).toHaveBeenCalledWith("instance2");
@@ -308,7 +316,9 @@ describe("InstancesContext", () => {
       });
 
       // Stop instance1 (button already configured to stop instance1)
-      screen.getByTestId("stop-instance").click();
+      await act(async () => {
+        screen.getByTestId("stop-instance").click();
+      });
 
       await waitFor(() => {
         expect(instancesApi.stop).toHaveBeenCalledWith("instance1");
@@ -329,7 +339,9 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("loading")).toHaveTextContent("false");
       });
 
-      screen.getByTestId("start-instance").click();
+      await act(async () => {
+        screen.getByTestId("start-instance").click();
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId("error")).toHaveTextContent(errorMessage);
@@ -349,7 +361,9 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("instance-instance2")).toBeInTheDocument();
       });
 
-      screen.getByTestId("delete-instance").click();
+      await act(async () => {
+        screen.getByTestId("delete-instance").click();
+      });
 
       await waitFor(() => {
         expect(instancesApi.delete).toHaveBeenCalledWith("instance2");
@@ -375,7 +389,9 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("instances-count")).toHaveTextContent("2");
       });
 
-      screen.getByTestId("delete-instance").click();
+      await act(async () => {
+        screen.getByTestId("delete-instance").click();
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId("error")).toHaveTextContent(errorMessage);
@@ -397,7 +413,9 @@ describe("InstancesContext", () => {
         expect(screen.getByTestId("error")).toHaveTextContent(errorMessage);
       });
 
-      screen.getByTestId("clear-error").click();
+      await act(async () => {
+        screen.getByTestId("clear-error").click();
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId("error")).toHaveTextContent("no-error");
@@ -425,14 +443,18 @@ describe("InstancesContext", () => {
       });
 
       // Create new instance
-      screen.getByTestId("create-instance").click();
+      await act(async () => {
+        screen.getByTestId("create-instance").click();
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId("instances-count")).toHaveTextContent("3");
       });
 
       // Start an instance (this should not affect the count)
-      screen.getByTestId("start-instance").click();
+      await act(async () => {
+        screen.getByTestId("start-instance").click();
+      });
 
       await waitFor(() => {
         expect(instancesApi.start).toHaveBeenCalled();

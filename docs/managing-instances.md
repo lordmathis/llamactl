@@ -41,10 +41,14 @@ Each instance is displayed as a card showing:
 
 ![Create Instance Screenshot](images/create_instance.png)
 
+The create instance dialog uses a tabbed interface to organize settings. Navigate between tabs using **"Next"** and **"Back"** buttons.
+
 1. Click the **"Create Instance"** button on the dashboard
 2. *Optional*: Click **"Import"** to load a previously exported configuration
 
-**Instance Settings:**
+### General Tab
+
+Configure basic instance settings:
 
 3. Enter a unique **Instance Name** (required)
 4. **Select Node**: Choose which node to deploy the instance to
@@ -55,28 +59,34 @@ Each instance is displayed as a card showing:
     - **Idle Timeout**: Minutes before stopping idle instance
     - **On Demand Start**: Start instance only when needed
 
-**Backend Configuration:**
+### Backend Tab
+
+Configure backend and execution options:
 
 7. **Select Backend Type**:
     - **Llama Server**: For GGUF models using llama-server
     - **MLX LM**: For MLX-optimized models (macOS only)
     - **vLLM**: For distributed serving and high-throughput inference
 8. *Optional*: Click **"Parse Command"** to import settings from an existing backend command
-9. Configure **Execution Context**:
+9. **Execution Context** (click to expand):
     - **Enable Docker**: Run backend in Docker container
     - **Command Override**: Custom path to backend executable
     - **Environment Variables**: Custom environment variables
-
-!!! tip "Auto-Assignment"
-    Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.
-  
 10. Configure **Basic Backend Options** (varies by backend):
     - **llama.cpp**: Model path, threads, context size, GPU layers, etc.
     - **MLX**: Model identifier, temperature, max tokens, etc.
     - **vLLM**: Model identifier, tensor parallel size, GPU memory utilization, etc.
-11. *Optional*: Expand **Advanced Backend Options** for additional settings
-12. *Optional*: Add **Extra Args** as key-value pairs for custom command-line arguments
-13. Click **"Create"** to save the instance  
+
+!!! tip "Auto-Assignment"
+    Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.
+
+### Advanced Tab
+
+Configure advanced backend options:
+
+11. Expand **Advanced Backend Options** for additional backend-specific settings
+12. Add **Extra Args** as key-value pairs for custom command-line arguments
+13. Click **"Create Instance"** to save the instance  
 
 **Via API**
 

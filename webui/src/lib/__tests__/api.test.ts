@@ -3,20 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock fetch globally
 const mockFetch = vi.fn()
-global.fetch = mockFetch
 
 describe('API Error Handling', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Set the mock fetch in beforeEach to ensure it overrides the setup.ts mock
+    global.fetch = mockFetch
   })
 
   it('converts HTTP errors to meaningful messages', async () => {
-    const mockResponse = {
-      ok: false,
+    const mockResponse = new Response('Instance already exists', {
       status: 409,
-      text: () => Promise.resolve('Instance already exists'),
-      clone: function() { return this }
-    }
+      statusText: 'Conflict'
+    })
     mockFetch.mockResolvedValue(mockResponse)
 
     await expect(instancesApi.create('existing', {}))
@@ -25,12 +24,10 @@ describe('API Error Handling', () => {
   })
 
   it('handles empty error responses gracefully', async () => {
-    const mockResponse = {
-      ok: false,
+    const mockResponse = new Response('', {
       status: 500,
-      text: () => Promise.resolve(''),
-      clone: function() { return this }
-    }
+      statusText: 'Internal Server Error'
+    })
     mockFetch.mockResolvedValue(mockResponse)
 
     await expect(instancesApi.list())
@@ -39,20 +36,22 @@ describe('API Error Handling', () => {
   })
 
   it('handles 204 No Content responses', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      status: 204
+    const mockResponse = new Response(null, {
+      status: 204,
+      statusText: 'No Content'
     })
+    mockFetch.mockResolvedValue(mockResponse)
 
     const result = await instancesApi.delete('test-instance')
     expect(result).toBeUndefined()
   })
 
   it('builds query parameters correctly for logs', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('logs')
+    const mockResponse = new Response('logs', {
+      status: 200,
+      statusText: 'OK'
     })
+    mockFetch.mockResolvedValue(mockResponse)
 
     await instancesApi.getLogs('test-instance', 100)
 
