@@ -605,6 +605,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Create Instance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#general-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      General Tab
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backend Tab
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      Advanced Tab
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -838,11 +871,13 @@
 <h2 id="create-instance">Create Instance<a class="headerlink" href="#create-instance" title="Permanent link">&para;</a></h2>
 <p><strong>Via Web UI</strong>  </p>
 <p><img alt="Create Instance Screenshot" src="../images/create_instance.png" />  </p>
+<p>The create instance dialog uses a tabbed interface to organize settings. Navigate between tabs using <strong>"Next"</strong> and <strong>"Back"</strong> buttons.  </p>
 <ol>
 <li>Click the <strong>"Create Instance"</strong> button on the dashboard  </li>
 <li><em>Optional</em>: Click <strong>"Import"</strong> to load a previously exported configuration  </li>
 </ol>
-<p><strong>Instance Settings:</strong>  </p>
+<h3 id="general-tab">General Tab<a class="headerlink" href="#general-tab" title="Permanent link">&para;</a></h3>
+<p>Configure basic instance settings:  </p>
 <ol>
 <li>Enter a unique <strong>Instance Name</strong> (required)  </li>
 <li><strong>Select Node</strong>: Choose which node to deploy the instance to  </li>
@@ -857,7 +892,8 @@
 </ul>
 </li>
 </ol>
-<p><strong>Backend Configuration:</strong>  </p>
+<h3 id="backend-tab">Backend Tab<a class="headerlink" href="#backend-tab" title="Permanent link">&para;</a></h3>
+<p>Configure backend and execution options:  </p>
 <ol>
 <li><strong>Select Backend Type</strong>:  <ul>
 <li><strong>Llama Server</strong>: For GGUF models using llama-server  </li>
@@ -866,10 +902,16 @@
 </ul>
 </li>
 <li><em>Optional</em>: Click <strong>"Parse Command"</strong> to import settings from an existing backend command  </li>
-<li>Configure <strong>Execution Context</strong>:  <ul>
+<li><strong>Execution Context</strong> (click to expand):  <ul>
 <li><strong>Enable Docker</strong>: Run backend in Docker container  </li>
 <li><strong>Command Override</strong>: Custom path to backend executable  </li>
 <li><strong>Environment Variables</strong>: Custom environment variables  </li>
+</ul>
+</li>
+<li>Configure <strong>Basic Backend Options</strong> (varies by backend):  <ul>
+<li><strong>llama.cpp</strong>: Model path, threads, context size, GPU layers, etc.  </li>
+<li><strong>MLX</strong>: Model identifier, temperature, max tokens, etc.  </li>
+<li><strong>vLLM</strong>: Model identifier, tensor parallel size, GPU memory utilization, etc.  </li>
 </ul>
 </li>
 </ol>
@@ -877,16 +919,12 @@
 <p class="admonition-title">Auto-Assignment</p>
 <p>Llamactl automatically assigns ports from the configured port range (default: 8000-9000) and generates API keys if authentication is enabled. You typically don't need to manually specify these values.  </p>
 </div>
+<h3 id="advanced-tab">Advanced Tab<a class="headerlink" href="#advanced-tab" title="Permanent link">&para;</a></h3>
+<p>Configure advanced backend options:  </p>
 <ol>
-<li>Configure <strong>Basic Backend Options</strong> (varies by backend):  <ul>
-<li><strong>llama.cpp</strong>: Model path, threads, context size, GPU layers, etc.  </li>
-<li><strong>MLX</strong>: Model identifier, temperature, max tokens, etc.  </li>
-<li><strong>vLLM</strong>: Model identifier, tensor parallel size, GPU memory utilization, etc.  </li>
-</ul>
-</li>
-<li><em>Optional</em>: Expand <strong>Advanced Backend Options</strong> for additional settings  </li>
-<li><em>Optional</em>: Add <strong>Extra Args</strong> as key-value pairs for custom command-line arguments  </li>
-<li>Click <strong>"Create"</strong> to save the instance  </li>
+<li>Expand <strong>Advanced Backend Options</strong> for additional backend-specific settings  </li>
+<li>Add <strong>Extra Args</strong> as key-value pairs for custom command-line arguments  </li>
+<li>Click <strong>"Create Instance"</strong> to save the instance  </li>
 </ol>
 <p><strong>Via API</strong>  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Create llama.cpp instance with local model file</span>
@@ -1127,7 +1165,7 @@ Check instance status in real-time:  </p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="December 22, 2025 20:20:42 UTC">December 22, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 8, 2026 18:18:10 UTC">February 8, 2026</span>
   </span>
 
     
