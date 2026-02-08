@@ -72,13 +72,9 @@ func (md *Downloader) Download(ctx context.Context, jobID, url, destPath, displa
 
 	md.progressTracker.UpdateCurrentFile(jobID, displayName)
 
-	contentLength, etag, err := md.downloadFile(ctx, url, destPath, progressChan)
+	_, etag, err := md.downloadFile(ctx, jobID, url, destPath, progressChan)
 	if err != nil {
 		return "", err
-	}
-
-	if contentLength > 0 {
-		md.progressTracker.AddToTotalBytes(jobID, contentLength)
 	}
 
 	return etag, nil
@@ -162,7 +158,7 @@ func (md *Downloader) SaveETag(repo, filename, etag string) error {
 	return nil
 }
 
-func (md *Downloader) downloadFile(ctx context.Context, url, dest string, progress chan<- int64) (int64, string, error) {
+func (md *Downloader) downloadFile(ctx context.Context, jobID, url, dest string, progress chan<- int64) (int64, string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to create request: %w", err)
@@ -185,6 +181,11 @@ func (md *Downloader) downloadFile(ctx context.Context, url, dest string, progre
 
 	contentLength := resp.ContentLength
 	etag := resp.Header.Get("ETag")
+
+	// Set total bytes before starting the download
+	if contentLength > 0 {
+		md.progressTracker.AddToTotalBytes(jobID, contentLength)
+	}
 
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
 		return 0, "", fmt.Errorf("failed to create directory: %w", err)
