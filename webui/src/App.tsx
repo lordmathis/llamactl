@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import InstanceList from "@/components/InstanceList";
+import ModelsList from "@/components/ModelsList";
 import InstanceDialog from "@/components/InstanceDialog";
 import LoginDialog from "@/components/LoginDialog";
 import SystemInfoDialog from "./components/SystemInfoDialog";
@@ -10,9 +11,11 @@ import { useInstances } from "@/contexts/InstancesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Toaster } from "sonner";
+import { cn } from "@/lib/utils";
 
 function App() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [activeTab, setActiveTab] = useState<'instances' | 'models'>('instances');
   const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
   const [isSystemInfoModalOpen, setIsSystemInfoModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -82,7 +85,37 @@ function App() {
           onShowSettings={handleShowSettings}
         />
         <main className="container mx-auto max-w-4xl px-4 py-8">
-          <InstanceList editInstance={handleEditInstance} />
+          {/* Tab Navigation */}
+          <div className="border-b border-border mb-6">
+            <div className="flex gap-4">
+              <button
+                onClick={() => setActiveTab('instances')}
+                className={cn(
+                  "px-4 py-2 border-b-2 transition-colors",
+                  activeTab === 'instances'
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Instances
+              </button>
+              <button
+                onClick={() => setActiveTab('models')}
+                className={cn(
+                  "px-4 py-2 border-b-2 transition-colors",
+                  activeTab === 'models'
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Models
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'instances' && <InstanceList editInstance={handleEditInstance} />}
+          {activeTab === 'models' && <ModelsList />}
         </main>
 
         <InstanceDialog

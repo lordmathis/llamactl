@@ -1,6 +1,7 @@
 import type { CreateInstanceOptions, Instance } from "@/types/instance";
 import type { AppConfig } from "@/types/config";
 import type { ApiKey, CreateKeyRequest, CreateKeyResponse, KeyPermissionResponse } from "@/types/apiKey";
+import type { DownloadJob, CachedModel } from "@/types/model";
 import { handleApiError } from "./errorUtils";
 
 // Adding baseURI as a prefix to support being served behind a subpath
@@ -254,4 +255,40 @@ export const llamaCppApi = {
         body: JSON.stringify({ model: modelName }),
       }
     ),
+};
+
+// Llama.cpp models cache management API functions
+export const llamaCppModelsApi = {
+  // Download management
+  startDownload: (repo: string, tag?: string) =>
+    apiCall<{ job_id: string; repo: string; tag: string }>(
+      '/backends/llama-cpp/models/download',
+      {
+        method: 'POST',
+        body: JSON.stringify({ repo, tag: tag || 'latest' })
+      }
+    ),
+
+  getJob: (jobId: string) =>
+    apiCall<DownloadJob>(`/backends/llama-cpp/models/jobs/${jobId}`),
+
+  listJobs: () =>
+    apiCall<{ jobs: DownloadJob[] }>('/backends/llama-cpp/models/jobs'),
+
+  cancelJob: (jobId: string) =>
+    apiCall<void>(`/backends/llama-cpp/models/jobs/${jobId}`, {
+      method: 'DELETE'
+    }),
+
+  // Cache management
+  listModels: () =>
+    apiCall<CachedModel[]>('/backends/llama-cpp/models'),
+
+  deleteModel: (repo: string, tag?: string) => {
+    const params = new URLSearchParams({ repo })
+    if (tag) params.append('tag', tag)
+    return apiCall<void>(`/backends/llama-cpp/models?${params}`, {
+      method: 'DELETE'
+    })
+  }
 };
