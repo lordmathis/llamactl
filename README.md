@@ -12,13 +12,12 @@
 
 **🚀 Easy Model Management**
 - **Built-in Model Downloader**: Download GGUF models directly from HuggingFace for llama.cpp (replicates llama.cpp `--hf` behavior)
-- **Multiple Models Simultaneously**: Run different models at the same time (7B for speed, 70B for quality)
 - **Dynamic Multi-Model Instances**: llama.cpp router mode - serve multiple models from a single instance with on-demand loading
 - **Smart Resource Management**: Automatic idle timeout, LRU eviction, and configurable instance limits
 - **Web Dashboard**: Modern React UI for managing instances, monitoring health, and viewing logs
 
 **🔗 Flexible Integration**
-- **OpenAI API Compatible**: Drop-in replacement - route requests to different models by instance name
+- **API Compatible**: OpenAI chat completions and resources endpoints, Anthropic messages endpoint (depending on backend) - route requests to different models by instance name
 - **Multi-Backend Support**: Native support for llama.cpp, MLX (Apple Silicon optimized), and vLLM
 - **Docker Ready**: Run backends in containers with full GPU support
 
