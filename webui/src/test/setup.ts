@@ -57,7 +57,7 @@ const createMockFetch = () => {
 beforeEach(() => {
   localStorage.clear()
   // Set up default fetch mock
-  global.fetch = createMockFetch()
+  global.fetch = createMockFetch() as typeof fetch
 })
 
 afterEach(() => {
