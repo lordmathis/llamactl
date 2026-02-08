@@ -181,3 +181,62 @@ func TestFileManager_GetETagPath(t *testing.T) {
 	}
 }
 
+// TestFileManager_PathTraversalPrevention verifies that path traversal attacks are blocked
+func TestFileManager_PathTraversalPrevention(t *testing.T) {
+	fm := NewFileManager("/cache")
+
+	t.Run("GetPath prevents traversal", func(t *testing.T) {
+		maliciousInputs := []struct {
+			repo     string
+			filename string
+		}{
+			{"org/../etc", "passwd"},
+			{"org/model", "../../../etc/passwd"},
+			{"/etc/passwd", "model.gguf"},
+			{"org\\..\\etc", "model.gguf"},
+		}
+
+		for _, input := range maliciousInputs {
+			result := fm.GetPath(input.repo, input.filename)
+			// Verify no ".." sequences remain
+			if containsPathTraversal(result) {
+				t.Errorf("GetPath(%q, %q) = %q contains path traversal", input.repo, input.filename, result)
+			}
+		}
+	})
+
+	t.Run("GetManifestPath prevents traversal", func(t *testing.T) {
+		maliciousInputs := []struct {
+			repo string
+			tag  string
+		}{
+			{"org/../etc", "latest"},
+			{"org/model", "../../../etc"},
+			{"org\\..\\etc", "latest"},
+		}
+
+		for _, input := range maliciousInputs {
+			result := fm.GetManifestPath(input.repo, input.tag)
+			// Verify no ".." sequences remain
+			if containsPathTraversal(result) {
+				t.Errorf("GetManifestPath(%q, %q) = %q contains path traversal", input.repo, input.tag, result)
+			}
+		}
+	})
+}
+
+func containsPathTraversal(path string) bool {
+	return len(path) >= 2 && (path[0:2] == ".." ||
+		len(path) >= 3 && (path[0:3] == "/.." || path[0:3] == "\\.." ||
+		contains(path, "/../") || contains(path, "\\..")))
+}
+
+func contains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
