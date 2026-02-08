@@ -11,6 +11,7 @@
 ## Features
 
 **🚀 Easy Model Management**
+- **Built-in Model Downloader**: Download GGUF models directly from HuggingFace for llama.cpp (replicates llama.cpp `--hf` behavior)
 - **Multiple Models Simultaneously**: Run different models at the same time (7B for speed, 70B for quality)
 - **Dynamic Multi-Model Instances**: llama.cpp router mode - serve multiple models from a single instance with on-demand loading
 - **Smart Resource Management**: Automatic idle timeout, LRU eviction, and configurable instance limits
