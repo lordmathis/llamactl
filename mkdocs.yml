@@ -53,6 +53,7 @@ nav:
   - Quick Start: quick-start.md
   - Configuration: configuration.md
   - Managing Instances: managing-instances.md
+  - Managing Models: managing-models.md
   - API Reference: api-reference.md
   - Troubleshooting: troubleshooting.md
 
