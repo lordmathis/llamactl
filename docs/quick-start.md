@@ -71,7 +71,7 @@ You should see the Llamactl web interface.
      - **Name**: Give your instance a descriptive name
      - **Node**: Select which node to deploy the instance to (defaults to "main" for single-node setups)
      - **Backend Type**: Choose from llama.cpp, MLX, or vLLM
-     - **Model**: Model path or huggingface repo
+     - **Model**: Full path to model file, or use `hf_repo`/`hf_file` for HuggingFace
      - **Additional Options**: Backend-specific parameters
 
     !!! tip "Auto-Assignment"

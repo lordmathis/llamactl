@@ -7,6 +7,7 @@ import (
 	"llamactl/pkg/database"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
+	"llamactl/pkg/models"
 	"llamactl/pkg/validation"
 	"log"
 	"net/http"
@@ -51,6 +52,7 @@ func writeText(w http.ResponseWriter, status int, data string) {
 // Handler provides HTTP handlers for the llamactl server API
 type Handler struct {
 	InstanceManager manager.InstanceManager
+	modelManager    *models.Manager
 	cfg             config.AppConfig
 	httpClient      *http.Client
 	authStore       database.AuthStore
@@ -58,9 +60,10 @@ type Handler struct {
 }
 
 // NewHandler creates a new Handler instance with the provided instance manager and configuration
-func NewHandler(im manager.InstanceManager, cfg config.AppConfig, authStore database.AuthStore) *Handler {
+func NewHandler(im manager.InstanceManager, mm *models.Manager, cfg config.AppConfig, authStore database.AuthStore) *Handler {
 	handler := &Handler{
 		InstanceManager: im,
+		modelManager:    mm,
 		cfg:             cfg,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,

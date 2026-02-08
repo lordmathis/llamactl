@@ -9,6 +9,8 @@ type BackendSettings struct {
 	Environment     map[string]string `yaml:"environment,omitempty" json:"environment,omitempty"`
 	Docker          *DockerSettings   `yaml:"docker,omitempty" json:"docker,omitempty"`
 	ResponseHeaders map[string]string `yaml:"response_headers,omitempty" json:"response_headers,omitempty"`
+	CacheDir        string            `yaml:"cache_dir,omitempty" json:"cache_dir,omitempty"`
+	DownloadTimeout time.Duration     `yaml:"download_timeout,omitempty" json:"download_timeout,omitempty" swaggertype:"string" example:"3600s"`
 }
 
 // DockerSettings contains Docker-specific configuration

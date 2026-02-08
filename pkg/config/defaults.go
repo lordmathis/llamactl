@@ -21,15 +21,17 @@ func getDefaultConfig(dataDir string) AppConfig {
 		DataDir:   dataDir,
 		Backends: BackendConfig{
 			LlamaCpp: BackendSettings{
-				Command:     "llama-server",
-				Args:        []string{},
-				Environment: map[string]string{},
+				Command:         "llama-server",
+				Args:            []string{},
+				Environment:     map[string]string{},
+				CacheDir:        getDefaultLlamaCacheDir(),
+				DownloadTimeout: 3600 * time.Second,
 				Docker: &DockerSettings{
 					Enabled: false,
 					Image:   "ghcr.io/ggml-org/llama.cpp:server",
 					Args: []string{
 						"run", "--rm", "--network", "host", "--gpus", "all",
-						"-v", filepath.Join(dataDir, "llama.cpp") + ":/root/.cache/llama.cpp"},
+						"-v", getDefaultLlamaCacheDir() + ":/root/.cache/llama.cpp"},
 					Environment: map[string]string{},
 				},
 			},
@@ -80,6 +82,25 @@ func getDefaultConfig(dataDir string) AppConfig {
 			RequireManagementAuth: true,
 			ManagementKeys:        []string{},
 		},
+	}
+}
+
+// getDefaultLlamaCacheDir returns the default platform specific cache directory for llama.cpp models
+func getDefaultLlamaCacheDir() string {
+	homeDir, _ := os.UserHomeDir()
+	switch runtime.GOOS {
+	case "windows":
+		if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
+			return filepath.Join(localAppData, "llama.cpp", "cache")
+		}
+		return filepath.Join("AppData", "Local", "llama.cpp", "cache")
+	case "darwin":
+		return filepath.Join(homeDir, "Library", "Caches", "llama.cpp")
+	default:
+		if xdgCacheHome := os.Getenv("XDG_CACHE_HOME"); xdgCacheHome != "" {
+			return filepath.Join(xdgCacheHome, "llama.cpp")
+		}
+		return filepath.Join(homeDir, ".cache", "llama.cpp")
 	}
 }
 

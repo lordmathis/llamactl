@@ -110,6 +110,18 @@ func loadEnvVars(cfg *AppConfig) {
 		}
 		parseHeaders(llamaEnv, cfg.Backends.LlamaCpp.ResponseHeaders)
 	}
+	if llamaCacheDir := os.Getenv("LLAMACTL_LLAMACPP_CACHE_DIR"); llamaCacheDir != "" {
+		cfg.Backends.LlamaCpp.CacheDir = llamaCacheDir
+	}
+	// Handle default llama.cpp env var
+	if llamaCacheDir := os.Getenv("LLAMA_CACHE"); llamaCacheDir != "" {
+		cfg.Backends.LlamaCpp.CacheDir = llamaCacheDir
+	}
+	if llamaDownloadTimeout := os.Getenv("LLAMACTL_LLAMACPP_DOWNLOAD_TIMEOUT"); llamaDownloadTimeout != "" {
+		if t, err := strconv.Atoi(llamaDownloadTimeout); err == nil {
+			cfg.Backends.LlamaCpp.DownloadTimeout = time.Duration(t) * time.Second
+		}
+	}
 
 	// vLLM backend
 	if vllmCmd := os.Getenv("LLAMACTL_VLLM_COMMAND"); vllmCmd != "" {
