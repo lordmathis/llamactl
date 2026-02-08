@@ -260,14 +260,17 @@ export const llamaCppApi = {
 // Llama.cpp models cache management API functions
 export const llamaCppModelsApi = {
   // Download management
-  startDownload: (repo: string, tag?: string) =>
-    apiCall<{ job_id: string; repo: string; tag: string }>(
+  startDownload: (repo: string, tag?: string) => {
+    // Backend expects "repo:tag" format in the repo field
+    const repoWithTag = tag ? `${repo}:${tag}` : repo;
+    return apiCall<{ job_id: string; repo: string; tag: string }>(
       '/backends/llama-cpp/models/download',
       {
         method: 'POST',
-        body: JSON.stringify({ repo, tag: tag || 'latest' })
+        body: JSON.stringify({ repo: repoWithTag })
       }
-    ),
+    );
+  },
 
   getJob: (jobId: string) =>
     apiCall<DownloadJob>(`/backends/llama-cpp/models/jobs/${jobId}`),

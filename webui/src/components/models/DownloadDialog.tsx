@@ -18,38 +18,41 @@ interface DownloadDialogProps {
 }
 
 export default function DownloadDialog({ open, onOpenChange }: DownloadDialogProps) {
-  const [repo, setRepo] = useState('')
-  const [tag, setTag] = useState('')
-  const [repoError, setRepoError] = useState('')
+  const [model, setModel] = useState('')
+  const [modelError, setModelError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { startDownload } = useModels()
 
-  const validateRepo = (value: string): boolean => {
+  const validateModel = (value: string): boolean => {
     if (!value) {
-      setRepoError('Repository is required')
+      setModelError('Model is required')
       return false
     }
     if (!value.includes('/')) {
-      setRepoError('Format must be: org/model-name')
+      setModelError('Format must be: org/model-name or org/model-name:tag')
       return false
     }
-    setRepoError('')
+    setModelError('')
     return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!validateRepo(repo)) return
+    if (!validateModel(model)) return
 
     setIsSubmitting(true)
     try {
-      await startDownload(repo, tag || undefined)
+      // Parse repo and tag from format "org/model:tag"
+      const colonIdx = model.lastIndexOf(':')
+      const repo = colonIdx !== -1 ? model.substring(0, colonIdx) : model
+      const tag = colonIdx !== -1 ? model.substring(colonIdx + 1) : undefined
+
+      await startDownload(repo, tag)
       onOpenChange(false)
       // Reset form
-      setRepo('')
-      setTag('')
-      setRepoError('')
+      setModel('')
+      setModelError('')
     } catch (error) {
       // Error is handled by context
       console.error('Failed to start download:', error)
@@ -61,9 +64,8 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
   const handleCancel = () => {
     onOpenChange(false)
     // Reset form
-    setRepo('')
-    setTag('')
-    setRepoError('')
+    setModel('')
+    setModelError('')
   }
 
   return (
@@ -79,35 +81,24 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
 
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="repo">Repository *</Label>
+              <Label htmlFor="model">Model *</Label>
               <Input
-                id="repo"
-                value={repo}
+                id="model"
+                value={model}
                 onChange={(e) => {
-                  setRepo(e.target.value)
-                  if (repoError) validateRepo(e.target.value)
+                  setModel(e.target.value)
+                  if (modelError) validateModel(e.target.value)
                 }}
-                onBlur={(e) => validateRepo(e.target.value)}
-                placeholder="bartowski/Llama-3.2-3B-Instruct-GGUF"
-                className={repoError ? 'border-red-500' : ''}
+                onBlur={(e) => validateModel(e.target.value)}
+                placeholder="bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M"
+                className={modelError ? 'border-red-500' : ''}
                 disabled={isSubmitting}
               />
-              {repoError && (
-                <p className="text-sm text-red-500 mt-1">{repoError}</p>
+              {modelError && (
+                <p className="text-sm text-red-500 mt-1">{modelError}</p>
               )}
-            </div>
-
-            <div>
-              <Label htmlFor="tag">Tag (optional)</Label>
-              <Input
-                id="tag"
-                value={tag}
-                onChange={(e) => setTag(e.target.value)}
-                placeholder="Q4_K_M (leave empty for 'latest')"
-                disabled={isSubmitting}
-              />
               <p className="text-sm text-muted-foreground mt-1">
-                Quantization or variant name
+                Format: org/model-name or org/model-name:tag (leave tag empty for latest)
               </p>
             </div>
           </div>
@@ -121,7 +112,7 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!repo || !!repoError || isSubmitting}>
+            <Button type="submit" disabled={!model || !!modelError || isSubmitting}>
               {isSubmitting ? 'Starting...' : 'Start Download'}
             </Button>
           </DialogFooter>
