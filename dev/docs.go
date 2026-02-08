@@ -304,6 +304,274 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/backends/llama-cpp/models": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of all models currently cached on the server",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Models"
+                ],
+                "summary": "List cached models",
+                "responses": {
+                    "200": {
+                        "description": "List of cached models",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deletes a cached model by its repository and optional tag",
+                "tags": [
+                    "Models"
+                ],
+                "summary": "Delete a cached model",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Repository",
+                        "name": "repo",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tag",
+                        "name": "tag",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Model not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/backends/llama-cpp/models/download": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Initiates the download of a model from a specified repository and tag. Returns a job ID to track progress.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Models"
+                ],
+                "summary": "Download a model from a repository",
+                "parameters": [
+                    {
+                        "description": "Download request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.DownloadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Download initiated",
+                        "schema": {
+                            "$ref": "#/definitions/server.DownloadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/backends/llama-cpp/models/jobs": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of all model download jobs with their details",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Models"
+                ],
+                "summary": "List all model download jobs",
+                "responses": {
+                    "200": {
+                        "description": "List of jobs",
+                        "schema": {
+                            "$ref": "#/definitions/server.ListJobsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/backends/llama-cpp/models/jobs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the details of a download job by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Models"
+                ],
+                "summary": "Get details of a specific download job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Job details",
+                        "schema": {
+                            "$ref": "#/definitions/server.JobResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Job not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cancels a model download job by its ID. Only jobs that are in progress can be cancelled.",
+                "tags": [
+                    "Models"
+                ],
+                "summary": "Cancel an ongoing model download job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Job not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "Cannot cancel job with current status",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/backends/llama-cpp/parse-command": {
             "post": {
                 "security": [
@@ -1978,11 +2246,18 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "cache_dir": {
+                    "type": "string"
+                },
                 "command": {
                     "type": "string"
                 },
                 "docker": {
                     "$ref": "#/definitions/config.DockerSettings"
+                },
+                "download_timeout": {
+                    "type": "string",
+                    "example": "3600s"
                 },
                 "environment": {
                     "type": "object",
@@ -2214,6 +2489,20 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Progress": {
+            "type": "object",
+            "properties": {
+                "bytes_downloaded": {
+                    "type": "integer"
+                },
+                "current_file": {
+                    "type": "string"
+                },
+                "total_bytes": {
+                    "type": "integer"
+                }
+            }
+        },
         "server.CreateKeyRequest": {
             "type": "object",
             "properties": {
@@ -2266,6 +2555,57 @@ const docTemplate = `{
                 }
             }
         },
+        "server.DownloadRequest": {
+            "type": "object",
+            "properties": {
+                "repo": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.DownloadResponse": {
+            "type": "object",
+            "properties": {
+                "job_id": {
+                    "type": "string"
+                },
+                "repo": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.JobResponse": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "integer"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "progress": {
+                    "$ref": "#/definitions/models.Progress"
+                },
+                "repo": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
         "server.KeyPermissionResponse": {
             "type": "object",
             "properties": {
@@ -2303,6 +2643,17 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "server.ListJobsResponse": {
+            "type": "object",
+            "properties": {
+                "jobs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.JobResponse"
+                    }
                 }
             }
         },

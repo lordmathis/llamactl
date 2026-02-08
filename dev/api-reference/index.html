@@ -708,6 +708,75 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Models
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#delete-apiv1backendsllama-cppmodels" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /api/v1/backends/llama-cpp/models
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1backendsllama-cppmodels" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/backends/llama-cpp/models
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-apiv1backendsllama-cppmodelsdownload" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /api/v1/backends/llama-cpp/models/download
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1backendsllama-cppmodelsjobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/backends/llama-cpp/models/jobs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delete-apiv1backendsllama-cppmodelsjobsid" class="md-nav__link">
+    <span class="md-ellipsis">
+      DELETE /api/v1/backends/llama-cpp/models/jobs/{id}
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1backendsllama-cppmodelsjobsid" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/backends/llama-cpp/models/jobs/{id}
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#system" class="md-nav__link">
     <span class="md-ellipsis">
       System
@@ -1657,6 +1726,321 @@ instance names)  </p>
 
 <p class="response-title">
     <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<h2 id="models"><span class="api-tag">Models</span><a class="headerlink" href="#models" title="Permanent link">&para;</a></h2>
+<hr class="operation-separator" />
+
+<h3 id="delete-apiv1backendsllama-cppmodels"><span class="http-delete">DELETE</span> /api/v1/backends/llama-cpp/models<a class="headerlink" href="#delete-apiv1backendsllama-cppmodels" title="Permanent link">&para;</a></h3>
+<p>Delete a cached model  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Deletes a cached model by its repository and optional tag  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>repo</code></td>
+            <td>query</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Repository</td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>tag</code></td>
+            <td>query</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Tag</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-204">204</span>&nbsp;<span class="status-phrase">No Content</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1backendsllama-cppmodels"><span class="http-get">GET</span> /api/v1/backends/llama-cpp/models<a class="headerlink" href="#get-apiv1backendsllama-cppmodels" title="Permanent link">&para;</a></h3>
+<p>List cached models  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns a list of all models currently cached on the server  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="post-apiv1backendsllama-cppmodelsdownload"><span class="http-post">POST</span> /api/v1/backends/llama-cpp/models/download<a class="headerlink" href="#post-apiv1backendsllama-cppmodelsdownload" title="Permanent link">&para;</a></h3>
+<p>Download a model from a repository  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Initiates the download of a model from a specified repository and tag.<br />
+Returns a job ID to track progress.  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>request</code></td>
+            <td>body</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Download request</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-202">202</span>&nbsp;<span class="status-phrase">Accepted</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1backendsllama-cppmodelsjobs"><span class="http-get">GET</span> /api/v1/backends/llama-cpp/models/jobs<a class="headerlink" href="#get-apiv1backendsllama-cppmodelsjobs" title="Permanent link">&para;</a></h3>
+<p>List all model download jobs  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns a list of all model download jobs with their details  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="delete-apiv1backendsllama-cppmodelsjobsid"><span class="http-delete">DELETE</span> /api/v1/backends/llama-cpp/models/jobs/<span class="route-param">{id}</span><a class="headerlink" href="#delete-apiv1backendsllama-cppmodelsjobsid" title="Permanent link">&para;</a></h3>
+<p>Cancel an ongoing model download job  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Cancels a model download job by its ID. Only jobs that are in progress can<br />
+be cancelled.  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>id</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Job ID</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-204">204</span>&nbsp;<span class="status-phrase">No Content</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-409">409</span>&nbsp;<span class="status-phrase">Conflict</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1backendsllama-cppmodelsjobsid"><span class="http-get">GET</span> /api/v1/backends/llama-cpp/models/jobs/<span class="route-param">{id}</span><a class="headerlink" href="#get-apiv1backendsllama-cppmodelsjobsid" title="Permanent link">&para;</a></h3>
+<p>Get details of a specific download job  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns the details of a download job by its ID  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>id</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Job ID</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
 </p>
 
 <h2 id="system"><span class="api-tag">System</span><a class="headerlink" href="#system" title="Permanent link">&para;</a></h2>

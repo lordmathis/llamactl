@@ -677,12 +677,12 @@
 <p><strong>Unified management and routing for llama.cpp, MLX and vLLM models with web dashboard.</strong>  </p>
 <h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
 <p><strong>🚀 Easy Model Management</strong><br />
-- <strong>Multiple Models Simultaneously</strong>: Run different models at the same time (7B for speed, 70B for quality)<br />
+- <strong>Built-in Model Downloader</strong>: Download GGUF models directly from HuggingFace for llama.cpp (replicates llama.cpp <code>--hf</code> behavior)<br />
 - <strong>Dynamic Multi-Model Instances</strong>: llama.cpp router mode - serve multiple models from a single instance with on-demand loading<br />
 - <strong>Smart Resource Management</strong>: Automatic idle timeout, LRU eviction, and configurable instance limits<br />
 - <strong>Web Dashboard</strong>: Modern React UI for managing instances, monitoring health, and viewing logs  </p>
 <p><strong>🔗 Flexible Integration</strong><br />
-- <strong>OpenAI API Compatible</strong>: Drop-in replacement - route requests to different models by instance name<br />
+- <strong>API Compatible</strong>: OpenAI chat completions and resources endpoints, Anthropic messages endpoint (depending on backend) - route requests to different models by instance name<br />
 - <strong>Multi-Backend Support</strong>: Native support for llama.cpp, MLX (Apple Silicon optimized), and vLLM<br />
 - <strong>Docker Ready</strong>: Run backends in containers with full GPU support  </p>
 <p><strong>🌐 Distributed Deployment</strong><br />
@@ -694,6 +694,7 @@
 <li><a href="configuration/">Configuration Guide</a> - Detailed configuration options  </li>
 <li><a href="quick-start/">Quick Start</a> - Your first steps with Llamactl  </li>
 <li><a href="managing-instances/">Managing Instances</a> - Instance lifecycle management  </li>
+<li><a href="managing-models/">Managing Models</a> - Download and manage models from HuggingFace  </li>
 <li><a href="api-reference/">API Reference</a> - Complete API documentation  </li>
 </ul>
 <h2 id="getting-help">Getting Help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h2>
@@ -725,7 +726,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 26, 2025 12:55:05 UTC">October 26, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 8, 2026 15:18:43 UTC">February 8, 2026</span>
   </span>
 
     

@@ -66,10 +66,15 @@ definitions:
         items:
           type: string
         type: array
+      cache_dir:
+        type: string
       command:
         type: string
       docker:
         $ref: '#/definitions/config.DockerSettings'
+      download_timeout:
+        example: 3600s
+        type: string
       environment:
         additionalProperties:
           type: string
@@ -233,6 +238,15 @@ definitions:
         description: seconds
         type: integer
     type: object
+  models.Progress:
+    properties:
+      bytes_downloaded:
+        type: integer
+      current_file:
+        type: string
+      total_bytes:
+        type: integer
+    type: object
   server.CreateKeyRequest:
     properties:
       expires_at:
@@ -267,6 +281,39 @@ definitions:
       user_id:
         type: string
     type: object
+  server.DownloadRequest:
+    properties:
+      repo:
+        type: string
+    type: object
+  server.DownloadResponse:
+    properties:
+      job_id:
+        type: string
+      repo:
+        type: string
+      tag:
+        type: string
+    type: object
+  server.JobResponse:
+    properties:
+      completed_at:
+        type: integer
+      created_at:
+        type: integer
+      error:
+        type: string
+      id:
+        type: string
+      progress:
+        $ref: '#/definitions/models.Progress'
+      repo:
+        type: string
+      status:
+        type: string
+      tag:
+        type: string
+    type: object
   server.KeyPermissionResponse:
     properties:
       instance_id:
@@ -292,6 +339,13 @@ definitions:
         type: integer
       user_id:
         type: string
+    type: object
+  server.ListJobsResponse:
+    properties:
+      jobs:
+        items:
+          $ref: '#/definitions/server.JobResponse'
+        type: array
     type: object
   server.NodeResponse:
     properties:
@@ -516,6 +570,177 @@ paths:
       summary: Get help for llama server
       tags:
       - Backends
+  /api/v1/backends/llama-cpp/models:
+    delete:
+      description: Deletes a cached model by its repository and optional tag
+      parameters:
+      - description: Repository
+        in: query
+        name: repo
+        required: true
+        type: string
+      - description: Tag
+        in: query
+        name: tag
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "404":
+          description: Model not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a cached model
+      tags:
+      - Models
+    get:
+      description: Returns a list of all models currently cached on the server
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of cached models
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List cached models
+      tags:
+      - Models
+  /api/v1/backends/llama-cpp/models/download:
+    post:
+      consumes:
+      - application/json
+      description: Initiates the download of a model from a specified repository and
+        tag. Returns a job ID to track progress.
+      parameters:
+      - description: Download request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.DownloadRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Download initiated
+          schema:
+            $ref: '#/definitions/server.DownloadResponse'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Download a model from a repository
+      tags:
+      - Models
+  /api/v1/backends/llama-cpp/models/jobs:
+    get:
+      description: Returns a list of all model download jobs with their details
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of jobs
+          schema:
+            $ref: '#/definitions/server.ListJobsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List all model download jobs
+      tags:
+      - Models
+  /api/v1/backends/llama-cpp/models/jobs/{id}:
+    delete:
+      description: Cancels a model download job by its ID. Only jobs that are in progress
+        can be cancelled.
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "404":
+          description: Job not found
+          schema:
+            type: string
+        "409":
+          description: Cannot cancel job with current status
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Cancel an ongoing model download job
+      tags:
+      - Models
+    get:
+      description: Returns the details of a download job by its ID
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Job details
+          schema:
+            $ref: '#/definitions/server.JobResponse'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "404":
+          description: Job not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get details of a specific download job
+      tags:
+      - Models
   /api/v1/backends/llama-cpp/parse-command:
     post:
       consumes:
