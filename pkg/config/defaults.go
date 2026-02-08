@@ -25,7 +25,7 @@ func getDefaultConfig(dataDir string) AppConfig {
 				Args:            []string{},
 				Environment:     map[string]string{},
 				CacheDir:        getDefaultLlamaCacheDir(),
-				DownloadTimeout: 3600,
+				DownloadTimeout: 3600 * time.Second,
 				Docker: &DockerSettings{
 					Enabled: false,
 					Image:   "ghcr.io/ggml-org/llama.cpp:server",

@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	progressChannelBuffer       = 100
-	maxConcurrentDownloads      = 5
-	jobRetentionDuration        = 24 * time.Hour
-	jobCleanupInterval          = 1 * time.Hour
-	huggingFaceManifestURLFmt   = "https://huggingface.co/v2/%s/manifests/%s"
-	huggingFaceFileURLFmt       = "https://huggingface.co/%s/resolve/main/%s"
+	progressChannelBuffer     = 100
+	maxConcurrentDownloads    = 5
+	jobRetentionDuration      = 24 * time.Hour
+	jobCleanupInterval        = 1 * time.Hour
+	huggingFaceManifestURLFmt = "https://huggingface.co/v2/%s/manifests/%s"
+	huggingFaceFileURLFmt     = "https://huggingface.co/%s/resolve/main/%s"
 )
 
 type Downloader struct {
@@ -51,9 +51,11 @@ func NewDownloader(cacheDir string, timeout time.Duration, version string, fileM
 		httpClient: &http.Client{
 			Timeout: timeout,
 			Transport: &http.Transport{
-				MaxIdleConns:       10,
-				IdleConnTimeout:    30 * time.Second,
-				DisableCompression: true,
+				MaxIdleConns:          10,
+				IdleConnTimeout:       30 * time.Second,
+				TLSHandshakeTimeout:   10 * time.Second,
+				ResponseHeaderTimeout: 30 * time.Second,
+				DisableCompression:    true,
 			},
 		},
 		cacheDir:        cacheDir,
@@ -94,7 +96,8 @@ func (md *Downloader) FetchManifest(ctx context.Context, repo, tag string) (*Man
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "llamactl/"+md.version)
+	// llama-cpp needs to be identified in the User-Agent for Hugging Face to send gguf file and mmproj
+	req.Header.Set("User-Agent", "llama-cpp/llamactl/"+md.version)
 	if token := os.Getenv("HF_TOKEN"); token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -165,7 +168,7 @@ func (md *Downloader) downloadFile(ctx context.Context, url, dest string, progre
 		return 0, "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "llamactl/"+md.version)
+	req.Header.Set("User-Agent", "llama-cpp/llamactl/"+md.version)
 	if token := os.Getenv("HF_TOKEN"); token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}

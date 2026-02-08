@@ -26,7 +26,7 @@ type File struct {
 var splitFilePattern = regexp.MustCompile(`-\d{5}-of-(\d{5})\.gguf$`)
 
 func ScanCache(cacheDir string) ([]CachedModel, error) {
-	var models []CachedModel
+	var models []CachedModel = []CachedModel{}
 
 	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
 		return models, nil
@@ -195,7 +195,8 @@ func addPresetFile(model *CachedModel, repo string, fm *FileManager) {
 // parseManifestFilename extracts repo and tag from manifest filename
 // Format: manifest={part1}={part2}=...={tag}.json
 // Example: manifest=bartowski=Qwen=Model-GGUF=Q4_K_M.json
-//   -> repo: bartowski/Qwen/Model-GGUF, tag: Q4_K_M
+//
+//	-> repo: bartowski/Qwen/Model-GGUF, tag: Q4_K_M
 func parseManifestFilename(filename string) (repo, tag string, err error) {
 	// Strip "manifest=" prefix and ".json" suffix
 	if !strings.HasPrefix(filename, "manifest=") || !strings.HasSuffix(filename, ".json") {
