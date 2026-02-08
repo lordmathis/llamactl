@@ -15,6 +15,10 @@
         <link rel="canonical" href="https://llamactl.org/dev/managing-models/">
       
       
+        <link rel="prev" href="../managing-instances/">
+      
+      
+        <link rel="next" href="../api-reference/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -319,6 +323,27 @@
   
   
   
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Managing Models
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
   
     <li class="md-tabs__item">
       <a href="../api-reference/" class="md-tabs__link">
@@ -512,6 +537,256 @@
   
 
       </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Managing Models
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Managing Models
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cache-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cache Directory
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#downloading-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Downloading Models
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Downloading Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-the-web-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using the Web UI
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-the-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using the API
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model Format
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-gets-downloaded" class="md-nav__link">
+    <span class="md-ellipsis">
+      What Gets Downloaded
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#private-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Private Models
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#listing-cached-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Listing Cached Models
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Listing Cached Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-the-web-ui_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using the Web UI
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-the-api_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using the API
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deleting-cached-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deleting Cached Models
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deleting Cached Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-the-web-ui_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using the Web UI
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-the-api_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using the API
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-downloaded-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      Using Downloaded Models
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using Downloaded Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#finding-the-cached-file-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      Finding the Cached File Path
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-an-instance-with-a-downloaded-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating an Instance with a Downloaded Model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-using-llamacpps-built-in-huggingface-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      Alternative: Using llama.cpp's Built-in HuggingFace Support
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
