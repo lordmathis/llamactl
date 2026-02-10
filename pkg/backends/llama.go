@@ -149,7 +149,10 @@ type LlamaServerOptions struct {
 	// Server-specific params (ordered as in llama-cpp.md)
 	CtxCheckpoints       int      `json:"ctx_checkpoints,omitempty"`        // --ctx-checkpoints, --swa-checkpoints N
 	CacheRAM             int      `json:"cache_ram,omitempty"`              // -cram, --cache-ram N
+	LookupCacheStatic    bool     `json:"lookup_cache_static,omitempty"`    // -lcs, --lookup-cache-static
+	LookupCacheDynamic   bool     `json:"lookup_cache_dynamic,omitempty"`   // -lcd, --lookup-cache-dynamic
 	KVUnified            bool     `json:"kv_unified,omitempty"`             // -kvu, --kv-unified
+	NoKVUnified          bool     `json:"no_kv_unified,omitempty"`          // -no-kvu, --no-kv-unified
 	ContextShift         bool     `json:"context_shift,omitempty"`          // --context-shift
 	NoContextShift       bool     `json:"no_context_shift,omitempty"`       // --no-context-shift
 	ReversePrompt        string   `json:"reverse_prompt,omitempty"`         // -r, --reverse-prompt PROMPT
@@ -226,11 +229,17 @@ type LlamaServerOptions struct {
 	GPULayersDraft       int      `json:"gpu_layers_draft,omitempty"`   // -ngld, --gpu-layers-draft, --n-gpu-layers-draft N
 	ModelDraft           string   `json:"model_draft,omitempty"`        // -md, --model-draft FNAME
 	SpecReplace          string   `json:"spec_replace,omitempty"`       // --spec-replace TARGET DRAFT
+	SpecType             string   `json:"spec_type,omitempty"`          // --spec-type TYPE
+	SpecNgramSizeN       int      `json:"spec_ngram_size_n,omitempty"`  // --spec-ngram-size-n N
+	SpecNgramSizeM       int      `json:"spec_ngram_size_m,omitempty"`  // --spec-ngram-size-m M
+	SpecNgramCheckRate   float64  `json:"spec_ngram_check_rate,omitempty"` // --spec-ngram-check-rate RATE
+	SpecNgramMinHits     int      `json:"spec_ngram_min_hits,omitempty"` // --spec-ngram-min-hits N
 	ModelVocoder         string   `json:"model_vocoder,omitempty"`      // -mv, --model-vocoder FNAME
 	TTSUseGuideTokens    bool     `json:"tts_use_guide_tokens,omitempty"`
 
 	// Default model params (ordered as in llama-cpp.md)
 	EmbdGemmaDefault      bool `json:"embd_gemma_default,omitempty"`       // --embd-gemma-default
+	FIMQwen1B             bool `json:"fim_qwen_1b,omitempty"`              // --fim-qwen-1
 	FIMQwen1_5BDefault    bool `json:"fim_qwen_1_5b_default,omitempty"`    // --fim-qwen-1.5b-default
 	FIMQwen3BDefault      bool `json:"fim_qwen_3b_default,omitempty"`      // --fim-qwen-3b-default
 	FIMQwen7BDefault      bool `json:"fim_qwen_7b_default,omitempty"`      // --fim-qwen-7b-default
@@ -276,105 +285,8 @@ func (o *LlamaServerOptions) UnmarshalJSON(data []byte) error {
 		processedFields[field] = true
 	}
 
-	// Handle alternative field names
-	fieldMappings := map[string]string{
-		// Common params
-		"t":              "threads",         // -t, --threads N
-		"tb":             "threads_batch",   // -tb, --threads-batch N
-		"C":              "cpu_mask",        // -C, --cpu-mask M
-		"Cr":             "cpu_range",       // -Cr, --cpu-range lo-hi
-		"Cb":             "cpu_mask_batch",  // -Cb, --cpu-mask-batch M
-		"Crb":            "cpu_range_batch", // -Crb, --cpu-range-batch lo-hi
-		"c":              "ctx_size",        // -c, --ctx-size N
-		"n":              "predict",         // -n, --predict N
-		"n_predict":      "predict",         // --n-predict N
-		"b":              "batch_size",      // -b, --batch-size N
-		"ub":             "ubatch_size",     // -ub, --ubatch-size N
-		"fa":             "flash_attn",      // -fa, --flash-attn
-		"e":              "escape",          // -e, --escape
-		"kvo":            "kv_offload",      // -kvo, --kv-offload
-		"nkvo":           "no_kv_offload",   // -nkvo, --no-kv-offload
-		"nr":             "no_repack",       // -nr, --no-repack
-		"ctk":            "cache_type_k",    // -ctk, --cache-type-k TYPE
-		"ctv":            "cache_type_v",    // -ctv, --cache-type-v TYPE
-		"dt":             "defrag_thold",    // -dt, --defrag-thold N
-		"dio":            "direct_io",       // -dio, --direct-io
-		"ndio":           "no_direct_io",    // -ndio, --no-direct-io
-		"dev":            "device",          // -dev, --device <dev1,dev2,..>
-		"ot":             "override_tensor", // -ot, --override-tensor
-		"cmoe":           "cpu_moe",         // -cmoe, --cpu-moe
-		"ncmoe":          "n_cpu_moe",       // -ncmoe, --n-cpu-moe N
-		"ngl":            "gpu_layers",      // -ngl, --gpu-layers N
-		"n_gpu_layers":   "gpu_layers",      // --n-gpu-layers N
-		"sm":             "split_mode",      // -sm, --split-mode
-		"ts":             "tensor_split",    // -ts, --tensor-split N0,N1,N2,...
-		"mg":             "main_gpu",        // -mg, --main-gpu INDEX
-		"fit":            "fit",             // -fit, --fit [on|off]
-		"fitt":           "fit_target",      // -fitt, --fit-target MiB0,MiB1,MiB2,...
-		"fitc":           "fit_ctx",         // -fitc, --fit-ctx N
-		"m":              "model",           // -m, --model FNAME
-		"mu":             "model_url",       // -mu, --model-url MODEL_URL
-		"dr":             "docker_repo",     // -dr, --docker-repo
-		"hf":             "hf_repo",         // -hf, --hf-repo
-		"hfr":            "hf_repo",         // -hfr, --hf-repo
-		"hfd":            "hf_repo_draft",   // -hfd, --hf-repo-draft
-		"hfrd":           "hf_repo_draft",   // -hfrd, --hf-repo-draft
-		"hff":            "hf_file",         // -hff, --hf-file FILE
-		"hfv":            "hf_repo_v",       // -hfv, --hf-repo-v
-		"hfrv":           "hf_repo_v",       // -hfrv, --hf-repo-v
-		"hffv":           "hf_file_v",       // -hffv, --hf-file-v FILE
-		"hft":            "hf_token",        // -hft, --hf-token TOKEN
-		"v":              "verbose",         // -v, --verbose
-		"log_verbose":    "verbose",         // --log-verbose
-		"lv":             "verbosity",       // -lv, --verbosity
-		"log_verbosity":  "verbosity",       // --log-verbosity N
-		"ctkd":           "cache_type_k_draft", // -ctkd, --cache-type-k-draft TYPE
-		"ctvd":           "cache_type_v_draft", // -ctvd, --cache-type-v-draft TYPE
-
-		// Sampling params
-		"s":           "seed",             // -s, --seed SEED
-		"sampler_seq": "sampling_seq",     // --sampler-seq, --sampling-seq
-		"l":           "logit_bias",       // -l, --logit-bias
-		"j":           "json_schema",      // -j, --json-schema SCHEMA
-		"jf":          "json_schema_file", // -jf, --json-schema-file FILE
-		"bs":          "backend_sampling", // -bs, --backend-sampling
-
-		// Server-specific params
-		"swa_checkpoints":    "ctx_checkpoints",        // --swa-checkpoints N
-		"cram":               "cache_ram",              // -cram, --cache-ram N
-		"kvu":                "kv_unified",             // -kvu, --kv-unified
-		"r":                  "reverse_prompt",         // -r, --reverse-prompt
-		"sp":                 "special",                // -sp, --special
-		"np":                 "parallel",               // -np, --parallel N
-		"cb":                 "cont_batching",          // -cb, --cont-batching
-		"nocb":               "no_cont_batching",       // -nocb, --no-cont-batching
-		"mm":                 "mmproj",                 // -mm, --mmproj FILE
-		"mmu":                "mmproj_url",             // -mmu, --mmproj-url URL
-		"no_mmproj":          "no_mmproj_auto",         // --no-mmproj (alias for --no-mmproj-auto)
-		"otd":                "override_tensor_draft",  // -otd, --override-tensor-draft
-		"cmoed":              "cpu_moe_draft",          // -cmoed, --cpu-moe-draft
-		"ncmoed":             "n_cpu_moe_draft",        // -ncmoed, --n-cpu-moe-draft N
-		"a":                  "alias",                  // -a, --alias STRING
-		"embeddings":         "embedding",              // --embeddings
-		"rerank":             "reranking",              // --reranking
-		"to":                 "timeout",                // -to, --timeout N
-		"sps":                "slot_prompt_similarity", // -sps, --slot-prompt-similarity
-		"td":                 "threads_draft",          // -td, --threads-draft N
-		"tbd":                "threads_batch_draft",    // -tbd, --threads-batch-draft N
-		"draft":              "draft_max",              // --draft, --draft-max N
-		"draft_n":            "draft_max",              // --draft-n N
-		"draft_min":          "draft_min",              // --draft-min N
-		"draft_n_min":        "draft_min",              // --draft-n-min N
-		"cd":                 "ctx_size_draft",         // -cd, --ctx-size-draft N
-		"devd":               "device_draft",           // -devd, --device-draft
-		"ngld":               "gpu_layers_draft",       // -ngld, --gpu-layers-draft N
-		"n_gpu_layers_draft": "gpu_layers_draft",       // --n-gpu-layers-draft N
-		"md":                 "model_draft",            // -md, --model-draft FNAME
-		"mv":                 "model_vocoder",          // -mv, --model-vocoder FNAME
-	}
-
 	// Process alternative field names and mark them as processed
-	for altName, canonicalName := range fieldMappings {
+	for altName, canonicalName := range llamaFieldMappings {
 		processedFields[altName] = true // Mark alternatives as known
 
 		if value, exists := raw[altName]; exists {
@@ -489,6 +401,107 @@ func (o *LlamaServerOptions) BuildDockerArgs() []string {
 	return o.BuildCommandArgs()
 }
 
+// llamaFieldMappings maps alternative field names (short forms, aliases) to canonical snake_case names
+// Used for both JSON unmarshaling and command-line parsing
+var llamaFieldMappings = map[string]string{
+	// Common params
+	"t":              "threads",         // -t, --threads N
+	"tb":             "threads_batch",   // -tb, --threads-batch N
+	"C":              "cpu_mask",        // -C, --cpu-mask M
+	"Cr":             "cpu_range",       // -Cr, --cpu-range lo-hi
+	"Cb":             "cpu_mask_batch",  // -Cb, --cpu-mask-batch M
+	"Crb":            "cpu_range_batch", // -Crb, --cpu-range-batch lo-hi
+	"c":              "ctx_size",        // -c, --ctx-size N
+	"n":              "predict",         // -n, --predict N
+	"n_predict":      "predict",         // --n-predict N
+	"b":              "batch_size",      // -b, --batch-size N
+	"ub":             "ubatch_size",     // -ub, --ubatch-size N
+	"fa":             "flash_attn",      // -fa, --flash-attn
+	"e":              "escape",          // -e, --escape
+	"kvo":            "kv_offload",      // -kvo, --kv-offload
+	"nkvo":           "no_kv_offload",   // -nkvo, --no-kv-offload
+	"nr":             "no_repack",       // -nr, --no-repack
+	"ctk":            "cache_type_k",    // -ctk, --cache-type-k TYPE
+	"ctv":            "cache_type_v",    // -ctv, --cache-type-v TYPE
+	"dt":             "defrag_thold",    // -dt, --defrag-thold N
+	"dio":            "direct_io",       // -dio, --direct-io
+	"ndio":           "no_direct_io",    // -ndio, --no-direct-io
+	"dev":            "device",          // -dev, --device <dev1,dev2,..>
+	"ot":             "override_tensor", // -ot, --override-tensor
+	"cmoe":           "cpu_moe",         // -cmoe, --cpu-moe
+	"ncmoe":          "n_cpu_moe",       // -ncmoe, --n-cpu-moe N
+	"ngl":            "gpu_layers",      // -ngl, --gpu-layers N
+	"n_gpu_layers":   "gpu_layers",      // --n-gpu-layers N
+	"sm":             "split_mode",      // -sm, --split-mode
+	"ts":             "tensor_split",    // -ts, --tensor-split N0,N1,N2,...
+	"mg":             "main_gpu",        // -mg, --main-gpu INDEX
+	"fitt":           "fit_target",      // -fitt, --fit-target MiB0,MiB1,MiB2,...
+	"fitc":           "fit_ctx",         // -fitc, --fit-ctx N
+	"m":              "model",           // -m, --model FNAME
+	"mu":             "model_url",       // -mu, --model-url MODEL_URL
+	"dr":             "docker_repo",     // -dr, --docker-repo
+	"hf":             "hf_repo",         // -hf, --hf-repo
+	"hfr":            "hf_repo",         // -hfr, --hf-repo
+	"hfd":            "hf_repo_draft",   // -hfd, --hf-repo-draft
+	"hfrd":           "hf_repo_draft",   // -hfrd, --hf-repo-draft
+	"hff":            "hf_file",         // -hff, --hf-file FILE
+	"hfv":            "hf_repo_v",       // -hfv, --hf-repo-v
+	"hfrv":           "hf_repo_v",       // -hfrv, --hf-repo-v
+	"hffv":           "hf_file_v",       // -hffv, --hf-file-v FILE
+	"hft":            "hf_token",        // -hft, --hf-token TOKEN
+	"v":              "verbose",         // -v, --verbose
+	"log_verbose":    "verbose",         // --log-verbose
+	"lv":             "verbosity",       // -lv, --verbosity
+	"log_verbosity":  "verbosity",       // --log-verbosity N
+	"ctkd":           "cache_type_k_draft", // -ctkd, --cache-type-k-draft TYPE
+	"ctvd":           "cache_type_v_draft", // -ctvd, --cache-type-v-draft TYPE
+
+	// Sampling params
+	"s":           "seed",             // -s, --seed SEED
+	"sampler_seq": "sampling_seq",     // --sampler-seq, --sampling-seq
+	"l":           "logit_bias",       // -l, --logit-bias
+	"j":           "json_schema",      // -j, --json-schema SCHEMA
+	"jf":          "json_schema_file", // -jf, --json-schema-file FILE
+	"bs":          "backend_sampling", // -bs, --backend-sampling
+
+	// Server-specific params
+	"swa_checkpoints":    "ctx_checkpoints",        // --swa-checkpoints N
+	"cram":               "cache_ram",              // -cram, --cache-ram N
+	"lcs":                "lookup_cache_static",    // -lcs, --lookup-cache-static
+	"lcd":                "lookup_cache_dynamic",   // -lcd, --lookup-cache-dynamic
+	"kvu":                "kv_unified",             // -kvu, --kv-unified
+	"no_kvu":             "no_kv_unified",          // -no-kvu, --no-kv-unified
+	"r":                  "reverse_prompt",         // -r, --reverse-prompt
+	"sp":                 "special",                // -sp, --special
+	"np":                 "parallel",               // -np, --parallel N
+	"cb":                 "cont_batching",          // -cb, --cont-batching
+	"nocb":               "no_cont_batching",       // -nocb, --no-cont-batching
+	"mm":                 "mmproj",                 // -mm, --mmproj FILE
+	"mmu":                "mmproj_url",             // -mmu, --mmproj-url URL
+	"no_mmproj":          "no_mmproj_auto",         // --no-mmproj (alias for --no-mmproj-auto)
+	"otd":                "override_tensor_draft",  // -otd, --override-tensor-draft
+	"cmoed":              "cpu_moe_draft",          // -cmoed, --cpu-moe-draft
+	"ncmoed":             "n_cpu_moe_draft",        // -ncmoed, --n-cpu-moe-draft N
+	"a":                  "alias",                  // -a, --alias STRING
+	"embeddings":         "embedding",              // --embeddings
+	"rerank":             "reranking",              // --reranking
+	"to":                 "timeout",                // -to, --timeout N
+	"sps":                "slot_prompt_similarity", // -sps, --slot-prompt-similarity
+	"td":                 "threads_draft",          // -td, --threads-draft N
+	"tbd":                "threads_batch_draft",    // -tbd, --threads-batch-draft N
+	"draft":              "draft_max",              // --draft, --draft-max N
+	"draft_n":            "draft_max",              // --draft-n N
+	"draft_min":          "draft_min",              // --draft-min N
+	"draft_n_min":        "draft_min",              // --draft-n-min N
+	"cd":                 "ctx_size_draft",         // -cd, --ctx-size-draft N
+	"devd":               "device_draft",           // -devd, --device-draft
+	"ngld":               "gpu_layers_draft",       // -ngld, --gpu-layers-draft N
+	"n_gpu_layers_draft": "gpu_layers_draft",       // --n-gpu-layers-draft N
+	"md":                 "model_draft",            // -md, --model-draft FNAME
+	"mv":                 "model_vocoder",          // -mv, --model-vocoder FNAME
+	"fim_qwen_1":         "fim_qwen_1b",            // --fim-qwen-1 → fim_qwen_1b
+}
+
 // ParseCommand parses a llama-server command string into LlamaServerOptions
 // Supports multiple formats:
 // 1. Full command: "llama-server --model file.gguf"
@@ -498,10 +511,9 @@ func (o *LlamaServerOptions) BuildDockerArgs() []string {
 func (o *LlamaServerOptions) ParseCommand(command string) (any, error) {
 	executableNames := []string{"llama-server"}
 	var subcommandNames []string // Llama has no subcommands
-	// Use package-level llamaMultiValuedFlags variable
 
 	var llamaOptions LlamaServerOptions
-	if err := parseCommand(command, executableNames, subcommandNames, llamaMultiValuedFlags, &llamaOptions); err != nil {
+	if err := parseCommandWithAliases(command, executableNames, subcommandNames, llamaMultiValuedFlags, llamaFieldMappings, &llamaOptions); err != nil {
 		return nil, err
 	}
 

@@ -12,6 +12,11 @@ import (
 
 // parseCommand parses a command string into a target struct
 func parseCommand(command string, executableNames []string, subcommandNames []string, multiValuedFlags map[string]struct{}, target any) error {
+	return parseCommandWithAliases(command, executableNames, subcommandNames, multiValuedFlags, nil, target)
+}
+
+// parseCommandWithAliases parses a command string into a target struct with support for flag aliases
+func parseCommandWithAliases(command string, executableNames []string, subcommandNames []string, multiValuedFlags map[string]struct{}, flagAliases map[string]string, target any) error {
 	// Normalize multiline commands
 	command = normalizeCommand(command)
 	if command == "" {
@@ -25,7 +30,7 @@ func parseCommand(command string, executableNames []string, subcommandNames []st
 	}
 
 	// Parse flags into map
-	options, err := parseFlags(args, multiValuedFlags)
+	options, err := parseFlags(args, multiValuedFlags, flagAliases)
 	if err != nil {
 		return err
 	}
@@ -126,7 +131,7 @@ func extractArgs(command string, executableNames []string, subcommandNames []str
 }
 
 // parseFlags parses command line flags into a map
-func parseFlags(args []string, multiValuedFlags map[string]struct{}) (map[string]any, error) {
+func parseFlags(args []string, multiValuedFlags map[string]struct{}, flagAliases map[string]string) (map[string]any, error) {
 	options := make(map[string]any)
 
 	for i := 0; i < len(args); i++ {
@@ -161,6 +166,13 @@ func parseFlags(args []string, multiValuedFlags map[string]struct{}) (map[string
 
 		// Convert kebab-case to snake_case for JSON
 		flagName = strings.ReplaceAll(flagName, "-", "_")
+
+		// Check for flag aliases
+		if flagAliases != nil {
+			if canonical, exists := flagAliases[flagName]; exists {
+				flagName = canonical
+			}
+		}
 
 		if hasValue {
 			// Handle multi-valued flags

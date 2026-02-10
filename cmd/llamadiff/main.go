@@ -1,17 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"llamactl/pkg/backends"
-	"net/http"
+	"os/exec"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 )
-
-const readmeURL = "https://raw.githubusercontent.com/ggml-org/llama.cpp/refs/heads/master/tools/server/README.md"
 
 type FlagInfo struct {
 	Flag        string
@@ -19,25 +16,45 @@ type FlagInfo struct {
 	EnvVar      string
 }
 
+// Utility flags that are not expected to be in the struct
+var utilityFlags = map[string]bool{
+	"-h":               true,
+	"--help":           true,
+	"--usage":          true,
+	"--version":        true,
+	"--license":        true,
+	"-cl":              true,
+	"--cache-list":     true,
+	"--completion-bash": true,
+	"--list-devices":   true,
+}
+
 func main() {
-	// Fetch README from GitHub
-	fmt.Println("Fetching README from llama.cpp repository...")
-	readmeContent, err := fetchREADME(readmeURL)
+	// Run llama-server --help to get all flags
+	fmt.Println("Running llama-server --help to extract flags...")
+	helpOutput, err := runLlamaServerHelp()
 	if err != nil {
-		fmt.Printf("Error fetching README: %v\n", err)
+		fmt.Printf("Error running llama-server --help: %v\n", err)
 		return
 	}
 
-	// Parse README to extract all flags
-	flags := parseREADMEFlags(readmeContent)
-	fmt.Printf("Found %d flags in README\n\n", len(flags))
+	// Parse help output to extract all flags
+	flags := parseHelpFlags(helpOutput)
+	fmt.Printf("Found %d flags in llama-server --help\n\n", len(flags))
 
 	// Test each flag with the actual parser
 	var missing []FlagInfo
 	var working []string
+	var ignored []string
 	fieldToFlags := make(map[string][]string) // Track which flags set which fields
 
 	for _, flag := range flags {
+		// Skip utility flags
+		if utilityFlags[flag.Flag] {
+			ignored = append(ignored, flag.Flag)
+			continue
+		}
+
 		fieldName, ok := testFlagAndGetField(flag.Flag)
 		if ok {
 			working = append(working, flag.Flag)
@@ -83,95 +100,55 @@ func main() {
 	fmt.Printf("Total flags: %d\n", len(flags))
 	fmt.Printf("Working: %d\n", len(working))
 	fmt.Printf("Missing: %d\n", len(missing))
+	fmt.Printf("Ignored (utility): %d\n", len(ignored))
 	fmt.Printf("Conflicts: %d\n", len(conflicts))
 }
 
-func fetchREADME(url string) (string, error) {
-	resp, err := http.Get(url)
+func runLlamaServerHelp() (string, error) {
+	cmd := exec.Command("llama-server", "--help")
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("HTTP request failed: %w", err)
+		// llama-server --help may return non-zero exit code, but we still get output
+		if len(output) == 0 {
+			return "", fmt.Errorf("failed to run llama-server --help: %w", err)
+		}
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("HTTP request failed with status: %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	return string(body), nil
+	return string(output), nil
 }
 
-func parseREADMEFlags(content string) []FlagInfo {
+func parseHelpFlags(content string) []FlagInfo {
+	// Match any flag: one or two dashes followed by alphanumeric/dash characters
+	// Must start with a letter after the dash(es) to avoid matching things like -1, -2
+	// Must be preceded by whitespace or start of line to avoid matching mid-word dashes
+	flagPattern := regexp.MustCompile(`(?m)(?:^|\s)(-{1,2}[a-zA-Z][-a-zA-Z0-9]*)`)
+
+	// Find all flags in the entire output
+	allMatches := flagPattern.FindAllStringSubmatch(content, -1)
+
+	// Deduplicate and filter
+	seen := make(map[string]bool)
 	var flags []FlagInfo
-	scanner := bufio.NewScanner(strings.NewReader(content))
-	inTable := false
 
-	flagRowPattern := regexp.MustCompile(`^\|\s*\x60([^\x60]+)\x60\s*\|`)
-	envVarPattern := regexp.MustCompile(`\(env:\s*([A-Z_]+)\)`)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if strings.Contains(line, "| Argument | Explanation |") {
-			inTable = true
+	for _, match := range allMatches {
+		if len(match) < 2 {
 			continue
 		}
-		if inTable && strings.HasPrefix(line, "##") {
-			inTable = false
+		flag := match[1] // Extract the captured flag (group 1)
+
+		// Skip if already seen
+		if seen[flag] {
 			continue
 		}
 
-		if !inTable {
+		// Skip separator lines (just dashes)
+		if regexp.MustCompile(`^-+$`).MatchString(flag) {
 			continue
 		}
 
-		matches := flagRowPattern.FindStringSubmatch(line)
-		if len(matches) < 2 {
-			continue
-		}
-
-		flagText := matches[1]
-		flagParts := strings.Split(flagText, ",")
-
-		// Extract environment variable
-		envMatches := envVarPattern.FindStringSubmatch(line)
-		var envVar string
-		if len(envMatches) > 1 {
-			envVar = envMatches[1]
-		}
-
-		// Extract all flag variations (short and long)
-		for _, part := range flagParts {
-			part = strings.TrimSpace(part)
-
-			// Skip if it's just a value placeholder or description
-			if !strings.HasPrefix(part, "-") {
-				continue
-			}
-
-			// Extract just the flag name (remove value placeholders)
-			flag := strings.Fields(part)[0]
-
-			// Skip if we already have this flag
-			exists := false
-			for _, f := range flags {
-				if f.Flag == flag {
-					exists = true
-					break
-				}
-			}
-			if !exists {
-				flags = append(flags, FlagInfo{
-					Flag:        flag,
-					Description: flagText,
-					EnvVar:      envVar,
-				})
-			}
-		}
+		seen[flag] = true
+		flags = append(flags, FlagInfo{
+			Flag: flag,
+		})
 	}
 
 	return flags
@@ -180,13 +157,13 @@ func parseREADMEFlags(content string) []FlagInfo {
 func testFlagAndGetField(flag string) (string, bool) {
 	// Try parsing with different value types
 	testValues := []string{
-		"",           // Boolean flag (no value)
-		"1",          // Integer
-		"0.5",        // Float
-		"test",       // String
-		"/tmp/test",  // Path/file
-		"localhost",  // Hostname
-		"auto",       // Enum-like
+		"",          // Boolean flag (no value)
+		"1",         // Integer
+		"0.5",       // Float
+		"test",      // String
+		"/tmp/test", // Path/file
+		"localhost", // Hostname
+		"auto",      // Enum-like
 	}
 
 	for _, value := range testValues {
@@ -200,11 +177,19 @@ func testFlagAndGetField(flag string) (string, bool) {
 			testCommand = fmt.Sprintf("llama-server %s %s", flag, value)
 		}
 
-		_, err := opts.ParseCommand(testCommand)
-		if err == nil {
-			// Find which field changed
-			fieldName := findChangedField(baseline, opts)
-			return fieldName, true
+		result, err := opts.ParseCommand(testCommand)
+		if err == nil && result != nil {
+			// ParseCommand returns a new struct with parsed values
+			// Convert result to *LlamaServerOptions
+			if parsedOpts, ok := result.(*backends.LlamaServerOptions); ok {
+				// Find which field changed
+				fieldName := findChangedField(baseline, parsedOpts)
+				// Only consider it working if it actually set a real struct field
+				// Flags that only go into ExtraArgs are not properly supported
+				if fieldName != "" && fieldName != "ExtraArgs" {
+					return fieldName, true
+				}
+			}
 		}
 	}
 
@@ -255,14 +240,11 @@ func findConflicts(fieldToFlags map[string][]string) []Conflict {
 		for _, flag := range flags {
 			if strings.HasPrefix(flag, "--no-") {
 				hasNegative = true
-			} else if strings.HasPrefix(flag, "--") {
+			} else if after, ok := strings.CutPrefix(flag, "--"); ok {
 				// Check if this flag has a corresponding --no- version in the list
-				noFlag := "--no-" + strings.TrimPrefix(flag, "--")
-				for _, f := range flags {
-					if f == noFlag {
-						hasPositive = true
-						break
-					}
+				noFlag := "--no-" + after
+				if slices.Contains(flags, noFlag) {
+					hasPositive = true
 				}
 			}
 		}
