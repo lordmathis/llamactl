@@ -22,7 +22,7 @@ var llamaMultiValuedFlags = map[string]struct{}{
 }
 
 type LlamaServerOptions struct {
-	// Common params (ordered as in llama-cpp.md)
+	// Common params
 	VerbosePrompt    bool    `json:"verbose_prompt,omitempty"`
 	Threads          int     `json:"threads,omitempty"`         // -t, --threads N
 	ThreadsBatch     int     `json:"threads_batch,omitempty"`   // -tb, --threads-batch N
@@ -110,7 +110,7 @@ type LlamaServerOptions struct {
 	CacheTypeKDraft         string   `json:"cache_type_k_draft,omitempty"`         // -ctkd, --cache-type-k-draft TYPE
 	CacheTypeVDraft         string   `json:"cache_type_v_draft,omitempty"`         // -ctvd, --cache-type-v-draft TYPE
 
-	// Sampling params (ordered as in llama-cpp.md)
+	// Sampling params
 	Samplers         string   `json:"samplers,omitempty"`          // --samplers SAMPLERS
 	Seed             int      `json:"seed,omitempty"`              // -s, --seed SEED
 	SamplingSeq      string   `json:"sampling_seq,omitempty"`      // --sampler-seq, --sampling-seq SEQUENCE
@@ -146,7 +146,7 @@ type LlamaServerOptions struct {
 	JSONSchemaFile     string   `json:"json_schema_file,omitempty"`     // -jf, --json-schema-file FILE
 	BackendSampling    bool     `json:"backend_sampling,omitempty"`     // -bs, --backend-sampling
 
-	// Server-specific params (ordered as in llama-cpp.md)
+	// Server-specific params
 	CtxCheckpoints       int      `json:"ctx_checkpoints,omitempty"`        // --ctx-checkpoints, --swa-checkpoints N
 	CacheRAM             int      `json:"cache_ram,omitempty"`              // -cram, --cache-ram N
 	LookupCacheStatic    bool     `json:"lookup_cache_static,omitempty"`    // -lcs, --lookup-cache-static
@@ -237,7 +237,7 @@ type LlamaServerOptions struct {
 	ModelVocoder         string   `json:"model_vocoder,omitempty"`      // -mv, --model-vocoder FNAME
 	TTSUseGuideTokens    bool     `json:"tts_use_guide_tokens,omitempty"`
 
-	// Default model params (ordered as in llama-cpp.md)
+	// Default model params
 	EmbdGemmaDefault      bool `json:"embd_gemma_default,omitempty"`       // --embd-gemma-default
 	FIMQwen1B             bool `json:"fim_qwen_1b,omitempty"`              // --fim-qwen-1
 	FIMQwen1_5BDefault    bool `json:"fim_qwen_1_5b_default,omitempty"`    // --fim-qwen-1.5b-default
