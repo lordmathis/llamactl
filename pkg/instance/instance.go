@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"llamactl/pkg/backends"
@@ -81,9 +83,33 @@ func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusCha
 			logRotationConfig,
 		)
 		instance.process = newProcess(instance)
+
+		if err := writePresetIni(name, opts, globalInstanceSettings.InstancesDir); err != nil {
+			log.Printf("Warning: Failed to write preset.ini for instance %s: %v", name, err)
+		}
 	}
 
 	return instance
+}
+
+// writePresetIni writes the preset.ini file if provided in options and updates models_preset
+func writePresetIni(name string, opts *Options, instancesDir string) error {
+	if opts == nil || opts.PresetIni == nil || *opts.PresetIni == "" {
+		return nil
+	}
+
+	instanceDir := filepath.Join(instancesDir, name)
+	if err := os.MkdirAll(instanceDir, 0755); err != nil {
+		return fmt.Errorf("failed to create instance directory: %w", err)
+	}
+
+	presetPath := filepath.Join(instanceDir, "preset.ini")
+	if err := os.WriteFile(presetPath, []byte(*opts.PresetIni), 0644); err != nil {
+		return fmt.Errorf("failed to write preset.ini: %w", err)
+	}
+
+	log.Printf("Wrote preset.ini for instance %s at %s", name, presetPath)
+	return nil
 }
 
 // Start starts the instance
@@ -285,7 +311,21 @@ func (i *Instance) buildCommandArgs() []string {
 		return nil
 	}
 
-	return opts.BackendOptions.BuildCommandArgs(i.globalBackendSettings, opts.DockerEnabled)
+	args := opts.BackendOptions.BuildCommandArgs(i.globalBackendSettings, opts.DockerEnabled)
+
+	// Add --models-preset flag if preset.ini exists and models_preset is not set
+	// This handles router mode without auto-setting the backend options
+	if opts.BackendOptions.BackendType == backends.BackendTypeLlamaCpp &&
+		opts.PresetIni != nil && *opts.PresetIni != "" &&
+		opts.BackendOptions.LlamaServerOptions != nil &&
+		opts.BackendOptions.LlamaServerOptions.ModelsPreset == "" {
+
+		presetPath := filepath.Join(i.globalInstanceSettings.InstancesDir, i.Name, "preset.ini")
+		args = append(args, "--models-preset", presetPath)
+		log.Printf("Adding --models-preset %s to command for instance %s", presetPath, i.Name)
+	}
+
+	return args
 }
 
 func (i *Instance) buildEnvironment() map[string]string {

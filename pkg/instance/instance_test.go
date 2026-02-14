@@ -6,6 +6,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/testutil"
+	"os"
 	"testing"
 	"time"
 )
@@ -643,4 +644,82 @@ type mockTimeProvider struct {
 
 func (m *mockTimeProvider) Now() time.Time {
 	return time.Unix(m.currentTime, 0)
+}
+
+func TestWritePresetIni(t *testing.T) {
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{
+				Command: "llama-server",
+				Args:    []string{},
+			},
+			MLX: config.BackendSettings{
+				Command: "mlx_lm.server",
+				Args:    []string{},
+			},
+			VLLM: config.BackendSettings{
+				Command: "vllm",
+				Args:    []string{"serve"},
+			},
+		},
+		Instances: config.InstancesConfig{
+			LogsDir:             "/tmp/test-logs",
+			InstancesDir:        "/tmp/test-instances",
+			DefaultAutoRestart:  true,
+			DefaultMaxRestarts:  3,
+			DefaultRestartDelay: 5,
+		},
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
+	}
+
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
+
+	t.Run("preset_ini with content creates file", func(t *testing.T) {
+		presetContent := "[model1]\nmodel = /path/to/model1.gguf\ngpu-layers = 35\n"
+		options := &instance.Options{
+			PresetIni: &presetContent,
+			BackendOptions: backends.Options{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &backends.LlamaServerOptions{
+					Model: "/path/to/model.gguf",
+					Port:  8080,
+				},
+			},
+		}
+
+		_ = instance.New("test-preset", globalConfig, options, mockOnStatusChange)
+
+		// Verify preset.ini file was created
+		presetPath := "/tmp/test-instances/test-preset/preset.ini"
+		content, err := os.ReadFile(presetPath)
+		if err != nil {
+			t.Fatalf("Failed to read preset.ini file: %v", err)
+		}
+		if string(content) != presetContent {
+			t.Errorf("Expected preset content '%s', got '%s'", presetContent, string(content))
+		}
+	})
+
+	t.Run("empty preset_ini does not create file", func(t *testing.T) {
+		emptyPreset := ""
+		options := &instance.Options{
+			PresetIni: &emptyPreset,
+			BackendOptions: backends.Options{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &backends.LlamaServerOptions{
+					Model: "/path/to/model.gguf",
+					Port:  8080,
+				},
+			},
+		}
+
+		_ = instance.New("test-empty", globalConfig, options, mockOnStatusChange)
+
+		// Verify preset.ini file was NOT created
+		presetPath := "/tmp/test-instances/test-empty/preset.ini"
+		if _, err := os.Stat(presetPath); err == nil {
+			t.Error("Expected preset.ini file to NOT exist when preset_ini is empty, but it does")
+		}
+	})
 }

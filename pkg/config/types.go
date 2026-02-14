@@ -116,6 +116,9 @@ type InstancesConfig struct {
 	// Logs directory override (relative to data_dir if not absolute)
 	LogsDir string `yaml:"logs_dir" json:"logs_dir"`
 
+	// Instances directory for instance working directories (preset.ini, etc.)
+	InstancesDir string `yaml:"instances_dir" json:"instances_dir"`
+
 	// Log rotation enabled
 	LogRotationEnabled bool `yaml:"log_rotation_enabled" default:"true"`
 

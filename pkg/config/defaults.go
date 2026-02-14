@@ -67,6 +67,7 @@ func getDefaultConfig(dataDir string) AppConfig {
 			OnDemandStartTimeout: 120, // 2 minutes
 			TimeoutCheckInterval: 5,   // Check timeouts every 5 minutes
 			LogsDir:              "",  // Will be set to data_dir/logs if empty
+			InstancesDir:         "",  // Will be set to data_dir/instances if empty
 			LogRotationEnabled:   true,
 			LogRotationMaxSize:   100,
 			LogRotationCompress:  false,

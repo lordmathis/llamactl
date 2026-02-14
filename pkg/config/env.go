@@ -34,6 +34,9 @@ func loadEnvVars(cfg *AppConfig) {
 	if logsDir := os.Getenv("LLAMACTL_LOGS_DIR"); logsDir != "" {
 		cfg.Instances.LogsDir = logsDir
 	}
+	if instancesDir := os.Getenv("LLAMACTL_INSTANCES_DIR"); instancesDir != "" {
+		cfg.Instances.InstancesDir = instancesDir
+	}
 	if autoCreate := os.Getenv("LLAMACTL_AUTO_CREATE_DATA_DIR"); autoCreate != "" {
 		if b, err := strconv.ParseBool(autoCreate); err == nil {
 			cfg.Instances.AutoCreateDirs = b
