@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import SelectInput from '@/components/form/SelectInput'
 import { useModels } from '@/contexts/ModelsContext'
+import { nodesApi, type NodesMap } from '@/lib/api'
 
 interface DownloadDialogProps {
   open: boolean
@@ -21,7 +23,32 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
   const [model, setModel] = useState('')
   const [modelError, setModelError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [nodes, setNodes] = useState<NodesMap>({})
+  const [loadingNodes, setLoadingNodes] = useState(true)
+  const [selectedNode, setSelectedNode] = useState<string>('')
   const { startDownload } = useModels()
+
+  useEffect(() => {
+    const fetchNodes = async () => {
+      try {
+        const fetchedNodes = await nodesApi.list()
+        setNodes(fetchedNodes)
+
+        const nodeNames = Object.keys(fetchedNodes)
+        if (nodeNames.length > 0 && !selectedNode) {
+          setSelectedNode(nodeNames[0])
+        } else if (nodeNames.length === 0) {
+          setSelectedNode('')
+        }
+      } catch (error) {
+        console.error('Failed to fetch nodes:', error)
+      } finally {
+        setLoadingNodes(false)
+      }
+    }
+
+    void fetchNodes()
+  }, [open, selectedNode])
 
   const validateModel = (value: string): boolean => {
     if (!value) {
@@ -48,7 +75,7 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
       const repo = colonIdx !== -1 ? model.substring(0, colonIdx) : model
       const tag = colonIdx !== -1 ? model.substring(colonIdx + 1) : undefined
 
-      await startDownload(repo, tag)
+      await startDownload(repo, tag, selectedNode || undefined)
       onOpenChange(false)
       // Reset form
       setModel('')
@@ -68,6 +95,11 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
     setModelError('')
   }
 
+  const nodeOptions = Object.keys(nodes).map(nodeName => ({
+    value: nodeName,
+    label: nodeName
+  }))
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -80,6 +112,18 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {!loadingNodes && Object.keys(nodes).length > 0 && (
+              <SelectInput
+                id="node"
+                label="Node"
+                value={selectedNode}
+                onChange={setSelectedNode}
+                options={nodeOptions}
+                description="Select the node where the model will be downloaded"
+                disabled={isSubmitting}
+              />
+            )}
+
             <div>
               <Label htmlFor="model">Model *</Label>
               <Input

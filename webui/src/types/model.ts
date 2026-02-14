@@ -14,6 +14,7 @@ export interface DownloadJob {
 }
 
 export interface CachedModel {
+  node: string
   repo: string
   tag: string
   files: ModelFile[]
