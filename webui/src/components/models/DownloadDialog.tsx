@@ -25,7 +25,7 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [nodes, setNodes] = useState<NodesMap>({})
   const [loadingNodes, setLoadingNodes] = useState(true)
-  const [selectedNode, setSelectedNode] = useState<string>('')
+  const [selectedNode, setSelectedNode] = useState<string | undefined>(undefined)
   const { startDownload } = useModels()
 
   useEffect(() => {
@@ -35,10 +35,13 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
         setNodes(fetchedNodes)
 
         const nodeNames = Object.keys(fetchedNodes)
-        if (nodeNames.length > 0 && !selectedNode) {
-          setSelectedNode(nodeNames[0])
-        } else if (nodeNames.length === 0) {
-          setSelectedNode('')
+        if (nodeNames.length > 0) {
+          if (!selectedNode || !nodeNames.includes(selectedNode)) {
+            setSelectedNode(nodeNames[0])
+          }
+        } else if (selectedNode) {
+          // Clear node selection if nodes list becomes empty
+          setSelectedNode(undefined)
         }
       } catch (error) {
         console.error('Failed to fetch nodes:', error)
@@ -75,7 +78,7 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
       const repo = colonIdx !== -1 ? model.substring(0, colonIdx) : model
       const tag = colonIdx !== -1 ? model.substring(colonIdx + 1) : undefined
 
-      await startDownload(repo, tag, selectedNode || undefined)
+      await startDownload(repo, tag, selectedNode)
       onOpenChange(false)
       // Reset form
       setModel('')
