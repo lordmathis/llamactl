@@ -9,6 +9,7 @@ import CheckboxInput from '@/components/form/CheckboxInput'
 import TextInput from '@/components/form/TextInput'
 import EnvVarsInput from '@/components/form/EnvVarsInput'
 import { useBackendSettings } from '@/hooks/useConfig'
+import PresetDialog from './PresetDialog'
 
 interface BackendTabProps {
   formData: CreateInstanceOptions
@@ -24,6 +25,7 @@ const BackendTab: React.FC<BackendTabProps> = ({
   onParseCommand
 }) => {
   const [showExecutionContext, setShowExecutionContext] = useState(false)
+  const [showPresetDialog, setShowPresetDialog] = useState(false)
   const backendSettings = useBackendSettings(formData.backend_type)
   const basicBackendFields = getBasicBackendFields(formData.backend_type)
 
@@ -143,9 +145,20 @@ const BackendTab: React.FC<BackendTabProps> = ({
               fieldKey={fieldKey}
               value={(formData.backend_options as Record<string, unknown>)?.[fieldKey] as string | number | boolean | string[] | undefined}
               onChange={onBackendFieldChange}
+              formData={formData}
+              onOpenPresetDialog={fieldKey === 'models_preset' ? () => setShowPresetDialog(true) : undefined}
             />
           ))}
         </div>
+      )}
+
+      {formData.backend_type === BackendType.LLAMA_CPP && (
+        <PresetDialog
+          open={showPresetDialog}
+          onOpenChange={setShowPresetDialog}
+          formData={formData}
+          onChange={onChange}
+        />
       )}
     </div>
   )

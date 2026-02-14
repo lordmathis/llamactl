@@ -1,17 +1,69 @@
 import React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FileCode } from 'lucide-react'
 import { getBackendFieldType, basicBackendFieldsConfig } from '@/lib/zodFormUtils'
 import ExtraArgsInput from '@/components/form/ExtraArgsInput'
+import type { CreateInstanceOptions } from '@/schemas/instanceOptions'
 
 interface BackendFormFieldProps {
   fieldKey: string
   value: string | number | boolean | string[] | Record<string, string> | undefined
   onChange: (key: string, value: string | number | boolean | string[] | Record<string, string> | undefined) => void
+  formData?: CreateInstanceOptions
+  onOpenPresetDialog?: () => void
 }
 
-const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, onChange }) => {
+const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, onChange, formData, onOpenPresetDialog }) => {
+  // Special handling for models_preset field
+  if (fieldKey === 'models_preset') {
+    const hasPresetContent = formData?.preset_ini && formData.preset_ini.trim().length > 0
+    const isCustomPath = value && value.toString().trim().length > 0
+
+    let helpText = 'Optional: Path to preset.ini for router mode'
+    let badge = null
+
+    if (!isCustomPath && hasPresetContent) {
+      helpText = 'Will be auto-set to the preset.ini created in Preset Editor'
+      badge = <Badge variant="secondary" className="ml-2">Auto</Badge>
+    } else if (isCustomPath) {
+      badge = <Badge variant="outline" className="ml-2">Custom</Badge>
+    }
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Label htmlFor={fieldKey}>Models Preset Path</Label>
+            {badge}
+          </div>
+          {onOpenPresetDialog && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onOpenPresetDialog}
+              className="flex items-center gap-2"
+            >
+              <FileCode className="h-4 w-4" />
+              Edit Preset
+            </Button>
+          )}
+        </div>
+        <Input
+          id={fieldKey}
+          value={value?.toString() || ''}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+          placeholder="/path/to/preset.ini"
+        />
+        <p className="text-sm text-muted-foreground">{helpText}</p>
+      </div>
+    )
+  }
+
   // Special handling for extra_args
   if (fieldKey === 'extra_args') {
     return (

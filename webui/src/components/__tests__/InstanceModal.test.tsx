@@ -498,6 +498,89 @@ afterEach(() => {
 
       await user.type(screen.getByLabelText(/Instance Name/), 'test')
 
+      // Navigate to advanced tab where the save button is
+      const advancedTab = screen.getByRole('tab', { name: /Advanced/i })
+      await user.click(advancedTab)
+
+      await user.click(screen.getByTestId('dialog-save-button'))
+
+      expect(mockOnSave).toHaveBeenCalled()
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false)
+    })
+  })
+
+  describe('Preset Configuration', () => {
+    it('includes preset_ini in form submission when provided', async () => {
+      const user = userEvent.setup()
+
+      render(
+        <InstanceDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          onSave={mockOnSave}
+        />
+      )
+
+      await user.type(screen.getByLabelText(/Instance Name/), 'preset-instance')
+
+      // Navigate to Preset tab (only visible for llama.cpp backend)
+      const presetTab = screen.getByRole('tab', { name: /Preset/i })
+      await user.click(presetTab)
+
+      // Type preset content
+      const presetTextarea = screen.getByPlaceholderText(/Edit your preset.ini file here/)
+      await user.type(presetTextarea, '[model1]\nmodel = /path/to/model.gguf\n')
+
+      // Navigate to advanced tab where the save button is
+      const advancedTab = screen.getByRole('tab', { name: /Advanced/i })
+      await user.click(advancedTab)
+
+      await user.click(screen.getByTestId('dialog-save-button'))
+
+      expect(mockOnSave).toHaveBeenCalledWith('preset-instance', expect.objectContaining({
+        preset_ini: '[model1]\nmodel = /path/to/model.gguf\n'
+      }))
+    })
+
+    it('does not include preset_ini when empty', async () => {
+      const user = userEvent.setup()
+
+      render(
+        <InstanceDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          onSave={mockOnSave}
+        />
+      )
+
+      await user.type(screen.getByLabelText(/Instance Name/), 'no-preset-instance')
+
+      // Navigate to advanced tab where the save button is
+      const advancedTab = screen.getByRole('tab', { name: /Advanced/i })
+      await user.click(advancedTab)
+
+      await user.click(screen.getByTestId('dialog-save-button'))
+
+      expect(mockOnSave).toHaveBeenCalledWith('no-preset-instance', expect.not.objectContaining({
+        preset_ini: expect.anything()
+      }))
+    })
+  })
+})
+
+    it('calls onOpenChange after successful save', async () => {
+      const user = userEvent.setup()
+
+      render(
+        <InstanceDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          onSave={mockOnSave}
+        />
+      )
+
+      await user.type(screen.getByLabelText(/Instance Name/), 'test')
+
       // Navigate to the advanced tab where the save button is
       const advancedTab = screen.getByRole('tab', { name: /Advanced/i })
       await user.click(advancedTab)

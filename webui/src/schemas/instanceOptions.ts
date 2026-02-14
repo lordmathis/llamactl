@@ -46,6 +46,9 @@ export const CreateInstanceOptionsSchema = z.object({
 
   // Node configuration
   nodes: z.array(z.string()).optional(),
+
+  // Preset configuration
+  preset_ini: z.string().optional(),
 })
 
 // Re-export types and schemas from backend files
