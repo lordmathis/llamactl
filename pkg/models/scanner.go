@@ -10,6 +10,7 @@ import (
 )
 
 type CachedModel struct {
+	Node      string `json:"node"`
 	Repo      string `json:"repo"`
 	Tag       string `json:"tag,omitempty"`
 	Files     []File `json:"files"`
@@ -25,7 +26,7 @@ type File struct {
 
 var splitFilePattern = regexp.MustCompile(`-\d{5}-of-(\d{5})\.gguf$`)
 
-func ScanCache(cacheDir string) ([]CachedModel, error) {
+func ScanCache(cacheDir, nodeName string) ([]CachedModel, error) {
 	var models []CachedModel = []CachedModel{}
 
 	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
@@ -64,7 +65,7 @@ func ScanCache(cacheDir string) ([]CachedModel, error) {
 			continue
 		}
 
-		cachedModel := buildCachedModel(repo, tag, manifest, fileManager)
+		cachedModel := buildCachedModel(repo, tag, nodeName, manifest, fileManager)
 
 		// Only include models that have at least one file
 		if len(cachedModel.Files) > 0 {
@@ -89,8 +90,9 @@ func readManifest(path string) (*Manifest, error) {
 	return &manifest, nil
 }
 
-func buildCachedModel(repo, tag string, manifest *Manifest, fm *FileManager) CachedModel {
+func buildCachedModel(repo, tag, nodeName string, manifest *Manifest, fm *FileManager) CachedModel {
 	model := CachedModel{
+		Node:  nodeName,
 		Repo:  repo,
 		Tag:   tag,
 		Files: []File{},
@@ -233,12 +235,12 @@ func parseSplitCount(filename string) (int, error) {
 	return 1, nil
 }
 
-func (m *Manager) ListCached() ([]CachedModel, error) {
-	return ScanCache(m.cacheDir)
+func (m *Manager) ListCached(nodeName string) ([]CachedModel, error) {
+	return ScanCache(m.cacheDir, nodeName)
 }
 
 func (m *Manager) DeleteModel(repo, tag string) error {
-	models, err := m.ListCached()
+	models, err := m.ListCached("")
 	if err != nil {
 		return err
 	}

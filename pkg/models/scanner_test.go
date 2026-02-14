@@ -164,7 +164,7 @@ func TestScanCache(t *testing.T) {
 	}
 
 	// Scan cache
-	models, err := ScanCache(tmpDir)
+	models, err := ScanCache(tmpDir, "test-node")
 	if err != nil {
 		t.Fatalf("ScanCache failed: %v", err)
 	}
@@ -175,6 +175,10 @@ func TestScanCache(t *testing.T) {
 	}
 
 	model := models[0]
+	if model.Node != "test-node" {
+		t.Errorf("node = %q, want %q", model.Node, "test-node")
+	}
+
 	if model.Repo != "bartowski/Llama-3.2-3B-GGUF" {
 		t.Errorf("repo = %q, want %q", model.Repo, "bartowski/Llama-3.2-3B-GGUF")
 	}
@@ -239,7 +243,7 @@ func TestScanCache_WithSplitFiles(t *testing.T) {
 	}
 
 	// Scan cache
-	models, err := ScanCache(tmpDir)
+	models, err := ScanCache(tmpDir, "test-node")
 	if err != nil {
 		t.Fatalf("ScanCache failed: %v", err)
 	}
@@ -249,6 +253,10 @@ func TestScanCache_WithSplitFiles(t *testing.T) {
 	}
 
 	model := models[0]
+	if model.Node != "test-node" {
+		t.Errorf("node = %q, want %q", model.Node, "test-node")
+	}
+
 	if len(model.Files) != 3 {
 		t.Errorf("expected 3 split files, got %d", len(model.Files))
 	}
@@ -262,7 +270,7 @@ func TestScanCache_WithSplitFiles(t *testing.T) {
 }
 
 func TestScanCache_NonexistentDirectory(t *testing.T) {
-	models, err := ScanCache("/nonexistent/path/12345")
+	models, err := ScanCache("/nonexistent/path/12345", "test-node")
 	if err != nil {
 		t.Errorf("expected no error for nonexistent directory, got %v", err)
 	}
@@ -289,7 +297,7 @@ func TestScanCache_IgnoresModelsWithoutFiles(t *testing.T) {
 	}
 
 	// Scan cache
-	models, err := ScanCache(tmpDir)
+	models, err := ScanCache(tmpDir, "test-node")
 	if err != nil {
 		t.Fatalf("ScanCache failed: %v", err)
 	}

@@ -2,8 +2,12 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	"llamactl/pkg/config"
 	"llamactl/pkg/models"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -38,6 +42,34 @@ type ListJobsResponse struct {
 	Jobs []JobResponse `json:"jobs"`
 }
 
+// forwardToNode forwards an HTTP request to a remote node
+func (h *Handler) forwardToNode(nodeName string, w http.ResponseWriter, r *http.Request) bool {
+	node, exists := h.cfg.Nodes[nodeName]
+	if !exists {
+		writeError(w, http.StatusNotFound, "node_not_found", "Node not found")
+		return false
+	}
+
+	targetURL, err := url.Parse(node.Address)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "invalid_node_address", "Failed to parse node address")
+		return false
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		if node.APIKey != "" {
+			req.Header.Set("Authorization", "Bearer "+node.APIKey)
+		}
+	}
+
+	proxy.ServeHTTP(w, r)
+	return true
+}
+
 // DownloadModel godoc
 // @Summary Download a model from a repository
 // @Description Initiates the download of a model from a specified repository and tag. Returns a job ID to track progress.
@@ -45,13 +77,23 @@ type ListJobsResponse struct {
 // @Security ApiKeyAuth
 // @Accept json
 // @Produce json
+// @Param node query string false "Node name to forward the request to"
 // @Param request body DownloadRequest true "Download request"
 // @Success 202 {object} DownloadResponse "Download initiated"
 // @Failure 400 {string} string "Invalid request"
+// @Failure 404 {string} string "Node not found"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/backends/llama-cpp/models/download [post]
 func (h *Handler) DownloadModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		nodeName := r.URL.Query().Get("node")
+		if nodeName != "" {
+			if h.forwardToNode(nodeName, w, r) {
+				return
+			}
+			return
+		}
+
 		var req DownloadRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_request", "Failed to parse request body")
@@ -94,23 +136,95 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 
 // ListModels godoc
 // @Summary List cached models
-// @Description Returns a list of all models currently cached on the server
+// @Description Returns a list of all models currently cached on the server. If node parameter is specified, only returns models from that node. If no node is specified, returns models from all nodes aggregated.
 // @Tags Models
 // @Security ApiKeyAuth
 // @Produce json
-// @Success 200 {array} string "List of cached models"
+// @Param node query string false "Node name to query (if not specified, queries all nodes)"
+// @Success 200 {object} []models.CachedModel "List of cached models from the specified node or aggregated from all nodes"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/backends/llama-cpp/models [get]
 func (h *Handler) ListModels() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		models, err := h.modelManager.ListCached()
+		nodeName := r.URL.Query().Get("node")
+
+		if nodeName != "" {
+			if h.forwardToNode(nodeName, w, r) {
+				return
+			}
+			return
+		}
+
+		var allModels []models.CachedModel
+
+		localNodeName := h.cfg.LocalNode
+		if localNodeName == "" {
+			localNodeName = "local"
+		}
+
+		localModels, err := h.modelManager.ListCached(localNodeName)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "scan_failed", err.Error())
 			return
 		}
 
-		writeJSON(w, http.StatusOK, models)
+		allModels = append(allModels, localModels...)
+
+		for name, node := range h.cfg.Nodes {
+			if name == h.cfg.LocalNode {
+				continue
+			}
+
+			nodeModels, err := h.fetchModelsFromNode(node, name)
+			if err != nil {
+				continue
+			}
+
+			allModels = append(allModels, nodeModels...)
+		}
+
+		writeJSON(w, http.StatusOK, allModels)
 	}
+}
+
+func (h *Handler) fetchModelsFromNode(node config.NodeConfig, nodeName string) ([]models.CachedModel, error) {
+	targetURL, err := url.Parse(node.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	reqURL := targetURL.JoinPath("/api/v1/backends/llama-cpp/models")
+	req, err := http.NewRequest("GET", reqURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if node.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+node.APIKey)
+	}
+
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var models []models.CachedModel
+	if err := json.NewDecoder(resp.Body).Decode(&models); err != nil {
+		return nil, err
+	}
+
+	for i := range models {
+		if models[i].Node == "" {
+			models[i].Node = nodeName
+		}
+	}
+
+	return models, nil
 }
 
 // DeleteModel godoc
@@ -118,6 +232,7 @@ func (h *Handler) ListModels() http.HandlerFunc {
 // @Description Deletes a cached model by its repository and optional tag
 // @Tags Models
 // @Security ApiKeyAuth
+// @Param node query string false "Node name to forward the request to"
 // @Param repo query string true "Repository"
 // @Param tag query string false "Tag"
 // @Success 204 "No Content"
@@ -127,6 +242,14 @@ func (h *Handler) ListModels() http.HandlerFunc {
 // @Router /api/v1/backends/llama-cpp/models [delete]
 func (h *Handler) DeleteModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		nodeName := r.URL.Query().Get("node")
+		if nodeName != "" {
+			if h.forwardToNode(nodeName, w, r) {
+				return
+			}
+			return
+		}
+
 		repo := r.URL.Query().Get("repo")
 		if repo == "" {
 			writeError(w, http.StatusBadRequest, "invalid_request", "repo is required")
@@ -155,6 +278,7 @@ func (h *Handler) DeleteModel() http.HandlerFunc {
 // @Tags Models
 // @Security ApiKeyAuth
 // @Produce json
+// @Param node query string false "Node name to forward the request to"
 // @Param id path string true "Job ID"
 // @Success 200 {object} JobResponse "Job details"
 // @Failure 400 {string} string "Invalid request"
@@ -163,6 +287,14 @@ func (h *Handler) DeleteModel() http.HandlerFunc {
 // @Router /api/v1/backends/llama-cpp/models/jobs/{id} [get]
 func (h *Handler) GetJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		nodeName := r.URL.Query().Get("node")
+		if nodeName != "" {
+			if h.forwardToNode(nodeName, w, r) {
+				return
+			}
+			return
+		}
+
 		jobID := chi.URLParam(r, "id")
 		if jobID == "" {
 			writeError(w, http.StatusBadRequest, "invalid_request", "job ID is required")
@@ -190,11 +322,20 @@ func (h *Handler) GetJob() http.HandlerFunc {
 // @Tags Models
 // @Security ApiKeyAuth
 // @Produce json
+// @Param node query string false "Node name to forward the request to"
 // @Success 200 {object} ListJobsResponse "List of jobs"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/backends/llama-cpp/models/jobs [get]
 func (h *Handler) ListJobs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		nodeName := r.URL.Query().Get("node")
+		if nodeName != "" {
+			if h.forwardToNode(nodeName, w, r) {
+				return
+			}
+			return
+		}
+
 		jobs := h.modelManager.ListJobs()
 
 		response := ListJobsResponse{
@@ -214,6 +355,7 @@ func (h *Handler) ListJobs() http.HandlerFunc {
 // @Description Cancels a model download job by its ID. Only jobs that are in progress can be cancelled.
 // @Tags Models
 // @Security ApiKeyAuth
+// @Param node query string false "Node name to forward the request to"
 // @Param id path string true "Job ID"
 // @Success 204 "No Content"
 // @Failure 400 {string} string "Invalid request"
@@ -223,6 +365,14 @@ func (h *Handler) ListJobs() http.HandlerFunc {
 // @Router /api/v1/backends/llama-cpp/models/jobs/{id} [delete]
 func (h *Handler) CancelJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		nodeName := r.URL.Query().Get("node")
+		if nodeName != "" {
+			if h.forwardToNode(nodeName, w, r) {
+				return
+			}
+			return
+		}
+
 		jobID := chi.URLParam(r, "id")
 		if jobID == "" {
 			writeError(w, http.StatusBadRequest, "invalid_request", "job ID is required")
