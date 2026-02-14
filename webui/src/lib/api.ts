@@ -260,11 +260,12 @@ export const llamaCppApi = {
 // Llama.cpp models cache management API functions
 export const llamaCppModelsApi = {
   // Download management
-  startDownload: (repo: string, tag?: string) => {
-    // Backend expects "repo:tag" format in the repo field
+  startDownload: (repo: string, tag?: string, node?: string) => {
+    // Backend expects "repo:tag" format in repo field
     const repoWithTag = tag ? `${repo}:${tag}` : repo;
+    const params = node ? `?node=${encodeURIComponent(node)}` : '';
     return apiCall<{ job_id: string; repo: string; tag: string }>(
-      '/backends/llama-cpp/models/download',
+      `/backends/llama-cpp/models/download${params}`,
       {
         method: 'POST',
         body: JSON.stringify({ repo: repoWithTag })
@@ -287,9 +288,10 @@ export const llamaCppModelsApi = {
   listModels: () =>
     apiCall<CachedModel[]>('/backends/llama-cpp/models'),
 
-  deleteModel: (repo: string, tag?: string) => {
+  deleteModel: (repo: string, tag?: string, node?: string) => {
     const params = new URLSearchParams({ repo })
     if (tag) params.append('tag', tag)
+    if (node) params.append('node', node)
     return apiCall<void>(`/backends/llama-cpp/models?${params}`, {
       method: 'DELETE'
     })

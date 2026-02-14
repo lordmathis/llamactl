@@ -62,6 +62,7 @@ export default function ModelsTable({ rows }: ModelsTableProps) {
           <TableHead>Repository</TableHead>
           <TableHead>Tag</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Node</TableHead>
           <TableHead>Size</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
@@ -144,6 +145,7 @@ function DownloadingRow({ job }: { job: DownloadJob }) {
             )}
           </div>
         </TableCell>
+        <TableCell className="text-muted-foreground">-</TableCell>
         <TableCell>-</TableCell>
         <TableCell className="text-right">
           <Button
@@ -193,6 +195,7 @@ function DownloadingRow({ job }: { job: DownloadJob }) {
           )}
         </div>
       </TableCell>
+      <TableCell className="text-muted-foreground">-</TableCell>
       <TableCell>{formatBytes(job.progress.total_bytes)}</TableCell>
       <TableCell className="text-right">
         <Button
@@ -227,8 +230,8 @@ function CachedModelRow({
 
   const handleDelete = async () => {
     const message = model.tag
-      ? `Delete ${model.repo}:${model.tag}?\n\nAll files for this quantization will be removed.`
-      : `Delete ALL quantizations for ${model.repo}?\n\nThis will remove all cached files for this repository.`
+      ? `Delete ${model.repo}:${model.tag} from node ${model.node}?\n\nAll files for this quantization will be removed.`
+      : `Delete ALL quantizations for ${model.repo} from node ${model.node}?\n\nThis will remove all cached files for this repository.`
 
     if (!confirm(message)) {
       return
@@ -236,7 +239,7 @@ function CachedModelRow({
 
     setDeleting(true)
     try {
-      await deleteModel(model.repo, model.tag)
+      await deleteModel(model.repo, model.tag, model.node)
     } catch (error) {
       console.error('Failed to delete model:', error)
     } finally {
@@ -264,6 +267,7 @@ function CachedModelRow({
           Cached
         </Badge>
       </TableCell>
+      <TableCell className="text-muted-foreground">{model.node}</TableCell>
       <TableCell>{formatBytes(model.size_bytes)}</TableCell>
       <TableCell className="text-right">
         <Button
@@ -301,7 +305,7 @@ function ExpandedFilesRow({ files }: { files: ModelFile[] }) {
 
   return (
     <TableRow className="bg-muted/30 hover:bg-muted/30">
-      <TableCell colSpan={5} className="p-4">
+      <TableCell colSpan={6} className="p-4">
         <div className="space-y-2 pl-6">
           <p className="text-sm font-semibold">Files:</p>
           <ul className="text-sm space-y-1">
