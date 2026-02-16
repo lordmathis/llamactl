@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import BackendFormField from '@/components/BackendFormField'
 import { type CreateInstanceOptions } from '@/schemas/instanceOptions'
 
