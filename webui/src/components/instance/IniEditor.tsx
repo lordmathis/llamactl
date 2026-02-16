@@ -41,12 +41,14 @@ const IniEditor: React.FC<IniEditorProps> = ({ value, onChange, className }) => 
       setShowSuggestions(allSuggestions.length > 0)
 
       if (textareaRef.current && allSuggestions.length > 0) {
-        const rect = textareaRef.current.getBoundingClientRect()
         const lines = text.substring(0, cursorPos).split('\n')
-        const currentLineNumber = lines.length
+        const currentLineNumber = lines.length - 1
         const lineHeight = 21
-        const top = rect.top + (currentLineNumber - 1) * lineHeight - textareaRef.current.scrollTop + 30
-        const left = rect.left
+        const charWidth = 8.5
+        const currentLineLength = (lines[lines.length - 1] || '').length
+
+        const top = (currentLineNumber + 1) * lineHeight - textareaRef.current.scrollTop + 5
+        const left = currentLineLength * charWidth + 10
 
         setSuggestionPosition({ top, left })
       }
@@ -145,14 +147,15 @@ const IniEditor: React.FC<IniEditorProps> = ({ value, onChange, className }) => 
         placeholder="# Edit your preset.ini file here
 # Field names will autocomplete as you type
 # Example:
-# model = /path/to/model.gguf
-# gpu-layers = 35"
+[my-model]
+model = /path/to/model.gguf
+gpu-layers = 35"
         className="font-mono text-sm min-h-[300px]"
         spellCheck={false}
       />
       {showSuggestions && suggestions.length > 0 && (
         <div
-          className="fixed z-50 w-64 max-h-48 overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
+          className="absolute z-50 w-64 max-h-48 overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
           style={{
             top: `${suggestionPosition.top}px`,
             left: `${suggestionPosition.left}px`

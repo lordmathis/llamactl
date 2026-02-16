@@ -44,5 +44,5 @@ export function getLlamaFieldSuggestions(input: string): FieldSuggestion[] {
 
   if (!query) return suggestions.slice(0, 20)
 
-  return suggestions.filter(s => s.name.includes(query))
+  return suggestions.filter(s => s.name.startsWith(query))
 }
