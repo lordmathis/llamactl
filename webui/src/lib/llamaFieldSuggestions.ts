@@ -1,6 +1,8 @@
 import {
   getAllLlamaCppFieldKeys,
-  getLlamaCppFieldType
+  getLlamaCppFieldType,
+  getAllLlamaCppAltKeys,
+  getLlamaCppAltKeyType
 } from '@/schemas/instanceOptions'
 
 export interface FieldSuggestion {
@@ -14,14 +16,31 @@ function snakeToKebab(snake: string): string {
 
 export function getLlamaFieldSuggestions(input: string): FieldSuggestion[] {
   const allFields = getAllLlamaCppFieldKeys()
+  const allAltKeys = getAllLlamaCppAltKeys()
   const query = input.toLowerCase().trim()
 
-  const suggestions: FieldSuggestion[] = allFields
+  const suggestionsMap = new Map<string, FieldSuggestion>()
+
+  allFields
     .filter(field => field !== 'extra_args')
-    .map(field => ({
-      name: snakeToKebab(field),
-      type: getLlamaCppFieldType(field)
-    }))
+    .forEach(field => {
+      const kebabName = snakeToKebab(field)
+      suggestionsMap.set(kebabName, {
+        name: kebabName,
+        type: getLlamaCppFieldType(field)
+      })
+    })
+
+  allAltKeys.forEach(altKey => {
+    if (!suggestionsMap.has(altKey)) {
+      suggestionsMap.set(altKey, {
+        name: altKey,
+        type: getLlamaCppAltKeyType(altKey)
+      })
+    }
+  })
+
+  const suggestions = Array.from(suggestionsMap.values())
 
   if (!query) return suggestions.slice(0, 20)
 

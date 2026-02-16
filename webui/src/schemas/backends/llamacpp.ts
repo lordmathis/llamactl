@@ -326,6 +326,9 @@ export const LlamaCppAltKeysSchema = z.object({
 // Infer the TypeScript type from the schema
 export type LlamaCppBackendOptions = z.infer<typeof LlamaCppBackendOptionsSchema>
 
+// Infer the TypeScript type from the alt keys schema
+export type LlamaCppAltKeys = z.infer<typeof LlamaCppAltKeysSchema>
+
 // Helper to get all LlamaCpp backend option field keys
 export function getAllLlamaCppFieldKeys(): (keyof LlamaCppBackendOptions)[] {
   return Object.keys(LlamaCppBackendOptionsSchema.shape) as (keyof LlamaCppBackendOptions)[]
@@ -334,6 +337,25 @@ export function getAllLlamaCppFieldKeys(): (keyof LlamaCppBackendOptions)[] {
 // Get field type for LlamaCpp backend options
 export function getLlamaCppFieldType(key: keyof LlamaCppBackendOptions): 'text' | 'number' | 'boolean' | 'array' {
   const fieldSchema = LlamaCppBackendOptionsSchema.shape[key]
+  if (!fieldSchema) return 'text'
+
+  // Handle ZodOptional wrapper
+  const innerSchema = fieldSchema instanceof z.ZodOptional ? fieldSchema.unwrap() : fieldSchema
+
+  if (innerSchema instanceof z.ZodBoolean) return 'boolean'
+  if (innerSchema instanceof z.ZodNumber) return 'number'
+  if (innerSchema instanceof z.ZodArray) return 'array'
+  return 'text' // ZodString and others default to text
+}
+
+// Helper to get all LlamaCpp alt keys
+export function getAllLlamaCppAltKeys(): string[] {
+  return Object.keys(LlamaCppAltKeysSchema.shape)
+}
+
+// Get field type for LlamaCpp alt keys
+export function getLlamaCppAltKeyType(key: string): 'text' | 'number' | 'boolean' | 'array' {
+  const fieldSchema = LlamaCppAltKeysSchema.shape[key as keyof typeof LlamaCppAltKeysSchema.shape]
   if (!fieldSchema) return 'text'
 
   // Handle ZodOptional wrapper

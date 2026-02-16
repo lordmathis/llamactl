@@ -7,6 +7,8 @@ import {
   type LlamaCppBackendOptions,
   getAllLlamaCppFieldKeys,
   getLlamaCppFieldType,
+  getAllLlamaCppAltKeys,
+  getLlamaCppAltKeyType,
   MlxBackendOptionsSchema,
   type MlxBackendOptions,
   getAllMlxFieldKeys,
@@ -64,7 +66,10 @@ export {
   getAllVllmFieldKeys,
   getLlamaCppFieldType,
   getMlxFieldType,
-  getVllmFieldType
+  getVllmFieldType,
+  // LlamaCpp Alt Keys
+  getAllLlamaCppAltKeys,
+  getLlamaCppAltKeyType
 }
 
 // Infer the TypeScript types from the schemas
