@@ -24,6 +24,8 @@ type Options struct {
 	IdleTimeout *int `json:"idle_timeout,omitempty"` // minutes
 	// Environment variables
 	Environment map[string]string `json:"environment,omitempty"`
+	// Preset configuration
+	PresetIni *string `json:"preset_ini,omitempty"`
 
 	// Execution context overrides
 	DockerEnabled   *bool  `json:"docker_enabled,omitempty"`

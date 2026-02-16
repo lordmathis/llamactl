@@ -15,6 +15,7 @@ type FieldInfo struct {
 	Type    string
 	JSONTag string
 	Comment string
+	AltKeys []string
 }
 
 func main() {
@@ -92,11 +93,15 @@ func main() {
 				comment = strings.TrimSpace(strings.TrimPrefix(field.Comment.List[0].Text, "//"))
 			}
 
+			// Extract alternative keys from comment
+			altKeys := parseAltKeys(comment, jsonTag)
+
 			fields = append(fields, FieldInfo{
 				Name:    fieldName,
 				Type:    goType,
 				JSONTag: jsonTag,
 				Comment: comment,
+				AltKeys: altKeys,
 			})
 		}
 
@@ -105,6 +110,9 @@ func main() {
 
 	// Generate Zod schema
 	generateZodSchema(fields)
+
+	// Generate Alt Keys schema
+	generateAltKeysSchema(fields)
 }
 
 // typeToString converts AST type to string representation
@@ -144,9 +152,85 @@ func goTypeToZod(goType string) string {
 	}
 }
 
+// parseAltKeys extracts alternative flag names from comment
+// Example: "--temp N", jsonTag="temp" → []string{}
+// Example: "-t, --threads N", jsonTag="threads" → []string{"t"}
+// Example: "--predict, --n-predict N", jsonTag="predict" → []string{"n-predict"}
+// Example: "-v, --verbose, --log-verbose", jsonTag="verbose" → []string{"v", "log-verbose"}
+// Example: "--rope-scaling {none,linear,yarn}", jsonTag="rope_scaling" → []string{} (not an alt key, just enum values)
+func parseAltKeys(comment string, jsonTag string) []string {
+	var altKeys []string
+
+	// Convert jsonTag from snake_case to kebab-case for comparison
+	// "threads_batch" → "threads-batch"
+	jsonTagKebab := strings.ReplaceAll(jsonTag, "_", "-")
+
+	// Split by comma to get individual flags
+	flags := strings.SplitSeq(comment, ",")
+
+	for flag := range flags {
+		flag = strings.TrimSpace(flag)
+
+		// Check if this is a flag (starts with -)
+		if !strings.HasPrefix(flag, "-") {
+			continue
+		}
+
+		// Extract flag name by removing prefix
+		flagName := flag
+		if after, ok := strings.CutPrefix(flagName, "--"); ok {
+			flagName = after
+		} else if after0, ok0 := strings.CutPrefix(flagName, "-"); ok0 {
+			flagName = after0
+		}
+
+		// Remove suffix (everything after first space)
+		if idx := strings.Index(flagName, " "); idx != -1 {
+			flagName = flagName[:idx]
+		}
+
+		// Skip if this is the main flag (matches the jsonTag in kebab-case)
+		if flagName == jsonTagKebab {
+			continue
+		}
+
+		// Validate the flag name:
+		// - Must not be empty
+		// - Must not start with < or [ (placeholders)
+		// - Must be lowercase letters, numbers, hyphens, or underscores only
+		// - Must start with a letter
+		if flagName == "" {
+			continue
+		}
+		if strings.HasPrefix(flagName, "<") || strings.HasPrefix(flagName, "[") {
+			continue
+		}
+		if strings.HasPrefix(flagName, "}") {
+			continue
+		}
+		if flagName[0] >= '0' && flagName[0] <= '9' {
+			continue
+		}
+
+		// Check if flag name is valid (only lowercase letters, numbers, hyphens, underscores)
+		valid := true
+		for _, c := range flagName {
+			if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
+				valid = false
+				break
+			}
+		}
+		if !valid {
+			continue
+		}
+
+		altKeys = append(altKeys, flagName)
+	}
+
+	return altKeys
+}
+
 func generateZodSchema(fields []FieldInfo) {
-	fmt.Println("import { z } from 'zod'")
-	fmt.Println()
 	fmt.Println("// Define the LlamaCpp backend options schema")
 	fmt.Println("export const LlamaCppBackendOptionsSchema = z.object({")
 
@@ -172,4 +256,25 @@ func generateZodSchema(fields []FieldInfo) {
 
 	fmt.Println("})")
 	fmt.Println()
+}
+
+func generateAltKeysSchema(fields []FieldInfo) {
+	fmt.Println("// Define the LlamaCpp backend options schema with alternative keys")
+	fmt.Println("// These are alternative flag names that can be used in preset.ini files")
+	fmt.Println("export const LlamaCppAltKeysSchema = z.object({")
+
+	for _, field := range fields {
+		// Skip section headers and fields without alt keys
+		if field.JSONTag == "" || len(field.AltKeys) == 0 {
+			continue
+		}
+
+		zodType := goTypeToZod(field.Type)
+
+		for _, altKey := range field.AltKeys {
+			fmt.Printf("  '%s': %s.optional(), // alternative to '%s'\n", altKey, zodType, field.JSONTag)
+		}
+	}
+
+	fmt.Println("})")
 }

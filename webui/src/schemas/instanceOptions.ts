@@ -7,6 +7,8 @@ import {
   type LlamaCppBackendOptions,
   getAllLlamaCppFieldKeys,
   getLlamaCppFieldType,
+  getAllLlamaCppAltKeys,
+  getLlamaCppAltKeyType,
   MlxBackendOptionsSchema,
   type MlxBackendOptions,
   getAllMlxFieldKeys,
@@ -46,6 +48,9 @@ export const CreateInstanceOptionsSchema = z.object({
 
   // Node configuration
   nodes: z.array(z.string()).optional(),
+
+  // Preset configuration
+  preset_ini: z.string().optional(),
 })
 
 // Re-export types and schemas from backend files
@@ -61,7 +66,10 @@ export {
   getAllVllmFieldKeys,
   getLlamaCppFieldType,
   getMlxFieldType,
-  getVllmFieldType
+  getVllmFieldType,
+  // LlamaCpp Alt Keys
+  getAllLlamaCppAltKeys,
+  getLlamaCppAltKeyType
 }
 
 // Infer the TypeScript types from the schemas

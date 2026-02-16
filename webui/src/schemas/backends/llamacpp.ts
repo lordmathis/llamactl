@@ -233,8 +233,101 @@ export const LlamaCppBackendOptionsSchema = z.object({
   extra_args: z.record(z.string(), z.string()).optional(),
 })
 
+// Define the LlamaCpp backend options schema with alternative keys
+// These are alternative flag names that can be used in preset.ini files
+export const LlamaCppAltKeysSchema = z.object({
+  't': z.number().optional(), // alternative to 'threads'
+  'tb': z.number().optional(), // alternative to 'threads_batch'
+  'c': z.number().optional(), // alternative to 'ctx_size'
+  'n': z.number().optional(), // alternative to 'predict'
+  'n-predict': z.number().optional(), // alternative to 'predict'
+  'b': z.number().optional(), // alternative to 'batch_size'
+  'ub': z.number().optional(), // alternative to 'ubatch_size'
+  'fa': z.string().optional(), // alternative to 'flash_attn'
+  'e': z.boolean().optional(), // alternative to 'escape'
+  'kvo': z.boolean().optional(), // alternative to 'kv_offload'
+  'nkvo': z.boolean().optional(), // alternative to 'no_kv_offload'
+  'nr': z.boolean().optional(), // alternative to 'no_repack'
+  'ctk': z.string().optional(), // alternative to 'cache_type_k'
+  'ctv': z.string().optional(), // alternative to 'cache_type_v'
+  'dt': z.number().optional(), // alternative to 'defrag_thold'
+  'dio': z.boolean().optional(), // alternative to 'direct_io'
+  'ndio': z.boolean().optional(), // alternative to 'no_direct_io'
+  'dev': z.string().optional(), // alternative to 'device'
+  'ot': z.array(z.string()).optional(), // alternative to 'override_tensor'
+  'cmoe': z.boolean().optional(), // alternative to 'cpu_moe'
+  'ncmoe': z.number().optional(), // alternative to 'n_cpu_moe'
+  'ngl': z.number().optional(), // alternative to 'gpu_layers'
+  'n-gpu-layers': z.number().optional(), // alternative to 'gpu_layers'
+  'sm': z.string().optional(), // alternative to 'split_mode'
+  'ts': z.string().optional(), // alternative to 'tensor_split'
+  'mg': z.number().optional(), // alternative to 'main_gpu'
+  'fitt': z.string().optional(), // alternative to 'fit_target'
+  'fitc': z.number().optional(), // alternative to 'fit_ctx'
+  'm': z.string().optional(), // alternative to 'model'
+  'mu': z.string().optional(), // alternative to 'model_url'
+  'dr': z.string().optional(), // alternative to 'docker_repo'
+  'hf': z.string().optional(), // alternative to 'hf_repo'
+  'hfr': z.string().optional(), // alternative to 'hf_repo'
+  'hfd': z.string().optional(), // alternative to 'hf_repo_draft'
+  'hfrd': z.string().optional(), // alternative to 'hf_repo_draft'
+  'hff': z.string().optional(), // alternative to 'hf_file'
+  'hfv': z.string().optional(), // alternative to 'hf_repo_v'
+  'hfrv': z.string().optional(), // alternative to 'hf_repo_v'
+  'hffv': z.string().optional(), // alternative to 'hf_file_v'
+  'hft': z.string().optional(), // alternative to 'hf_token'
+  'v': z.boolean().optional(), // alternative to 'verbose'
+  'log-verbose': z.boolean().optional(), // alternative to 'verbose'
+  'lv': z.number().optional(), // alternative to 'verbosity'
+  'log-verbosity': z.number().optional(), // alternative to 'verbosity'
+  'ctkd': z.string().optional(), // alternative to 'cache_type_k_draft'
+  'ctvd': z.string().optional(), // alternative to 'cache_type_v_draft'
+  's': z.number().optional(), // alternative to 'seed'
+  'sampler-seq': z.string().optional(), // alternative to 'sampling_seq'
+  'l': z.array(z.string()).optional(), // alternative to 'logit_bias'
+  'j': z.string().optional(), // alternative to 'json_schema'
+  'jf': z.string().optional(), // alternative to 'json_schema_file'
+  'bs': z.boolean().optional(), // alternative to 'backend_sampling'
+  'swa-checkpoints': z.number().optional(), // alternative to 'ctx_checkpoints'
+  'cram': z.number().optional(), // alternative to 'cache_ram'
+  'lcs': z.boolean().optional(), // alternative to 'lookup_cache_static'
+  'lcd': z.boolean().optional(), // alternative to 'lookup_cache_dynamic'
+  'kvu': z.boolean().optional(), // alternative to 'kv_unified'
+  'no-kvu': z.boolean().optional(), // alternative to 'no_kv_unified'
+  'r': z.string().optional(), // alternative to 'reverse_prompt'
+  'sp': z.boolean().optional(), // alternative to 'special'
+  'np': z.number().optional(), // alternative to 'parallel'
+  'cb': z.boolean().optional(), // alternative to 'cont_batching'
+  'nocb': z.boolean().optional(), // alternative to 'no_cont_batching'
+  'mm': z.string().optional(), // alternative to 'mmproj'
+  'mmu': z.string().optional(), // alternative to 'mmproj_url'
+  'otd': z.array(z.string()).optional(), // alternative to 'override_tensor_draft'
+  'cmoed': z.boolean().optional(), // alternative to 'cpu_moe_draft'
+  'ncmoed': z.number().optional(), // alternative to 'n_cpu_moe_draft'
+  'a': z.string().optional(), // alternative to 'alias'
+  'embeddings': z.boolean().optional(), // alternative to 'embedding'
+  'rerank': z.boolean().optional(), // alternative to 'reranking'
+  'to': z.number().optional(), // alternative to 'timeout'
+  'sps': z.number().optional(), // alternative to 'slot_prompt_similarity'
+  'td': z.number().optional(), // alternative to 'threads_draft'
+  'tbd': z.number().optional(), // alternative to 'threads_batch_draft'
+  'draft': z.number().optional(), // alternative to 'draft_max'
+  'draft-n': z.number().optional(), // alternative to 'draft_max'
+  'draft-n-min': z.number().optional(), // alternative to 'draft_min'
+  'cd': z.number().optional(), // alternative to 'ctx_size_draft'
+  'devd': z.string().optional(), // alternative to 'device_draft'
+  'ngld': z.number().optional(), // alternative to 'gpu_layers_draft'
+  'n-gpu-layers-draft': z.number().optional(), // alternative to 'gpu_layers_draft'
+  'md': z.string().optional(), // alternative to 'model_draft'
+  'mv': z.string().optional(), // alternative to 'model_vocoder'
+  'fim-qwen-1': z.boolean().optional(), // alternative to 'fim_qwen_1b'
+})
+
 // Infer the TypeScript type from the schema
 export type LlamaCppBackendOptions = z.infer<typeof LlamaCppBackendOptionsSchema>
+
+// Infer the TypeScript type from the alt keys schema
+export type LlamaCppAltKeys = z.infer<typeof LlamaCppAltKeysSchema>
 
 // Helper to get all LlamaCpp backend option field keys
 export function getAllLlamaCppFieldKeys(): (keyof LlamaCppBackendOptions)[] {
@@ -244,6 +337,25 @@ export function getAllLlamaCppFieldKeys(): (keyof LlamaCppBackendOptions)[] {
 // Get field type for LlamaCpp backend options
 export function getLlamaCppFieldType(key: keyof LlamaCppBackendOptions): 'text' | 'number' | 'boolean' | 'array' {
   const fieldSchema = LlamaCppBackendOptionsSchema.shape[key]
+  if (!fieldSchema) return 'text'
+
+  // Handle ZodOptional wrapper
+  const innerSchema = fieldSchema instanceof z.ZodOptional ? fieldSchema.unwrap() : fieldSchema
+
+  if (innerSchema instanceof z.ZodBoolean) return 'boolean'
+  if (innerSchema instanceof z.ZodNumber) return 'number'
+  if (innerSchema instanceof z.ZodArray) return 'array'
+  return 'text' // ZodString and others default to text
+}
+
+// Helper to get all LlamaCpp alt keys
+export function getAllLlamaCppAltKeys(): string[] {
+  return Object.keys(LlamaCppAltKeysSchema.shape)
+}
+
+// Get field type for LlamaCpp alt keys
+export function getLlamaCppAltKeyType(key: string): 'text' | 'number' | 'boolean' | 'array' {
+  const fieldSchema = LlamaCppAltKeysSchema.shape[key as keyof typeof LlamaCppAltKeysSchema.shape]
   if (!fieldSchema) return 'text'
 
   // Handle ZodOptional wrapper

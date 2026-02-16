@@ -29,15 +29,15 @@ const basicLlamaCppFieldsConfig: Record<string, {
     placeholder: 'microsoft/DialoGPT-medium',
     description: 'Hugging Face model repository'
   },
-  hf_file: {
-    label: 'Hugging Face File',
-    placeholder: 'model.gguf',
-    description: 'Specific file in the repository'
-  },
   gpu_layers: {
     label: 'GPU Layers',
     placeholder: '0',
     description: 'Number of layers to offload to GPU'
+  },
+  models_preset: {
+    label: 'Models Preset Path',
+    placeholder: '/path/to/preset.ini',
+    description: 'Optional: Path to preset.ini for router mode. Leave empty for normal operation, or use Preset tab to auto-generate'
   }
 }
 
