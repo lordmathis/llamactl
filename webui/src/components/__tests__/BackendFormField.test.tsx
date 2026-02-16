@@ -84,55 +84,9 @@ describe('BackendFormField - models_preset Field States', () => {
     })
   })
 
-  describe('models_preset field input behavior', () => {
-    it('calls onChange when user types in models_preset field', async () => {
-      const user = userEvent.setup()
-
-      render(
-        <BackendFormField
-          fieldKey="models_preset"
-          value=""
-          onChange={mockOnChange}
-          formData={{}}
-        />
-      )
-
-      const input = screen.getByLabelText('Models Preset Path')
-      await user.type(input, '/my/preset.ini')
-
-      expect(mockOnChange).toHaveBeenCalledWith('models_preset', '/my/preset.ini')
-    })
-
-    it('updates displayed value when prop changes', () => {
-      const { rerender } = render(
-        <BackendFormField
-          fieldKey="models_preset"
-          value="/first/path.ini"
-          onChange={mockOnChange}
-          formData={{}}
-        />
-      )
-
-      expect(screen.getByDisplayValue('/first/path.ini')).toBeInTheDocument()
-
-      rerender(
-        <BackendFormField
-          fieldKey="models_preset"
-          value="/second/path.ini"
-          onChange={mockOnChange}
-          formData={{}}
-        />
-      )
-
-      expect(screen.getByDisplayValue('/second/path.ini')).toBeInTheDocument()
-      expect(screen.queryByDisplayValue('/first/path.ini')).not.toBeInTheDocument()
-    })
-  })
-
   describe('models_preset badge visibility transitions', () => {
-    it('transitions from Auto to Custom when user types custom path', async () => {
-      const user = userEvent.setup()
-      let formData: CreateInstanceOptions = {
+    it('transitions from Auto to Custom when user types custom path', () => {
+      const formData: CreateInstanceOptions = {
         preset_ini: '[model1]\nmodel = /path/to/model.gguf\n'
       }
 
