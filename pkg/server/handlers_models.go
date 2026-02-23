@@ -243,7 +243,7 @@ func (h *Handler) fetchModelsFromNode(node config.NodeConfig, nodeName string) (
 func (h *Handler) DeleteModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
