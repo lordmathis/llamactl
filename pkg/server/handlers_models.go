@@ -87,7 +87,7 @@ func (h *Handler) forwardToNode(nodeName string, w http.ResponseWriter, r *http.
 func (h *Handler) DownloadModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -148,7 +148,7 @@ func (h *Handler) ListModels() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
 
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -288,7 +288,7 @@ func (h *Handler) DeleteModel() http.HandlerFunc {
 func (h *Handler) GetJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -329,7 +329,7 @@ func (h *Handler) GetJob() http.HandlerFunc {
 func (h *Handler) ListJobs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -366,7 +366,7 @@ func (h *Handler) ListJobs() http.HandlerFunc {
 func (h *Handler) CancelJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
