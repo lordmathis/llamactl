@@ -57,17 +57,25 @@ func (h *Handler) forwardToNode(nodeName string, w http.ResponseWriter, r *http.
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
-
-	originalDirector := proxy.Director
-	proxy.Director = func(req *http.Request) {
-		originalDirector(req)
-		if node.APIKey != "" {
-			req.Header.Set("Authorization", "Bearer "+node.APIKey)
-		}
+	proxy.Transport = &authTransport{
+		base:   http.DefaultTransport,
+		apiKey: node.APIKey,
 	}
 
 	proxy.ServeHTTP(w, r)
 	return true
+}
+
+type authTransport struct {
+	base   http.RoundTripper
+	apiKey string
+}
+
+func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+t.apiKey)
+	}
+	return t.base.RoundTrip(req)
 }
 
 // DownloadModel godoc
@@ -87,7 +95,7 @@ func (h *Handler) forwardToNode(nodeName string, w http.ResponseWriter, r *http.
 func (h *Handler) DownloadModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -148,7 +156,7 @@ func (h *Handler) ListModels() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
 
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -288,7 +296,7 @@ func (h *Handler) DeleteModel() http.HandlerFunc {
 func (h *Handler) GetJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -329,7 +337,7 @@ func (h *Handler) GetJob() http.HandlerFunc {
 func (h *Handler) ListJobs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -366,7 +374,7 @@ func (h *Handler) ListJobs() http.HandlerFunc {
 func (h *Handler) CancelJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != "" {
+		if nodeName != h.cfg.LocalNode {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
