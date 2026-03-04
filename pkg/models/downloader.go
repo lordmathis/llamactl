@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -180,6 +181,9 @@ func (md *Downloader) downloadFile(ctx context.Context, jobID, url, dest string,
 
 	if etag != "" {
 		req.Header.Set("If-None-Match", etag)
+		log.Printf("Downloading %s with ETag: %s", url, etag)
+	} else {
+		log.Printf("Downloading %s (no ETag)", url)
 	}
 
 	resp, err := md.httpClient.Do(req)
@@ -189,6 +193,7 @@ func (md *Downloader) downloadFile(ctx context.Context, jobID, url, dest string,
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotModified {
+		log.Printf("File %s not modified (304 Not Modified)", url)
 		return 0, etag, false, nil
 	}
 
@@ -198,6 +203,7 @@ func (md *Downloader) downloadFile(ctx context.Context, jobID, url, dest string,
 
 	contentLength := resp.ContentLength
 	newETag := resp.Header.Get("ETag")
+	log.Printf("Downloaded %s, status: %d, ETag: %s", url, resp.StatusCode, newETag)
 
 	// Set total bytes before starting the download
 	if contentLength > 0 {

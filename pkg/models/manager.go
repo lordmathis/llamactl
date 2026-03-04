@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -92,6 +93,10 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 	if err != nil {
 		m.jobStore.Fail(job.ID, fmt.Sprintf("failed to download GGUF file: %v", err))
 		return
+	}
+
+	if !mainModified {
+		log.Printf("GGUF file %s is up to date, skipping download", safeGGUFFilename)
 	}
 
 	checkPath := mainTempPath
