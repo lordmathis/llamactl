@@ -9,12 +9,14 @@ class ModelsPollingService {
   private readonly POLL_INTERVAL = 2000 // 2 seconds
   private expectingJobs = false // Flag to keep polling when a download just started
   private emptyPollCount = 0 // Count consecutive empty polls
+  private node?: string // Optional node to poll jobs from
 
   /**
    * Subscribe to job updates
    */
-  subscribe(callback: JobsCallback): () => void {
+  subscribe(callback: JobsCallback, node?: string): () => void {
     this.callbacks.add(callback)
+    this.node = node
 
     // Start polling if this is the first subscriber
     if (this.callbacks.size === 1) {
@@ -37,7 +39,7 @@ class ModelsPollingService {
    */
   private async pollJobs(): Promise<void> {
     try {
-      const { jobs } = await llamaCppModelsApi.listJobs()
+      const { jobs } = await llamaCppModelsApi.listJobs(this.node)
 
       // Filter to active and recently completed/failed jobs (exclude only completed)
       const activeJobs = jobs.filter(j =>
