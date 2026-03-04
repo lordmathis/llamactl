@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -65,19 +66,19 @@ func NewDownloader(cacheDir string, timeout time.Duration, version string, fileM
 	}
 }
 
-func (md *Downloader) Download(ctx context.Context, jobID, url, destPath, displayName string) (string, error) {
+func (md *Downloader) Download(ctx context.Context, jobID, url, destPath, displayName, etag string) (string, bool, error) {
 	progressChan := make(chan int64, progressChannelBuffer)
 	go md.progressTracker.Track(jobID, progressChan)
 	defer close(progressChan)
 
 	md.progressTracker.UpdateCurrentFile(jobID, displayName)
 
-	_, etag, err := md.downloadFile(ctx, jobID, url, destPath, progressChan)
+	_, newETag, modified, err := md.downloadFile(ctx, jobID, url, destPath, etag, progressChan)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
-	return etag, nil
+	return newETag, modified, nil
 }
 
 func (md *Downloader) FetchManifest(ctx context.Context, repo, tag string) (*Manifest, []byte, error) {
@@ -158,10 +159,19 @@ func (md *Downloader) SaveETag(repo, filename, etag string) error {
 	return nil
 }
 
-func (md *Downloader) downloadFile(ctx context.Context, jobID, url, dest string, progress chan<- int64) (int64, string, error) {
+func (md *Downloader) ReadETag(repo, filename string) string {
+	etagPath := md.fileManager.GetETagPath(repo, filename)
+	data, err := os.ReadFile(etagPath)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+func (md *Downloader) downloadFile(ctx context.Context, jobID, url, dest string, etag string, progress chan<- int64) (int64, string, bool, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to create request: %w", err)
+		return 0, "", false, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("User-Agent", "llama-cpp/llamactl/"+md.version)
@@ -169,18 +179,31 @@ func (md *Downloader) downloadFile(ctx context.Context, jobID, url, dest string,
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
+	if etag != "" {
+		req.Header.Set("If-None-Match", etag)
+		log.Printf("Downloading %s with ETag: %s", url, etag)
+	} else {
+		log.Printf("Downloading %s (no ETag)", url)
+	}
+
 	resp, err := md.httpClient.Do(req)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to download file: %w", err)
+		return 0, "", false, fmt.Errorf("failed to download file: %w", err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotModified {
+		log.Printf("File %s not modified (304 Not Modified)", url)
+		return 0, etag, false, nil
+	}
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
-		return 0, "", fmt.Errorf("failed to download file: HTTP %d", resp.StatusCode)
+		return 0, "", false, fmt.Errorf("failed to download file: HTTP %d", resp.StatusCode)
 	}
 
 	contentLength := resp.ContentLength
-	etag := resp.Header.Get("ETag")
+	newETag := resp.Header.Get("ETag")
+	log.Printf("Downloaded %s, status: %d, ETag: %s", url, resp.StatusCode, newETag)
 
 	// Set total bytes before starting the download
 	if contentLength > 0 {
@@ -188,12 +211,12 @@ func (md *Downloader) downloadFile(ctx context.Context, jobID, url, dest string,
 	}
 
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
-		return 0, "", fmt.Errorf("failed to create directory: %w", err)
+		return 0, "", false, fmt.Errorf("failed to create directory: %w", err)
 	}
 
 	f, err := os.Create(dest)
 	if err != nil {
-		return 0, "", fmt.Errorf("failed to create file: %w", err)
+		return 0, "", false, fmt.Errorf("failed to create file: %w", err)
 	}
 	defer f.Close()
 
@@ -203,10 +226,10 @@ func (md *Downloader) downloadFile(ctx context.Context, jobID, url, dest string,
 	}
 
 	if _, err := io.Copy(f, reader); err != nil {
-		return 0, "", fmt.Errorf("failed to write file: %w", err)
+		return 0, "", false, fmt.Errorf("failed to write file: %w", err)
 	}
 
-	return contentLength, etag, nil
+	return contentLength, newETag, true, nil
 }
 
 type progressReader struct {
