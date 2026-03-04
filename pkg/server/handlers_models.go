@@ -42,6 +42,11 @@ type ListJobsResponse struct {
 	Jobs []JobResponse `json:"jobs"`
 }
 
+// shouldForwardToNode checks if the request should be forwarded to a remote node
+func (h *Handler) shouldForwardToNode(nodeName string) bool {
+	return nodeName != "" && nodeName != h.cfg.LocalNode
+}
+
 // forwardToNode forwards an HTTP request to a remote node
 func (h *Handler) forwardToNode(nodeName string, w http.ResponseWriter, r *http.Request) bool {
 	node, exists := h.cfg.Nodes[nodeName]
@@ -95,7 +100,7 @@ func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 func (h *Handler) DownloadModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != h.cfg.LocalNode {
+		if h.shouldForwardToNode(nodeName) {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -156,7 +161,7 @@ func (h *Handler) ListModels() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
 
-		if nodeName != h.cfg.LocalNode {
+		if h.shouldForwardToNode(nodeName) {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -251,7 +256,7 @@ func (h *Handler) fetchModelsFromNode(node config.NodeConfig, nodeName string) (
 func (h *Handler) DeleteModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != h.cfg.LocalNode {
+		if h.shouldForwardToNode(nodeName) {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -296,7 +301,7 @@ func (h *Handler) DeleteModel() http.HandlerFunc {
 func (h *Handler) GetJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != h.cfg.LocalNode {
+		if h.shouldForwardToNode(nodeName) {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -337,7 +342,7 @@ func (h *Handler) GetJob() http.HandlerFunc {
 func (h *Handler) ListJobs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != h.cfg.LocalNode {
+		if h.shouldForwardToNode(nodeName) {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
@@ -374,7 +379,7 @@ func (h *Handler) ListJobs() http.HandlerFunc {
 func (h *Handler) CancelJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
-		if nodeName != h.cfg.LocalNode {
+		if h.shouldForwardToNode(nodeName) {
 			if h.forwardToNode(nodeName, w, r) {
 				return
 			}
