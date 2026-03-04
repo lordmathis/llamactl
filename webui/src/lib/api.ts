@@ -273,20 +273,20 @@ export const llamaCppModelsApi = {
     );
   },
 
-  getJob: (jobId: string) =>
-    apiCall<DownloadJob>(`/backends/llama-cpp/models/jobs/${jobId}`),
+  getJob: (jobId: string, node?: string) =>
+    apiCall<DownloadJob>(`/backends/llama-cpp/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
-  listJobs: () =>
-    apiCall<{ jobs: DownloadJob[] }>('/backends/llama-cpp/models/jobs'),
+  listJobs: (node?: string) =>
+    apiCall<{ jobs: DownloadJob[] }>(`/backends/llama-cpp/models/jobs${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
-  cancelJob: (jobId: string) =>
-    apiCall<void>(`/backends/llama-cpp/models/jobs/${jobId}`, {
+  cancelJob: (jobId: string, node?: string) =>
+    apiCall<void>(`/backends/llama-cpp/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`, {
       method: 'DELETE'
     }),
 
   // Cache management
-  listModels: () =>
-    apiCall<CachedModel[]>('/backends/llama-cpp/models'),
+  listModels: (node?: string) =>
+    apiCall<CachedModel[]>(`/backends/llama-cpp/models${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
   deleteModel: (repo: string, tag?: string, node?: string) => {
     const params = new URLSearchParams({ repo })

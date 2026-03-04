@@ -12,9 +12,9 @@ interface ModelsContextType {
   error: string | null
 
   // Actions
-  fetchModels: () => Promise<void>
+  fetchModels: (node?: string) => Promise<void>
   startDownload: (repo: string, tag?: string, node?: string) => Promise<void>
-  cancelDownload: (jobId: string) => Promise<void>
+  cancelDownload: (jobId: string, node?: string) => Promise<void>
   deleteModel: (repo: string, tag?: string, node?: string) => Promise<void>
   clearError: () => void
 }
@@ -36,7 +36,7 @@ export const ModelsProvider = ({ children }: ModelsProviderProps) => {
     setError(null)
   }, [])
 
-  const fetchModels = useCallback(async () => {
+  const fetchModels = useCallback(async (node?: string) => {
     if (!isAuthenticated) {
       setLoading(false)
       return
@@ -45,7 +45,7 @@ export const ModelsProvider = ({ children }: ModelsProviderProps) => {
     try {
       setLoading(true)
       setError(null)
-      const modelsData = await llamaCppModelsApi.listModels()
+      const modelsData = await llamaCppModelsApi.listModels(node)
       setModels(modelsData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch models')
@@ -67,13 +67,13 @@ export const ModelsProvider = ({ children }: ModelsProviderProps) => {
     }
   }, [])
 
-  const cancelDownload = useCallback(async (jobId: string) => {
+  const cancelDownload = useCallback(async (jobId: string, node?: string) => {
     setError(null)
     try {
-      await llamaCppModelsApi.cancelJob(jobId)
+      await llamaCppModelsApi.cancelJob(jobId, node)
       // Polling will automatically pick up the status change
       // Refresh models list (in case partial files were deleted)
-      await fetchModels()
+      await fetchModels(node)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to cancel download'
       setError(message)
