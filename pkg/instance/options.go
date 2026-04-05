@@ -227,12 +227,9 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 		c.CommandOverride = "" // Clear invalid configuration
 	}
 
-	// Validate command_override if set
+	// Escape command_override for safe shell use
 	if c.CommandOverride != "" {
-		if err := validation.ValidateStringForInjection(c.CommandOverride); err != nil {
-			log.Printf("Instance %s: invalid command_override: %v, clearing value", name, err)
-			c.CommandOverride = "" // Clear invalid value
-		}
+		c.CommandOverride = validation.EscapeForShell(c.CommandOverride)
 	}
 
 	// Validate docker_enabled for MLX backend
