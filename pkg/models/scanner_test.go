@@ -99,6 +99,49 @@ func TestScanCache(t *testing.T) {
 	}
 }
 
+func TestScanCache_HardLinks(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	t.Setenv("LLAMA_CACHE", tmpDir)
+
+	fm := NewFileManager(tmpDir)
+	hubRoot := fm.HFHubRoot()
+
+	repoDir := filepath.Join(hubRoot, "models--bartowski--Llama-3.2-3B-GGUF")
+	snapshotDir := filepath.Join(repoDir, "snapshots", "abc123def")
+	refsDir := filepath.Join(repoDir, "refs")
+
+	os.MkdirAll(snapshotDir, 0755)
+	os.MkdirAll(refsDir, 0755)
+
+	// Create regular files instead of symlinks
+	os.WriteFile(filepath.Join(snapshotDir, "model-Q4_K_M.gguf"), []byte("fake model data"), 0644)
+	os.WriteFile(filepath.Join(refsDir, "main"), []byte("abc123def"), 0644)
+
+	models, err := ScanCache(tmpDir, "test-node")
+	if err != nil {
+		t.Fatalf("ScanCache failed: %v", err)
+	}
+
+	if len(models) != 1 {
+		t.Fatalf("expected 1 model, got %d", len(models))
+	}
+
+	model := models[0]
+	if len(model.Files) != 1 {
+		t.Fatalf("expected 1 file, got %d", len(model.Files))
+	}
+
+	if model.Files[0].Name != "model-Q4_K_M.gguf" {
+		t.Errorf("file name = %q, want %q", model.Files[0].Name, "model-Q4_K_M.gguf")
+	}
+
+	// Verify size is correct even for hard link
+	if model.SizeBytes != int64(len("fake model data")) {
+		t.Errorf("size = %d, want %d", model.SizeBytes, len("fake model data"))
+	}
+}
+
 func TestScanCache_NonexistentDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("LLAMA_CACHE", tmpDir)

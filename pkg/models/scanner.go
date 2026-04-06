@@ -47,13 +47,39 @@ func ScanCache(cacheDir, nodeName string) ([]CachedModel, error) {
 			if repo == "" {
 				continue
 			}
-			commit, err := readRefFile(filepath.Join(hubRoot, dirName, "refs", "main"))
-			if err != nil {
-				continue
-			}
-			cachedModel := scanHFRepo(hubRoot, dirName, repo, commit, nodeName)
-			if len(cachedModel.Files) > 0 {
-				models = append(models, cachedModel)
+
+			// Iterate over all refs
+			refsDir := filepath.Join(hubRoot, dirName, "refs")
+			if refEntries, err := os.ReadDir(refsDir); err == nil {
+				for _, refEntry := range refEntries {
+					if refEntry.IsDir() {
+						continue
+					}
+					commit, err := readRefFile(filepath.Join(refsDir, refEntry.Name()))
+					if err != nil {
+						continue
+					}
+					cachedModel := scanHFRepo(hubRoot, dirName, repo, commit, nodeName)
+					if len(cachedModel.Files) > 0 {
+						cachedModel.Tag = refEntry.Name()
+						models = append(models, cachedModel)
+					}
+				}
+			} else {
+				// Fallback: if no refs, scan snapshots directory
+				snapshotRoot := filepath.Join(hubRoot, dirName, "snapshots")
+				if snapEntries, err := os.ReadDir(snapshotRoot); err == nil {
+					for _, snapEntry := range snapEntries {
+						if !snapEntry.IsDir() {
+							continue
+						}
+						commit := snapEntry.Name()
+						cachedModel := scanHFRepo(hubRoot, dirName, repo, commit, nodeName)
+						if len(cachedModel.Files) > 0 {
+							models = append(models, cachedModel)
+						}
+					}
+				}
 			}
 		}
 	}
@@ -93,7 +119,7 @@ func scanHFRepo(hubRoot, dirName, repo, commit, nodeName string) CachedModel {
 	model := CachedModel{
 		Node:  nodeName,
 		Repo:  repo,
-		Tag:   commit,
+		Tag:   commit, // Default tag to commit hash
 		Files: []File{},
 	}
 
@@ -117,10 +143,10 @@ func scanHFRepo(hubRoot, dirName, repo, commit, nodeName string) CachedModel {
 		symlinkPath := filepath.Join(snapshotDir, snapshotEntry.Name())
 		blobPath, err := os.Readlink(symlinkPath)
 		if err != nil {
-			continue
-		}
-
-		if !filepath.IsAbs(blobPath) {
+			// If it's not a symlink, treat the file itself as the blob.
+			// This handles hard links or regular files created by fallbacks.
+			blobPath = symlinkPath
+		} else if !filepath.IsAbs(blobPath) {
 			blobPath = filepath.Join(filepath.Dir(symlinkPath), blobPath)
 		}
 
@@ -301,9 +327,8 @@ func (m *Manager) DeleteModel(repo, tag string) error {
 		symlinkPath := filepath.Join(snapshotDir, snapshotEntry.Name())
 		blobPath, err := os.Readlink(symlinkPath)
 		if err != nil {
-			continue
-		}
-		if !filepath.IsAbs(blobPath) {
+			blobPath = symlinkPath
+		} else if !filepath.IsAbs(blobPath) {
 			blobPath = filepath.Join(filepath.Dir(symlinkPath), blobPath)
 		}
 		blobPathsInSnapshot[blobPath] = true
@@ -325,9 +350,8 @@ func (m *Manager) DeleteModel(repo, tag string) error {
 			symlinkPath := filepath.Join(otherSnapshotDir, otherEntry.Name())
 			blobPath, err := os.Readlink(symlinkPath)
 			if err != nil {
-				continue
-			}
-			if !filepath.IsAbs(blobPath) {
+				blobPath = symlinkPath
+			} else if !filepath.IsAbs(blobPath) {
 				blobPath = filepath.Join(filepath.Dir(symlinkPath), blobPath)
 			}
 			blobPathsInOtherSnapshots[blobPath] = true
