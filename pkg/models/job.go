@@ -35,6 +35,7 @@ type Job struct {
 	CreatedAt   time.Time          `json:"created_at"`
 	CompletedAt *time.Time         `json:"completed_at,omitempty"`
 	CancelFunc  context.CancelFunc `json:"-"`
+	ModelPath   string             `json:"model_path,omitempty"`
 }
 
 type JobStore struct {

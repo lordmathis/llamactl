@@ -8,10 +8,10 @@ func TestDownloader_ParseSplitCount(t *testing.T) {
 	d := NewDownloader("", 0, "", nil, nil)
 
 	tests := []struct {
-		name         string
-		filepath     string
-		wantCount    int
-		wantErr      bool
+		name      string
+		filepath  string
+		wantCount int
+		wantErr   bool
 	}{
 		{
 			name:      "single file without split pattern",
@@ -78,3 +78,53 @@ func TestDownloader_ParseSplitCount(t *testing.T) {
 	}
 }
 
+func TestBuildDownloadPlan(t *testing.T) {
+	d := NewDownloader("", 0, "", NewFileManager(t.TempDir()), nil)
+
+	entries := []HFTreeEntry{
+		{Path: "model-Q4_K_M.gguf", Type: "file", Size: 100, LFS: &HFLFSInfo{OID: "abc123", Size: 100}},
+		{Path: "model-Q8_0.gguf", Type: "file", Size: 200, LFS: &HFLFSInfo{OID: "def456", Size: 200}},
+		{Path: "mmproj-F16.gguf", Type: "file", Size: 50, LFS: &HFLFSInfo{OID: "ghi789", Size: 50}},
+		{Path: "preset.ini", Type: "file", Size: 10},
+	}
+
+	plan := d.BuildDownloadPlan("org/model", "commit123", entries, "", "Q4_K_M")
+
+	if plan.MainGGUF == nil {
+		t.Fatal("expected MainGGUF to be set")
+	}
+	if plan.MainGGUF.Filename != "model-Q4_K_M.gguf" {
+		t.Errorf("MainGGUF.Filename = %q, want %q", plan.MainGGUF.Filename, "model-Q4_K_M.gguf")
+	}
+	if plan.MMProj == nil {
+		t.Error("expected MMProj to be set")
+	}
+	if plan.Preset == nil {
+		t.Error("expected Preset to be set")
+	}
+	if len(plan.Tasks) != 3 {
+		t.Errorf("expected 3 tasks, got %d", len(plan.Tasks))
+	}
+}
+
+func TestClassifyFileType(t *testing.T) {
+	tests := []struct {
+		path     string
+		expected string
+	}{
+		{"model-Q4_K_M.gguf", "gguf"},
+		{"mmproj-F16.gguf", "mmproj"},
+		{"model.gguf", "gguf"},
+		{"preset.ini", "preset"},
+		{"README.md", "other"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			result := classifyFileType(tt.path)
+			if result != tt.expected {
+				t.Errorf("classifyFileType(%q) = %q, want %q", tt.path, result, tt.expected)
+			}
+		})
+	}
+}

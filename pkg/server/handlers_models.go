@@ -35,6 +35,7 @@ type JobResponse struct {
 	Error       string          `json:"error,omitempty"`
 	CreatedAt   int64           `json:"created_at"`
 	CompletedAt *int64          `json:"completed_at,omitempty"`
+	ModelPath   string          `json:"model_path,omitempty"`
 }
 
 // ListJobsResponse represents the response for listing all download jobs
@@ -426,5 +427,6 @@ func jobToResponse(job *models.Job) JobResponse {
 		Error:       job.Error,
 		CreatedAt:   job.CreatedAt.Unix(),
 		CompletedAt: completedAt,
+		ModelPath:   job.ModelPath,
 	}
 }
