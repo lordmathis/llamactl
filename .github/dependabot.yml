@@ -31,7 +31,7 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
-      - dependency-name: "eslint"
+      - dependency-name: "@eslint/js"
         versions: ["10.x.x"]
     groups:
       npm-production:
