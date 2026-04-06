@@ -24,215 +24,277 @@ type File struct {
 	Type      string `json:"type"`
 }
 
-var splitFilePattern = regexp.MustCompile(`-\d{5}-of-(\d{5})\.gguf$`)
+var (
+	splitFilePattern = regexp.MustCompile(`-\d{5}-of-(\d{5})\.gguf$`)
+	shaPattern       = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
+)
 
 func ScanCache(cacheDir, nodeName string) ([]CachedModel, error) {
-	var models []CachedModel = []CachedModel{}
-
-	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
-		return models, nil
-	} else if err != nil {
-		return nil, err
-	}
-
-	entries, err := os.ReadDir(cacheDir)
-	if err != nil {
-		return nil, err
-	}
+	models := []CachedModel{}
 
 	fileManager := NewFileManager(cacheDir)
+	hubRoot := fileManager.HFHubRoot()
 
-	// Scan for manifest files
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		filename := entry.Name()
-
-		// Look for manifest files: manifest={repo}={tag}.json
-		if !strings.HasPrefix(filename, "manifest=") || !strings.HasSuffix(filename, ".json") {
-			continue
-		}
-
-		repo, tag, err := parseManifestFilename(filename)
+	// Scan new HF snapshot layout
+	if _, err := os.Stat(hubRoot); err == nil {
+		entries, err := os.ReadDir(hubRoot)
 		if err != nil {
-			continue
+			return nil, err
 		}
+		for _, entry := range entries {
+			if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "models--") {
+				continue
+			}
+			dirName := entry.Name()
+			repo := parseHFRepoDirName(dirName)
+			if repo == "" {
+				continue
+			}
 
-		manifest, err := readManifest(filepath.Join(cacheDir, filename))
-		if err != nil {
-			continue
+			// Iterate over all refs
+			refsDir := filepath.Join(hubRoot, dirName, "refs")
+			if refEntries, err := os.ReadDir(refsDir); err == nil {
+				for _, refEntry := range refEntries {
+					if refEntry.IsDir() {
+						continue
+					}
+					commit, err := readRefFile(filepath.Join(refsDir, refEntry.Name()))
+					if err != nil {
+						continue
+					}
+					cachedModel := scanHFRepo(hubRoot, dirName, repo, commit, nodeName)
+					if len(cachedModel.Files) > 0 {
+						cachedModel.Tag = refEntry.Name()
+						models = append(models, cachedModel)
+					}
+				}
+			} else {
+				// Fallback: if no refs, scan snapshots directory
+				snapshotRoot := filepath.Join(hubRoot, dirName, "snapshots")
+				if snapEntries, err := os.ReadDir(snapshotRoot); err == nil {
+					for _, snapEntry := range snapEntries {
+						if !snapEntry.IsDir() {
+							continue
+						}
+						commit := snapEntry.Name()
+						cachedModel := scanHFRepo(hubRoot, dirName, repo, commit, nodeName)
+						if len(cachedModel.Files) > 0 {
+							models = append(models, cachedModel)
+						}
+					}
+				}
+			}
 		}
+	}
 
-		cachedModel := buildCachedModel(repo, tag, nodeName, manifest, fileManager)
-
-		// Only include models that have at least one file
-		if len(cachedModel.Files) > 0 {
-			models = append(models, cachedModel)
-		}
+	// Backwards-compatible: scan old flat manifest= layout in cacheDir
+	legacyModels, err := scanLegacyCache(cacheDir, nodeName)
+	if err == nil {
+		models = append(models, legacyModels...)
 	}
 
 	return models, nil
 }
 
-func readManifest(path string) (*Manifest, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
+func parseHFRepoDirName(dirName string) string {
+	if !strings.HasPrefix(dirName, "models--") {
+		return ""
 	}
 
-	var manifest Manifest
-	if err := json.Unmarshal(data, &manifest); err != nil {
-		return nil, err
+	trimmed := strings.TrimPrefix(dirName, "models--")
+	parts := strings.Split(trimmed, "--")
+	if len(parts) < 2 {
+		return ""
 	}
 
-	return &manifest, nil
+	return strings.Join(parts, "/")
 }
 
-func buildCachedModel(repo, tag, nodeName string, manifest *Manifest, fm *FileManager) CachedModel {
+func readRefFile(refPath string) (string, error) {
+	data, err := os.ReadFile(refPath)
+	if err != nil {
+		return "", err
+	}
+	commit := strings.TrimSpace(string(data))
+	if !shaPattern.MatchString(commit) {
+		return "", fmt.Errorf("invalid commit hash in ref file: %s", commit)
+	}
+	return commit, nil
+}
+
+func scanHFRepo(hubRoot, dirName, repo, commit, nodeName string) CachedModel {
 	model := CachedModel{
 		Node:  nodeName,
 		Repo:  repo,
-		Tag:   tag,
+		Tag:   commit, // Default tag to commit hash
 		Files: []File{},
 	}
 
-	addGGUFFiles(&model, manifest, repo, fm)
-	addMMProjFile(&model, manifest, repo, fm)
-	addPresetFile(&model, repo, fm)
-
-	return model
-}
-
-func addGGUFFiles(model *CachedModel, manifest *Manifest, repo string, fm *FileManager) {
-	if manifest.GGUFFile == nil {
-		return
+	if !shaPattern.MatchString(commit) {
+		return model
 	}
 
-	safeFilename := filepath.Base(manifest.GGUFFile.RFilename)
-	filePath := fm.GetPath(repo, safeFilename)
+	snapshotDir := filepath.Join(hubRoot, dirName, "snapshots", commit)
+	if _, err := os.Stat(snapshotDir); os.IsNotExist(err) {
+		return model
+	}
 
-	fileInfo, err := os.Stat(filePath)
+	snapshotEntries, err := os.ReadDir(snapshotDir)
 	if err != nil {
-		return
+		return model
 	}
 
-	model.Files = append(model.Files, File{
-		Name:      filepath.Base(filePath),
-		Path:      filePath,
-		SizeBytes: fileInfo.Size(),
-		Type:      "gguf",
-	})
-	model.SizeBytes += fileInfo.Size()
+	blobPaths := make(map[string]bool)
 
-	// Check for split files
-	addSplitFiles(model, safeFilename, repo, fm)
-}
+	for _, snapshotEntry := range snapshotEntries {
+		if snapshotEntry.IsDir() {
+			continue
+		}
 
-func addSplitFiles(model *CachedModel, baseFilename, repo string, fm *FileManager) {
-	splitCount, _ := parseSplitCount(baseFilename)
-	if splitCount <= 1 {
-		return
-	}
+		symlinkPath := filepath.Join(snapshotDir, snapshotEntry.Name())
+		blobPath, err := os.Readlink(symlinkPath)
+		if err != nil {
+			// If it's not a symlink, treat the file itself as the blob.
+			// This handles hard links or regular files created by fallbacks.
+			blobPath = symlinkPath
+		} else if !filepath.IsAbs(blobPath) {
+			blobPath = filepath.Join(filepath.Dir(symlinkPath), blobPath)
+		}
 
-	for i := 2; i <= splitCount; i++ {
-		splitFilename := fm.GetSplitFilename(baseFilename, i, splitCount)
-		splitPath := fm.GetPath(repo, splitFilename)
-
-		splitInfo, err := os.Stat(splitPath)
+		blobInfo, err := os.Stat(blobPath)
 		if err != nil {
 			continue
 		}
 
+		blobPaths[blobPath] = true
+
 		model.Files = append(model.Files, File{
-			Name:      filepath.Base(splitPath),
-			Path:      splitPath,
-			SizeBytes: splitInfo.Size(),
-			Type:      "gguf",
+			Name:      snapshotEntry.Name(),
+			Path:      symlinkPath,
+			SizeBytes: blobInfo.Size(),
+			Type:      classifyHFModelFileType(snapshotEntry.Name()),
 		})
-		model.SizeBytes += splitInfo.Size()
-	}
-}
-
-func addMMProjFile(model *CachedModel, manifest *Manifest, repo string, fm *FileManager) {
-	if manifest.MMProjFile == nil {
-		return
 	}
 
-	mmprojFilename := filepath.Base(manifest.MMProjFile.RFilename)
-	mmprojPath := fm.GetPath(repo, mmprojFilename)
-
-	mmprojInfo, err := os.Stat(mmprojPath)
-	if err != nil {
-		return
-	}
-
-	model.Files = append(model.Files, File{
-		Name:      filepath.Base(mmprojPath),
-		Path:      mmprojPath,
-		SizeBytes: mmprojInfo.Size(),
-		Type:      "mmproj",
-	})
-	model.SizeBytes += mmprojInfo.Size()
-}
-
-func addPresetFile(model *CachedModel, repo string, fm *FileManager) {
-	presetPath := fm.GetPath(repo, "preset.ini")
-
-	presetInfo, err := os.Stat(presetPath)
-	if err != nil {
-		return
-	}
-
-	model.Files = append(model.Files, File{
-		Name:      filepath.Base(presetPath),
-		Path:      presetPath,
-		SizeBytes: presetInfo.Size(),
-		Type:      "preset",
-	})
-	model.SizeBytes += presetInfo.Size()
-}
-
-// parseManifestFilename extracts repo and tag from manifest filename
-// Format: manifest={part1}={part2}=...={tag}.json
-// Example: manifest=bartowski=Qwen=Model-GGUF=Q4_K_M.json
-//
-//	-> repo: bartowski/Qwen/Model-GGUF, tag: Q4_K_M
-func parseManifestFilename(filename string) (repo, tag string, err error) {
-	// Strip "manifest=" prefix and ".json" suffix
-	if !strings.HasPrefix(filename, "manifest=") || !strings.HasSuffix(filename, ".json") {
-		return "", "", fmt.Errorf("invalid manifest filename: %s", filename)
-	}
-
-	trimmed := strings.TrimPrefix(filename, "manifest=")
-	trimmed = strings.TrimSuffix(trimmed, ".json")
-
-	// Split by "="
-	parts := strings.Split(trimmed, "=")
-	if len(parts) < 2 {
-		return "", "", fmt.Errorf("manifest filename must have at least 2 parts: %s", filename)
-	}
-
-	// Last part is tag
-	tag = parts[len(parts)-1]
-
-	// Everything before tag is repo (joined with "/")
-	repo = strings.Join(parts[:len(parts)-1], "/")
-
-	return repo, tag, nil
-}
-
-// parseSplitCount extracts split count from filename pattern
-func parseSplitCount(filename string) (int, error) {
-	matches := splitFilePattern.FindStringSubmatch(filename)
-	if len(matches) == 2 {
-		var count int
-		if _, err := fmt.Sscanf(matches[1], "%d", &count); err == nil {
-			return count, nil
+	var totalSize int64
+	for blobPath := range blobPaths {
+		if info, err := os.Stat(blobPath); err == nil {
+			totalSize += info.Size()
 		}
 	}
-	return 1, nil
+	model.SizeBytes = totalSize
+
+	return model
+}
+
+func classifyHFModelFileType(filename string) string {
+	lower := strings.ToLower(filename)
+	if strings.HasSuffix(lower, ".gguf") {
+		if strings.Contains(lower, "mmproj") {
+			return "mmproj"
+		}
+		return "gguf"
+	}
+	if lower == "preset.ini" {
+		return "preset"
+	}
+	return "other"
+}
+
+// scanLegacyCache reads old flat-layout manifest=*.json files and returns CachedModel
+// entries for any models found. This provides backwards compatibility until users
+// have migrated to the new HF snapshot layout.
+func scanLegacyCache(cacheDir, nodeName string) ([]CachedModel, error) {
+	entries, err := os.ReadDir(cacheDir)
+	if err != nil {
+		return nil, err
+	}
+
+	type legacyFileRef struct {
+		RFilename string `json:"rfilename"`
+	}
+	type legacyManifest struct {
+		GGUFFile   *legacyFileRef `json:"ggufFile"`
+		MMProjFile *legacyFileRef `json:"mmprojFile,omitempty"`
+	}
+
+	var models []CachedModel
+	seen := map[string]bool{}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasPrefix(name, "manifest=") || !strings.HasSuffix(name, ".json") {
+			continue
+		}
+
+		// Parse repo and tag from "manifest=org=model=tag.json"
+		trimmed := strings.TrimSuffix(strings.TrimPrefix(name, "manifest="), ".json")
+		parts := strings.Split(trimmed, "=")
+		if len(parts) < 2 {
+			continue
+		}
+		tag := parts[len(parts)-1]
+		repo := strings.Join(parts[:len(parts)-1], "/")
+
+		key := repo + ":" + tag
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+
+		data, err := os.ReadFile(filepath.Join(cacheDir, name))
+		if err != nil {
+			continue
+		}
+		var manifest legacyManifest
+		if err := json.Unmarshal(data, &manifest); err != nil || manifest.GGUFFile == nil {
+			continue
+		}
+
+		repoPrefix := strings.ReplaceAll(repo, "/", "_")
+		ggufFilename := filepath.Base(manifest.GGUFFile.RFilename)
+		ggufPath := filepath.Join(cacheDir, repoPrefix+"_"+ggufFilename)
+
+		info, err := os.Stat(ggufPath)
+		if err != nil {
+			continue
+		}
+
+		files := []File{{
+			Name:      ggufFilename,
+			Path:      ggufPath,
+			SizeBytes: info.Size(),
+			Type:      classifyHFModelFileType(ggufFilename),
+		}}
+		totalSize := info.Size()
+
+		if manifest.MMProjFile != nil {
+			mmprojFilename := filepath.Base(manifest.MMProjFile.RFilename)
+			mmprojPath := filepath.Join(cacheDir, repoPrefix+"_"+mmprojFilename)
+			if mmprojInfo, err := os.Stat(mmprojPath); err == nil {
+				files = append(files, File{
+					Name:      mmprojFilename,
+					Path:      mmprojPath,
+					SizeBytes: mmprojInfo.Size(),
+					Type:      "mmproj",
+				})
+				totalSize += mmprojInfo.Size()
+			}
+		}
+
+		models = append(models, CachedModel{
+			Node:      nodeName,
+			Repo:      repo,
+			Tag:       tag,
+			Files:     files,
+			SizeBytes: totalSize,
+		})
+	}
+
+	return models, nil
 }
 
 func (m *Manager) ListCached(nodeName string) ([]CachedModel, error) {
@@ -240,45 +302,80 @@ func (m *Manager) ListCached(nodeName string) ([]CachedModel, error) {
 }
 
 func (m *Manager) DeleteModel(repo, tag string) error {
-	models, err := m.ListCached("")
+	fileManager := NewFileManager(m.cacheDir)
+	repoDir := fileManager.HFRepoDir(repo)
+
+	if _, err := os.Stat(repoDir); os.IsNotExist(err) {
+		return fmt.Errorf("model not found: %s", repo)
+	}
+
+	if tag == "" {
+		return os.RemoveAll(repoDir)
+	}
+
+	refPath := fileManager.HFRefPath(repo, tag)
+	commit, err := readRefFile(refPath)
+	if err != nil {
+		return fmt.Errorf("model not found: %s:%s", repo, tag)
+	}
+
+	snapshotDir := filepath.Join(repoDir, "snapshots", commit)
+	if _, err := os.Stat(snapshotDir); os.IsNotExist(err) {
+		return fmt.Errorf("model not found: %s:%s", repo, tag)
+	}
+
+	snapshotEntries, err := os.ReadDir(snapshotDir)
 	if err != nil {
 		return err
 	}
 
-	var filesToDelete []string
-	for _, model := range models {
-		if model.Repo != repo {
+	blobPathsInSnapshot := make(map[string]bool)
+	for _, snapshotEntry := range snapshotEntries {
+		if snapshotEntry.IsDir() {
 			continue
 		}
+		symlinkPath := filepath.Join(snapshotDir, snapshotEntry.Name())
+		blobPath, err := os.Readlink(symlinkPath)
+		if err != nil {
+			blobPath = symlinkPath
+		} else if !filepath.IsAbs(blobPath) {
+			blobPath = filepath.Join(filepath.Dir(symlinkPath), blobPath)
+		}
+		blobPathsInSnapshot[blobPath] = true
+		os.Remove(symlinkPath)
+	}
 
-		if tag != "" && model.Tag != tag {
+	otherSnapshots, _ := os.ReadDir(filepath.Join(repoDir, "snapshots"))
+	blobPathsInOtherSnapshots := make(map[string]bool)
+	for _, otherSnapshot := range otherSnapshots {
+		if otherSnapshot.Name() == commit {
 			continue
 		}
-
-		for _, file := range model.Files {
-			filesToDelete = append(filesToDelete, file.Path)
-		}
-
-		// Also delete manifest file
-		manifestPath := m.fileManager.GetManifestPath(repo, model.Tag)
-		filesToDelete = append(filesToDelete, manifestPath)
-
-		// Delete ETag files
-		for _, file := range model.Files {
-			etagPath := file.Path + ".etag"
-			filesToDelete = append(filesToDelete, etagPath)
-		}
-	}
-
-	if len(filesToDelete) == 0 {
-		return fmt.Errorf("model not found: %s:%s", repo, tag)
-	}
-
-	for _, filePath := range filesToDelete {
-		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
-			return err
+		otherSnapshotDir := filepath.Join(repoDir, "snapshots", otherSnapshot.Name())
+		otherEntries, _ := os.ReadDir(otherSnapshotDir)
+		for _, otherEntry := range otherEntries {
+			if otherEntry.IsDir() {
+				continue
+			}
+			symlinkPath := filepath.Join(otherSnapshotDir, otherEntry.Name())
+			blobPath, err := os.Readlink(symlinkPath)
+			if err != nil {
+				blobPath = symlinkPath
+			} else if !filepath.IsAbs(blobPath) {
+				blobPath = filepath.Join(filepath.Dir(symlinkPath), blobPath)
+			}
+			blobPathsInOtherSnapshots[blobPath] = true
 		}
 	}
+
+	for blobPath := range blobPathsInSnapshot {
+		if !blobPathsInOtherSnapshots[blobPath] {
+			os.Remove(blobPath)
+		}
+	}
+
+	os.Remove(snapshotDir)
+	os.Remove(refPath)
 
 	return nil
 }
