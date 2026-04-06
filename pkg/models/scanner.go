@@ -24,7 +24,10 @@ type File struct {
 	Type      string `json:"type"`
 }
 
-var splitFilePattern = regexp.MustCompile(`-\d{5}-of-(\d{5})\.gguf$`)
+var (
+	splitFilePattern = regexp.MustCompile(`-\d{5}-of-(\d{5})\.gguf$`)
+	shaPattern       = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
+)
 
 func ScanCache(cacheDir, nodeName string) ([]CachedModel, error) {
 	models := []CachedModel{}
@@ -112,7 +115,11 @@ func readRefFile(refPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(data)), nil
+	commit := strings.TrimSpace(string(data))
+	if !shaPattern.MatchString(commit) {
+		return "", fmt.Errorf("invalid commit hash in ref file: %s", commit)
+	}
+	return commit, nil
 }
 
 func scanHFRepo(hubRoot, dirName, repo, commit, nodeName string) CachedModel {
@@ -121,6 +128,10 @@ func scanHFRepo(hubRoot, dirName, repo, commit, nodeName string) CachedModel {
 		Repo:  repo,
 		Tag:   commit, // Default tag to commit hash
 		Files: []File{},
+	}
+
+	if !shaPattern.MatchString(commit) {
+		return model
 	}
 
 	snapshotDir := filepath.Join(hubRoot, dirName, "snapshots", commit)
@@ -292,9 +303,7 @@ func (m *Manager) ListCached(nodeName string) ([]CachedModel, error) {
 
 func (m *Manager) DeleteModel(repo, tag string) error {
 	fileManager := NewFileManager(m.cacheDir)
-	hubRoot := fileManager.HFHubRoot()
-	repoDirName := fileManager.HFRepoDirName(repo)
-	repoDir := filepath.Join(hubRoot, repoDirName)
+	repoDir := fileManager.HFRepoDir(repo)
 
 	if _, err := os.Stat(repoDir); os.IsNotExist(err) {
 		return fmt.Errorf("model not found: %s", repo)
@@ -304,7 +313,8 @@ func (m *Manager) DeleteModel(repo, tag string) error {
 		return os.RemoveAll(repoDir)
 	}
 
-	commit, err := readRefFile(filepath.Join(repoDir, "refs", tag))
+	refPath := fileManager.HFRefPath(repo, tag)
+	commit, err := readRefFile(refPath)
 	if err != nil {
 		return fmt.Errorf("model not found: %s:%s", repo, tag)
 	}
@@ -365,7 +375,6 @@ func (m *Manager) DeleteModel(repo, tag string) error {
 	}
 
 	os.Remove(snapshotDir)
-	refPath := filepath.Join(repoDir, "refs", tag)
 	os.Remove(refPath)
 
 	return nil
