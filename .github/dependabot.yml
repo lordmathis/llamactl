@@ -33,6 +33,8 @@ updates:
         update-types: ["version-update:semver-patch"]
       - dependency-name: "@eslint/js"
         versions: ["10.x.x"]
+      - dependency-name: "eslint"
+        versions: ["10.x.x"]
     groups:
       npm-production:
         dependency-type: "production"
