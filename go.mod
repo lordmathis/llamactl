@@ -1,6 +1,6 @@
 module llamactl
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/DeRuina/timberjack v1.4.0
