@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from 'react'
-import { type CreateInstanceOptions } from '@/types/instance'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import AutoRestartConfiguration from '@/components/instance/AutoRestartConfiguration'
-import NumberInput from '@/components/form/NumberInput'
-import CheckboxInput from '@/components/form/CheckboxInput'
-import SelectInput from '@/components/form/SelectInput'
-import { nodesApi, type NodesMap } from '@/lib/api'
+import React, { useEffect, useState } from "react";
+import { type CreateInstanceOptions } from "@/types/instance";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import AutoRestartConfiguration from "@/components/instance/AutoRestartConfiguration";
+import NumberInput from "@/components/form/NumberInput";
+import CheckboxInput from "@/components/form/CheckboxInput";
+import SelectInput from "@/components/form/SelectInput";
+import { nodesApi, type NodesMap } from "@/lib/api";
 
 interface GeneralTabProps {
-  instanceName: string
-  nameError: string
-  isEditing: boolean
-  formData: CreateInstanceOptions
-  onNameChange: (name: string) => void
-  onChange: (key: keyof CreateInstanceOptions, value: unknown) => void
+  instanceName: string;
+  nameError: string;
+  isEditing: boolean;
+  formData: CreateInstanceOptions;
+  onNameChange: (name: string) => void;
+  onChange: (key: keyof CreateInstanceOptions, value: unknown) => void;
 }
 
 const GeneralTab: React.FC<GeneralTabProps> = ({
@@ -23,45 +23,49 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   isEditing,
   formData,
   onNameChange,
-  onChange
+  onChange,
 }) => {
-  const [nodes, setNodes] = useState<NodesMap>({})
-  const [loadingNodes, setLoadingNodes] = useState(true)
+  const [nodes, setNodes] = useState<NodesMap>({});
+  const [loadingNodes, setLoadingNodes] = useState(true);
 
   useEffect(() => {
     const fetchNodes = async () => {
       try {
-        const fetchedNodes = await nodesApi.list()
-        setNodes(fetchedNodes)
+        const fetchedNodes = await nodesApi.list();
+        setNodes(fetchedNodes);
 
-        const nodeNames = Object.keys(fetchedNodes)
-        if (nodeNames.length > 0 && (!formData.nodes || formData.nodes.length === 0)) {
-          onChange('nodes', [nodeNames[0]])
+        const nodeNames = Object.keys(fetchedNodes);
+        if (
+          nodeNames.length > 0 &&
+          (!formData.nodes || formData.nodes.length === 0)
+        ) {
+          onChange("nodes", [nodeNames[0]]);
         }
       } catch (error) {
-        console.error('Failed to fetch nodes:', error)
+        console.error("Failed to fetch nodes:", error);
       } finally {
-        setLoadingNodes(false)
+        setLoadingNodes(false);
       }
-    }
+    };
 
-    void fetchNodes()
-  }, [formData.nodes, onChange])
+    void fetchNodes();
+  }, [formData.nodes, onChange]);
 
-  const nodeOptions = Object.keys(nodes).map(nodeName => ({
+  const nodeOptions = Object.keys(nodes).map((nodeName) => ({
     value: nodeName,
-    label: nodeName
-  }))
+    label: nodeName,
+  }));
 
   const handleNodeChange = (value: string | undefined) => {
     if (value) {
-      onChange('nodes', [value])
+      onChange("nodes", [value]);
     } else {
-      onChange('nodes', undefined)
+      onChange("nodes", undefined);
     }
-  }
+  };
 
-  const selectedNode = formData.nodes && formData.nodes.length > 0 ? formData.nodes[0] : ''
+  const selectedNode =
+    formData.nodes && formData.nodes.length > 0 ? formData.nodes[0] : "";
 
   return (
     <div className="space-y-6 py-4">
@@ -90,17 +94,21 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           value={selectedNode}
           onChange={handleNodeChange}
           options={nodeOptions}
-          description={isEditing ? "Node cannot be changed after instance creation" : "Select the node where the instance will run"}
+          description={
+            isEditing
+              ? "Node cannot be changed after instance creation"
+              : "Select the node where the instance will run"
+          }
           disabled={isEditing}
         />
       )}
 
-<div className="grid gap-2">
+      <div className="grid gap-2">
         <Label htmlFor="group">Group</Label>
         <Input
           id="group"
-          value={formData.group || ''}
-          onChange={(e) => onChange('group', e.target.value || undefined)}
+          value={formData.group || ""}
+          onChange={(e) => onChange("group", e.target.value || undefined)}
           placeholder="e.g., large-models"
         />
         <p className="text-sm text-muted-foreground">
@@ -115,7 +123,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           id="idle_timeout"
           label="Idle Timeout (minutes)"
           value={formData.idle_timeout}
-          onChange={(value) => onChange('idle_timeout', value)}
+          onChange={(value) => onChange("idle_timeout", value)}
           placeholder="30"
           description="Minutes before stopping an idle instance"
         />
@@ -124,17 +132,14 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           id="on_demand_start"
           label="On Demand Start"
           value={formData.on_demand_start}
-          onChange={(value) => onChange('on_demand_start', value)}
+          onChange={(value) => onChange("on_demand_start", value)}
           description="Start instance only when needed"
         />
       </div>
 
-      <AutoRestartConfiguration
-        formData={formData}
-        onChange={onChange}
-      />
+      <AutoRestartConfiguration formData={formData} onChange={onChange} />
     </div>
-  )
-}
+  );
+};
 
-export default GeneralTab
+export default GeneralTab;
