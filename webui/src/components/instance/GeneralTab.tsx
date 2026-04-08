@@ -95,6 +95,19 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
         />
       )}
 
+<div className="grid gap-2">
+        <Label htmlFor="group">Group</Label>
+        <Input
+          id="group"
+          value={formData.group || ''}
+          onChange={(e) => onChange('group', e.target.value || undefined)}
+          placeholder="e.g., large-models"
+        />
+        <p className="text-sm text-muted-foreground">
+          Optional group for managing instance quotas and hierarchical eviction
+        </p>
+      </div>
+
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Basic Instance Options</h3>
 
