@@ -59,6 +59,7 @@ func getDefaultConfig(dataDir string) AppConfig {
 			AutoCreateDirs:       true,
 			MaxInstances:         -1, // -1 means unlimited
 			MaxRunningInstances:  -1, // -1 means unlimited
+			GroupLimits:          map[string]int{},
 			EnableLRUEviction:    true,
 			DefaultIdleTimeout:   30, // Default idle timeout of 30 minutes
 			DefaultAutoRestart:   true,

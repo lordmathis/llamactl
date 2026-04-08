@@ -92,6 +92,9 @@ type InstancesConfig struct {
 	// Maximum number of instances that can be running at the same time
 	MaxRunningInstances int `yaml:"max_running_instances,omitempty" json:"max_running_instances,omitempty"`
 
+	// Group-specific limits for running instances (group name -> max count)
+	GroupLimits map[string]int `yaml:"group_limits,omitempty" json:"group_limits,omitempty"`
+
 	// Enable LRU eviction for instance logs
 	EnableLRUEviction bool `yaml:"enable_lru_eviction" json:"enable_lru_eviction"`
 
