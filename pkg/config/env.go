@@ -196,6 +196,11 @@ func loadEnvVars(cfg *AppConfig) {
 	}
 
 	// Instance defaults
+	if idleTimeout := os.Getenv("LLAMACTL_DEFAULT_IDLE_TIMEOUT"); idleTimeout != "" {
+		if minutes, err := strconv.Atoi(idleTimeout); err == nil {
+			cfg.Instances.DefaultIdleTimeout = minutes
+		}
+	}
 	if autoRestart := os.Getenv("LLAMACTL_DEFAULT_AUTO_RESTART"); autoRestart != "" {
 		if b, err := strconv.ParseBool(autoRestart); err == nil {
 			cfg.Instances.DefaultAutoRestart = b

@@ -56,6 +56,9 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if !cfg.Instances.DefaultAutoRestart {
 		t.Error("Expected default auto restart to be true")
 	}
+	if cfg.Instances.DefaultIdleTimeout != 30 {
+		t.Errorf("Expected default idle timeout 30, got %d", cfg.Instances.DefaultIdleTimeout)
+	}
 	if cfg.Instances.DefaultMaxRestarts != 3 {
 		t.Errorf("Expected default max restarts 3, got %d", cfg.Instances.DefaultMaxRestarts)
 	}
@@ -128,6 +131,7 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 		"LLAMACTL_INSTANCE_PORT_RANGE":   "5000-6000",
 		"LLAMACTL_LOGS_DIR":              "/env/logs",
 		"LLAMACTL_MAX_INSTANCES":         "20",
+		"LLAMACTL_DEFAULT_IDLE_TIMEOUT":  "60",
 		"LLAMACTL_DEFAULT_AUTO_RESTART":  "false",
 		"LLAMACTL_DEFAULT_MAX_RESTARTS":  "7",
 		"LLAMACTL_DEFAULT_RESTART_DELAY": "15",
@@ -162,6 +166,9 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 	}
 	if cfg.Backends.LlamaCpp.Command != "llama-server" {
 		t.Errorf("Expected default llama command 'llama-server', got %q", cfg.Backends.LlamaCpp.Command)
+	}
+	if cfg.Instances.DefaultIdleTimeout != 60 {
+		t.Errorf("Expected idle timeout 60, got %d", cfg.Instances.DefaultIdleTimeout)
 	}
 	if cfg.Instances.DefaultAutoRestart {
 		t.Error("Expected auto restart to be false")

@@ -60,6 +60,7 @@ func getDefaultConfig(dataDir string) AppConfig {
 			MaxInstances:         -1, // -1 means unlimited
 			MaxRunningInstances:  -1, // -1 means unlimited
 			EnableLRUEviction:    true,
+			DefaultIdleTimeout:   30, // Default idle timeout of 30 minutes
 			DefaultAutoRestart:   true,
 			DefaultMaxRestarts:   3,
 			DefaultRestartDelay:  5,

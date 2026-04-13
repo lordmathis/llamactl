@@ -9,6 +9,7 @@ export const useInstanceDefaults = () => {
   }
 
   return {
+    idleTimeout: config.instances.default_idle_timeout,
     autoRestart: config.instances.default_auto_restart,
     maxRestarts: config.instances.default_max_restarts,
     restartDelay: config.instances.default_restart_delay,

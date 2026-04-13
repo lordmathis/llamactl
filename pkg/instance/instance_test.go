@@ -32,6 +32,7 @@ func TestNewInstance(t *testing.T) {
 			LogsDir:             "/tmp/test",
 			DefaultMaxRestarts:  3,
 			DefaultRestartDelay: 5,
+			DefaultIdleTimeout:  30,
 		},
 		Nodes:     map[string]config.NodeConfig{},
 		LocalNode: "main",
@@ -77,6 +78,9 @@ func TestNewInstance(t *testing.T) {
 	}
 	if opts.RestartDelay == nil || *opts.RestartDelay != 5 {
 		t.Errorf("Expected RestartDelay to be 5 (default), got %v", opts.RestartDelay)
+	}
+	if opts.IdleTimeout == nil || *opts.IdleTimeout != 30 {
+		t.Errorf("Expected IdleTimeout to be 30 (default), got %v", opts.IdleTimeout)
 	}
 
 	// Test that explicit values override defaults
@@ -125,6 +129,7 @@ func TestSetOptions(t *testing.T) {
 			LogsDir:             "/tmp/test",
 			DefaultMaxRestarts:  3,
 			DefaultRestartDelay: 5,
+			DefaultIdleTimeout:  30,
 		},
 		Nodes:     map[string]config.NodeConfig{},
 		LocalNode: "main",
@@ -668,6 +673,7 @@ func TestWritePresetIni(t *testing.T) {
 			DefaultAutoRestart:  true,
 			DefaultMaxRestarts:  3,
 			DefaultRestartDelay: 5,
+			DefaultIdleTimeout:  30,
 		},
 		Nodes:     map[string]config.NodeConfig{},
 		LocalNode: "main",

@@ -14,6 +14,7 @@ vi.mock('@/lib/api', () => ({
 // Mock the ConfigContext helper hooks
 vi.mock('@/hooks/useConfig', () => ({
   useInstanceDefaults: () => ({
+    idleTimeout: 30,
     autoRestart: true,
     maxRestarts: 3,
     restartDelay: 5,
