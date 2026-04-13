@@ -59,6 +59,7 @@ instances:
   max_instances: -1                # Max instances (-1 = unlimited)
   max_running_instances: -1        # Max running instances (-1 = unlimited)
   enable_lru_eviction: true        # Enable LRU eviction for idle instances
+  default_idle_timeout: 30         # Default idle timeout in minutes (0 = no timeout)
   default_auto_restart: true       # Auto-restart new instances by default
   default_max_restarts: 3          # Max restarts for new instances
   default_restart_delay: 5         # Restart delay (seconds) for new instances
@@ -224,6 +225,7 @@ instances:
   max_instances: -1             # Maximum instances (-1 = unlimited)
   max_running_instances: -1     # Maximum running instances (-1 = unlimited)
   enable_lru_eviction: true     # Enable LRU eviction for idle instances
+  default_idle_timeout: 30      # Default idle timeout in minutes (0 = no timeout)
   default_auto_restart: true    # Default auto-restart setting
   default_max_restarts: 3       # Default maximum restart attempts
   default_restart_delay: 5      # Default restart delay in seconds
@@ -243,6 +245,7 @@ instances:
 - `LLAMACTL_MAX_INSTANCES` - Maximum number of instances  
 - `LLAMACTL_MAX_RUNNING_INSTANCES` - Maximum number of running instances
 - `LLAMACTL_ENABLE_LRU_EVICTION` - Enable LRU eviction for idle instances
+- `LLAMACTL_DEFAULT_IDLE_TIMEOUT` - Default idle timeout in minutes (0 = no timeout)
 - `LLAMACTL_DEFAULT_AUTO_RESTART` - Default auto-restart setting (true/false)  
 - `LLAMACTL_DEFAULT_MAX_RESTARTS` - Default maximum restarts  
 - `LLAMACTL_DEFAULT_RESTART_DELAY` - Default restart delay in seconds  

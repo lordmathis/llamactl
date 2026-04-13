@@ -189,6 +189,7 @@ instances:
   max_instances: -1                               # Max instances (-1 = unlimited)
   max_running_instances: -1                       # Max running instances (-1 = unlimited)
   enable_lru_eviction: true                       # Enable LRU eviction for idle instances
+  default_idle_timeout: 30                        # Default idle timeout in minutes (0 = no timeout)
   default_auto_restart: true                      # Auto-restart new instances by default
   default_max_restarts: 3                         # Max restarts for new instances
   default_restart_delay: 5                        # Restart delay (seconds) for new instances
