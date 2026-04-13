@@ -145,6 +145,7 @@ describe('App Component - Critical Business Logic Only', () => {
           auto_restart: true, // Default value from config
           backend_type: BackendType.LLAMA_CPP,
           docker_enabled: false,
+          idle_timeout: 30,
           max_restarts: 3,
           on_demand_start: false,
           restart_delay: 5
