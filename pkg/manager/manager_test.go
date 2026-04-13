@@ -208,6 +208,7 @@ func createTestAppConfig(instancesDir string) *config.AppConfig {
 			DefaultMaxRestarts:   3,
 			LogsDir:              instancesDir,
 			DefaultRestartDelay:  5,
+			DefaultIdleTimeout:   30,
 			TimeoutCheckInterval: 5,
 		},
 		Database: config.DatabaseConfig{

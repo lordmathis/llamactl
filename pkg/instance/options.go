@@ -255,8 +255,7 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 			c.OnDemandStart = &globalSettings.DefaultOnDemandStart
 		}
 		if c.IdleTimeout == nil {
-			defaultIdleTimeout := 0
-			c.IdleTimeout = &defaultIdleTimeout
+			c.IdleTimeout = &globalSettings.DefaultIdleTimeout
 		}
 	}
 }

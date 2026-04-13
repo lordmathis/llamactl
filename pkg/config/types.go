@@ -95,6 +95,9 @@ type InstancesConfig struct {
 	// Enable LRU eviction for instance logs
 	EnableLRUEviction bool `yaml:"enable_lru_eviction" json:"enable_lru_eviction"`
 
+	// Default idle timeout for instances in minutes (0 means no timeout)
+	DefaultIdleTimeout int `yaml:"default_idle_timeout" json:"default_idle_timeout"`
+
 	// Default auto-restart setting for new instances
 	DefaultAutoRestart bool `yaml:"default_auto_restart" json:"default_auto_restart"`
 

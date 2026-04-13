@@ -14,6 +14,7 @@ vi.mock('@/lib/api', () => ({
 // Mock the ConfigContext helper hooks
 vi.mock('@/hooks/useConfig', () => ({
   useInstanceDefaults: () => ({
+    idleTimeout: 30,
     autoRestart: true,
     maxRestarts: 3,
     restartDelay: 5,
@@ -145,6 +146,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
         auto_restart: true,
         backend_type: BackendType.LLAMA_CPP,
         docker_enabled: false,
+        idle_timeout: 30,
         max_restarts: 3,
         on_demand_start: false,
         restart_delay: 5

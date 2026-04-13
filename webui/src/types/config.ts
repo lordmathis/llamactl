@@ -35,6 +35,7 @@ export interface InstancesConfig {
   max_instances: number
   max_running_instances: number
   enable_lru_eviction: boolean
+  default_idle_timeout: number
   default_auto_restart: boolean
   default_max_restarts: number
   default_restart_delay: number

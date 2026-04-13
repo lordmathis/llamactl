@@ -62,6 +62,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
           max_restarts: instanceDefaults?.maxRestarts,
           restart_delay: instanceDefaults?.restartDelay,
           on_demand_start: instanceDefaults?.onDemandStart,
+          idle_timeout: instanceDefaults?.idleTimeout,
           backend_type: BackendType.LLAMA_CPP, // Default backend type
           docker_enabled: llamaCppSettings?.dockerEnabled ?? false,
           backend_options: {},
