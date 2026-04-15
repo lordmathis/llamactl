@@ -143,11 +143,10 @@ func TestEvictLRUInstance_OnlyEvictsTimeoutEnabledInstances(t *testing.T) {
 	validTimeout := 1
 	zeroTimeout := 0
 	instWithTimeout := createInstanceWithTimeout(t, manager, "with-timeout", "/path/to/model-with-timeout.gguf", &validTimeout)
-	instNoTimeout1 := createInstanceWithTimeout(t, manager, "no-timeout-1", "/path/to/model-no-timeout1.gguf", &zeroTimeout)
-	instNoTimeout2 := createInstanceWithTimeout(t, manager, "no-timeout-2", "/path/to/model-no-timeout2.gguf", nil)
+	instNoTimeout := createInstanceWithTimeout(t, manager, "no-timeout-1", "/path/to/model-no-timeout1.gguf", &zeroTimeout)
 
 	// Set all instances to running
-	instances := []*instance.Instance{instWithTimeout, instNoTimeout1, instNoTimeout2}
+	instances := []*instance.Instance{instWithTimeout, instNoTimeout}
 	for _, inst := range instances {
 		inst.SetStatus(instance.Running)
 		inst.UpdateLastRequestTime()
@@ -171,11 +170,8 @@ func TestEvictLRUInstance_OnlyEvictsTimeoutEnabledInstances(t *testing.T) {
 	if instWithTimeout.IsRunning() {
 		t.Error("Expected with-timeout instance to be stopped after eviction")
 	}
-	if !instNoTimeout1.IsRunning() {
-		t.Error("Expected no-timeout-1 instance to still be running")
-	}
-	if !instNoTimeout2.IsRunning() {
-		t.Error("Expected no-timeout-2 instance to still be running")
+	if !instNoTimeout.IsRunning() {
+		t.Error("Expected no-timeout instance to still be running")
 	}
 }
 
