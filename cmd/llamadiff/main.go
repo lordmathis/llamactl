@@ -18,15 +18,15 @@ type FlagInfo struct {
 
 // Utility flags that are not expected to be in the struct
 var utilityFlags = map[string]bool{
-	"-h":               true,
-	"--help":           true,
-	"--usage":          true,
-	"--version":        true,
-	"--license":        true,
-	"-cl":              true,
-	"--cache-list":     true,
+	"-h":                true,
+	"--help":            true,
+	"--usage":           true,
+	"--version":         true,
+	"--license":         true,
+	"-cl":               true,
+	"--cache-list":      true,
 	"--completion-bash": true,
-	"--list-devices":   true,
+	"--list-devices":    true,
 }
 
 func main() {

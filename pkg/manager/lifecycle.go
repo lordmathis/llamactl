@@ -111,7 +111,9 @@ func (l *lifecycleManager) checkTimeouts() {
 
 // EvictLRU finds and stops the least recently used running instance.
 // This is called when max running instances limit is reached.
-func (l *lifecycleManager) evictLRU() error {
+// If groupLabel is provided, only instances in that group are considered for eviction.
+// If groupLabel is empty, all running instances are considered.
+func (l *lifecycleManager) evictLRU(groupLabel string) error {
 	if !l.enableLRU {
 		return fmt.Errorf("LRU eviction is not enabled")
 	}
@@ -132,6 +134,17 @@ func (l *lifecycleManager) evictLRU() error {
 			continue
 		}
 
+		// If groupLabel is specified, only consider instances in that group
+		if groupLabel != "" {
+			instGroup := ""
+			if inst.GetOptions() != nil {
+				instGroup = inst.GetOptions().Group
+			}
+			if instGroup != groupLabel {
+				continue
+			}
+		}
+
 		if lruInstance == nil {
 			lruInstance = inst
 		}
@@ -142,6 +155,9 @@ func (l *lifecycleManager) evictLRU() error {
 	}
 
 	if lruInstance == nil {
+		if groupLabel != "" {
+			return fmt.Errorf("failed to find lru instance in group %s", groupLabel)
+		}
 		return fmt.Errorf("failed to find lru instance")
 	}
 

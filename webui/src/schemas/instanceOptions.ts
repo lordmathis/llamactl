@@ -49,6 +49,9 @@ export const CreateInstanceOptionsSchema = z.object({
   // Node configuration
   nodes: z.array(z.string()).optional(),
 
+  // Instance group for hierarchical eviction
+  group: z.string().optional(),
+
   // Preset configuration
   preset_ini: z.string().optional(),
 })

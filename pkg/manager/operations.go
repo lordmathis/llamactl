@@ -382,11 +382,6 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 		return inst, nil
 	}
 
-	// Check max running instances limit for local instances only
-	if im.AtMaxRunning() {
-		return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.globalConfig.Instances.MaxRunningInstances))
-	}
-
 	if err := inst.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start instance %s: %w", name, err)
 	}
@@ -532,6 +527,24 @@ func (im *instanceManager) setPortInOptions(options *instance.Options, port int)
 }
 
 // EvictLRUInstance finds and stops the least recently used running instance.
-func (im *instanceManager) EvictLRUInstance() error {
-	return im.lifecycle.evictLRU()
+func (im *instanceManager) EvictLRUInstance(group string) error {
+	return im.lifecycle.evictLRU(group)
+}
+
+// CountRunningInGroup returns the number of local running instances belonging to the given group.
+func (im *instanceManager) CountRunningInGroup(group string) int {
+	count := 0
+	for _, inst := range im.registry.listRunning() {
+		if inst.IsRemote() {
+			continue
+		}
+		instGroup := ""
+		if inst.GetOptions() != nil {
+			instGroup = inst.GetOptions().Group
+		}
+		if instGroup == group {
+			count++
+		}
+	}
+	return count
 }

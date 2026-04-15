@@ -13,7 +13,7 @@
 **🚀 Easy Model Management**
 - **Built-in Model Downloader**: Download GGUF models directly from HuggingFace for llama.cpp (replicates llama.cpp `--hf` behavior)
 - **Dynamic Multi-Model Instances**: llama.cpp router mode - serve multiple models from a single instance with on-demand loading
-- **Smart Resource Management**: Automatic idle timeout, LRU eviction, and configurable instance limits
+- **Smart Resource Management**: Automatic idle timeout, LRU eviction, instance groups with per-group limits, and configurable instance limits
 - **Web Dashboard**: Modern React UI for managing instances, monitoring health, and viewing logs
 
 **🔗 Flexible Integration**
@@ -195,6 +195,7 @@ instances:
   default_restart_delay: 5                        # Restart delay (seconds) for new instances
   default_on_demand_start: true                   # Default on-demand start setting
   on_demand_start_timeout: 120                    # Default on-demand start timeout in seconds
+  group_limits: {}                                # Per-group instance limits (e.g., large: 1, small: 3)
   timeout_check_interval: 5                       # Idle instance timeout check in minutes
   log_rotation_enabled: true                      # Enable log rotation (default: true)
   log_rotation_max_size: 100                      # Max log file size in MB before rotation (default: 100)

@@ -31,6 +31,9 @@ type Options struct {
 	DockerEnabled   *bool  `json:"docker_enabled,omitempty"`
 	CommandOverride string `json:"command_override,omitempty"`
 
+	// Instance group for hierarchical eviction
+	Group string `json:"group,omitempty"`
+
 	// Assigned nodes
 	Nodes map[string]struct{} `json:"-"`
 	// Backend options
@@ -237,6 +240,14 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 		if c.DockerEnabled != nil && *c.DockerEnabled {
 			log.Printf("Instance %s: docker_enabled is not supported for MLX backend, ignoring", name)
 			c.DockerEnabled = nil // Clear invalid configuration
+		}
+	}
+
+	// Validate group name (alphanumeric and hyphens only)
+	if c.Group != "" {
+		if err := validation.ValidateStringForInjection(c.Group); err != nil {
+			log.Printf("Instance %s: invalid group name: %v, clearing value", name, err)
+			c.Group = ""
 		}
 	}
 

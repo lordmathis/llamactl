@@ -66,6 +66,7 @@ instances:
   default_on_demand_start: true    # Default on-demand start setting
   on_demand_start_timeout: 120     # Default on-demand start timeout in seconds
   timeout_check_interval: 5        # Idle instance timeout check in minutes
+  group_limits: {}                 # Per-group running instance limits (e.g., {large: 1, small: 3})
 
 database:
   path: data_dir/llamactl.db              # Database file path
@@ -224,14 +225,15 @@ instances:
   auto_create_dirs: true        # Automatically create data/config/logs directories (default: true)
   max_instances: -1             # Maximum instances (-1 = unlimited)
   max_running_instances: -1     # Maximum running instances (-1 = unlimited)
-  enable_lru_eviction: true     # Enable LRU eviction for idle instances
-  default_idle_timeout: 30      # Default idle timeout in minutes (0 = no timeout)
-  default_auto_restart: true    # Default auto-restart setting
-  default_max_restarts: 3       # Default maximum restart attempts
-  default_restart_delay: 5      # Default restart delay in seconds
-  default_on_demand_start: true # Default on-demand start setting
-  on_demand_start_timeout: 120  # Default on-demand start timeout in seconds
-  timeout_check_interval: 5     # Default instance timeout check interval in minutes
+  enable_lru_eviction: true        # Enable LRU eviction for idle instances
+  default_idle_timeout: 30         # Default idle timeout in minutes (0 = no timeout)
+  default_auto_restart: true       # Default auto-restart setting
+  default_max_restarts: 3          # Default maximum restart attempts
+  default_restart_delay: 5         # Default restart delay in seconds
+  default_on_demand_start: true    # Default on-demand start setting
+  on_demand_start_timeout: 120     # Default on-demand start timeout in seconds
+  timeout_check_interval: 5        # Default instance timeout check interval in minutes
+  group_limits: {}                 # Per-group running instance limits (e.g., {large: 1, small: 3})
   log_rotation_enabled: true    # Enable log rotation (default: true)
   log_rotation_max_size: 100    # Max log file size in MB before rotation (default: 100)
   log_rotation_compress: false  # Compress rotated log files (default: false)
@@ -252,6 +254,7 @@ instances:
 - `LLAMACTL_DEFAULT_ON_DEMAND_START` - Default on-demand start setting (true/false)  
 - `LLAMACTL_ON_DEMAND_START_TIMEOUT` - Default on-demand start timeout in seconds
 - `LLAMACTL_TIMEOUT_CHECK_INTERVAL` - Default instance timeout check interval in minutes
+- `LLAMACTL_GROUP_LIMITS` - Per-group running instance limits (format: "group1=2,group2=1")
 - `LLAMACTL_LOG_ROTATION_ENABLED` - Enable log rotation (true/false)
 - `LLAMACTL_LOG_ROTATION_MAX_SIZE` - Max log file size in MB
 - `LLAMACTL_LOG_ROTATION_COMPRESS` - Compress rotated logs (true/false)
