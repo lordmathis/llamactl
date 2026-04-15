@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Instance } from "@/types/instance";
-import { Edit, FileText, Play, Square, Trash2, MoreHorizontal, Download, Boxes } from "lucide-react";
+import { Edit, FileText, Play, Square, Trash2, MoreHorizontal, Download, Boxes, Layers } from "lucide-react";
 import LogsDialog from "@/components/LogDialog";
 import ModelsDialog from "@/components/ModelsDialog";
 import HealthBadge from "@/components/HealthBadge";
@@ -129,6 +129,12 @@ function InstanceCard({
             <div className="flex items-center gap-2 flex-wrap">
               <BackendBadge backend={instance.options?.backend_type} docker={instance.options?.docker_enabled} />
               {running && <HealthBadge health={health} />}
+              {instance.options?.group && (
+                <Badge variant="outline" className="text-xs">
+                  <Layers className="h-3 w-3 mr-1" />
+                  {instance.options.group}
+                </Badge>
+              )}
               {isLlamaCpp && running && totalModels > 1 && (
                 <Badge variant="secondary" className="text-xs">
                   <Boxes className="h-3 w-3 mr-1" />
