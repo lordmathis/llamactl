@@ -103,7 +103,7 @@ func TestEvictLRUInstance_Success(t *testing.T) {
 	inst3.UpdateLastRequestTime()
 
 	// Evict LRU instance (should be inst1)
-	if err := manager.EvictLRUInstance(); err != nil {
+	if err := manager.EvictLRUInstance(""); err != nil {
 		t.Fatalf("EvictLRUInstance failed: %v", err)
 	}
 
@@ -125,7 +125,7 @@ func TestEvictLRUInstance_NoRunningInstances(t *testing.T) {
 	manager := createTestManager(t)
 	defer manager.Shutdown()
 
-	err := manager.EvictLRUInstance()
+	err := manager.EvictLRUInstance("")
 	if err == nil {
 		t.Error("Expected error when no running instances exist")
 	}
@@ -162,7 +162,7 @@ func TestEvictLRUInstance_OnlyEvictsTimeoutEnabledInstances(t *testing.T) {
 	}()
 
 	// Evict LRU instance - should only consider the one with timeout
-	err := manager.EvictLRUInstance()
+	err := manager.EvictLRUInstance("")
 	if err != nil {
 		t.Fatalf("EvictLRUInstance failed: %v", err)
 	}

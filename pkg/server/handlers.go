@@ -139,7 +139,7 @@ func (h *Handler) evictFromGroupQuota(group string) error {
 	if h.InstanceManager.CountRunningInGroup(group) < groupLimit {
 		return nil
 	}
-	if err := h.InstanceManager.EvictLRUInstanceFromGroup(group); err != nil {
+	if err := h.InstanceManager.EvictLRUInstance(group); err != nil {
 		return fmt.Errorf("cannot start instance, failed to evict from group %s: %w", group, err)
 	}
 	return nil
@@ -149,7 +149,7 @@ func (h *Handler) evictFromGlobalCapacity() error {
 	if !h.InstanceManager.AtMaxRunning() {
 		return nil
 	}
-	if err := h.InstanceManager.EvictLRUInstance(); err != nil {
+	if err := h.InstanceManager.EvictLRUInstance(""); err != nil {
 		return fmt.Errorf("cannot start instance, failed to evict instance: %w", err)
 	}
 	return nil

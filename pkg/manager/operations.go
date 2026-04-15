@@ -527,12 +527,7 @@ func (im *instanceManager) setPortInOptions(options *instance.Options, port int)
 }
 
 // EvictLRUInstance finds and stops the least recently used running instance.
-func (im *instanceManager) EvictLRUInstance() error {
-	return im.lifecycle.evictLRU("")
-}
-
-// EvictLRUInstanceFromGroup finds and stops the least recently used running instance in the given group.
-func (im *instanceManager) EvictLRUInstanceFromGroup(group string) error {
+func (im *instanceManager) EvictLRUInstance(group string) error {
 	return im.lifecycle.evictLRU(group)
 }
 
