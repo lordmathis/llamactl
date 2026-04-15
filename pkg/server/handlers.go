@@ -90,35 +90,67 @@ func (h *Handler) getInstance(r *http.Request) (*instance.Instance, error) {
 	return inst, nil
 }
 
-// ensureInstanceRunning ensures that an instance is running by starting it if on-demand start is enabled
-// It handles LRU eviction when the maximum number of running instances is reached
+// ensureInstanceRunning ensures that an instance is running by starting it if on-demand start is enabled.
+// It performs hierarchical eviction: group quota check first, then global capacity check.
 func (h *Handler) ensureInstanceRunning(inst *instance.Instance) error {
 	options := inst.GetOptions()
-	allowOnDemand := options != nil && options.OnDemandStart != nil && *options.OnDemandStart
-	if !allowOnDemand {
+	if options == nil || options.OnDemandStart == nil || !*options.OnDemandStart {
 		return fmt.Errorf("instance is not running and on-demand start is not enabled")
 	}
 
-	if h.InstanceManager.AtMaxRunning() {
-		if h.cfg.Instances.EnableLRUEviction {
-			err := h.InstanceManager.EvictLRUInstance()
-			if err != nil {
-				return fmt.Errorf("cannot start instance, failed to evict instance: %w", err)
-			}
-		} else {
-			return fmt.Errorf("cannot start instance, maximum number of instances reached")
-		}
+	if !h.cfg.Instances.EnableLRUEviction {
+		return h.rejectIfAtCapacity()
 	}
 
-	// If on-demand start is enabled, start the instance
+	if err := h.evictFromGroupQuota(options.Group); err != nil {
+		return err
+	}
+
+	if err := h.evictFromGlobalCapacity(); err != nil {
+		return err
+	}
+
 	if _, err := h.InstanceManager.StartInstance(inst.Name); err != nil {
 		return fmt.Errorf("failed to start instance: %w", err)
 	}
 
-	// Wait for the instance to become healthy before proceeding
 	if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil {
 		return fmt.Errorf("instance failed to become healthy: %w", err)
 	}
 
+	return nil
+}
+
+func (h *Handler) rejectIfAtCapacity() error {
+	if h.InstanceManager.AtMaxRunning() {
+		return fmt.Errorf("cannot start instance, maximum number of instances reached")
+	}
+	return nil
+}
+
+func (h *Handler) evictFromGroupQuota(group string) error {
+	if group == "" {
+		return nil
+	}
+	groupLimit, hasLimit := h.cfg.Instances.GroupLimits[group]
+	if !hasLimit {
+		return nil
+	}
+	if h.InstanceManager.CountRunningInGroup(group) < groupLimit {
+		return nil
+	}
+	if err := h.InstanceManager.EvictLRUInstanceFromGroup(group); err != nil {
+		return fmt.Errorf("cannot start instance, failed to evict from group %s: %w", group, err)
+	}
+	return nil
+}
+
+func (h *Handler) evictFromGlobalCapacity() error {
+	if !h.InstanceManager.AtMaxRunning() {
+		return nil
+	}
+	if err := h.InstanceManager.EvictLRUInstance(); err != nil {
+		return fmt.Errorf("cannot start instance, failed to evict instance: %w", err)
+	}
 	return nil
 }

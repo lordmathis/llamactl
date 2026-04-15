@@ -382,46 +382,6 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 		return inst, nil
 	}
 
-	// Get instance group
-	instGroup := ""
-	if inst.GetOptions() != nil {
-		instGroup = inst.GetOptions().Group
-	}
-
-	// Hierarchical eviction checks:
-	// 1. Group Quota Check - if instance belongs to a group with a limit
-	if instGroup != "" && im.globalConfig.Instances.GroupLimits != nil {
-		if groupLimit, hasGroupLimit := im.globalConfig.Instances.GroupLimits[instGroup]; hasGroupLimit {
-			// Count running instances in the same group
-			groupRunningCount := 0
-			for _, runningInst := range im.registry.listRunning() {
-				if runningInst.IsRemote() {
-					continue
-				}
-				runningGroup := ""
-				if runningInst.GetOptions() != nil {
-					runningGroup = runningInst.GetOptions().Group
-				}
-				if runningGroup == instGroup {
-					groupRunningCount++
-				}
-			}
-			// If group limit reached, evict from the same group
-			if groupRunningCount >= groupLimit {
-				if err := im.lifecycle.evictLRU(instGroup); err != nil {
-					return nil, fmt.Errorf("failed to evict instance from group %s: %w", instGroup, err)
-				}
-			}
-		}
-	}
-
-	// 2. Global Capacity Check
-	if im.AtMaxRunning() {
-		if err := im.lifecycle.evictLRU(""); err != nil {
-			return nil, MaxRunningInstancesError(fmt.Errorf("maximum number of running instances (%d) reached", im.globalConfig.Instances.MaxRunningInstances))
-		}
-	}
-
 	if err := inst.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start instance %s: %w", name, err)
 	}
@@ -569,4 +529,27 @@ func (im *instanceManager) setPortInOptions(options *instance.Options, port int)
 // EvictLRUInstance finds and stops the least recently used running instance.
 func (im *instanceManager) EvictLRUInstance() error {
 	return im.lifecycle.evictLRU("")
+}
+
+// EvictLRUInstanceFromGroup finds and stops the least recently used running instance in the given group.
+func (im *instanceManager) EvictLRUInstanceFromGroup(group string) error {
+	return im.lifecycle.evictLRU(group)
+}
+
+// CountRunningInGroup returns the number of local running instances belonging to the given group.
+func (im *instanceManager) CountRunningInGroup(group string) int {
+	count := 0
+	for _, inst := range im.registry.listRunning() {
+		if inst.IsRemote() {
+			continue
+		}
+		instGroup := ""
+		if inst.GetOptions() != nil {
+			instGroup = inst.GetOptions().Group
+		}
+		if instGroup == group {
+			count++
+		}
+	}
+	return count
 }

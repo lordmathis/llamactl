@@ -20,8 +20,10 @@ type InstanceManager interface {
 	DeleteInstance(name string) error
 	StartInstance(name string) (*instance.Instance, error)
 	AtMaxRunning() bool
+	CountRunningInGroup(group string) int
 	StopInstance(name string) (*instance.Instance, error)
 	EvictLRUInstance() error
+	EvictLRUInstanceFromGroup(group string) error
 	RestartInstance(name string) (*instance.Instance, error)
 	GetInstanceLogs(name string, numLines int) (string, error)
 	Shutdown()
