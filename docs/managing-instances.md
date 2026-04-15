@@ -326,6 +326,66 @@ Models are automatically discovered from the llama.cpp cache directory. The defa
 
 Place your GGUF model files in the cache directory, and they will appear in the models list when you start a router mode instance.
 
+## Instance Groups
+
+Instance groups allow you to organize instances into named groups with separate running limits. This is useful when you want to prevent resource-heavy models from occupying all available slots.
+
+### How It Works
+
+When an instance is assigned to a group, starting it triggers a two-stage check:
+
+1. **Group Quota Check** - If the instance's group has a configured limit and the limit is reached, the least recently used instance in that group is evicted first.
+2. **Global Capacity Check** - If the global `max_running_instances` limit is reached, the least recently used instance across **all** groups is evicted.
+
+Unlabeled instances (no group assigned) only trigger the global check. Group limits apply only to local instances; remote nodes manage their own resources independently.
+
+### Configuration
+
+Define group limits in your configuration file:
+
+```yaml
+instances:
+  max_running_instances: 4
+  group_limits:
+    large: 1    # Only 1 "large" instance running at a time
+    small: 3    # Up to 3 "small" instances running at a time
+```
+
+### Assigning a Group
+
+**Via Web UI**
+
+1. When creating or editing an instance, set the **Group** field in the General tab
+2. Existing group names from other instances are suggested automatically
+
+**Via API**
+
+Set the `group` field in the instance options:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/instances/my-large-model \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "backend_type": "llama_cpp",
+    "backend_options": {
+      "model": "/path/to/30b-model.gguf",
+      "gpu_layers": 32
+    },
+    "group": "large",
+    "nodes": ["main"]
+  }'
+```
+
+### Example Scenario
+
+With `group_limits: {large: 1, small: 3}` and `max_running_instances: 4`:
+
+- Starting a "large" group instance evicts the least recently used "large" instance if the group limit (1) is reached
+- Starting a "small" group instance evicts the least recently used "small" instance if the group limit (3) is reached
+- If the global limit (4) is reached, the least recently used instance across all groups is evicted
+- The global limit always takes precedence over group limits
+
 ## Instance Proxy
 
 Llamactl proxies all requests to the underlying backend instances (llama-server, MLX, or vLLM).
