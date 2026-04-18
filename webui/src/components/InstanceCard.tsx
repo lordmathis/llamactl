@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Instance } from "@/types/instance";
-import { Edit, FileText, Play, Square, Trash2, MoreHorizontal, Download, Boxes, Layers } from "lucide-react";
+import { Edit, ExternalLink, FileText, Play, Square, Trash2, MoreHorizontal, Download, Boxes, Layers } from "lucide-react";
 import LogsDialog from "@/components/LogDialog";
 import ModelsDialog from "@/components/ModelsDialog";
 import HealthBadge from "@/components/HealthBadge";
@@ -202,6 +202,19 @@ function InstanceCard({
                 <FileText className="h-4 w-4 mr-1" />
                 Logs
               </Button>
+
+              {isLlamaCpp && running && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => window.open(`${document.baseURI}llama-cpp/${instance.name}`, "_blank")}
+                  title="Open llama-server UI"
+                  data-testid="open-llama-ui-button"
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  Server UI
+                </Button>
+              )}
 
               {isLlamaCpp && totalModels > 1 && (
                 <Button
