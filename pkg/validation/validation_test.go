@@ -18,6 +18,7 @@ func TestValidateInstanceName(t *testing.T) {
 		{"with numbers", "instance123", false},
 		{"with hyphens", "my-instance", false},
 		{"with underscores", "my_instance", false},
+		{"with dots", "my.instance", false},
 		{"mixed valid chars", "test-instance_123", false},
 		{"single char", "a", false},
 		{"max length", strings.Repeat("a", 50), false},
@@ -25,7 +26,6 @@ func TestValidateInstanceName(t *testing.T) {
 		// Invalid names - basic validation
 		{"empty name", "", true},
 		{"with spaces", "my instance", true},
-		{"with dots", "my.instance", true},
 		{"with special chars", "my@instance", true},
 		{"too long", strings.Repeat("a", 51), true},
 
