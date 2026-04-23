@@ -116,9 +116,9 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
     // Validate instance name
     if (!name.trim()) {
       setNameError("Instance name is required");
-    } else if (!/^[a-zA-Z0-9-_]+$/.test(name)) {
+    } else if (!/^[a-zA-Z0-9._-]+$/.test(name)) {
       setNameError(
-        "Instance name can only contain letters, numbers, hyphens, and underscores"
+        "Instance name can only contain letters, numbers, periods, hyphens, and underscores"
       );
     } else {
       setNameError("");

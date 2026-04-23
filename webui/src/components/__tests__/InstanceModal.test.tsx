@@ -93,7 +93,7 @@ describe('InstanceModal - Form Logic and Validation', () => {
       // Test invalid characters
       await user.type(nameInput, 'test instance!')
 
-      expect(screen.getByText(/can only contain letters, numbers, hyphens, and underscores/)).toBeInTheDocument()
+      expect(screen.getByText(/can only contain letters, numbers, periods, hyphens, and underscores/)).toBeInTheDocument()
 
       // Navigate to advanced tab to check save button
       const advancedTab = screen.getByRole('tab', { name: /Advanced/i })
@@ -108,10 +108,10 @@ describe('InstanceModal - Form Logic and Validation', () => {
       const newNameInput = screen.getByLabelText(/Instance Name/)
       await user.tripleClick(newNameInput)
       await user.keyboard('{Backspace}')
-      await user.type(newNameInput, 'test-instance-123')
+      await user.type(newNameInput, 'test.instance-123')
 
       await waitFor(() => {
-        expect(screen.queryByText(/can only contain letters, numbers, hyphens, and underscores/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/can only contain letters, numbers, periods, hyphens, and underscores/)).not.toBeInTheDocument()
       })
 
       // Navigate to advanced tab to check save button
