@@ -15,6 +15,12 @@ import (
 	"time"
 )
 
+func normalizeETag(etag string) string {
+	etag = strings.TrimPrefix(etag, "W/")
+	etag = strings.Trim(etag, "\"")
+	return etag
+}
+
 const (
 	progressChannelBuffer  = 100
 	maxConcurrentDownloads = 5
@@ -351,6 +357,48 @@ func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEnt
 	return md.buildGGUFPlan(plan, repo, commit, entries, hfFile, tag, baseURL)
 }
 
+func (md *Downloader) FetchFileETag(ctx context.Context, url string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "HEAD", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create HEAD request: %w", err)
+	}
+	md.setCommonHeaders(req)
+
+	resp, err := md.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch file metadata: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		return "", fmt.Errorf("HEAD request failed: HTTP %d", resp.StatusCode)
+	}
+
+	etag := resp.Header.Get("ETag")
+	if etag == "" {
+		return "", fmt.Errorf("no ETag header in response")
+	}
+
+	return normalizeETag(etag), nil
+}
+
+func (md *Downloader) ResolveNonLFSOids(ctx context.Context, plan *HFDownloadPlan, repo string) error {
+	for i := range plan.Tasks {
+		task := &plan.Tasks[i]
+		if task.OID != "" {
+			continue
+		}
+
+		etag, err := md.FetchFileETag(ctx, task.URL)
+		if err != nil {
+			return fmt.Errorf("failed to resolve etag for %s: %w", task.Filename, err)
+		}
+		task.OID = etag
+		task.BlobPath = md.fileManager.HFBlobPath(repo, etag)
+	}
+	return nil
+}
+
 func (md *Downloader) buildGGUFPlan(plan *HFDownloadPlan, repo, commit string, entries []HFTreeEntry, hfFile, tag, baseURL string) *HFDownloadPlan {
 	var allGGUFs []HFTreeEntry
 	var mmprojEntry *HFTreeEntry
@@ -504,9 +552,13 @@ func (md *Downloader) createDownloadTask(repo, commit string, entry *HFTreeEntry
 	if entry.LFS != nil {
 		oid = entry.LFS.OID
 	}
+	blobPath := ""
+	if oid != "" {
+		blobPath = md.fileManager.HFBlobPath(repo, oid)
+	}
 	return HFDownloadTask{
 		URL:          fmt.Sprintf(hfResolveURLFmt, baseURL, repo, commit, entry.Path),
-		BlobPath:     md.fileManager.HFBlobPath(repo, oid),
+		BlobPath:     blobPath,
 		SnapshotPath: md.fileManager.HFSnapshotPath(repo, commit, entry.Path),
 		OID:          oid,
 		Filename:     entry.Path,

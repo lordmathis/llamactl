@@ -97,6 +97,12 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job, format ModelForm
 		return
 	}
 
+	if err := m.downloader.ResolveNonLFSOids(ctx, plan, job.Repo); err != nil {
+		log.Printf("[%s] Failed to resolve file metadata: %v", job.ID, err)
+		m.jobStore.Fail(job.ID, err.Error())
+		return
+	}
+
 	var totalBytes int64
 	var tasksToDownload []*HFDownloadTask
 	for i := range plan.Tasks {
