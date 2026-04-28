@@ -9,6 +9,7 @@ import SettingsDialog from "./components/settings/SettingsDialog";
 import { type CreateInstanceOptions, type Instance } from "@/types/instance";
 import { useInstances } from "@/contexts/InstancesContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { ModelsProvider } from "@/contexts/ModelsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
@@ -115,7 +116,11 @@ function App() {
 
           {/* Tab Content */}
           {activeTab === 'instances' && <InstanceList editInstance={handleEditInstance} />}
-          {activeTab === 'models' && <ModelsList />}
+          {activeTab === 'models' && (
+            <ModelsProvider>
+              <ModelsList />
+            </ModelsProvider>
+          )}
         </main>
 
         <InstanceDialog
