@@ -108,6 +108,9 @@ func (fm *FileManager) HFCreateSymlink(blobPath, snapshotPath string) error {
 
 	err = os.Symlink(relativePath, snapshotPath)
 	if err != nil {
+		if os.IsExist(err) {
+			return nil
+		}
 		if strings.Contains(err.Error(), "operation not permitted") || strings.Contains(err.Error(), "symlink") {
 			return fm.HFCreateSymlinkFallback(blobPath, snapshotPath)
 		}
