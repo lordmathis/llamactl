@@ -15,11 +15,24 @@ import (
 	"time"
 )
 
+func normalizeETag(etag string) string {
+	etag = strings.TrimPrefix(etag, "W/")
+	etag = strings.Trim(etag, "\"")
+	return etag
+}
+
 const (
 	progressChannelBuffer  = 100
 	maxConcurrentDownloads = 5
 	jobRetentionDuration   = 24 * time.Hour
 	jobCleanupInterval     = 1 * time.Hour
+)
+
+type ModelFormat string
+
+const (
+	FormatGGUF        ModelFormat = "gguf"
+	FormatSafetensors ModelFormat = "safetensors"
 )
 
 const (
@@ -74,6 +87,7 @@ type HFDownloadPlan struct {
 	MainGGUF *HFDownloadTask  `json:"main_gguf"`
 	MMProj   *HFDownloadTask  `json:"mmproj"`
 	Preset   *HFDownloadTask  `json:"preset"`
+	Format   ModelFormat      `json:"format"`
 }
 
 type Downloader struct {
@@ -323,7 +337,7 @@ func (md *Downloader) downloadBlobFile(ctx context.Context, jobID, url, dest str
 	return nil
 }
 
-func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEntry, hfFile, tag string) *HFDownloadPlan {
+func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEntry, hfFile, tag string, format ModelFormat) *HFDownloadPlan {
 	baseURL := md.hfBaseURL()
 
 	plan := &HFDownloadPlan{
@@ -333,9 +347,59 @@ func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEnt
 			Branch: tag,
 			Files:  entries,
 		},
+		Format: format,
 	}
 
-	// Partition files
+	if format == FormatSafetensors {
+		return md.buildSafetensorsPlan(plan, repo, commit, entries, baseURL)
+	}
+
+	return md.buildGGUFPlan(plan, repo, commit, entries, hfFile, tag, baseURL)
+}
+
+func (md *Downloader) FetchFileETag(ctx context.Context, url string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "HEAD", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create HEAD request: %w", err)
+	}
+	md.setCommonHeaders(req)
+
+	resp, err := md.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch file metadata: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+		return "", fmt.Errorf("HEAD request failed: HTTP %d", resp.StatusCode)
+	}
+
+	etag := resp.Header.Get("ETag")
+	if etag == "" {
+		return "", fmt.Errorf("no ETag header in response")
+	}
+
+	return normalizeETag(etag), nil
+}
+
+func (md *Downloader) ResolveNonLFSOids(ctx context.Context, plan *HFDownloadPlan, repo string) error {
+	for i := range plan.Tasks {
+		task := &plan.Tasks[i]
+		if task.OID != "" {
+			continue
+		}
+
+		etag, err := md.FetchFileETag(ctx, task.URL)
+		if err != nil {
+			return fmt.Errorf("failed to resolve etag for %s: %w", task.Filename, err)
+		}
+		task.OID = etag
+		task.BlobPath = md.fileManager.HFBlobPath(repo, etag)
+	}
+	return nil
+}
+
+func (md *Downloader) buildGGUFPlan(plan *HFDownloadPlan, repo, commit string, entries []HFTreeEntry, hfFile, tag, baseURL string) *HFDownloadPlan {
 	var allGGUFs []HFTreeEntry
 	var mmprojEntry *HFTreeEntry
 	var presetEntry *HFTreeEntry
@@ -357,10 +421,8 @@ func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEnt
 		}
 	}
 
-	// Select the GGUF(s) to download
 	selectedGGUFs := selectGGUFs(allGGUFs, hfFile, tag)
 
-	// Build task list
 	var allTasks []HFDownloadTask
 	var mainGGUF *HFDownloadTask
 
@@ -387,6 +449,62 @@ func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEnt
 	plan.Tasks = allTasks
 	plan.MainGGUF = mainGGUF
 	return plan
+}
+
+func (md *Downloader) buildSafetensorsPlan(plan *HFDownloadPlan, repo, commit string, entries []HFTreeEntry, baseURL string) *HFDownloadPlan {
+	hasSafetensors := false
+	for _, entry := range entries {
+		if entry.Type != "file" {
+			continue
+		}
+		if strings.HasSuffix(strings.ToLower(entry.Path), ".safetensors") {
+			hasSafetensors = true
+			break
+		}
+	}
+
+	var selected []HFTreeEntry
+	for _, entry := range entries {
+		if entry.Type != "file" {
+			continue
+		}
+		lowerPath := strings.ToLower(entry.Path)
+
+		if strings.HasPrefix(entry.Path, ".git/") || entry.Path == ".gitattributes" {
+			continue
+		}
+
+		if isMandatoryFile(lowerPath) {
+			selected = append(selected, entry)
+			continue
+		}
+
+		if hasSafetensors {
+			if strings.HasSuffix(lowerPath, ".safetensors") {
+				selected = append(selected, entry)
+			}
+		} else {
+			if strings.HasSuffix(lowerPath, ".bin") {
+				selected = append(selected, entry)
+			}
+		}
+	}
+
+	var allTasks []HFDownloadTask
+	for _, entry := range selected {
+		task := md.createDownloadTask(repo, commit, &entry, baseURL)
+		allTasks = append(allTasks, task)
+	}
+
+	plan.Tasks = allTasks
+	return plan
+}
+
+func isMandatoryFile(lowerPath string) bool {
+	return strings.HasSuffix(lowerPath, ".json") ||
+		strings.HasSuffix(lowerPath, ".txt") ||
+		strings.HasSuffix(lowerPath, ".model") ||
+		strings.HasSuffix(lowerPath, ".py")
 }
 
 // selectGGUFs picks which GGUF files to include based on explicit file name, tag, or fallback heuristics.
@@ -434,9 +552,13 @@ func (md *Downloader) createDownloadTask(repo, commit string, entry *HFTreeEntry
 	if entry.LFS != nil {
 		oid = entry.LFS.OID
 	}
+	blobPath := ""
+	if oid != "" {
+		blobPath = md.fileManager.HFBlobPath(repo, oid)
+	}
 	return HFDownloadTask{
 		URL:          fmt.Sprintf(hfResolveURLFmt, baseURL, repo, commit, entry.Path),
-		BlobPath:     md.fileManager.HFBlobPath(repo, oid),
+		BlobPath:     blobPath,
 		SnapshotPath: md.fileManager.HFSnapshotPath(repo, commit, entry.Path),
 		OID:          oid,
 		Filename:     entry.Path,

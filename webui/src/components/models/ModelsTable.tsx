@@ -95,8 +95,9 @@ export default function ModelsTable({ rows }: ModelsTableProps) {
 }
 
 function DownloadingRow({ job }: { job: DownloadJob }) {
-  const { cancelDownload } = useModels()
+  const { cancelDownload, deleteDownload } = useModels()
   const [cancelling, setCancelling] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const handleCancel = async () => {
     if (!confirm('Cancel this download? Partial files will be deleted.')) {
@@ -119,6 +120,21 @@ function DownloadingRow({ job }: { job: DownloadJob }) {
       await startDownload(job.repo, job.tag)
     } catch (error) {
       console.error('Failed to retry download:', error)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this failed download?')) {
+      return
+    }
+
+    setDeleting(true)
+    try {
+      await deleteDownload(job.id)
+    } catch (error) {
+      console.error('Failed to delete download:', error)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -148,14 +164,29 @@ function DownloadingRow({ job }: { job: DownloadJob }) {
         <TableCell className="text-muted-foreground">-</TableCell>
         <TableCell>-</TableCell>
         <TableCell className="text-right">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleRetry}
-            title="Retry download"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRetry}
+              title="Retry download"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDelete}
+              disabled={deleting}
+              title="Delete failed download"
+            >
+              {deleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </TableCell>
       </TableRow>
     )

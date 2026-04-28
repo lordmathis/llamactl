@@ -32,18 +32,25 @@ func NewManager(cacheDir string, timeout time.Duration, version string) *Manager
 	}
 }
 
-func (m *Manager) StartDownload(repo, tag string) (string, error) {
+func (m *Manager) StartDownload(repo, tag string, format ModelFormat) (string, error) {
 	if repo == "" {
 		return "", fmt.Errorf("repo cannot be empty")
+	}
+
+	if format == FormatGGUF && !strings.Contains(repo, "/") {
+		return "", fmt.Errorf("repo must be in format 'org/model'")
 	}
 
 	if !strings.Contains(repo, "/") {
 		return "", fmt.Errorf("repo must be in format 'org/model'")
 	}
 
-	// Default to main branch if no tag specified
 	if tag == "" {
 		tag = "main"
+	}
+
+	if format == "" {
+		format = FormatGGUF
 	}
 
 	job, err := m.jobStore.Create(repo, tag)
@@ -54,12 +61,12 @@ func (m *Manager) StartDownload(repo, tag string) (string, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	job.CancelFunc = cancel
 
-	go m.downloadWorker(ctx, job)
+	go m.downloadWorker(ctx, job, format)
 
 	return job.ID, nil
 }
 
-func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
+func (m *Manager) downloadWorker(ctx context.Context, job *Job, format ModelFormat) {
 	log.Printf("[%s] Starting download: %s:%s", job.ID, job.Repo, job.Tag)
 	m.jobStore.UpdateStatus(job.ID, JobStatusDownloading)
 
@@ -78,10 +85,21 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 		return
 	}
 
-	plan := m.downloader.BuildDownloadPlan(job.Repo, commit, entries, "", job.Tag)
-	if plan.MainGGUF == nil {
+	plan := m.downloader.BuildDownloadPlan(job.Repo, commit, entries, "", job.Tag, format)
+	if format == FormatGGUF && plan.MainGGUF == nil {
 		log.Printf("[%s] Error: No GGUF files found in repo matching criteria", job.ID)
 		m.jobStore.Fail(job.ID, "no GGUF file found in repo")
+		return
+	}
+	if format == FormatSafetensors && len(plan.Tasks) == 0 {
+		log.Printf("[%s] Error: No safetensors or fallback files found in repo", job.ID)
+		m.jobStore.Fail(job.ID, "no safetensors files found in repo")
+		return
+	}
+
+	if err := m.downloader.ResolveNonLFSOids(ctx, plan, job.Repo); err != nil {
+		log.Printf("[%s] Failed to resolve file metadata: %v", job.ID, err)
+		m.jobStore.Fail(job.ID, err.Error())
 		return
 	}
 
@@ -166,7 +184,11 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job) {
 	}
 
 	log.Printf("[%s] Download completed successfully", job.ID)
-	job.ModelPath = plan.MainGGUF.SnapshotPath
+	if plan.Format == FormatSafetensors {
+		job.ModelPath = filepath.Join(m.fileManager.HFRepoDir(job.Repo), "snapshots", commit)
+	} else {
+		job.ModelPath = plan.MainGGUF.SnapshotPath
+	}
 	m.jobStore.Complete(job.ID)
 }
 

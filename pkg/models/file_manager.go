@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	oidPattern    = regexp.MustCompile(`^[0-9a-f]{64}$`)
 	commitPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
 )
 
@@ -83,9 +82,6 @@ func (fm *FileManager) HFRepoDir(repo string) string {
 }
 
 func (fm *FileManager) HFBlobPath(repo, oid string) string {
-	if !oidPattern.MatchString(oid) {
-		oid = "sha256-" + oid
-	}
 	return filepath.Join(fm.HFRepoDir(repo), "blobs", oid)
 }
 

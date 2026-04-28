@@ -49,7 +49,7 @@ The Models tab shows:
 Download a model programmatically:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/backends/llama-cpp/models/download \
+curl -X POST http://localhost:8080/api/v1/models/download \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_MANAGEMENT_KEY" \
   -d '{
@@ -112,7 +112,7 @@ Navigate to the **Models** tab to see all cached models with their sizes and fil
 List all cached models:
 
 ```bash
-curl http://localhost:8080/api/v1/backends/llama-cpp/models \
+curl http://localhost:8080/api/v1/models \
   -H "Authorization: Bearer YOUR_MANAGEMENT_KEY"
 ```
 
@@ -149,7 +149,7 @@ Response:
 Delete a cached model:
 
 ```bash
-curl -X DELETE "http://localhost:8080/api/v1/backends/llama-cpp/models?repo=bartowski/Llama-3.2-3B-Instruct-GGUF&tag=Q4_K_M" \
+curl -X DELETE "http://localhost:8080/api/v1/models?repo=bartowski/Llama-3.2-3B-Instruct-GGUF&tag=Q4_K_M" \
   -H "Authorization: Bearer YOUR_MANAGEMENT_KEY"
 ```
 

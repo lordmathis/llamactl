@@ -1,3 +1,8 @@
+export enum ModelFormat {
+  GGUF = 'gguf',
+  SAFETENSORS = 'safetensors'
+}
+
 export interface DownloadJob {
   id: string
   repo: string

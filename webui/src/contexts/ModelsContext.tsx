@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useContext, useState, useEffect, useCallback } from 'react'
-import type { CachedModel, DownloadJob } from '@/types/model'
+import type { CachedModel, DownloadJob, ModelFormat } from '@/types/model'
 import { llamaCppModelsApi } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { modelsPollingService } from '@/lib/modelsPollingService'
@@ -13,8 +13,9 @@ interface ModelsContextType {
 
   // Actions
   fetchModels: (node?: string) => Promise<void>
-  startDownload: (repo: string, tag?: string, node?: string) => Promise<void>
+  startDownload: (repo: string, tag?: string, node?: string, format?: ModelFormat) => Promise<void>
   cancelDownload: (jobId: string, node?: string) => Promise<void>
+  deleteDownload: (jobId: string, node?: string) => Promise<void>
   deleteModel: (repo: string, tag?: string, node?: string) => Promise<void>
   clearError: () => void
 }
@@ -54,10 +55,10 @@ export const ModelsProvider = ({ children }: ModelsProviderProps) => {
     }
   }, [isAuthenticated])
 
-  const startDownload = useCallback(async (repo: string, tag?: string, node?: string) => {
+  const startDownload = useCallback(async (repo: string, tag?: string, node?: string, format?: ModelFormat) => {
     setError(null)
     try {
-      await llamaCppModelsApi.startDownload(repo, tag, node)
+      await llamaCppModelsApi.startDownload(repo, tag, node, format)
       // Notify polling service that we're expecting a new job
       modelsPollingService.downloadStarted()
     } catch (err) {
@@ -70,9 +71,7 @@ export const ModelsProvider = ({ children }: ModelsProviderProps) => {
   const cancelDownload = useCallback(async (jobId: string, node?: string) => {
     setError(null)
     try {
-      await llamaCppModelsApi.cancelJob(jobId, node)
-      // Polling will automatically pick up the status change
-      // Refresh models list (in case partial files were deleted)
+      await llamaCppModelsApi.deleteJob(jobId, node)
       await fetchModels(node)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to cancel download'
@@ -80,6 +79,17 @@ export const ModelsProvider = ({ children }: ModelsProviderProps) => {
       throw err
     }
   }, [fetchModels])
+
+  const deleteDownload = useCallback(async (jobId: string, node?: string) => {
+    setError(null)
+    try {
+      await llamaCppModelsApi.deleteJob(jobId, node)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete download'
+      setError(message)
+      throw err
+    }
+  }, [])
 
   const deleteModel = useCallback(async (repo: string, tag?: string, node?: string) => {
     setError(null)
@@ -142,6 +152,7 @@ export const ModelsProvider = ({ children }: ModelsProviderProps) => {
     fetchModels,
     startDownload,
     cancelDownload,
+    deleteDownload,
     deleteModel,
     clearError,
   }

@@ -2,7 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { InstancesProvider } from './contexts/InstancesContext'
-import { ModelsProvider } from './contexts/ModelsContext'
 import './index.css'
 import { AuthProvider } from './contexts/AuthContext'
 import { ConfigProvider } from './contexts/ConfigContext'
@@ -15,9 +14,7 @@ ReactDOM.createRoot(rootElement).render(
     <AuthProvider>
       <ConfigProvider>
         <InstancesProvider>
-          <ModelsProvider>
-            <App />
-          </ModelsProvider>
+          <App />
         </InstancesProvider>
       </ConfigProvider>
     </AuthProvider>

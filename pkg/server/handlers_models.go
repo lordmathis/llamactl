@@ -15,7 +15,8 @@ import (
 
 // DownloadRequest represents the request body for initiating a model download
 type DownloadRequest struct {
-	Repo string `json:"repo"`
+	Repo   string           `json:"repo"`
+	Format models.ModelFormat `json:"format"`
 }
 
 // DownloadResponse represents the response after initiating a model download
@@ -97,7 +98,7 @@ func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 // @Failure 400 {string} string "Invalid request"
 // @Failure 404 {string} string "Node not found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /api/v1/backends/llama-cpp/models/download [post]
+// @Router /api/v1/models/download [post]
 func (h *Handler) DownloadModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
@@ -119,7 +120,11 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 			return
 		}
 
-		// Parse repo and tag from format "org/model:tag"
+		format := req.Format
+		if format == "" {
+			format = models.FormatGGUF
+		}
+
 		repo := req.Repo
 		tag := ""
 		if colonIdx := strings.LastIndex(req.Repo, ":"); colonIdx != -1 {
@@ -127,12 +132,17 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 			tag = req.Repo[colonIdx+1:]
 		}
 
+		if format == models.FormatGGUF && !strings.Contains(repo, "/") {
+			writeError(w, http.StatusBadRequest, "invalid_request", "repo must be in format 'org/model' or 'org/model:tag'")
+			return
+		}
+
 		if !strings.Contains(repo, "/") {
 			writeError(w, http.StatusBadRequest, "invalid_request", "repo must be in format 'org/model' or 'org/model:tag'")
 			return
 		}
 
-		jobID, err := h.modelManager.StartDownload(repo, tag)
+		jobID, err := h.modelManager.StartDownload(repo, tag, format)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "download_failed", err.Error())
 			return
@@ -157,7 +167,7 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 // @Param node query string false "Node name to query (if not specified, queries all nodes)"
 // @Success 200 {object} []models.CachedModel "List of cached models from the specified node or aggregated from all nodes"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /api/v1/backends/llama-cpp/models [get]
+// @Router /api/v1/models [get]
 func (h *Handler) ListModels() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
@@ -207,7 +217,7 @@ func (h *Handler) fetchModelsFromNode(node config.NodeConfig, nodeName string) (
 		return nil, err
 	}
 
-	reqURL := targetURL.JoinPath("/api/v1/backends/llama-cpp/models")
+	reqURL := targetURL.JoinPath("/api/v1/models")
 	req, err := http.NewRequest("GET", reqURL.String(), nil)
 	if err != nil {
 		return nil, err
@@ -253,7 +263,7 @@ func (h *Handler) fetchModelsFromNode(node config.NodeConfig, nodeName string) (
 // @Failure 400 {string} string "Invalid request"
 // @Failure 404 {string} string "Model not found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /api/v1/backends/llama-cpp/models [delete]
+// @Router /api/v1/models [delete]
 func (h *Handler) DeleteModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
@@ -298,7 +308,7 @@ func (h *Handler) DeleteModel() http.HandlerFunc {
 // @Failure 400 {string} string "Invalid request"
 // @Failure 404 {string} string "Job not found"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /api/v1/backends/llama-cpp/models/jobs/{id} [get]
+// @Router /api/v1/models/jobs/{id} [get]
 func (h *Handler) GetJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
@@ -339,7 +349,7 @@ func (h *Handler) GetJob() http.HandlerFunc {
 // @Param node query string false "Node name to forward the request to"
 // @Success 200 {object} ListJobsResponse "List of jobs"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /api/v1/backends/llama-cpp/models/jobs [get]
+// @Router /api/v1/models/jobs [get]
 func (h *Handler) ListJobs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
@@ -374,10 +384,10 @@ func (h *Handler) ListJobs() http.HandlerFunc {
 // @Success 204 "No Content"
 // @Failure 400 {string} string "Invalid request"
 // @Failure 404 {string} string "Job not found"
-// @Failure 409 {string} string "Cannot cancel job with current status"
+// @Failure 409 {string} string "Cannot delete job with current status"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /api/v1/backends/llama-cpp/models/jobs/{id} [delete]
-func (h *Handler) CancelJob() http.HandlerFunc {
+// @Router /api/v1/models/jobs/{id} [delete]
+func (h *Handler) DeleteJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
 		if h.shouldForwardToNode(nodeName) {
@@ -393,16 +403,24 @@ func (h *Handler) CancelJob() http.HandlerFunc {
 			return
 		}
 
-		err := h.modelManager.CancelJob(jobID)
+		job, err := h.modelManager.GetJob(jobID)
 		if err != nil {
 			if strings.Contains(err.Error(), "job not found") {
 				writeError(w, http.StatusNotFound, "job_not_found", err.Error())
 				return
 			}
-			if strings.Contains(err.Error(), "cannot cancel job with status") {
-				writeError(w, http.StatusConflict, "cannot_cancel", err.Error())
-				return
-			}
+			writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
+			return
+		}
+
+		switch job.Status {
+		case models.JobStatusQueued, models.JobStatusDownloading:
+			err = h.modelManager.CancelJob(jobID)
+		default:
+			err = h.modelManager.DeleteJob(jobID)
+		}
+
+		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
 			return
 		}

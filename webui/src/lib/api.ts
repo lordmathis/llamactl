@@ -1,7 +1,7 @@
 import type { CreateInstanceOptions, Instance } from "@/types/instance";
 import type { AppConfig } from "@/types/config";
 import type { ApiKey, CreateKeyRequest, CreateKeyResponse, KeyPermissionResponse } from "@/types/apiKey";
-import type { DownloadJob, CachedModel } from "@/types/model";
+import type { DownloadJob, CachedModel, ModelFormat } from "@/types/model";
 import { handleApiError } from "./errorUtils";
 
 // Adding baseURI as a prefix to support being served behind a subpath
@@ -257,42 +257,41 @@ export const llamaCppApi = {
     ),
 };
 
-// Llama.cpp models cache management API functions
+// Models cache management API functions
 export const llamaCppModelsApi = {
   // Download management
-  startDownload: (repo: string, tag?: string, node?: string) => {
-    // Backend expects "repo:tag" format in repo field
+  startDownload: (repo: string, tag?: string, node?: string, format?: ModelFormat) => {
     const repoWithTag = tag ? `${repo}:${tag}` : repo;
     const params = node ? `?node=${encodeURIComponent(node)}` : '';
     return apiCall<{ job_id: string; repo: string; tag: string }>(
-      `/backends/llama-cpp/models/download${params}`,
+      `/models/download${params}`,
       {
         method: 'POST',
-        body: JSON.stringify({ repo: repoWithTag })
+        body: JSON.stringify({ repo: repoWithTag, format: format || 'gguf' })
       }
     );
   },
 
   getJob: (jobId: string, node?: string) =>
-    apiCall<DownloadJob>(`/backends/llama-cpp/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`),
+    apiCall<DownloadJob>(`/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
   listJobs: (node?: string) =>
-    apiCall<{ jobs: DownloadJob[] }>(`/backends/llama-cpp/models/jobs${node ? `?node=${encodeURIComponent(node)}` : ''}`),
+    apiCall<{ jobs: DownloadJob[] }>(`/models/jobs${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
-  cancelJob: (jobId: string, node?: string) =>
-    apiCall<void>(`/backends/llama-cpp/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`, {
+  deleteJob: (jobId: string, node?: string) =>
+    apiCall<void>(`/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`, {
       method: 'DELETE'
     }),
 
   // Cache management
   listModels: (node?: string) =>
-    apiCall<CachedModel[]>(`/backends/llama-cpp/models${node ? `?node=${encodeURIComponent(node)}` : ''}`),
+    apiCall<CachedModel[]>(`/models${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
   deleteModel: (repo: string, tag?: string, node?: string) => {
     const params = new URLSearchParams({ repo })
     if (tag) params.append('tag', tag)
     if (node) params.append('node', node)
-    return apiCall<void>(`/backends/llama-cpp/models?${params}`, {
+    return apiCall<void>(`/models?${params}`, {
       method: 'DELETE'
     })
   }

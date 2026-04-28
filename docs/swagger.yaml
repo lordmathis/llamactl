@@ -121,6 +121,9 @@ definitions:
       default_auto_restart:
         description: Default auto-restart setting for new instances
         type: boolean
+      default_idle_timeout:
+        description: Default idle timeout for instances in minutes (0 means no timeout)
+        type: integer
       default_max_restarts:
         description: Default max restarts for new instances
         type: integer
@@ -133,6 +136,16 @@ definitions:
       enable_lru_eviction:
         description: Enable LRU eviction for instance logs
         type: boolean
+      group_limits:
+        additionalProperties:
+          type: integer
+        description: Group-specific limits for running instances (group name -> max
+          count)
+        type: object
+      instances_dir:
+        description: Instances directory for instance working directories (preset.ini,
+          etc.)
+        type: string
       logRotationCompress:
         default: false
         description: Whether to compress rotated log files
@@ -226,6 +239,9 @@ definitions:
           type: string
         description: Environment variables
         type: object
+      group:
+        description: Instance group for hierarchical eviction
+        type: string
       idle_timeout:
         description: Idle timeout
         type: integer
@@ -234,10 +250,47 @@ definitions:
       on_demand_start:
         description: On demand start
         type: boolean
+      preset_ini:
+        description: Preset configuration
+        type: string
       restart_delay:
         description: seconds
         type: integer
     type: object
+  models.CachedModel:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/models.File'
+        type: array
+      node:
+        type: string
+      repo:
+        type: string
+      size_bytes:
+        type: integer
+      tag:
+        type: string
+    type: object
+  models.File:
+    properties:
+      name:
+        type: string
+      path:
+        type: string
+      size_bytes:
+        type: integer
+      type:
+        type: string
+    type: object
+  models.ModelFormat:
+    enum:
+    - gguf
+    - safetensors
+    type: string
+    x-enum-varnames:
+    - FormatGGUF
+    - FormatSafetensors
   models.Progress:
     properties:
       bytes_downloaded:
@@ -283,6 +336,8 @@ definitions:
     type: object
   server.DownloadRequest:
     properties:
+      format:
+        $ref: '#/definitions/models.ModelFormat'
       repo:
         type: string
     type: object
@@ -304,6 +359,8 @@ definitions:
       error:
         type: string
       id:
+        type: string
+      model_path:
         type: string
       progress:
         $ref: '#/definitions/models.Progress'
@@ -570,177 +627,6 @@ paths:
       summary: Get help for llama server
       tags:
       - Backends
-  /api/v1/backends/llama-cpp/models:
-    delete:
-      description: Deletes a cached model by its repository and optional tag
-      parameters:
-      - description: Repository
-        in: query
-        name: repo
-        required: true
-        type: string
-      - description: Tag
-        in: query
-        name: tag
-        type: string
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Invalid request
-          schema:
-            type: string
-        "404":
-          description: Model not found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Delete a cached model
-      tags:
-      - Models
-    get:
-      description: Returns a list of all models currently cached on the server
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of cached models
-          schema:
-            items:
-              type: string
-            type: array
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: List cached models
-      tags:
-      - Models
-  /api/v1/backends/llama-cpp/models/download:
-    post:
-      consumes:
-      - application/json
-      description: Initiates the download of a model from a specified repository and
-        tag. Returns a job ID to track progress.
-      parameters:
-      - description: Download request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/server.DownloadRequest'
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Download initiated
-          schema:
-            $ref: '#/definitions/server.DownloadResponse'
-        "400":
-          description: Invalid request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Download a model from a repository
-      tags:
-      - Models
-  /api/v1/backends/llama-cpp/models/jobs:
-    get:
-      description: Returns a list of all model download jobs with their details
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of jobs
-          schema:
-            $ref: '#/definitions/server.ListJobsResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: List all model download jobs
-      tags:
-      - Models
-  /api/v1/backends/llama-cpp/models/jobs/{id}:
-    delete:
-      description: Cancels a model download job by its ID. Only jobs that are in progress
-        can be cancelled.
-      parameters:
-      - description: Job ID
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Invalid request
-          schema:
-            type: string
-        "404":
-          description: Job not found
-          schema:
-            type: string
-        "409":
-          description: Cannot cancel job with current status
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Cancel an ongoing model download job
-      tags:
-      - Models
-    get:
-      description: Returns the details of a download job by its ID
-      parameters:
-      - description: Job ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Job details
-          schema:
-            $ref: '#/definitions/server.JobResponse'
-        "400":
-          description: Invalid request
-          schema:
-            type: string
-        "404":
-          description: Job not found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Get details of a specific download job
-      tags:
-      - Models
   /api/v1/backends/llama-cpp/parse-command:
     post:
       consumes:
@@ -1279,6 +1165,210 @@ paths:
       summary: Unload a model in a llama.cpp instance
       tags:
       - Llama.cpp
+  /api/v1/models:
+    delete:
+      description: Deletes a cached model by its repository and optional tag
+      parameters:
+      - description: Node name to forward the request to
+        in: query
+        name: node
+        type: string
+      - description: Repository
+        in: query
+        name: repo
+        required: true
+        type: string
+      - description: Tag
+        in: query
+        name: tag
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "404":
+          description: Model not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a cached model
+      tags:
+      - Models
+    get:
+      description: Returns a list of all models currently cached on the server. If
+        node parameter is specified, only returns models from that node. If no node
+        is specified, returns models from all nodes aggregated.
+      parameters:
+      - description: Node name to query (if not specified, queries all nodes)
+        in: query
+        name: node
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of cached models from the specified node or aggregated
+            from all nodes
+          schema:
+            items:
+              $ref: '#/definitions/models.CachedModel'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List cached models
+      tags:
+      - Models
+  /api/v1/models/download:
+    post:
+      consumes:
+      - application/json
+      description: Initiates the download of a model from a specified repository and
+        tag. Returns a job ID to track progress.
+      parameters:
+      - description: Node name to forward the request to
+        in: query
+        name: node
+        type: string
+      - description: Download request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/server.DownloadRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Download initiated
+          schema:
+            $ref: '#/definitions/server.DownloadResponse'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "404":
+          description: Node not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Download a model from a repository
+      tags:
+      - Models
+  /api/v1/models/jobs:
+    get:
+      description: Returns a list of all model download jobs with their details
+      parameters:
+      - description: Node name to forward the request to
+        in: query
+        name: node
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of jobs
+          schema:
+            $ref: '#/definitions/server.ListJobsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: List all model download jobs
+      tags:
+      - Models
+  /api/v1/models/jobs/{id}:
+    delete:
+      description: Cancels a model download job by its ID. Only jobs that are in progress
+        can be cancelled.
+      parameters:
+      - description: Node name to forward the request to
+        in: query
+        name: node
+        type: string
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "404":
+          description: Job not found
+          schema:
+            type: string
+        "409":
+          description: Cannot delete job with current status
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Cancel an ongoing model download job
+      tags:
+      - Models
+    get:
+      description: Returns the details of a download job by its ID
+      parameters:
+      - description: Node name to forward the request to
+        in: query
+        name: node
+        type: string
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Job details
+          schema:
+            $ref: '#/definitions/server.JobResponse'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "404":
+          description: Job not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Get details of a specific download job
+      tags:
+      - Models
   /api/v1/nodes:
     get:
       description: Returns a map of all nodes configured in the server (node name
