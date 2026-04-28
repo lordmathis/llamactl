@@ -304,274 +304,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/backends/llama-cpp/models": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns a list of all models currently cached on the server",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Models"
-                ],
-                "summary": "List cached models",
-                "responses": {
-                    "200": {
-                        "description": "List of cached models",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Deletes a cached model by its repository and optional tag",
-                "tags": [
-                    "Models"
-                ],
-                "summary": "Delete a cached model",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Repository",
-                        "name": "repo",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Tag",
-                        "name": "tag",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Model not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/backends/llama-cpp/models/download": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Initiates the download of a model from a specified repository and tag. Returns a job ID to track progress.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Models"
-                ],
-                "summary": "Download a model from a repository",
-                "parameters": [
-                    {
-                        "description": "Download request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/server.DownloadRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Download initiated",
-                        "schema": {
-                            "$ref": "#/definitions/server.DownloadResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/backends/llama-cpp/models/jobs": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns a list of all model download jobs with their details",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Models"
-                ],
-                "summary": "List all model download jobs",
-                "responses": {
-                    "200": {
-                        "description": "List of jobs",
-                        "schema": {
-                            "$ref": "#/definitions/server.ListJobsResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/backends/llama-cpp/models/jobs/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Returns the details of a download job by its ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Models"
-                ],
-                "summary": "Get details of a specific download job",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Job ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Job details",
-                        "schema": {
-                            "$ref": "#/definitions/server.JobResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Job not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Cancels a model download job by its ID. Only jobs that are in progress can be cancelled.",
-                "tags": [
-                    "Models"
-                ],
-                "summary": "Cancel an ongoing model download job",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Job ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Invalid request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Job not found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "409": {
-                        "description": "Cannot cancel job with current status",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/backends/llama-cpp/parse-command": {
             "post": {
                 "security": [
@@ -1404,6 +1136,320 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of all models currently cached on the server. If node parameter is specified, only returns models from that node. If no node is specified, returns models from all nodes aggregated.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Models"
+                ],
+                "summary": "List cached models",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Node name to query (if not specified, queries all nodes)",
+                        "name": "node",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of cached models from the specified node or aggregated from all nodes",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.CachedModel"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deletes a cached model by its repository and optional tag",
+                "tags": [
+                    "Models"
+                ],
+                "summary": "Delete a cached model",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Node name to forward the request to",
+                        "name": "node",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Repository",
+                        "name": "repo",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tag",
+                        "name": "tag",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Model not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/download": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Initiates the download of a model from a specified repository and tag. Returns a job ID to track progress.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Models"
+                ],
+                "summary": "Download a model from a repository",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Node name to forward the request to",
+                        "name": "node",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Download request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.DownloadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Download initiated",
+                        "schema": {
+                            "$ref": "#/definitions/server.DownloadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Node not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/jobs": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of all model download jobs with their details",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Models"
+                ],
+                "summary": "List all model download jobs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Node name to forward the request to",
+                        "name": "node",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of jobs",
+                        "schema": {
+                            "$ref": "#/definitions/server.ListJobsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/models/jobs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the details of a download job by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Models"
+                ],
+                "summary": "Get details of a specific download job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Node name to forward the request to",
+                        "name": "node",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Job details",
+                        "schema": {
+                            "$ref": "#/definitions/server.JobResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Job not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cancels a model download job by its ID. Only jobs that are in progress can be cancelled.",
+                "tags": [
+                    "Models"
+                ],
+                "summary": "Cancel an ongoing model download job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Node name to forward the request to",
+                        "name": "node",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Job not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "Cannot delete job with current status",
                         "schema": {
                             "type": "string"
                         }
@@ -2327,6 +2373,10 @@ const docTemplate = `{
                     "description": "Default auto-restart setting for new instances",
                     "type": "boolean"
                 },
+                "default_idle_timeout": {
+                    "description": "Default idle timeout for instances in minutes (0 means no timeout)",
+                    "type": "integer"
+                },
                 "default_max_restarts": {
                     "description": "Default max restarts for new instances",
                     "type": "integer"
@@ -2342,6 +2392,17 @@ const docTemplate = `{
                 "enable_lru_eviction": {
                     "description": "Enable LRU eviction for instance logs",
                     "type": "boolean"
+                },
+                "group_limits": {
+                    "description": "Group-specific limits for running instances (group name -\u003e max count)",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "instances_dir": {
+                    "description": "Instances directory for instance working directories (preset.ini, etc.)",
+                    "type": "string"
                 },
                 "logRotationCompress": {
                     "description": "Whether to compress rotated log files",
@@ -2472,6 +2533,10 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "group": {
+                    "description": "Instance group for hierarchical eviction",
+                    "type": "string"
+                },
                 "idle_timeout": {
                     "description": "Idle timeout",
                     "type": "integer"
@@ -2483,11 +2548,66 @@ const docTemplate = `{
                     "description": "On demand start",
                     "type": "boolean"
                 },
+                "preset_ini": {
+                    "description": "Preset configuration",
+                    "type": "string"
+                },
                 "restart_delay": {
                     "description": "seconds",
                     "type": "integer"
                 }
             }
+        },
+        "models.CachedModel": {
+            "type": "object",
+            "properties": {
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.File"
+                    }
+                },
+                "node": {
+                    "type": "string"
+                },
+                "repo": {
+                    "type": "string"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.File": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ModelFormat": {
+            "type": "string",
+            "enum": [
+                "gguf",
+                "safetensors"
+            ],
+            "x-enum-varnames": [
+                "FormatGGUF",
+                "FormatSafetensors"
+            ]
         },
         "models.Progress": {
             "type": "object",
@@ -2558,6 +2678,9 @@ const docTemplate = `{
         "server.DownloadRequest": {
             "type": "object",
             "properties": {
+                "format": {
+                    "$ref": "#/definitions/models.ModelFormat"
+                },
                 "repo": {
                     "type": "string"
                 }
@@ -2590,6 +2713,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "model_path": {
                     "type": "string"
                 },
                 "progress": {
