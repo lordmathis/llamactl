@@ -1,7 +1,7 @@
 import type { CreateInstanceOptions, Instance } from "@/types/instance";
 import type { AppConfig } from "@/types/config";
 import type { ApiKey, CreateKeyRequest, CreateKeyResponse, KeyPermissionResponse } from "@/types/apiKey";
-import type { DownloadJob, CachedModel } from "@/types/model";
+import type { DownloadJob, CachedModel, ModelFormat } from "@/types/model";
 import { handleApiError } from "./errorUtils";
 
 // Adding baseURI as a prefix to support being served behind a subpath
@@ -260,15 +260,14 @@ export const llamaCppApi = {
 // Llama.cpp models cache management API functions
 export const llamaCppModelsApi = {
   // Download management
-  startDownload: (repo: string, tag?: string, node?: string) => {
-    // Backend expects "repo:tag" format in repo field
+  startDownload: (repo: string, tag?: string, node?: string, format?: ModelFormat) => {
     const repoWithTag = tag ? `${repo}:${tag}` : repo;
     const params = node ? `?node=${encodeURIComponent(node)}` : '';
     return apiCall<{ job_id: string; repo: string; tag: string }>(
       `/backends/llama-cpp/models/download${params}`,
       {
         method: 'POST',
-        body: JSON.stringify({ repo: repoWithTag })
+        body: JSON.stringify({ repo: repoWithTag, format: format || 'gguf' })
       }
     );
   },

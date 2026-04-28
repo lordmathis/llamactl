@@ -22,6 +22,13 @@ const (
 	jobCleanupInterval     = 1 * time.Hour
 )
 
+type ModelFormat string
+
+const (
+	FormatGGUF        ModelFormat = "gguf"
+	FormatSafetensors ModelFormat = "safetensors"
+)
+
 const (
 	hfAPIBase       = "https://huggingface.co"
 	hfRefsURLFmt    = "%s/api/models/%s/refs"
@@ -74,6 +81,7 @@ type HFDownloadPlan struct {
 	MainGGUF *HFDownloadTask  `json:"main_gguf"`
 	MMProj   *HFDownloadTask  `json:"mmproj"`
 	Preset   *HFDownloadTask  `json:"preset"`
+	Format   ModelFormat      `json:"format"`
 }
 
 type Downloader struct {
@@ -323,7 +331,7 @@ func (md *Downloader) downloadBlobFile(ctx context.Context, jobID, url, dest str
 	return nil
 }
 
-func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEntry, hfFile, tag string) *HFDownloadPlan {
+func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEntry, hfFile, tag string, format ModelFormat) *HFDownloadPlan {
 	baseURL := md.hfBaseURL()
 
 	plan := &HFDownloadPlan{
@@ -333,9 +341,17 @@ func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEnt
 			Branch: tag,
 			Files:  entries,
 		},
+		Format: format,
 	}
 
-	// Partition files
+	if format == FormatSafetensors {
+		return md.buildSafetensorsPlan(plan, repo, commit, entries, baseURL)
+	}
+
+	return md.buildGGUFPlan(plan, repo, commit, entries, hfFile, tag, baseURL)
+}
+
+func (md *Downloader) buildGGUFPlan(plan *HFDownloadPlan, repo, commit string, entries []HFTreeEntry, hfFile, tag, baseURL string) *HFDownloadPlan {
 	var allGGUFs []HFTreeEntry
 	var mmprojEntry *HFTreeEntry
 	var presetEntry *HFTreeEntry
@@ -357,10 +373,8 @@ func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEnt
 		}
 	}
 
-	// Select the GGUF(s) to download
 	selectedGGUFs := selectGGUFs(allGGUFs, hfFile, tag)
 
-	// Build task list
 	var allTasks []HFDownloadTask
 	var mainGGUF *HFDownloadTask
 
@@ -387,6 +401,62 @@ func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEnt
 	plan.Tasks = allTasks
 	plan.MainGGUF = mainGGUF
 	return plan
+}
+
+func (md *Downloader) buildSafetensorsPlan(plan *HFDownloadPlan, repo, commit string, entries []HFTreeEntry, baseURL string) *HFDownloadPlan {
+	hasSafetensors := false
+	for _, entry := range entries {
+		if entry.Type != "file" {
+			continue
+		}
+		if strings.HasSuffix(strings.ToLower(entry.Path), ".safetensors") {
+			hasSafetensors = true
+			break
+		}
+	}
+
+	var selected []HFTreeEntry
+	for _, entry := range entries {
+		if entry.Type != "file" {
+			continue
+		}
+		lowerPath := strings.ToLower(entry.Path)
+
+		if strings.HasPrefix(entry.Path, ".git/") || entry.Path == ".gitattributes" {
+			continue
+		}
+
+		if isMandatoryFile(lowerPath) {
+			selected = append(selected, entry)
+			continue
+		}
+
+		if hasSafetensors {
+			if strings.HasSuffix(lowerPath, ".safetensors") {
+				selected = append(selected, entry)
+			}
+		} else {
+			if strings.HasSuffix(lowerPath, ".bin") {
+				selected = append(selected, entry)
+			}
+		}
+	}
+
+	var allTasks []HFDownloadTask
+	for _, entry := range selected {
+		task := md.createDownloadTask(repo, commit, &entry, baseURL)
+		allTasks = append(allTasks, task)
+	}
+
+	plan.Tasks = allTasks
+	return plan
+}
+
+func isMandatoryFile(lowerPath string) bool {
+	return strings.HasSuffix(lowerPath, ".json") ||
+		strings.HasSuffix(lowerPath, ".txt") ||
+		strings.HasSuffix(lowerPath, ".model") ||
+		strings.HasSuffix(lowerPath, ".py")
 }
 
 // selectGGUFs picks which GGUF files to include based on explicit file name, tag, or fallback heuristics.

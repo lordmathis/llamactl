@@ -88,7 +88,7 @@ func TestBuildDownloadPlan(t *testing.T) {
 		{Path: "preset.ini", Type: "file", Size: 10},
 	}
 
-	plan := d.BuildDownloadPlan("org/model", "commit123", entries, "", "Q4_K_M")
+	plan := d.BuildDownloadPlan("org/model", "commit123", entries, "", "Q4_K_M", FormatGGUF)
 
 	if plan.MainGGUF == nil {
 		t.Fatal("expected MainGGUF to be set")
@@ -104,6 +104,79 @@ func TestBuildDownloadPlan(t *testing.T) {
 	}
 	if len(plan.Tasks) != 3 {
 		t.Errorf("expected 3 tasks, got %d", len(plan.Tasks))
+	}
+}
+
+func TestBuildDownloadPlan_Safetensors(t *testing.T) {
+	d := NewDownloader("", 0, "", NewFileManager(t.TempDir()), nil)
+
+	entries := []HFTreeEntry{
+		{Path: "config.json", Type: "file", Size: 100},
+		{Path: "tokenizer.json", Type: "file", Size: 200},
+		{Path: "tokenizer_config.json", Type: "file", Size: 50},
+		{Path: "model.safetensors", Type: "file", Size: 1000, LFS: &HFLFSInfo{OID: "abc123", Size: 1000}},
+		{Path: "model-00001-of-00002.safetensors", Type: "file", Size: 500, LFS: &HFLFSInfo{OID: "def456", Size: 500}},
+		{Path: "model-00002-of-00002.safetensors", Type: "file", Size: 500, LFS: &HFLFSInfo{OID: "ghi789", Size: 500}},
+		{Path: "pytorch_model.bin", Type: "file", Size: 2000, LFS: &HFLFSInfo{OID: "bin123", Size: 2000}},
+		{Path: "README.md", Type: "file", Size: 10},
+		{Path: ".gitattributes", Type: "file", Size: 5},
+	}
+
+	plan := d.BuildDownloadPlan("org/model", "commit123", entries, "", "", FormatSafetensors)
+
+	if plan.MainGGUF != nil {
+		t.Error("expected MainGGUF to be nil for safetensors plan")
+	}
+	if plan.Format != FormatSafetensors {
+		t.Errorf("Format = %q, want %q", plan.Format, FormatSafetensors)
+	}
+
+	filenames := make(map[string]bool)
+	for _, task := range plan.Tasks {
+		filenames[task.Filename] = true
+	}
+
+	for _, name := range []string{"config.json", "tokenizer.json", "tokenizer_config.json", "model.safetensors", "model-00001-of-00002.safetensors", "model-00002-of-00002.safetensors"} {
+		if !filenames[name] {
+			t.Errorf("expected file %q in plan tasks", name)
+		}
+	}
+
+	if filenames["pytorch_model.bin"] {
+		t.Error("expected pytorch_model.bin to be excluded when safetensors are present")
+	}
+	if filenames[".gitattributes"] {
+		t.Error("expected .gitattributes to be excluded")
+	}
+	if filenames["README.md"] {
+		t.Error("expected README.md to be excluded (not a mandatory or weight file)")
+	}
+}
+
+func TestBuildDownloadPlan_SafetensorsFallback(t *testing.T) {
+	d := NewDownloader("", 0, "", NewFileManager(t.TempDir()), nil)
+
+	entries := []HFTreeEntry{
+		{Path: "config.json", Type: "file", Size: 100},
+		{Path: "pytorch_model.bin", Type: "file", Size: 2000, LFS: &HFLFSInfo{OID: "bin123", Size: 2000}},
+		{Path: "model.pth", Type: "file", Size: 1500, LFS: &HFLFSInfo{OID: "pth123", Size: 1500}},
+	}
+
+	plan := d.BuildDownloadPlan("org/model", "commit123", entries, "", "", FormatSafetensors)
+
+	filenames := make(map[string]bool)
+	for _, task := range plan.Tasks {
+		filenames[task.Filename] = true
+	}
+
+	if !filenames["config.json"] {
+		t.Error("expected config.json in plan")
+	}
+	if !filenames["pytorch_model.bin"] {
+		t.Error("expected pytorch_model.bin as fallback when no safetensors found")
+	}
+	if filenames["model.pth"] {
+		t.Error("expected model.pth to be excluded (not .bin fallback)")
 	}
 }
 

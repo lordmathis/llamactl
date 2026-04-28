@@ -15,7 +15,8 @@ import (
 
 // DownloadRequest represents the request body for initiating a model download
 type DownloadRequest struct {
-	Repo string `json:"repo"`
+	Repo   string           `json:"repo"`
+	Format models.ModelFormat `json:"format"`
 }
 
 // DownloadResponse represents the response after initiating a model download
@@ -119,7 +120,11 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 			return
 		}
 
-		// Parse repo and tag from format "org/model:tag"
+		format := req.Format
+		if format == "" {
+			format = models.FormatGGUF
+		}
+
 		repo := req.Repo
 		tag := ""
 		if colonIdx := strings.LastIndex(req.Repo, ":"); colonIdx != -1 {
@@ -127,12 +132,17 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 			tag = req.Repo[colonIdx+1:]
 		}
 
+		if format == models.FormatGGUF && !strings.Contains(repo, "/") {
+			writeError(w, http.StatusBadRequest, "invalid_request", "repo must be in format 'org/model' or 'org/model:tag'")
+			return
+		}
+
 		if !strings.Contains(repo, "/") {
 			writeError(w, http.StatusBadRequest, "invalid_request", "repo must be in format 'org/model' or 'org/model:tag'")
 			return
 		}
 
-		jobID, err := h.modelManager.StartDownload(repo, tag)
+		jobID, err := h.modelManager.StartDownload(repo, tag, format)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "download_failed", err.Error())
 			return

@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useContext, useState, useEffect, useCallback } from 'react'
-import type { CachedModel, DownloadJob } from '@/types/model'
+import type { CachedModel, DownloadJob, ModelFormat } from '@/types/model'
 import { llamaCppModelsApi } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { modelsPollingService } from '@/lib/modelsPollingService'
@@ -13,7 +13,7 @@ interface ModelsContextType {
 
   // Actions
   fetchModels: (node?: string) => Promise<void>
-  startDownload: (repo: string, tag?: string, node?: string) => Promise<void>
+  startDownload: (repo: string, tag?: string, node?: string, format?: ModelFormat) => Promise<void>
   cancelDownload: (jobId: string, node?: string) => Promise<void>
   deleteModel: (repo: string, tag?: string, node?: string) => Promise<void>
   clearError: () => void
@@ -54,10 +54,10 @@ export const ModelsProvider = ({ children }: ModelsProviderProps) => {
     }
   }, [isAuthenticated])
 
-  const startDownload = useCallback(async (repo: string, tag?: string, node?: string) => {
+  const startDownload = useCallback(async (repo: string, tag?: string, node?: string, format?: ModelFormat) => {
     setError(null)
     try {
-      await llamaCppModelsApi.startDownload(repo, tag, node)
+      await llamaCppModelsApi.startDownload(repo, tag, node, format)
       // Notify polling service that we're expecting a new job
       modelsPollingService.downloadStarted()
     } catch (err) {

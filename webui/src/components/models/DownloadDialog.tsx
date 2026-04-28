@@ -13,11 +13,17 @@ import { Label } from '@/components/ui/label'
 import SelectInput from '@/components/form/SelectInput'
 import { useModels } from '@/contexts/ModelsContext'
 import { nodesApi, type NodesMap } from '@/lib/api'
+import { ModelFormat } from '@/types/model'
 
 interface DownloadDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
+
+const formatOptions = [
+  { value: ModelFormat.GGUF, label: 'GGUF' },
+  { value: ModelFormat.SAFETENSORS, label: 'Safetensors' },
+]
 
 export default function DownloadDialog({ open, onOpenChange }: DownloadDialogProps) {
   const [model, setModel] = useState('')
@@ -26,6 +32,7 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
   const [nodes, setNodes] = useState<NodesMap>({})
   const [loadingNodes, setLoadingNodes] = useState(true)
   const [selectedNode, setSelectedNode] = useState<string | undefined>(undefined)
+  const [format, setFormat] = useState<ModelFormat>(ModelFormat.GGUF)
   const { startDownload } = useModels()
 
   useEffect(() => {
@@ -40,7 +47,6 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
             setSelectedNode(nodeNames[0])
           }
         } else if (selectedNode) {
-          // Clear node selection if nodes list becomes empty
           setSelectedNode(undefined)
         }
       } catch (error) {
@@ -58,6 +64,10 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
       setModelError('Model is required')
       return false
     }
+    if (format === ModelFormat.GGUF && !value.includes('/')) {
+      setModelError('Format must be: org/model-name or org/model-name:tag')
+      return false
+    }
     if (!value.includes('/')) {
       setModelError('Format must be: org/model-name or org/model-name:tag')
       return false
@@ -73,18 +83,15 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
 
     setIsSubmitting(true)
     try {
-      // Parse repo and tag from format "org/model:tag"
       const colonIdx = model.lastIndexOf(':')
       const repo = colonIdx !== -1 ? model.substring(0, colonIdx) : model
       const tag = colonIdx !== -1 ? model.substring(colonIdx + 1) : undefined
 
-      await startDownload(repo, tag, selectedNode)
+      await startDownload(repo, tag, selectedNode, format)
       onOpenChange(false)
-      // Reset form
       setModel('')
       setModelError('')
     } catch (error) {
-      // Error is handled by context
       console.error('Failed to start download:', error)
     } finally {
       setIsSubmitting(false)
@@ -93,7 +100,6 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
 
   const handleCancel = () => {
     onOpenChange(false)
-    // Reset form
     setModel('')
     setModelError('')
   }
@@ -102,6 +108,14 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
     value: nodeName,
     label: nodeName
   }))
+
+  const helpText = format === ModelFormat.GGUF
+    ? 'Format: org/model:quant (e.g. Q4_K_M)'
+    : 'Format: org/model. Downloads all weights and config files.'
+
+  const placeholder = format === ModelFormat.GGUF
+    ? 'bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M'
+    : 'meta-llama/Llama-3.2-3B'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -127,6 +141,19 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
               />
             )}
 
+            <SelectInput
+              id="format"
+              label="Format"
+              value={format}
+              onChange={(v) => {
+                setFormat((v as ModelFormat) || ModelFormat.GGUF)
+                if (modelError) validateModel(model)
+              }}
+              options={formatOptions}
+              description="Select the model format to download"
+              disabled={isSubmitting}
+            />
+
             <div>
               <Label htmlFor="model">Model *</Label>
               <Input
@@ -137,7 +164,7 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
                   if (modelError) validateModel(e.target.value)
                 }}
                 onBlur={(e) => validateModel(e.target.value)}
-                placeholder="bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M"
+                placeholder={placeholder}
                 className={modelError ? 'border-red-500' : ''}
                 disabled={isSubmitting}
               />
@@ -145,7 +172,7 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
                 <p className="text-sm text-red-500 mt-1">{modelError}</p>
               )}
               <p className="text-sm text-muted-foreground mt-1">
-                Format: org/model-name or org/model-name:tag (leave tag empty for latest)
+                {helpText}
               </p>
             </div>
           </div>
