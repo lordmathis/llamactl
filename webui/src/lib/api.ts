@@ -257,14 +257,14 @@ export const llamaCppApi = {
     ),
 };
 
-// Llama.cpp models cache management API functions
+// Models cache management API functions
 export const llamaCppModelsApi = {
   // Download management
   startDownload: (repo: string, tag?: string, node?: string, format?: ModelFormat) => {
     const repoWithTag = tag ? `${repo}:${tag}` : repo;
     const params = node ? `?node=${encodeURIComponent(node)}` : '';
     return apiCall<{ job_id: string; repo: string; tag: string }>(
-      `/backends/llama-cpp/models/download${params}`,
+      `/models/download${params}`,
       {
         method: 'POST',
         body: JSON.stringify({ repo: repoWithTag, format: format || 'gguf' })
@@ -273,25 +273,25 @@ export const llamaCppModelsApi = {
   },
 
   getJob: (jobId: string, node?: string) =>
-    apiCall<DownloadJob>(`/backends/llama-cpp/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`),
+    apiCall<DownloadJob>(`/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
   listJobs: (node?: string) =>
-    apiCall<{ jobs: DownloadJob[] }>(`/backends/llama-cpp/models/jobs${node ? `?node=${encodeURIComponent(node)}` : ''}`),
+    apiCall<{ jobs: DownloadJob[] }>(`/models/jobs${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
   deleteJob: (jobId: string, node?: string) =>
-    apiCall<void>(`/backends/llama-cpp/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`, {
+    apiCall<void>(`/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`, {
       method: 'DELETE'
     }),
 
   // Cache management
   listModels: (node?: string) =>
-    apiCall<CachedModel[]>(`/backends/llama-cpp/models${node ? `?node=${encodeURIComponent(node)}` : ''}`),
+    apiCall<CachedModel[]>(`/models${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
   deleteModel: (repo: string, tag?: string, node?: string) => {
     const params = new URLSearchParams({ repo })
     if (tag) params.append('tag', tag)
     if (node) params.append('node', node)
-    return apiCall<void>(`/backends/llama-cpp/models?${params}`, {
+    return apiCall<void>(`/models?${params}`, {
       method: 'DELETE'
     })
   }
