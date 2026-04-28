@@ -278,7 +278,7 @@ export const llamaCppModelsApi = {
   listJobs: (node?: string) =>
     apiCall<{ jobs: DownloadJob[] }>(`/backends/llama-cpp/models/jobs${node ? `?node=${encodeURIComponent(node)}` : ''}`),
 
-  cancelJob: (jobId: string, node?: string) =>
+  deleteJob: (jobId: string, node?: string) =>
     apiCall<void>(`/backends/llama-cpp/models/jobs/${jobId}${node ? `?node=${encodeURIComponent(node)}` : ''}`, {
       method: 'DELETE'
     }),

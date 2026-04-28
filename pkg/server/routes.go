@@ -70,7 +70,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 					r.Route("/jobs", func(r chi.Router) {
 						r.Get("/", handler.ListJobs())
 						r.Get("/{id}", handler.GetJob())
-						r.Delete("/{id}", handler.CancelJob())
+						r.Delete("/{id}", handler.DeleteJob())
 					})
 				})
 			})

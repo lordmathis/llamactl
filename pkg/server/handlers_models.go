@@ -384,10 +384,10 @@ func (h *Handler) ListJobs() http.HandlerFunc {
 // @Success 204 "No Content"
 // @Failure 400 {string} string "Invalid request"
 // @Failure 404 {string} string "Job not found"
-// @Failure 409 {string} string "Cannot cancel job with current status"
+// @Failure 409 {string} string "Cannot delete job with current status"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/backends/llama-cpp/models/jobs/{id} [delete]
-func (h *Handler) CancelJob() http.HandlerFunc {
+func (h *Handler) DeleteJob() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		nodeName := r.URL.Query().Get("node")
 		if h.shouldForwardToNode(nodeName) {
@@ -403,16 +403,24 @@ func (h *Handler) CancelJob() http.HandlerFunc {
 			return
 		}
 
-		err := h.modelManager.CancelJob(jobID)
+		job, err := h.modelManager.GetJob(jobID)
 		if err != nil {
 			if strings.Contains(err.Error(), "job not found") {
 				writeError(w, http.StatusNotFound, "job_not_found", err.Error())
 				return
 			}
-			if strings.Contains(err.Error(), "cannot cancel job with status") {
-				writeError(w, http.StatusConflict, "cannot_cancel", err.Error())
-				return
-			}
+			writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
+			return
+		}
+
+		switch job.Status {
+		case models.JobStatusQueued, models.JobStatusDownloading:
+			err = h.modelManager.CancelJob(jobID)
+		default:
+			err = h.modelManager.DeleteJob(jobID)
+		}
+
+		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
 			return
 		}
