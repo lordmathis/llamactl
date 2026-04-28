@@ -403,6 +403,7 @@ func (md *Downloader) buildGGUFPlan(plan *HFDownloadPlan, repo, commit string, e
 	var allGGUFs []HFTreeEntry
 	var mmprojEntry *HFTreeEntry
 	var presetEntry *HFTreeEntry
+	var jinjaEntries []HFTreeEntry
 
 	for i := range entries {
 		entry := &entries[i]
@@ -418,6 +419,8 @@ func (md *Downloader) buildGGUFPlan(plan *HFDownloadPlan, repo, commit string, e
 			}
 		} else if entry.Path == "preset.ini" {
 			presetEntry = entry
+		} else if strings.HasSuffix(lowerPath, ".jinja") {
+			jinjaEntries = append(jinjaEntries, *entry)
 		}
 	}
 
@@ -444,6 +447,11 @@ func (md *Downloader) buildGGUFPlan(plan *HFDownloadPlan, repo, commit string, e
 		task := md.createDownloadTask(repo, commit, presetEntry, baseURL)
 		allTasks = append(allTasks, task)
 		plan.Preset = &allTasks[len(allTasks)-1]
+	}
+
+	for i := range jinjaEntries {
+		task := md.createDownloadTask(repo, commit, &jinjaEntries[i], baseURL)
+		allTasks = append(allTasks, task)
 	}
 
 	plan.Tasks = allTasks
@@ -504,7 +512,8 @@ func isMandatoryFile(lowerPath string) bool {
 	return strings.HasSuffix(lowerPath, ".json") ||
 		strings.HasSuffix(lowerPath, ".txt") ||
 		strings.HasSuffix(lowerPath, ".model") ||
-		strings.HasSuffix(lowerPath, ".py")
+		strings.HasSuffix(lowerPath, ".py") ||
+		strings.HasSuffix(lowerPath, ".jinja")
 }
 
 // selectGGUFs picks which GGUF files to include based on explicit file name, tag, or fallback heuristics.
