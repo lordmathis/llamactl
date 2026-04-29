@@ -136,38 +136,45 @@ func getDefaultDataDir() string {
 	}
 }
 
-// getDefaultConfigLocations returns platform-specific config file locations
-func getDefaultConfigLocations() []string {
-	var locations []string
-	// Use ./llamactl.yaml and ./config.yaml as the default config file
-	locations = append(locations, "llamactl.yaml")
-	locations = append(locations, "config.yaml")
-
+func getPlatformConfigDirs() []string {
 	homeDir, _ := os.UserHomeDir()
 
 	switch runtime.GOOS {
 	case "windows":
-		// Windows: Use APPDATA if available, else user home, fallback to ProgramData
+		var dirs []string
 		if appData := os.Getenv("APPDATA"); appData != "" {
-			locations = append(locations, filepath.Join(appData, "llamactl", "config.yaml"))
+			dirs = append(dirs, filepath.Join(appData, "llamactl"))
 		} else if homeDir != "" {
-			locations = append(locations, filepath.Join(homeDir, "llamactl", "config.yaml"))
+			dirs = append(dirs, filepath.Join(homeDir, "llamactl"))
 		}
-		locations = append(locations, filepath.Join(os.Getenv("PROGRAMDATA"), "llamactl", "config.yaml"))
-
+		if programData := os.Getenv("PROGRAMDATA"); programData != "" {
+			dirs = append(dirs, filepath.Join(programData, "llamactl"))
+		}
+		return dirs
 	case "darwin":
-		// macOS: Use Application Support in user home, fallback to /Library/Application Support
+		var dirs []string
 		if homeDir != "" {
-			locations = append(locations, filepath.Join(homeDir, "Library", "Application Support", "llamactl", "config.yaml"))
+			dirs = append(dirs, filepath.Join(homeDir, "Library", "Application Support", "llamactl"))
 		}
-		locations = append(locations, "/Library/Application Support/llamactl/config.yaml")
-
+		dirs = append(dirs, "/Library/Application Support/llamactl")
+		return dirs
 	default:
-		// Linux/Unix: Use ~/.config/llamactl/config.yaml, fallback to /etc/llamactl/config.yaml
+		var dirs []string
 		if homeDir != "" {
-			locations = append(locations, filepath.Join(homeDir, ".config", "llamactl", "config.yaml"))
+			dirs = append(dirs, filepath.Join(homeDir, ".config", "llamactl"))
 		}
-		locations = append(locations, "/etc/llamactl/config.yaml")
+		dirs = append(dirs, "/etc/llamactl")
+		return dirs
+	}
+}
+
+func getDefaultConfigLocations() []string {
+	var locations []string
+	locations = append(locations, "llamactl.yaml")
+	locations = append(locations, "config.yaml")
+
+	for _, dir := range getPlatformConfigDirs() {
+		locations = append(locations, filepath.Join(dir, "config.yaml"))
 	}
 
 	return locations

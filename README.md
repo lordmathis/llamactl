@@ -144,7 +144,13 @@ go build -o llamactl ./cmd/server
 
 ## Configuration
 
-llamactl works out of the box with sensible defaults.
+llamactl works out of the box with sensible defaults. Configuration is loaded with the following precedence:
+
+```
+Defaults < .env file < Configuration file < LLAMACTL_* environment variables
+```
+
+Config files support `${VAR}` and `${VAR:-default}` placeholders, and a `.env` file is automatically loaded.
 
 ```yaml
 server:

@@ -3,7 +3,7 @@
 llamactl can be configured via configuration files or environment variables. Configuration is loaded in the following order of precedence:
 
 ```
-Defaults < Configuration file < Environment variables
+Defaults < .env file < Configuration file (with env var expansion) < LLAMACTL_* environment variables
 ```
 
 llamactl works out of the box with sensible defaults, but you can customize the behavior to suit your needs.
@@ -107,6 +107,30 @@ Configuration files are searched in the following locations (in order of precede
 - `%PROGRAMDATA%\llamactl\config.yaml`  
 
 You can specify the path to config file with `LLAMACTL_CONFIG_PATH` environment variable.
+
+### Environment Variable Expansion
+
+Config files support `${VAR}` and `${VAR:-default}` placeholders, resolved from the environment before parsing. Unset variables with no default are left as-is. Only `${VAR}` syntax is supported (not `$VAR`).
+
+```yaml
+auth:
+  management_keys:
+    - ${OPENAI_API_KEY}
+
+backends:
+  llama-cpp:
+    environment:
+      CUDA_VISIBLE_DEVICES: ${CUDA_DEVICE:-0}
+```
+
+### Dotenv File Loading
+
+A `.env` file is automatically loaded before config parsing. It's searched in the same directories as config files (first match wins), plus `./.env`. Existing environment variables are never overwritten.
+
+```env
+OPENAI_API_KEY=sk-proj-abc123...
+CUDA_DEVICE=0
+```
 
 ## Configuration Options
 
