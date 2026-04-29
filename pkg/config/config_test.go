@@ -504,3 +504,82 @@ nodes:
 		}
 	})
 }
+
+func TestLoadConfig_DotEnvAndExpansion(t *testing.T) {
+	tempDir := t.TempDir()
+
+	dotenvContent := "TEST_API_KEY=sk-proj-abc123\nTEST_CUDA_DEVICE=2\n"
+	dotenvPath := filepath.Join(tempDir, ".env")
+	if err := os.WriteFile(dotenvPath, []byte(dotenvContent), 0644); err != nil {
+		t.Fatalf("Failed to write .env: %v", err)
+	}
+
+	configContent := `
+server:
+  port: ${TEST_PORT:-9090}
+auth:
+  management_keys:
+    - ${TEST_API_KEY}
+backends:
+  llama-cpp:
+    environment:
+      CUDA_VISIBLE_DEVICES: ${TEST_CUDA_DEVICE:-0}
+      HF_TOKEN: ${TEST_HF_TOKEN}
+`
+	configFile := filepath.Join(tempDir, "test-config.yaml")
+	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	cfg, err := config.LoadConfig(configFile)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	if cfg.Server.Port != 9090 {
+		t.Errorf("Expected port 9090 from default, got %d", cfg.Server.Port)
+	}
+
+	if len(cfg.Auth.ManagementKeys) != 1 || cfg.Auth.ManagementKeys[0] != "sk-proj-abc123" {
+		t.Errorf("Expected management key from .env, got %v", cfg.Auth.ManagementKeys)
+	}
+
+	if cfg.Backends.LlamaCpp.Environment["CUDA_VISIBLE_DEVICES"] != "2" {
+		t.Errorf("Expected CUDA_VISIBLE_DEVICES=2 from .env, got %q", cfg.Backends.LlamaCpp.Environment["CUDA_VISIBLE_DEVICES"])
+	}
+
+	if cfg.Backends.LlamaCpp.Environment["HF_TOKEN"] != "${TEST_HF_TOKEN}" {
+		t.Errorf("Expected unresolved placeholder for unset HF_TOKEN, got %q", cfg.Backends.LlamaCpp.Environment["HF_TOKEN"])
+	}
+}
+
+func TestLoadConfig_DotEnvEnvPrecedence(t *testing.T) {
+	tempDir := t.TempDir()
+
+	os.Setenv("TEST_PREC_KEY", "from-process-env")
+	defer os.Unsetenv("TEST_PREC_KEY")
+
+	dotenvContent := "TEST_PREC_KEY=from-dotenv\n"
+	dotenvPath := filepath.Join(tempDir, ".env")
+	if err := os.WriteFile(dotenvPath, []byte(dotenvContent), 0644); err != nil {
+		t.Fatalf("Failed to write .env: %v", err)
+	}
+
+	configContent := `
+server:
+  host: ${TEST_PREC_KEY}
+`
+	configFile := filepath.Join(tempDir, "test-config.yaml")
+	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	cfg, err := config.LoadConfig(configFile)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	if cfg.Server.Host != "from-process-env" {
+		t.Errorf("Expected process env to take precedence, got %q", cfg.Server.Host)
+	}
+}

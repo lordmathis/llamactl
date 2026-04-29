@@ -12,16 +12,27 @@ import (
 
 // LoadConfig loads configuration with the following precedence:
 // 1. Hardcoded defaults
-// 2. Config file
-// 3. Environment variables
+// 2. .env file
+// 3. Config file (with env var expansion)
+// 4. LLAMACTL_* environment variable overrides
 func LoadConfig(configPath string) (AppConfig, error) {
 	// 1. Start with defaults
 	defaultDataDir := getDefaultDataDir()
 	cfg := getDefaultConfig(defaultDataDir)
 
-	// 2. Load from config file
-	if err := loadConfigFile(&cfg, configPath); err != nil {
+	// 2. Load .env file
+	loadDotEnv(configPath)
+
+	// 3. Load from config file with env var expansion
+	data, err := readConfigFile(configPath)
+	if err != nil {
 		return cfg, err
+	}
+	if data != nil {
+		data = expandEnvVars(data)
+		if err := yaml.Unmarshal(data, &cfg); err != nil {
+			return cfg, err
+		}
 	}
 
 	// If local node is not defined in nodes, add it with default config
@@ -29,7 +40,7 @@ func LoadConfig(configPath string) (AppConfig, error) {
 		cfg.Nodes[cfg.LocalNode] = NodeConfig{}
 	}
 
-	// 3. Override with environment variables
+	// 4. Override with environment variables
 	loadEnvVars(&cfg)
 
 	// Set default directories if not specified
@@ -51,29 +62,25 @@ func LoadConfig(configPath string) (AppConfig, error) {
 	return cfg, nil
 }
 
-// loadConfigFile attempts to load config from file with fallback locations
-func loadConfigFile(cfg *AppConfig, configPath string) error {
+// readConfigFile attempts to read config from file with fallback locations.
+// Returns nil data if no config file is found (not an error).
+func readConfigFile(configPath string) ([]byte, error) {
 	var configLocations []string
 
-	// If specific config path provided, use only that
 	if configPath != "" {
 		configLocations = []string{configPath}
 	} else {
-		// Default config file locations (in order of precedence)
 		configLocations = getDefaultConfigLocations()
 	}
 
 	for _, path := range configLocations {
 		if data, err := os.ReadFile(path); err == nil {
-			if err := yaml.Unmarshal(data, cfg); err != nil {
-				return err
-			}
 			log.Printf("Read config at %s", path)
-			return nil
+			return data, nil
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 // SanitizedCopy returns a copy of the AppConfig with sensitive information removed
