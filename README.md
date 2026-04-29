@@ -11,7 +11,7 @@
 ## Features
 
 **🚀 Easy Model Management**
-- **Built-in Model Downloader**: Download GGUF models directly from HuggingFace for llama.cpp (replicates llama.cpp `--hf` behavior)
+- **Built-in Model Downloader**: Download GGUF and Safetensors models directly from HuggingFace for llama.cpp, vLLM, and MLX backends
 - **Dynamic Multi-Model Instances**: llama.cpp router mode - serve multiple models from a single instance with on-demand loading
 - **Smart Resource Management**: Automatic idle timeout, LRU eviction, instance groups with per-group limits, and configurable instance limits
 - **Web Dashboard**: Modern React UI for managing instances, monitoring health, and viewing logs
