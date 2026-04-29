@@ -616,6 +616,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supported-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supported Formats
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Supported Formats">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gguf-for-llamacpp" class="md-nav__link">
+    <span class="md-ellipsis">
+      GGUF (for llama.cpp)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#safetensors-for-vllm-and-mlx" class="md-nav__link">
+    <span class="md-ellipsis">
+      Safetensors (for vLLM and MLX)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#downloading-models" class="md-nav__link">
     <span class="md-ellipsis">
       Downloading Models
@@ -644,9 +677,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#model-format" class="md-nav__link">
+  <a href="#model-identifier-format" class="md-nav__link">
     <span class="md-ellipsis">
-      Model Format
+      Model Identifier Format
     </span>
   </a>
   
@@ -663,6 +696,30 @@
       What Gets Downloaded
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="What Gets Downloaded">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gguf-downloads" class="md-nav__link">
+    <span class="md-ellipsis">
+      GGUF Downloads
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#safetensors-downloads" class="md-nav__link">
+    <span class="md-ellipsis">
+      Safetensors Downloads
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -752,18 +809,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#finding-the-cached-file-path" class="md-nav__link">
+  <a href="#gguf-models-llamacpp" class="md-nav__link">
     <span class="md-ellipsis">
-      Finding the Cached File Path
+      GGUF Models (llama.cpp)
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#creating-an-instance-with-a-downloaded-model" class="md-nav__link">
+  <a href="#safetensors-models-vllm-mlx" class="md-nav__link">
     <span class="md-ellipsis">
-      Creating an Instance with a Downloaded Model
+      Safetensors Models (vLLM / MLX)
     </span>
   </a>
   
@@ -855,16 +912,17 @@
 
 
 <h1 id="managing-models">Managing Models<a class="headerlink" href="#managing-models" title="Permanent link">&para;</a></h1>
-<p>Llamactl provides built-in model management capabilities for <strong>llama.cpp (GGUF) models</strong>, allowing you to download models directly from HuggingFace without manually managing files. This feature replicates the <code>--hf</code> behavior from llama.cpp.  </p>
+<p>Llamactl provides built-in model management capabilities for downloading models directly from HuggingFace without manually managing files. It supports both <strong>GGUF</strong> models (for llama.cpp) and <strong>Safetensors</strong> models (for vLLM and MLX backends).  </p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>The model downloader:<br />
-- Downloads GGUF models directly from HuggingFace repositories<br />
-- Caches models in a local directory for reuse<br />
-- Supports split files (models split into multiple parts)<br />
-- Downloads additional files like mmproj (for multimodal models) and preset.ini<br />
+- Downloads models directly from HuggingFace repositories in two formats: <strong>GGUF</strong> and <strong>Safetensors</strong><br />
+- Caches models in a local directory using HuggingFace Hub-compatible layout for reuse<br />
+- Supports split files (models split into multiple parts) for both formats<br />
+- Downloads additional files like mmproj (for multimodal GGUF models) and preset.ini<br />
+- Downloads tokenizer, config, and all weight files for safetensors models<br />
 - Tracks download progress and manages jobs<br />
 - Works with both public and private HuggingFace repositories<br />
-- <strong>Only supports llama.cpp backend</strong>  </p>
+- Supports resume of interrupted downloads  </p>
 <h2 id="cache-directory">Cache Directory<a class="headerlink" href="#cache-directory" title="Permanent link">&para;</a></h2>
 <p>Downloaded models are cached in the following default locations:  </p>
 <ul>
@@ -876,15 +934,34 @@
 - Configuration file: <code>backends.llama_cpp.cache_dir</code><br />
 - Environment variable: <code>LLAMACTL_LLAMACPP_CACHE_DIR</code><br />
 - Environment variable: <code>LLAMA_CACHE</code> (standard llama.cpp convention)  </p>
+<h2 id="supported-formats">Supported Formats<a class="headerlink" href="#supported-formats" title="Permanent link">&para;</a></h2>
+<p>Llamactl supports downloading models in two formats:  </p>
+<h3 id="gguf-for-llamacpp">GGUF (for llama.cpp)<a class="headerlink" href="#gguf-for-llamacpp" title="Permanent link">&para;</a></h3>
+<p>GGUF is the native format for llama.cpp. GGUF models are pre-quantized and contain everything needed for inference in a single file (or a set of split files).  </p>
+<ul>
+<li>Use with the <strong>llama.cpp</strong> backend  </li>
+<li>Specify a quantization tag to select a specific variant (e.g., <code>Q4_K_M</code>, <code>Q8_0</code>)  </li>
+<li>Example repos: <code>bartowski/Llama-3.2-3B-Instruct-GGUF</code>, <code>TheBloke/Mistral-7B-Instruct-v0.2-GGUF</code>  </li>
+</ul>
+<h3 id="safetensors-for-vllm-and-mlx">Safetensors (for vLLM and MLX)<a class="headerlink" href="#safetensors-for-vllm-and-mlx" title="Permanent link">&para;</a></h3>
+<p>Safetensors is the standard model format used by HuggingFace. Downloads include all weight files, tokenizer files, config files, and other mandatory files needed to load the model.  </p>
+<ul>
+<li>Use with <strong>vLLM</strong> or <strong>MLX</strong> backends  </li>
+<li>Downloads the full model directory (all safetensors weight shards, tokenizer, config, etc.)  </li>
+<li>Falls back to <code>.bin</code> files if no safetensors files are found in the repo  </li>
+<li>Example repos: <code>meta-llama/Llama-3.2-3B</code>, <code>mistralai/Mistral-7B-Instruct-v0.3</code>  </li>
+</ul>
 <h2 id="downloading-models">Downloading Models<a class="headerlink" href="#downloading-models" title="Permanent link">&para;</a></h2>
 <h3 id="using-the-web-ui">Using the Web UI<a class="headerlink" href="#using-the-web-ui" title="Permanent link">&para;</a></h3>
 <ol>
 <li>Open the Llamactl web interface  </li>
 <li>Navigate to the <strong>Models</strong> tab  </li>
 <li>Click <strong>Download Model</strong>  </li>
-<li>Enter the model identifier in the format: <code>org/model-name:tag</code>  </li>
-<li>Example: <code>bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M</code>  </li>
-<li>The <code>:tag</code> part is optional - if omitted, <code>latest</code> is used  </li>
+<li>Select the <strong>Format</strong>: <strong>GGUF</strong> or <strong>Safetensors</strong>  </li>
+<li>Enter the model identifier:  </li>
+<li><strong>GGUF</strong>: <code>org/model-name:tag</code> (e.g., <code>bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M</code>)  </li>
+<li><strong>Safetensors</strong>: <code>org/model-name</code> (e.g., <code>meta-llama/Llama-3.2-3B</code>)  </li>
+<li>The <code>:tag</code> part is optional - if omitted, the default branch is used  </li>
 <li>Click <strong>Start Download</strong>  </li>
 <li>Monitor the download progress in the UI  </li>
 </ol>
@@ -893,45 +970,65 @@
 - <strong>Current File</strong>: Name of the file being downloaded<br />
 - <strong>Status</strong>: Current job status (queued, downloading, completed, failed, cancelled)  </p>
 <h3 id="using-the-api">Using the API<a class="headerlink" href="#using-the-api" title="Permanent link">&para;</a></h3>
-<p>Download a model programmatically:  </p>
+<p>Download a GGUF model:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/models/download<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_MANAGEMENT_KEY&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="s1">    &quot;repo&quot;: &quot;bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M&quot;</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="s1">  }&#39;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="s1">    &quot;repo&quot;: &quot;bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M&quot;,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="s1">    &quot;format&quot;: &quot;gguf&quot;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="s1">  }&#39;</span>
+</code></pre></div>
+<p>Download a safetensors model:  </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/models/download<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_MANAGEMENT_KEY&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="s1">    &quot;repo&quot;: &quot;meta-llama/Llama-3.2-3B&quot;,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="s1">    &quot;format&quot;: &quot;safetensors&quot;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="s1">  }&#39;</span>
 </code></pre></div>
 <p>Response:<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;a1b2c3d4e5f6g7h8&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;repo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bartowski/Llama-3.2-3B-Instruct-GGUF&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Q4_K_M&quot;</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;a1b2c3d4e5f6g7h8&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;repo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;meta-llama/Llama-3.2-3B&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;main&quot;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">}</span>
 </code></pre></div></p>
-<h3 id="model-format">Model Format<a class="headerlink" href="#model-format" title="Permanent link">&para;</a></h3>
+<p>The <code>format</code> field accepts <code>"gguf"</code> (default) or <code>"safetensors"</code>.  </p>
+<h3 id="model-identifier-format">Model Identifier Format<a class="headerlink" href="#model-identifier-format" title="Permanent link">&para;</a></h3>
 <p>Models are specified in the format: <code>org/model-name</code> or <code>org/model-name:tag</code>  </p>
 <ul>
-<li><strong>org</strong>: The HuggingFace organization or user (e.g., <code>bartowski</code>, <code>microsoft</code>)  </li>
+<li><strong>org</strong>: The HuggingFace organization or user (e.g., <code>bartowski</code>, <code>meta-llama</code>)  </li>
 <li><strong>model-name</strong>: The model repository name  </li>
-<li><strong>tag</strong>: (Optional) The specific model variant or quantization. If omitted, defaults to <code>latest</code>  </li>
+<li><strong>tag</strong>: (Optional) The branch, tag, or specific quantization variant. If omitted, the default branch is used  </li>
 </ul>
 <p>Examples:<br />
-- <code>bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M</code> - Specific quantization<br />
-- <code>bartowski/Llama-3.2-3B-Instruct-GGUF</code> - Uses <code>latest</code> tag  </p>
+- <code>bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M</code> - Specific GGUF quantization<br />
+- <code>meta-llama/Llama-3.2-3B</code> - Safetensors model, default branch<br />
+- <code>meta-llama/Llama-3.2-3B:main</code> - Safetensors model, explicit branch  </p>
 <h2 id="what-gets-downloaded">What Gets Downloaded<a class="headerlink" href="#what-gets-downloaded" title="Permanent link">&para;</a></h2>
-<p>When you download a model, Llamactl fetches:  </p>
+<p>What gets downloaded depends on the selected format:  </p>
+<h3 id="gguf-downloads">GGUF Downloads<a class="headerlink" href="#gguf-downloads" title="Permanent link">&para;</a></h3>
 <ol>
-<li><strong>Manifest</strong>: Contains metadata about the model files  </li>
 <li><strong>GGUF File(s)</strong>: The main model file(s) - may be split into multiple parts  </li>
 <li><strong>Split Files</strong>: If the model is split (e.g., <code>model-00001-of-00003.gguf</code>), all parts are downloaded  </li>
 <li><strong>MMProj File</strong>: (Optional) For multimodal models that support vision  </li>
 <li><strong>Preset File</strong>: (Optional) <code>preset.ini</code> with recommended inference settings  </li>
+<li><strong>Jinja Files</strong>: (Optional) Chat template files  </li>
 </ol>
-<p>Files are downloaded with ETags to support efficient caching and validation.  </p>
+<h3 id="safetensors-downloads">Safetensors Downloads<a class="headerlink" href="#safetensors-downloads" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Weight Files</strong>: All <code>.safetensors</code> files (or <code>.bin</code> files as fallback)  </li>
+<li><strong>Tokenizer Files</strong>: <code>tokenizer.json</code>, <code>tokenizer_config.json</code>, <code>tokenizers/*.json</code>, etc.  </li>
+<li><strong>Config Files</strong>: <code>config.json</code> and other <code>.json</code> configuration files  </li>
+<li><strong>Other Mandatory Files</strong>: <code>.txt</code>, <code>.model</code>, <code>.py</code>, and <code>.jinja</code> files  </li>
+</ol>
+<p>All files are stored using HuggingFace Hub-compatible cache layout with blob storage and symlinks.  </p>
 <h2 id="private-models">Private Models<a class="headerlink" href="#private-models" title="Permanent link">&para;</a></h2>
 <p>To download private HuggingFace models, set the <code>HF_TOKEN</code> environment variable:  </p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">HF_TOKEN</span><span class="o">=</span><span class="s2">&quot;hf_your_token_here&quot;</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>llamactl
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">HF_TOKEN</span><span class="o">=</span><span class="s2">&quot;hf_your_token_here&quot;</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>llamactl
 </code></pre></div>
 <p>The token will be used to authenticate requests to HuggingFace.  </p>
 <h2 id="listing-cached-models">Listing Cached Models<a class="headerlink" href="#listing-cached-models" title="Permanent link">&para;</a></h2>
@@ -939,25 +1036,25 @@
 <p>Navigate to the <strong>Models</strong> tab to see all cached models with their sizes and file counts.  </p>
 <h3 id="using-the-api_1">Using the API<a class="headerlink" href="#using-the-api_1" title="Permanent link">&para;</a></h3>
 <p>List all cached models:  </p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>http://localhost:8080/api/v1/models<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_MANAGEMENT_KEY&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl<span class="w"> </span>http://localhost:8080/api/v1/models<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_MANAGEMENT_KEY&quot;</span>
 </code></pre></div>
 <p>Response:<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">[</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="p">{</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">&quot;repo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bartowski/Llama-3.2-3B-Instruct-GGUF&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nt">&quot;tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Q4_K_M&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">      </span><span class="p">{</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;model.gguf&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">        </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2147483648</span><span class="p">,</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">        </span><span class="nt">&quot;modified&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1704067200</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="p">],</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="nt">&quot;total_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2147483648</span><span class="p">,</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">[</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="p">{</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nt">&quot;repo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bartowski/Llama-3.2-3B-Instruct-GGUF&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nt">&quot;tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Q4_K_M&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="nt">&quot;files&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">      </span><span class="p">{</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;model.gguf&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">        </span><span class="nt">&quot;size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2147483648</span><span class="p">,</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">        </span><span class="nt">&quot;modified&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1704067200</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">    </span><span class="p">],</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">    </span><span class="nt">&quot;total_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2147483648</span><span class="p">,</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">    </span><span class="nt">&quot;file_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="p">]</span>
 </code></pre></div></p>
 <h2 id="deleting-cached-models">Deleting Cached Models<a class="headerlink" href="#deleting-cached-models" title="Permanent link">&para;</a></h2>
 <h3 id="using-the-web-ui_2">Using the Web UI<a class="headerlink" href="#using-the-web-ui_2" title="Permanent link">&para;</a></h3>
@@ -969,32 +1066,20 @@
 </ol>
 <h3 id="using-the-api_2">Using the API<a class="headerlink" href="#using-the-api_2" title="Permanent link">&para;</a></h3>
 <p>Delete a cached model:  </p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span><span class="s2">&quot;http://localhost:8080/api/v1/models?repo=bartowski/Llama-3.2-3B-Instruct-GGUF&amp;tag=Q4_K_M&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_MANAGEMENT_KEY&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span><span class="s2">&quot;http://localhost:8080/api/v1/models?repo=bartowski/Llama-3.2-3B-Instruct-GGUF&amp;tag=Q4_K_M&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_MANAGEMENT_KEY&quot;</span>
 </code></pre></div>
 <p>The <code>tag</code> parameter is optional. If omitted, all versions of the model will be deleted.  </p>
 <h2 id="using-downloaded-models">Using Downloaded Models<a class="headerlink" href="#using-downloaded-models" title="Permanent link">&para;</a></h2>
-<p>Once a model is downloaded, you need to provide the <strong>full path to the cached file</strong> when creating llama.cpp instances.  </p>
-<h3 id="finding-the-cached-file-path">Finding the Cached File Path<a class="headerlink" href="#finding-the-cached-file-path" title="Permanent link">&para;</a></h3>
-<p>Downloaded models are cached with the naming pattern: <code>{org}_{model}_{filename}</code>  </p>
-<p>Example:<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Repo: bartowski/Llama-3.2-3B-Instruct-GGUF
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>Tag: Q4_K_M
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>File: model-Q4_K_M.gguf
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>Cached as: ~/.cache/llama.cpp/bartowski_Llama-3.2-3B-Instruct-GGUF_model-Q4_K_M.gguf
-</code></pre></div></p>
-<p>You can find the exact path by:<br />
-1. Using the <strong>Models</strong> tab in the Web UI (shows file paths)<br />
-2. Listing models via the API (includes file paths in response)  </p>
-<h3 id="creating-an-instance-with-a-downloaded-model">Creating an Instance with a Downloaded Model<a class="headerlink" href="#creating-an-instance-with-a-downloaded-model" title="Permanent link">&para;</a></h3>
+<p>Once a model is downloaded, you can use it when creating instances. The way you reference the model depends on the format.  </p>
+<h3 id="gguf-models-llamacpp">GGUF Models (llama.cpp)<a class="headerlink" href="#gguf-models-llamacpp" title="Permanent link">&para;</a></h3>
+<p>For GGUF models, provide the <strong>full path to the cached file</strong> when creating llama.cpp instances.  </p>
+<p><strong>Creating an instance with a downloaded GGUF model:</strong>  </p>
 <p><strong>Via the Web UI:</strong>  </p>
 <ol>
 <li>Click <strong>Add Instance</strong>  </li>
 <li>Select <strong>llama.cpp</strong> as the backend type  </li>
-<li>In the <strong>Model</strong> field, enter the full path to the cached file:  </li>
-<li>Example: <code>~/.cache/llama.cpp/bartowski_Llama-3.2-3B-Instruct-GGUF_model-Q4_K_M.gguf</code>  </li>
-<li>Or use the absolute path: <code>/home/user/.cache/llama.cpp/bartowski_Llama-3.2-3B-Instruct-GGUF_model-Q4_K_M.gguf</code>  </li>
+<li>In the <strong>Model</strong> field, enter the full path to the cached file  </li>
 </ol>
 <p><strong>Via the API:</strong>  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-llama-instance<span class="w"> </span><span class="se">\</span>
@@ -1007,18 +1092,42 @@
 <a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="s1">    }</span>
 <a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="s1">  }&#39;</span>
 </code></pre></div>
-<h3 id="alternative-using-llamacpps-built-in-huggingface-support">Alternative: Using llama.cpp's Built-in HuggingFace Support<a class="headerlink" href="#alternative-using-llamacpps-built-in-huggingface-support" title="Permanent link">&para;</a></h3>
-<p>Instead of using the model downloader, you can let llama.cpp download models directly using its built-in HuggingFace support:  </p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-llama-instance<span class="w"> </span><span class="se">\</span>
+<h3 id="safetensors-models-vllm-mlx">Safetensors Models (vLLM / MLX)<a class="headerlink" href="#safetensors-models-vllm-mlx" title="Permanent link">&para;</a></h3>
+<p>For safetensors models, simply use the <strong>HuggingFace repo identifier</strong> (e.g., <code>meta-llama/Llama-3.2-3B</code>) when creating instances. Both vLLM and MLX will automatically resolve the repo to the locally cached snapshot.  </p>
+<p><strong>vLLM backend:</strong>  </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-vllm-instance<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_MANAGEMENT_KEY&quot;</span><span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="s1">    &quot;backend_type&quot;: &quot;llama_cpp&quot;,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="s1">    &quot;backend_type&quot;: &quot;vllm&quot;,</span>
 <a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="s1">    &quot;backend_options&quot;: {</span>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="s1">      &quot;hf_repo&quot;: &quot;bartowski/Llama-3.2-3B-Instruct-GGUF&quot;,</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="s1">      &quot;hf_file&quot;: &quot;model-Q4_K_M.gguf&quot;</span>
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="s1">    }</span>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="s1">  }&#39;</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="s1">      &quot;model&quot;: &quot;meta-llama/Llama-3.2-3B&quot;</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="s1">    }</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="s1">  }&#39;</span>
+</code></pre></div>
+<p><strong>MLX backend:</strong>  </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-mlx-instance<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_MANAGEMENT_KEY&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="s1">    &quot;backend_type&quot;: &quot;mlx_lm&quot;,</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="s1">    &quot;backend_options&quot;: {</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="s1">      &quot;model&quot;: &quot;meta-llama/Llama-3.2-3B&quot;</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="s1">    }</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="s1">  }&#39;</span>
+</code></pre></div>
+<h3 id="alternative-using-llamacpps-built-in-huggingface-support">Alternative: Using llama.cpp's Built-in HuggingFace Support<a class="headerlink" href="#alternative-using-llamacpps-built-in-huggingface-support" title="Permanent link">&para;</a></h3>
+<p>Instead of using the model downloader, you can let llama.cpp download models directly using its built-in HuggingFace support:  </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-llama-instance<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_MANAGEMENT_KEY&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="s1">    &quot;backend_type&quot;: &quot;llama_cpp&quot;,</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="s1">    &quot;backend_options&quot;: {</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="s1">      &quot;hf_repo&quot;: &quot;bartowski/Llama-3.2-3B-Instruct-GGUF&quot;,</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="s1">      &quot;hf_file&quot;: &quot;model-Q4_K_M.gguf&quot;</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="s1">    }</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="s1">  }&#39;</span>
 </code></pre></div>
 
 
@@ -1040,7 +1149,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 28, 2026 18:24:33 UTC">April 28, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 29, 2026 10:52:59 UTC">April 29, 2026</span>
   </span>
 
     
