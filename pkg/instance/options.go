@@ -240,12 +240,9 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 		}
 	}
 
-	// Validate group name (alphanumeric and hyphens only)
+	// Escape group name for safe shell use
 	if c.Group != "" {
-		if err := validation.ValidateStringForInjection(c.Group); err != nil {
-			log.Printf("Instance %s: invalid group name: %v, clearing value", name, err)
-			c.Group = ""
-		}
+		c.Group = validation.EscapeForShell(c.Group)
 	}
 
 	// Apply defaults from global settings for nil fields
