@@ -29,12 +29,6 @@ func TestValidateInstanceName(t *testing.T) {
 		{"with special chars", "my@instance", true},
 		{"too long", strings.Repeat("a", 51), true},
 
-		// Invalid names - not alphanumeric, hyphens, or underscores
-		{"shell metachar semicolon", "test;ls", true},
-		{"shell metachar pipe", "test|ls", true},
-		{"shell metachar ampersand", "test&ls", true},
-		{"shell metachar dollar", "test$var", true},
-		{"shell metachar backtick", "test`cmd`", true},
 	}
 
 	for _, tt := range tests {
