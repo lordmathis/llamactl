@@ -1,10 +1,12 @@
 package config_test
 
 import (
-	"llamactl/pkg/config"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
+
+	"llamactl/pkg/config"
 )
 
 // GetBackendSettings resolves backend settings
@@ -19,6 +21,25 @@ func getBackendSettings(bc *config.BackendConfig, backendType string) config.Bac
 	default:
 		return config.BackendSettings{}
 	}
+}
+
+func getLogsDir() (string, error) {
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	finalPath := []string{homedir}
+
+	switch os := runtime.GOOS; os {
+	case "darwin":
+		finalPath = append(finalPath, "Library", "Application Support")
+	default: // Linux
+		finalPath = append(finalPath, ".local", "share")
+	}
+	finalPath = append(finalPath, "llamactl", "logs")
+
+	return filepath.Join(finalPath...), nil
 }
 
 func TestLoadConfig_Defaults(t *testing.T) {
@@ -36,13 +57,13 @@ func TestLoadConfig_Defaults(t *testing.T) {
 		t.Errorf("Expected default port to be 8080, got %d", cfg.Server.Port)
 	}
 
-	homedir, err := os.UserHomeDir()
+	expectedLogsDir, err := getLogsDir()
 	if err != nil {
-		t.Fatalf("Failed to get user home directory: %v", err)
+		t.Fatalf("Could not get expected logsDir: %v", err)
 	}
 
-	if cfg.Instances.LogsDir != filepath.Join(homedir, ".local", "share", "llamactl", "logs") {
-		t.Errorf("Expected default logs directory '%s', got %q", filepath.Join(homedir, ".local", "share", "llamactl", "logs"), cfg.Instances.LogsDir)
+	if cfg.Instances.LogsDir != expectedLogsDir {
+		t.Errorf("Expected default logs directory '%s', got %q", expectedLogsDir, cfg.Instances.LogsDir)
 	}
 	if !cfg.Instances.AutoCreateDirs {
 		t.Error("Expected default instances auto-create to be true")
@@ -86,7 +107,7 @@ instances:
   default_restart_delay: 30
 `
 
-	err := os.WriteFile(configFile, []byte(configContent), 0644)
+	err := os.WriteFile(configFile, []byte(configContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test config file: %v", err)
 	}
@@ -194,7 +215,7 @@ instances:
   max_instances: 5
 `
 
-	err := os.WriteFile(configFile, []byte(configContent), 0644)
+	err := os.WriteFile(configFile, []byte(configContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test config file: %v", err)
 	}
@@ -402,7 +423,7 @@ nodes:
     api_key: "test-key"
 `
 
-		err := os.WriteFile(configFile, []byte(configContent), 0644)
+		err := os.WriteFile(configFile, []byte(configContent), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to write test config file: %v", err)
 		}
@@ -462,7 +483,7 @@ nodes:
     address: "http://192.168.1.10:8080"
 `
 
-		err := os.WriteFile(configFile, []byte(configContent), 0644)
+		err := os.WriteFile(configFile, []byte(configContent), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to write test config file: %v", err)
 		}
@@ -510,7 +531,7 @@ func TestLoadConfig_DotEnvAndExpansion(t *testing.T) {
 
 	dotenvContent := "TEST_API_KEY=sk-proj-abc123\nTEST_CUDA_DEVICE=2\n"
 	dotenvPath := filepath.Join(tempDir, ".env")
-	if err := os.WriteFile(dotenvPath, []byte(dotenvContent), 0644); err != nil {
+	if err := os.WriteFile(dotenvPath, []byte(dotenvContent), 0o644); err != nil {
 		t.Fatalf("Failed to write .env: %v", err)
 	}
 
@@ -527,7 +548,7 @@ backends:
       HF_TOKEN: ${TEST_HF_TOKEN}
 `
 	configFile := filepath.Join(tempDir, "test-config.yaml")
-	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configFile, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
@@ -561,7 +582,7 @@ func TestLoadConfig_DotEnvEnvPrecedence(t *testing.T) {
 
 	dotenvContent := "TEST_PREC_KEY=from-dotenv\n"
 	dotenvPath := filepath.Join(tempDir, ".env")
-	if err := os.WriteFile(dotenvPath, []byte(dotenvContent), 0644); err != nil {
+	if err := os.WriteFile(dotenvPath, []byte(dotenvContent), 0o644); err != nil {
 		t.Fatalf("Failed to write .env: %v", err)
 	}
 
@@ -570,7 +591,7 @@ server:
   host: ${TEST_PREC_KEY}
 `
 	configFile := filepath.Join(tempDir, "test-config.yaml")
-	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configFile, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
