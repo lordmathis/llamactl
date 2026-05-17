@@ -52,6 +52,7 @@ nav:
   - Installation: installation.md
   - Quick Start: quick-start.md
   - Configuration: configuration.md
+  - Deployment: deployment.md
   - Managing Instances: managing-instances.md
   - Managing Models: managing-models.md
   - API Reference: api-reference.md
