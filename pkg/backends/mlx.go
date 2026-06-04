@@ -93,25 +93,8 @@ func (o *MlxServerOptions) Validate() error {
 		return validation.ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
 	}
 
-	if err := validation.ValidateStructStrings(o, ""); err != nil {
-		return err
-	}
-
-	// Basic network validation for port
 	if o.Port < 0 || o.Port > 65535 {
 		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
-	}
-
-	// Validate extra_args keys and values
-	for key, value := range o.ExtraArgs {
-		if err := validation.ValidateStringForInjection(key); err != nil {
-			return validation.ValidationError(fmt.Errorf("extra_args key %q: %w", key, err))
-		}
-		if value != "" {
-			if err := validation.ValidateStringForInjection(value); err != nil {
-				return validation.ValidationError(fmt.Errorf("extra_args value for %q: %w", key, err))
-			}
-		}
 	}
 
 	return nil
