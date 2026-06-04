@@ -227,14 +227,6 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 		c.CommandOverride = "" // Clear invalid configuration
 	}
 
-	// Validate command_override if set
-	if c.CommandOverride != "" {
-		if err := validation.ValidateStringForInjection(c.CommandOverride); err != nil {
-			log.Printf("Instance %s: invalid command_override: %v, clearing value", name, err)
-			c.CommandOverride = "" // Clear invalid value
-		}
-	}
-
 	// Validate docker_enabled for MLX backend
 	if c.BackendOptions.BackendType == backends.BackendTypeMlxLm {
 		if c.DockerEnabled != nil && *c.DockerEnabled {
@@ -243,12 +235,9 @@ func (c *Options) validateAndApplyDefaults(name string, globalSettings *config.I
 		}
 	}
 
-	// Validate group name (alphanumeric and hyphens only)
-	if c.Group != "" {
-		if err := validation.ValidateStringForInjection(c.Group); err != nil {
-			log.Printf("Instance %s: invalid group name: %v, clearing value", name, err)
-			c.Group = ""
-		}
+	if _, err := validation.ValidateInstanceName(c.Group); err != nil && c.Group != "" {
+		log.Printf("Instance %s: invalid group name: %v, clearing value", name, err)
+		c.Group = ""
 	}
 
 	// Apply defaults from global settings for nil fields
