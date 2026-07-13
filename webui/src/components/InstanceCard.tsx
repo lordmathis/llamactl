@@ -8,9 +8,11 @@ import LogsDialog from "@/components/LogDialog";
 import ModelsDialog from "@/components/ModelsDialog";
 import HealthBadge from "@/components/HealthBadge";
 import BackendBadge from "@/components/BackendBadge";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useInstanceHealth } from "@/hooks/useInstanceHealth";
 import { instancesApi, llamaCppApi, type Model } from "@/lib/api";
+
+const MODELS_POLL_INTERVAL = 10_000; // 10 seconds
 
 interface InstanceCardProps {
   instance: Instance;
@@ -32,30 +34,57 @@ function InstanceCard({
   const [showAllActions, setShowAllActions] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const health = useInstanceHealth(instance.name, instance.status);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const running = instance.status === "running";
   const isLlamaCpp = instance.options?.backend_type === "llama_cpp";
 
   // Fetch models for llama.cpp instances
-  useEffect(() => {
+  const fetchModels = useCallback(async () => {
     if (!isLlamaCpp || !running) {
       setModels([]);
       return;
     }
-
-    void (async () => {
-      try {
-        const fetchedModels = await llamaCppApi.getModels(instance.name);
-        setModels(fetchedModels);
-      } catch {
-        setModels([]);
-      }
-    })();
+    try {
+      const fetchedModels = await llamaCppApi.getModels(instance.name);
+      setModels(fetchedModels);
+    } catch {
+      setModels([]);
+    }
   }, [instance.name, isLlamaCpp, running]);
+
+  // Poll model state while running so the badge stays current
+  useEffect(() => {
+    void fetchModels();
+
+    if (isLlamaCpp && running) {
+      pollIntervalRef.current = setInterval(() => {
+        void fetchModels();
+      }, MODELS_POLL_INTERVAL);
+    }
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, [fetchModels, isLlamaCpp, running]);
+
+  // Callback passed to ModelsDialog so a load/unload immediately refreshes the card
+  const handleModelsChange = useCallback(() => {
+    void fetchModels();
+  }, [fetchModels]);
 
   // Calculate model counts
   const totalModels = models.length;
   const loadedModels = models.filter(m => m.status?.value === "loaded").length;
+
+  // For single-model instances show the model id/alias directly
+  const singleLoadedModel =
+    isLlamaCpp && running && totalModels === 1 && loadedModels === 1
+      ? models[0].id
+      : null;
 
   const handleStart = () => {
     startInstance(instance.name);
@@ -133,6 +162,11 @@ function InstanceCard({
                 <Badge variant="outline" className="text-xs">
                   <Layers className="h-3 w-3 mr-1" />
                   {instance.options.group}
+                </Badge>
+              )}
+              {isLlamaCpp && running && singleLoadedModel && (
+                <Badge variant="secondary" className="text-xs max-w-[14rem] truncate" title={singleLoadedModel}>
+                  {singleLoadedModel}
                 </Badge>
               )}
               {isLlamaCpp && running && totalModels > 1 && (
@@ -264,9 +298,14 @@ function InstanceCard({
 
       <ModelsDialog
         open={isModelsOpen}
-        onOpenChange={setIsModelsOpen}
+        onOpenChange={(open) => {
+          setIsModelsOpen(open);
+          // Refresh card badge immediately when dialog closes
+          if (!open) handleModelsChange();
+        }}
         instanceName={instance.name}
         isRunning={running}
+        onModelsChange={handleModelsChange}
       />
     </>
   );

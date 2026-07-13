@@ -24,6 +24,8 @@ interface ModelsDialogProps {
   onOpenChange: (open: boolean) => void
   instanceName: string
   isRunning: boolean
+  /** Called after a model is loaded or unloaded so parent components can refresh. */
+  onModelsChange?: () => void
 }
 
 interface Model {
@@ -65,6 +67,7 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
   onOpenChange,
   instanceName,
   isRunning,
+  onModelsChange,
 }) => {
   const [models, setModels] = useState<Model[]>([])
   const [loading, setLoading] = useState(false)
@@ -124,6 +127,7 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
       await new Promise(resolve => setTimeout(resolve, 500))
       // Refresh models list after loading
       await fetchModels()
+      onModelsChange?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load model')
     } finally {
@@ -146,6 +150,7 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({
       await new Promise(resolve => setTimeout(resolve, 500))
       // Refresh models list after unloading
       await fetchModels()
+      onModelsChange?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to unload model')
     } finally {

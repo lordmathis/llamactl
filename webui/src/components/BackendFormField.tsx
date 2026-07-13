@@ -4,10 +4,28 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { FileCode } from 'lucide-react'
+import { FileCode, HelpCircle } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { getBackendFieldType, basicBackendFieldsConfig } from '@/lib/zodFormUtils'
 import ExtraArgsInput from '@/components/form/ExtraArgsInput'
 import type { CreateInstanceOptions } from '@/schemas/instanceOptions'
+
+/** Renders a label with an optional tooltip help icon. */
+const FieldLabel: React.FC<{ htmlFor: string; label: string; tooltip?: string }> = ({ htmlFor, label, tooltip }) => (
+  <div className="flex items-center gap-1.5">
+    <Label htmlFor={htmlFor}>{label}</Label>
+    {tooltip && (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs text-xs leading-relaxed">{tooltip}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )}
+  </div>
+)
 
 interface BackendFormFieldProps {
   fieldKey: string
@@ -78,7 +96,7 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
   }
 
   // Get configuration for basic fields, or use field name for advanced fields
-  const config = basicBackendFieldsConfig[fieldKey] || { label: fieldKey }
+  const config = basicBackendFieldsConfig[fieldKey] || { label: fieldKey, tooltip: undefined }
 
   // Get type from Zod schema
   const fieldType = getBackendFieldType(fieldKey)
@@ -97,21 +115,31 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
               checked={typeof value === 'boolean' ? value : false}
               onCheckedChange={(checked) => handleChange(checked)}
             />
-            <Label htmlFor={fieldKey} className="text-sm font-normal">
-              {config.label}
-              {config.description && (
-                <span className="text-muted-foreground ml-1">- {config.description}</span>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor={fieldKey} className="text-sm font-normal">
+                {config.label}
+                {config.description && (
+                  <span className="text-muted-foreground ml-1">- {config.description}</span>
+                )}
+              </Label>
+              {'tooltip' in config && config.tooltip && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-xs leading-relaxed">{config.tooltip}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
-            </Label>
+            </div>
           </div>
         )
 
       case 'number':
         return (
           <div className="grid gap-2">
-            <Label htmlFor={fieldKey}>
-              {config.label}
-            </Label>
+            <FieldLabel htmlFor={fieldKey} label={config.label} tooltip={'tooltip' in config ? config.tooltip : undefined} />
             <Input
               id={fieldKey}
               type="number"
@@ -135,9 +163,7 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
       case 'array':
         return (
           <div className="grid gap-2">
-            <Label htmlFor={fieldKey}>
-              {config.label}
-            </Label>
+            <FieldLabel htmlFor={fieldKey} label={config.label} tooltip={'tooltip' in config ? config.tooltip : undefined} />
             <Input
               id={fieldKey}
               type="text"
@@ -161,9 +187,7 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
       default:
         return (
           <div className="grid gap-2">
-            <Label htmlFor={fieldKey}>
-              {config.label}
-            </Label>
+            <FieldLabel htmlFor={fieldKey} label={config.label} tooltip={'tooltip' in config ? config.tooltip : undefined} />
             <Input
               id={fieldKey}
               type="text"
