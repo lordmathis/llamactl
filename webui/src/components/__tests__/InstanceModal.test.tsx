@@ -202,6 +202,58 @@ describe('InstanceModal - Form Logic and Validation', () => {
     })
   })
 
+  describe('Router Mode Callout', () => {
+    it('shows router mode callout on Backend tab when no model fields are set', async () => {
+      const user = userEvent.setup()
+
+      render(
+        <InstanceDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          onSave={mockOnSave}
+        />
+      )
+
+      const backendTab = screen.getByRole('tab', { name: /Backend/i })
+      await user.click(backendTab)
+
+      expect(
+        screen.getByText(/No model specified.*router mode will be used/i)
+      ).toBeInTheDocument()
+    })
+
+    it('does not show router mode callout when editing an instance that has a model set', async () => {
+      const user = userEvent.setup()
+
+      const instanceWithModel = {
+        id: 5,
+        name: 'model-instance',
+        status: 'stopped' as const,
+        options: {
+          backend_type: 'llama_cpp' as const,
+          backend_options: { model: '/models/gemma.gguf' },
+        },
+      }
+
+      render(
+        <InstanceDialog
+          open={true}
+          onOpenChange={mockOnOpenChange}
+          onSave={mockOnSave}
+          instance={instanceWithModel}
+        />
+      )
+
+      const backendTab = screen.getByRole('tab', { name: /Backend/i })
+      await user.click(backendTab)
+
+      // Callout should NOT appear when a model is already configured
+      expect(
+        screen.queryByText(/No model specified.*router mode will be used/i)
+      ).not.toBeInTheDocument()
+    })
+  })
+
   describe('Auto Restart Configuration', () => {
     it('shows and hides restart options based on auto restart checkbox', async () => {
       const user = userEvent.setup()
