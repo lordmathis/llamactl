@@ -1,5 +1,7 @@
 # llamactl
 
+> **Fork notice:** This repository is a fork of [llamactl](https://github.com/lordmathis/llamactl) by [Matúš Námešný](https://github.com/lordmathis), used under the [MIT License](LICENSE). All original copyright and attribution remain with the upstream author.
+
 ![Build and Release](https://github.com/lordmathis/llamactl/actions/workflows/release.yaml/badge.svg) ![Go Tests](https://github.com/lordmathis/llamactl/actions/workflows/go_test.yaml/badge.svg) ![WebUI Tests](https://github.com/lordmathis/llamactl/actions/workflows/webui_test.yaml/badge.svg) ![User Docs](https://github.com/lordmathis/llamactl/actions/workflows/docs.yaml/badge.svg)
 
 **Unified management and routing for llama.cpp, MLX and vLLM models with web dashboard.**
