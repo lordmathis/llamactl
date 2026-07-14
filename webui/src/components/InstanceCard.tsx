@@ -78,9 +78,16 @@ function InstanceCard({
     void fetchModels();
   }, [fetchModels]);
 
+  // A model is considered loaded if it has an explicit "loaded" status, OR if
+  // status is absent entirely. Single-model (non-router) instances proxy the
+  // raw llama-server /v1/models response which omits the status field; if the
+  // instance is running and the model appears in the list, it is loaded.
+  const isModelLoaded = (m: Model) =>
+    m.status === undefined || m.status?.value === 'loaded';
+
   // Calculate model counts
   const totalModels = models.length;
-  const loadedModels = models.filter(m => m.status?.value === "loaded").length;
+  const loadedModels = models.filter(isModelLoaded).length;
 
   // For single-model instances show the model id/alias directly
   const singleLoadedModel =
@@ -89,7 +96,7 @@ function InstanceCard({
       : null;
 
   // Models available for chat (loaded ones only)
-  const chatModels = models.filter(m => m.status?.value === 'loaded');
+  const chatModels = models.filter(isModelLoaded);
   const canChat = running && isLlamaCpp && chatModels.length > 0;
 
   // Configured model from instance options (shown when stopped)
