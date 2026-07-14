@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Instance } from "@/types/instance";
-import { Edit, ExternalLink, FileText, Play, Square, Trash2, MoreHorizontal, Download, Boxes, Layers } from "lucide-react";
+import { Edit, ExternalLink, FileText, Play, Square, Trash2, MoreHorizontal, Download, Boxes, Layers, MessageSquare, Cpu } from "lucide-react";
 import LogsDialog from "@/components/LogDialog";
 import ModelsDialog from "@/components/ModelsDialog";
+import ChatDialog from "@/components/ChatDialog";
 import HealthBadge from "@/components/HealthBadge";
 import BackendBadge from "@/components/BackendBadge";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -31,6 +32,7 @@ function InstanceCard({
 }: InstanceCardProps) {
   const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [isModelsOpen, setIsModelsOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [showAllActions, setShowAllActions] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const health = useInstanceHealth(instance.name, instance.status);
@@ -85,6 +87,16 @@ function InstanceCard({
     isLlamaCpp && running && totalModels === 1 && loadedModels === 1
       ? models[0].id
       : null;
+
+  // Models available for chat (loaded ones only)
+  const chatModels = models.filter(m => m.status?.value === 'loaded');
+  const canChat = running && isLlamaCpp && chatModels.length > 0;
+
+  // Configured model from instance options (shown when stopped)
+  const configuredModel = (() => {
+    const opts = instance.options?.backend_options as Record<string, unknown> | undefined;
+    return (opts?.hf_repo as string) || (opts?.model as string) || null;
+  })();
 
   const handleStart = () => {
     startInstance(instance.name);
@@ -180,6 +192,28 @@ function InstanceCard({
         </CardHeader>
 
         <CardContent className="pt-0">
+          {/* Model info line */}
+          {isLlamaCpp && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3 min-w-0">
+              <Cpu className="h-3 w-3 shrink-0" />
+              {running && singleLoadedModel && (
+                <span className="truncate" title={singleLoadedModel}>{singleLoadedModel}</span>
+              )}
+              {running && totalModels > 1 && (
+                <span>{loadedModels}/{totalModels} models loaded</span>
+              )}
+              {running && totalModels === 0 && (
+                <span className="italic">No models loaded</span>
+              )}
+              {!running && configuredModel && (
+                <span className="truncate" title={configuredModel}>{configuredModel}</span>
+              )}
+              {!running && !configuredModel && (
+                <span className="italic">Router mode</span>
+              )}
+            </div>
+          )}
+
           {/* Primary actions - always visible */}
           <div className="flex items-center gap-2 mb-3">
             <Button
@@ -212,6 +246,18 @@ function InstanceCard({
             >
               <Edit className="h-4 w-4" />
             </Button>
+
+            {canChat && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsChatOpen(true)}
+                title="Chat with loaded model"
+                data-testid="chat-button"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+            )}
 
             <Button
               size="sm"
@@ -306,6 +352,13 @@ function InstanceCard({
         instanceName={instance.name}
         isRunning={running}
         onModelsChange={handleModelsChange}
+      />
+
+      <ChatDialog
+        open={isChatOpen}
+        onOpenChange={setIsChatOpen}
+        instanceName={instance.name}
+        loadedModels={chatModels}
       />
     </>
   );

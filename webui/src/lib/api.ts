@@ -207,6 +207,108 @@ export const apiKeysApi = {
     apiCall<KeyPermissionResponse[]>(`/auth/keys/${id}/permissions`),
 };
 
+// Chat types
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Streams a chat completion through the llamactl instance proxy.
+ * Calls onChunk for each incremental text delta, onDone when the stream
+ * ends cleanly, and onError on any failure.
+ *
+ * Returns an AbortController so the caller can cancel mid-stream.
+ */
+export function streamChat(
+  instanceName: string,
+  messages: ChatMessage[],
+  model: string,
+  onChunk: (text: string) => void,
+  onDone: () => void,
+  onError: (error: string) => void
+): AbortController {
+  const controller = new AbortController();
+
+  const run = async () => {
+    const storedKey = sessionStorage.getItem('llamactl_management_key');
+    const url = `${API_BASE}/instances/${encodeURIComponent(instanceName)}/proxy/v1/chat/completions`;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(storedKey ? { Authorization: `Bearer ${storedKey}` } : {}),
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          stream: true,
+          max_tokens: 2048,
+        }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        onError((err as Error).message ?? 'Network error');
+      }
+      return;
+    }
+
+    if (!response.ok) {
+      onError(`Request failed: ${response.status} ${response.statusText}`);
+      return;
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) { onError('No response body'); return; }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        // Keep any incomplete last line in the buffer
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data: ')) continue;
+          const data = trimmed.slice(6);
+          if (data === '[DONE]') { onDone(); return; }
+          try {
+            const parsed = JSON.parse(data) as {
+              choices?: Array<{ delta?: { content?: string } }>;
+            };
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) onChunk(content);
+          } catch {
+            // skip malformed SSE lines
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        onError((err as Error).message ?? 'Stream read error');
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    onDone();
+  };
+
+  void run();
+  return controller;
+}
+
 // Llama.cpp model management types
 export interface Model {
   id: string;
