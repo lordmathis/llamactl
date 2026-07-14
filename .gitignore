@@ -45,4 +45,8 @@ llamactl.dev.yaml
 __debug*
 
 # Binary
+llamactl
 llamactl-*
+
+# macOS
+.DS_Store

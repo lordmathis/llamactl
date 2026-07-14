@@ -34,22 +34,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const loadStoredAuth = async () => {
       try {
+        // First, probe without any key — if the backend has auth disabled we're done
+        const unauthResponse = await fetch(document.baseURI + 'api/v1/instances', {
+          headers: { 'Content-Type': 'application/json' }
+        })
+        if (unauthResponse.ok) {
+          // Backend does not require auth — proceed without a key
+          setIsAuthenticated(true)
+          setIsLoading(false)
+          return
+        }
+
+        // Auth is required — check sessionStorage for a stored key
         const storedKey = sessionStorage.getItem(AUTH_STORAGE_KEY)
         if (storedKey) {
           setApiKey(storedKey)
-          // Validate the stored key
           const isValid = await validateApiKey(storedKey)
           if (isValid) {
             setIsAuthenticated(true)
           } else {
-            // Invalid key, remove it
+            // Stored key is no longer valid
             sessionStorage.removeItem(AUTH_STORAGE_KEY)
             setApiKey(null)
           }
         }
       } catch (err) {
         console.error('Error loading stored auth:', err)
-        // Clear potentially corrupted storage
         sessionStorage.removeItem(AUTH_STORAGE_KEY)
       } finally {
         setIsLoading(false)
