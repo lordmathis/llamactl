@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -30,7 +30,7 @@ const NumberInput: React.FC<NumberInputProps> = ({
     }
 
     const numValue = parseFloat(inputValue)
-    if (!isNaN(numValue)) {
+    if (!Number.isNaN(numValue)) {
       onChange(numValue)
     }
   }

@@ -10,6 +10,7 @@
       "!**/public",
       "!**/node_modules",
       "!**/*.js",
+      "!**/*.css",
       "!**/vite.config.ts"
     ]
   },
@@ -20,7 +21,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "correctness": {
         "useExhaustiveDependencies": "warn",
         "useHookAtTopLevel": "error"

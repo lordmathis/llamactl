@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import BackendFormField from '@/components/BackendFormField'
-import { type CreateInstanceOptions } from '@/schemas/instanceOptions'
+import type { CreateInstanceOptions } from '@/schemas/instanceOptions'
 
 describe('BackendFormField - models_preset Field States', () => {
   const mockOnChange = vi.fn()

@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { BackendType, type CreateInstanceOptions } from '@/types/instance'
 import CheckboxInput from '@/components/form/CheckboxInput'
 import TextInput from '@/components/form/TextInput'

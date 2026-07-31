@@ -30,6 +30,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Validate API key by making a test request
+  const validateApiKey = useCallback(async (key: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${document.baseURI}api/v1/instances`, {
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      return response.ok
+    } catch (err) {
+      console.error('Auth validation error:', err)
+      return false
+    }
+  }, [])
+
   // Load auth state from sessionStorage on mount
   useEffect(() => {
     const loadStoredAuth = async () => {
@@ -57,24 +74,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     void loadStoredAuth()
-  }, [])
-
-  // Validate API key by making a test request
-  const validateApiKey = async (key: string): Promise<boolean> => {
-    try {
-      const response = await fetch(document.baseURI + 'api/v1/instances', {
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      return response.ok
-    } catch (err) {
-      console.error('Auth validation error:', err)
-      return false
-    }
-  }
+  }, [validateApiKey])
 
   const login = useCallback(async (key: string) => {
     setIsLoading(true)
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [validateApiKey])
 
   const logout = useCallback(() => {
     sessionStorage.removeItem(AUTH_STORAGE_KEY)
@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       logout()
     }
     return isValid
-  }, [apiKey, logout])
+  }, [apiKey, logout, validateApiKey])
 
   const value: AuthContextType = {
     isAuthenticated,

@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import type { CreateInstanceOptions } from '@/types/instance'
 import { getBasicBackendFields, getAdvancedBackendFields } from '@/lib/zodFormUtils'
 import BackendFormField from '@/components/BackendFormField'

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, KeyboardEvent } from 'react'
+import type React from 'react'
+import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { getLlamaFieldSuggestions, type FieldSuggestion } from '@/lib/llamaFieldSuggestions'
 
@@ -68,7 +69,7 @@ const IniEditor: React.FC<IniEditorProps> = ({ value, onChange, className }) => 
 
     const leadingWhitespace = lastLine.match(/^\s*/)?.[0] || ''
 
-    const newText = (linesBeforeLast ? linesBeforeLast + '\n' : '') +
+    const newText = (linesBeforeLast ? `${linesBeforeLast}\n` : '') +
                     leadingWhitespace +
                     suggestion.name +
                     ' = ' +
@@ -125,6 +126,7 @@ const IniEditor: React.FC<IniEditorProps> = ({ value, onChange, className }) => 
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: DOM listener effect intentionally re-binds on value change; handleCursorChange closes over the current value
   useEffect(() => {
     const textarea = textareaRef.current
     if (textarea) {
@@ -162,6 +164,8 @@ gpu-layers = 35"
           }}
         >
           {suggestions.map((suggestion, index) => (
+            // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard navigation is handled by the textarea onKeyDown above
+            // biome-ignore lint/a11y/noStaticElementInteractions: keyboard navigation is handled by the textarea onKeyDown above
             <div
               key={suggestion.name}
               className={`flex flex-col rounded-sm px-2 py-1.5 text-sm cursor-pointer ${

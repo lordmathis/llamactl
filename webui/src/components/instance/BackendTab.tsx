@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import type React from 'react'
+import { useState } from 'react'
 import { BackendType, type CreateInstanceOptions } from '@/types/instance'
 import { Button } from '@/components/ui/button'
 import { Terminal, ChevronDown, ChevronRight } from 'lucide-react'
@@ -62,9 +63,18 @@ const BackendTab: React.FC<BackendTabProps> = ({
       />
 
       <div className="space-y-4">
+        {/* biome-ignore lint/a11y/useSemanticElements: toggle contains an <h3>, so a <button> would be invalid HTML; keyboard support provided via role/tabIndex/onKeyDown */}
         <div
+          role="button"
+          tabIndex={0}
           className="flex items-center justify-between cursor-pointer"
           onClick={() => setShowExecutionContext(!showExecutionContext)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setShowExecutionContext(!showExecutionContext)
+            }
+          }}
         >
           <div className="flex items-center gap-2">
             {showExecutionContext ? (

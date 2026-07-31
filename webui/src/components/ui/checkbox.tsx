@@ -1,4 +1,4 @@
-import * as React from "react"
+import type * as React from "react"
 import { CheckIcon } from "lucide-react"
 import { Checkbox as CheckboxPrimitive } from "radix-ui"
 

@@ -1,4 +1,4 @@
-import { type HealthStatus, type InstanceStatus, type HealthState } from '@/types/instance'
+import type { HealthStatus, InstanceStatus, HealthState } from '@/types/instance'
 import { instancesApi } from '@/lib/api'
 
 type HealthCallback = (health: HealthStatus) => void
@@ -257,7 +257,7 @@ class HealthService {
   private notifyCallbacks(instanceName: string, health: HealthStatus): void {
     const callbacks = this.callbacks.get(instanceName)
     if (callbacks) {
-      callbacks.forEach(callback => callback(health))
+      callbacks.forEach(callback => { callback(health) })
     }
   }
 
@@ -265,7 +265,7 @@ class HealthService {
    * Stop all health checking and cleanup
    */
   destroy(): void {
-    this.intervals.forEach(interval => clearInterval(interval))
+    this.intervals.forEach(interval => { clearInterval(interval) })
     this.intervals.clear()
     this.callbacks.clear()
     this.lastHealthState.clear()

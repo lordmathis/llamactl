@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import type React from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -119,6 +120,7 @@ const KeyValueInput: React.FC<KeyValueInputProps> = ({
       </Label>
       <div className="space-y-2">
         {pairs.map((pair, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: pairs are index-addressed throughout this component and inputs are controlled
           <div key={index} className="flex gap-2 items-center">
             <Input
               placeholder={keyPlaceholder}

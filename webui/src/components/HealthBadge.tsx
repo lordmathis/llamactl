@@ -1,5 +1,5 @@
 // ui/src/components/HealthBadge.tsx
-import React from "react";
+import type React from "react";
 import { Badge } from "@/components/ui/badge";
 import type { HealthStatus } from "@/types/instance";
 import { CheckCircle, Loader2, XCircle, Clock } from "lucide-react";
