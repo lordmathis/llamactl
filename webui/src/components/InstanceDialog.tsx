@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import type React from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,6 +49,7 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
   const mlxSettings = useBackendSettings(BackendType.MLX_LM);
 
   // Reset form when dialog opens/closes or when instance changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only re-run when dialog open state or instance prop changes
   useEffect(() => {
     if (open) {
       if (instance) {
@@ -70,7 +72,6 @@ const InstanceDialog: React.FC<InstanceDialogProps> = ({
       }
       setNameError(""); // Reset any name errors
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, instance]);
 
   const handleFieldChange = (key: keyof CreateInstanceOptions, value: unknown) => {

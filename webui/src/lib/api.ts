@@ -7,7 +7,7 @@ import { handleApiError } from "./errorUtils";
 // Adding baseURI as a prefix to support being served behind a subpath
 // e.g. when llmamctl's `/` is served behind a reverse proxy at `/proxy/...`
 // the baseURI will be `/proxy/` and the API calls will be made to `/proxy/api/v1/<endpoint>`
-export const API_BASE = document.baseURI + "api/v1";
+export const API_BASE = `${document.baseURI}api/v1`;
 
 // Base API call function with error handling
 async function apiCall<T>(
@@ -28,7 +28,7 @@ async function apiCall<T>(
 
   // Add auth header if available
   if (storedKey) {
-    headers['Authorization'] = `Bearer ${storedKey}`;
+    headers.Authorization = `Bearer ${storedKey}`;
   }
 
   try {

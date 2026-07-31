@@ -65,7 +65,7 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
     if (permissionMode === PermissionMode.PerInstance) {
       Object.entries(instancePermissions).forEach(([instanceId, hasPermission]) => {
         if (hasPermission) {
-          instanceIds.push(parseInt(instanceId));
+          instanceIds.push(parseInt(instanceId, 10));
         }
       });
     }
@@ -169,11 +169,11 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
                   <p className="text-sm text-muted-foreground">No instances available</p>
                 ) : (
                   <div className="space-y-2">
-                    {instances.map((instance, index) => {
+                    {instances.map((instance) => {
                       const isChecked = !!instancePermissions[instance.id];
                       return (
                         <div
-                          key={`${instance.name}-${index}`}
+                          key={instance.id}
                           className="flex items-center space-x-2"
                         >
                           <Checkbox

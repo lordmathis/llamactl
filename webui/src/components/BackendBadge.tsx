@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { Badge } from "@/components/ui/badge";
 import { BackendType, type BackendTypeValue } from "@/types/instance";
 import { Server, Package } from "lucide-react";

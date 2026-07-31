@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import type React from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -59,7 +60,7 @@ const SystemInfoDialog: React.FC<SystemInfoDialogProps> = ({
   const [showHelp, setShowHelp] = useState(false)
 
   // Fetch backend info
-  const fetchBackendInfo = async (backend: BackendTypeValue) => {
+  const fetchBackendInfo = useCallback(async (backend: BackendTypeValue) => {
     if (backend !== BackendType.LLAMA_CPP) {
       setBackendInfo(null)
       setError(null)
@@ -82,14 +83,14 @@ const SystemInfoDialog: React.FC<SystemInfoDialogProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   // Load data when dialog opens or backend changes
   useEffect(() => {
     if (open) {
       void fetchBackendInfo(selectedBackend)
     }
-  }, [open, selectedBackend])
+  }, [open, selectedBackend, fetchBackendInfo])
 
   const handleBackendChange = (value: string) => {
     setSelectedBackend(value as BackendTypeValue)

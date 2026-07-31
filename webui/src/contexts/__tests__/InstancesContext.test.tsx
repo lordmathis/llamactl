@@ -70,42 +70,48 @@ function TestComponent() {
 
       {/* Action buttons for testing with specific instances */}
       <button
+        type="button"
         onClick={() => void createInstance("new-instance", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "test.gguf" } })}
         data-testid="create-instance"
       >
         Create Instance
       </button>
       <button
+        type="button"
         onClick={() => void updateInstance("instance1", { backend_type: BackendType.LLAMA_CPP, backend_options: { model: "updated.gguf" } })}
         data-testid="update-instance"
       >
         Update Instance
       </button>
       <button
+        type="button"
         onClick={() => void startInstance("instance2")}
         data-testid="start-instance"
       >
         Start Instance2
       </button>
       <button
+        type="button"
         onClick={() => void stopInstance("instance1")}
         data-testid="stop-instance"
       >
         Stop Instance1
       </button>
       <button
+        type="button"
         onClick={() => void restartInstance("instance1")}
         data-testid="restart-instance"
       >
         Restart Instance1
       </button>
       <button
+        type="button"
         onClick={() => void deleteInstance("instance2")}
         data-testid="delete-instance"
       >
         Delete Instance2
       </button>
-      <button onClick={clearError} data-testid="clear-error">
+      <button type="button" onClick={clearError} data-testid="clear-error">
         Clear Error
       </button>
     </div>

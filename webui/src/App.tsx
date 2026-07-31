@@ -6,7 +6,7 @@ import InstanceDialog from "@/components/InstanceDialog";
 import LoginDialog from "@/components/LoginDialog";
 import SystemInfoDialog from "./components/SystemInfoDialog";
 import SettingsDialog from "./components/settings/SettingsDialog";
-import { type CreateInstanceOptions, type Instance } from "@/types/instance";
+import type { CreateInstanceOptions, Instance } from "@/types/instance";
 import { useInstances } from "@/contexts/InstancesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ModelsProvider } from "@/contexts/ModelsContext";
@@ -90,6 +90,7 @@ function App() {
           <div className="border-b border-border mb-6">
             <div className="flex gap-4">
               <button
+                type="button"
                 onClick={() => setActiveTab('instances')}
                 className={cn(
                   "px-4 py-2 border-b-2 transition-colors",
@@ -101,6 +102,7 @@ function App() {
                 Instances
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab('models')}
                 className={cn(
                   "px-4 py-2 border-b-2 transition-colors",

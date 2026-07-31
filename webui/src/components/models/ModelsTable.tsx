@@ -95,7 +95,7 @@ export default function ModelsTable({ rows }: ModelsTableProps) {
 }
 
 function DownloadingRow({ job }: { job: DownloadJob }) {
-  const { cancelDownload, deleteDownload } = useModels()
+  const { cancelDownload, deleteDownload, startDownload } = useModels()
   const [cancelling, setCancelling] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -115,7 +115,6 @@ function DownloadingRow({ job }: { job: DownloadJob }) {
   }
 
   const handleRetry = async () => {
-    const { startDownload } = useModels()
     try {
       await startDownload(job.repo, job.tag)
     } catch (error) {

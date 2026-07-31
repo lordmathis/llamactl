@@ -35,6 +35,7 @@ export default function DownloadDialog({ open, onOpenChange }: DownloadDialogPro
   const [format, setFormat] = useState<ModelFormat>(ModelFormat.GGUF)
   const { startDownload } = useModels()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: open intentionally included to refetch nodes when the dialog opens
   useEffect(() => {
     const fetchNodes = async () => {
       try {

@@ -1,6 +1,6 @@
 import type { CreateInstanceOptions } from '@/schemas/instanceOptions'
 
-export { type CreateInstanceOptions } from '@/schemas/instanceOptions'
+export type { CreateInstanceOptions } from '@/schemas/instanceOptions'
 
 export const BackendType = {
   LLAMA_CPP: 'llama_cpp',

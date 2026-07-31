@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
-import { type CreateInstanceOptions } from '@/types/instance'
+import type React from 'react'
+import { useState } from 'react'
+import type { CreateInstanceOptions } from '@/types/instance'
 import { getAdvancedBackendFields } from '@/lib/zodFormUtils'
 import BackendFormField from '@/components/BackendFormField'
 import { ChevronDown, ChevronRight } from 'lucide-react'
@@ -26,9 +27,18 @@ const AdvancedTab: React.FC<AdvancedTabProps> = ({
     <div className="space-y-6 py-4">
       {advancedBackendFields.length > 0 && (
         <div className="space-y-4">
+          {/* biome-ignore lint/a11y/useSemanticElements: toggle contains an <h3>, so a <button> would be invalid HTML; keyboard support provided via role/tabIndex/onKeyDown */}
           <div
+            role="button"
+            tabIndex={0}
             className="flex items-center justify-between cursor-pointer"
             onClick={() => setShowAdvanced(!showAdvanced)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setShowAdvanced(!showAdvanced)
+              }
+            }}
           >
             <h3 className="text-md font-medium">Advanced Backend Options</h3>
             <div className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">

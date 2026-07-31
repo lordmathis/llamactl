@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { type CreateInstanceOptions } from '@/types/instance'
+import type React from 'react'
+import { useState, useEffect } from 'react'
+import type { CreateInstanceOptions } from '@/types/instance'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -29,6 +30,7 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
   const [nodes, setNodes] = useState<NodesMap>({})
   const [loadingNodes, setLoadingNodes] = useState(true)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fetch nodes once on mount; intentionally not re-run when formData/onChange change
   useEffect(() => {
     const fetchNodes = async () => {
       try {
@@ -48,7 +50,6 @@ const InstanceSettingsCard: React.FC<InstanceSettingsCardProps> = ({
     }
 
     void fetchNodes()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const nodeOptions = Object.keys(nodes).map(nodeName => ({

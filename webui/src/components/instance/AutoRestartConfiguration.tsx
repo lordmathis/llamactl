@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import type React from 'react'
+import { useState } from 'react'
 import type { CreateInstanceOptions } from '@/types/instance'
 import CheckboxInput from '@/components/form/CheckboxInput'
 import NumberInput from '@/components/form/NumberInput'
@@ -28,9 +29,18 @@ const AutoRestartConfiguration: React.FC<AutoRestartConfigurationProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* biome-ignore lint/a11y/useSemanticElements: toggle contains an <h3>, so a <button> would be invalid HTML; keyboard support provided via role/tabIndex/onKeyDown */}
       <div
+        role="button"
+        tabIndex={0}
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setIsExpanded(!isExpanded)
+          }
+        }}
       >
         <h3 className="text-lg font-medium">Auto Restart Configuration</h3>
         <div className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">

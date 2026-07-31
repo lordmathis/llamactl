@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,11 +19,7 @@ function ApiKeysSection() {
   const [permissions, setPermissions] = useState<Record<number, KeyPermissionResponse[]>>({});
   const [loadingPermissions, setLoadingPermissions] = useState<Record<number, boolean>>({});
 
-  useEffect(() => {
-    void fetchKeys();
-  }, []);
-
-  const fetchKeys = async () => {
+  const fetchKeys = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -34,7 +30,11 @@ function ApiKeysSection() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void fetchKeys();
+  }, [fetchKeys]);
 
   const fetchPermissions = async (keyId: number) => {
     if (permissions[keyId]) return;

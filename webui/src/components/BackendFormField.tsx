@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -120,7 +120,7 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
               onChange={(e) => {
                 const numValue = e.target.value ? parseFloat(e.target.value) : undefined
                 // Only update if the parsed value is valid or the input is empty
-                if (e.target.value === '' || (numValue !== undefined && !isNaN(numValue))) {
+                if (e.target.value === '' || (numValue !== undefined && !Number.isNaN(numValue))) {
                   handleChange(numValue)
                 }
               }}
@@ -156,8 +156,6 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
             <p className="text-xs text-muted-foreground">Separate multiple values with commas</p>
           </div>
         )
-
-      case 'text':
       default:
         return (
           <div className="grid gap-2">

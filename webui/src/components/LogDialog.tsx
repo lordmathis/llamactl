@@ -126,7 +126,7 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
 
   // Handle line count change
   const handleLineCountChange = (value: string) => {
-    const num = parseInt(value) || 100
+    const num = parseInt(value, 10) || 100
     setLineCount(num)
   }
 
@@ -159,6 +159,7 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
       }
       
       return (
+        // biome-ignore lint/suspicious/noArrayIndexKey: log lines are positional, never reordered
         <div key={index} className={className}>
           {line || '\u00A0'} {/* Non-breaking space for empty lines */}
         </div>

@@ -4,7 +4,7 @@ import { useConfig } from '@/contexts/ConfigContext'
 export const useInstanceDefaults = () => {
   const { config } = useConfig()
 
-  if (!config || !config.instances) {
+  if (!config?.instances) {
     return null
   }
 
@@ -21,7 +21,7 @@ export const useInstanceDefaults = () => {
 export const useBackendSettings = (backendType: string | undefined) => {
   const { config } = useConfig()
 
-  if (!config || !config.backends || !backendType) {
+  if (!config?.backends || !backendType) {
     return null
   }
 

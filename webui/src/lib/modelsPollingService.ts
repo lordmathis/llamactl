@@ -47,7 +47,7 @@ class ModelsPollingService {
       )
 
       // Notify all callbacks
-      this.callbacks.forEach(cb => cb(activeJobs))
+      this.callbacks.forEach(cb => { cb(activeJobs) })
 
       // Handle stopping logic
       if (activeJobs.length === 0) {
