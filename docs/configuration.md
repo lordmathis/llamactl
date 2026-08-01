@@ -321,9 +321,9 @@ Inference API keys are managed through the web UI or management API and stored i
 2. Navigate to **Settings → API Keys**
 3. Click **Create API Key**
 4. Configure the key:
-   - **Name**: A descriptive name for the key
-   - **Expiration**: Optional expiration date
-   - **Permissions**: Grant access to all instances or specific instances only
+    - **Name**: A descriptive name for the key
+    - **Expiration**: Optional expiration date
+    - **Permissions**: Grant access to all instances or specific instances only, with per-instance access levels controlling auto-start and eviction (see [API Keys](api-keys.md) for details)
 5. Copy the generated key - it won't be shown again
 
 **Environment Variables:**

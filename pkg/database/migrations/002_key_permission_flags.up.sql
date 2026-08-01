@@ -1,0 +1,2 @@
+ALTER TABLE key_permissions ADD COLUMN can_start INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE key_permissions ADD COLUMN can_evict INTEGER NOT NULL DEFAULT 1;

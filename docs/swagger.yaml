@@ -304,14 +304,14 @@ definitions:
     properties:
       expires_at:
         type: integer
-      instance_ids:
-        items:
-          type: integer
-        type: array
       name:
         type: string
       permission_mode:
         $ref: '#/definitions/auth.PermissionMode'
+      permissions:
+        items:
+          $ref: '#/definitions/server.InstancePermissionSpec'
+        type: array
     type: object
   server.CreateKeyResponse:
     properties:
@@ -350,6 +350,15 @@ definitions:
       tag:
         type: string
     type: object
+  server.InstancePermissionSpec:
+    properties:
+      can_evict:
+        type: boolean
+      can_start:
+        type: boolean
+      instance_id:
+        type: integer
+    type: object
   server.JobResponse:
     properties:
       completed_at:
@@ -373,6 +382,10 @@ definitions:
     type: object
   server.KeyPermissionResponse:
     properties:
+      can_evict:
+        type: boolean
+      can_start:
+        type: boolean
       instance_id:
         type: integer
       instance_name:

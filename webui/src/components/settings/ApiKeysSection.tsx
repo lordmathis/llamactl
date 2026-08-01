@@ -235,12 +235,24 @@ function ApiKeysSection() {
                           <p className="text-sm text-muted-foreground">Loading permissions...</p>
                         ) : permissions[key.id] ? (
                           <div className="space-y-2">
-                            <p className="text-sm font-semibold">Allowed Instances:</p>
-                            <ul className="text-sm space-y-1">
+                            <p className="text-sm font-semibold">Instance Permissions:</p>
+                            <ul className="text-sm space-y-1.5">
                               {permissions[key.id].map((perm) => (
                                 <li key={perm.instance_id} className="flex items-center gap-2">
-                                  <Check className="h-3 w-3 text-green-600" />
-                                  {perm.instance_name}
+                                  <Check className="h-3 w-3 text-green-600 shrink-0" />
+                                  <span className="flex-1">{perm.instance_name}</span>
+                                  <Badge
+                                    variant={perm.can_start ? "secondary" : "outline"}
+                                    className={perm.can_start ? "" : "text-muted-foreground"}
+                                  >
+                                    {perm.can_start ? <Check /> : <X />} start
+                                  </Badge>
+                                  <Badge
+                                    variant={perm.can_evict ? "secondary" : "outline"}
+                                    className={perm.can_evict ? "" : "text-muted-foreground"}
+                                  >
+                                    {perm.can_evict ? <Check /> : <X />} evict
+                                  </Badge>
                                 </li>
                               ))}
                             </ul>

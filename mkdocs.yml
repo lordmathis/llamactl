@@ -54,6 +54,7 @@ nav:
   - Configuration: configuration.md
   - Managing Instances: managing-instances.md
   - Managing Models: managing-models.md
+  - API Keys: api-keys.md
   - API Reference: api-reference.md
   - Troubleshooting: troubleshooting.md
 
