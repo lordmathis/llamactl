@@ -99,9 +99,9 @@ To make inference requests to your instances, you'll need an inference API key:
 2. Navigate to the **API Keys** tab
 3. Click **Create API Key**
 4. Configure your key:
-   - **Name**: Give it a descriptive name (e.g., "Production Key", "Development Key")
-   - **Expiration**: Optionally set an expiration date for the key
-   - **Permissions**: Choose whether the key can access all instances or only specific ones
+    - **Name**: Give it a descriptive name (e.g., "Production Key", "Development Key")
+    - **Expiration**: Optionally set an expiration date for the key
+    - **Permissions**: Choose whether the key can access all instances or only specific ones, and set per-instance access levels (see [API Keys](api-keys.md) for details)
 5. Click **Create**
 6. **Copy the generated key** - it will only be shown once!
 
