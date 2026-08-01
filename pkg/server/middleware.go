@@ -155,31 +155,42 @@ func (a *APIAuthMiddleware) ManagementAuthMiddleware() func(http.Handler) http.H
 	}
 }
 
-// CheckInstancePermission checks if the authenticated key has permission for the instance
-func (a *APIAuthMiddleware) CheckInstancePermission(ctx context.Context, instanceID int) error {
+// ResolveInstancePermission returns the effective permission for the authenticated
+// key on the given instance. Management keys and allow_all keys short-circuit with a
+// synthetic record (CanStart=true, CanEvict=true) and no DB query. Returns an error
+// if a per_instance key has no matching permission row.
+func (a *APIAuthMiddleware) ResolveInstancePermission(ctx context.Context, instanceID int) (*auth.KeyPermission, error) {
 	// Extract APIKey from context
 	apiKey, ok := ctx.Value(apiKeyContextKey).(*auth.APIKey)
 	if !ok {
 		// APIKey is nil, management key was used, allow all
-		return nil
+		return &auth.KeyPermission{InstanceID: instanceID, CanStart: true, CanEvict: true}, nil
 	}
 
 	// If permission_mode == "allow_all", allow all
 	if apiKey.PermissionMode == auth.PermissionModeAllowAll {
-		return nil
+		return &auth.KeyPermission{KeyID: apiKey.ID, InstanceID: instanceID, CanStart: true, CanEvict: true}, nil
 	}
 
 	// Check per-instance permissions
-	canInfer, err := a.authStore.HasPermission(ctx, apiKey.ID, instanceID)
+	perm, err := a.authStore.GetInstancePermission(ctx, apiKey.ID, instanceID)
 	if err != nil {
-		return fmt.Errorf("failed to check permission: %w", err)
+		return nil, fmt.Errorf("failed to check permission: %w", err)
 	}
 
-	if !canInfer {
-		return fmt.Errorf("permission denied: key does not have access to this instance")
+	if perm == nil {
+		return nil, fmt.Errorf("permission denied: key does not have access to this instance")
 	}
 
-	return nil
+	return perm, nil
+}
+
+// CheckInstancePermission checks if the authenticated key has permission for the instance.
+// It is a thin wrapper around ResolveInstancePermission for call sites that only need the
+// access (allow/deny) decision.
+func (a *APIAuthMiddleware) CheckInstancePermission(ctx context.Context, instanceID int) error {
+	_, err := a.ResolveInstancePermission(ctx, instanceID)
+	return err
 }
 
 // extractAPIKey extracts the API key from the request

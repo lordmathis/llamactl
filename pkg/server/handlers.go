@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"llamactl/pkg/config"
 	"llamactl/pkg/database"
@@ -14,6 +15,17 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+)
+
+// Sentinel errors for instance start outcomes. Used by callers (via errors.Is)
+// to classify the failure into the right HTTP response instead of string matching.
+var (
+	// ErrInstanceNotRunning is returned when the key is not permitted to start
+	// the instance (can_start=false).
+	ErrInstanceNotRunning = errors.New("instance is not running")
+	// ErrMaxInstancesReached is returned when capacity is full and the key cannot
+	// (or may not) evict to make room.
+	ErrMaxInstancesReached = errors.New("cannot start instance, maximum number of instances reached")
 )
 
 // errorResponse represents an error response returned by the API
@@ -91,8 +103,14 @@ func (h *Handler) getInstance(r *http.Request) (*instance.Instance, error) {
 }
 
 // ensureInstanceRunning ensures that an instance is running by starting it if on-demand start is enabled.
-// It performs hierarchical eviction: group quota check first, then global capacity check.
-func (h *Handler) ensureInstanceRunning(inst *instance.Instance) error {
+// canStart controls whether the key may auto-start a stopped instance; canEvict controls whether it may
+// trigger LRU eviction of other instances to make room. It performs hierarchical eviction when allowed:
+// group quota check first, then global capacity check.
+func (h *Handler) ensureInstanceRunning(inst *instance.Instance, canStart bool, canEvict bool) error {
+	if !canStart {
+		return ErrInstanceNotRunning
+	}
+
 	options := inst.GetOptions()
 	if options == nil || options.OnDemandStart == nil || !*options.OnDemandStart {
 		return fmt.Errorf("instance is not running and on-demand start is not enabled")
@@ -102,12 +120,18 @@ func (h *Handler) ensureInstanceRunning(inst *instance.Instance) error {
 		return h.rejectIfAtCapacity()
 	}
 
-	if err := h.evictFromGroupQuota(options.Group); err != nil {
-		return err
-	}
-
-	if err := h.evictFromGlobalCapacity(); err != nil {
-		return err
+	if canEvict {
+		if err := h.evictFromGroupQuota(options.Group); err != nil {
+			return err
+		}
+		if err := h.evictFromGlobalCapacity(); err != nil {
+			return err
+		}
+	} else {
+		// Cannot evict — fail if at capacity.
+		if h.InstanceManager.AtMaxRunning() {
+			return ErrMaxInstancesReached
+		}
 	}
 
 	if _, err := h.InstanceManager.StartInstance(inst.Name); err != nil {
@@ -123,9 +147,22 @@ func (h *Handler) ensureInstanceRunning(inst *instance.Instance) error {
 
 func (h *Handler) rejectIfAtCapacity() error {
 	if h.InstanceManager.AtMaxRunning() {
-		return fmt.Errorf("cannot start instance, maximum number of instances reached")
+		return ErrMaxInstancesReached
 	}
 	return nil
+}
+
+// writeStartError maps an ensureInstanceRunning error to the appropriate HTTP response.
+// Shared by every auto-start call site.
+func writeStartError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, ErrInstanceNotRunning):
+		writeError(w, http.StatusServiceUnavailable, "instance_not_running", err.Error())
+	case errors.Is(err, ErrMaxInstancesReached):
+		writeError(w, http.StatusServiceUnavailable, "max_instances_reached", err.Error())
+	default:
+		writeError(w, http.StatusInternalServerError, "instance_start_failed", err.Error())
+	}
 }
 
 func (h *Handler) evictFromGroupQuota(group string) error {

@@ -13,10 +13,18 @@ import (
 
 // CreateKeyRequest represents the request body for creating a new API key.
 type CreateKeyRequest struct {
-	Name           string              `json:"name"`
-	PermissionMode auth.PermissionMode `json:"permission_mode"`
-	ExpiresAt      *int64              `json:"expires_at,omitempty"`
-	InstanceIDs    []int               `json:"instance_ids,omitempty"`
+	Name           string                   `json:"name"`
+	PermissionMode auth.PermissionMode      `json:"permission_mode"`
+	ExpiresAt      *int64                   `json:"expires_at,omitempty"`
+	Permissions    []InstancePermissionSpec `json:"permissions,omitempty"`
+}
+
+// InstancePermissionSpec specifies per-instance access for a new key. CanStart and
+// CanEvict default to true when omitted or null.
+type InstancePermissionSpec struct {
+	InstanceID int   `json:"instance_id"`
+	CanStart   *bool `json:"can_start,omitempty"`
+	CanEvict   *bool `json:"can_evict,omitempty"`
 }
 
 // CreateKeyResponse represents the response returned when creating a new API key.
@@ -48,6 +56,8 @@ type KeyResponse struct {
 type KeyPermissionResponse struct {
 	InstanceID   int    `json:"instance_id"`
 	InstanceName string `json:"instance_name"`
+	CanStart     bool   `json:"can_start"`
+	CanEvict     bool   `json:"can_evict"`
 }
 
 // CreateKey godoc
@@ -82,10 +92,10 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_permission_mode", "Permission mode must be 'allow_all' or 'per_instance'")
 			return
 		}
-		if req.PermissionMode == auth.PermissionModePerInstance && len(req.InstanceIDs) == 0 {
-			writeError(w, http.StatusBadRequest, "missing_permissions", "Instance IDs required when permission mode is 'per_instance'")
-			return
-		}
+	if req.PermissionMode == auth.PermissionModePerInstance && len(req.Permissions) == 0 {
+		writeError(w, http.StatusBadRequest, "missing_permissions", "Permissions required when permission mode is 'per_instance'")
+		return
+	}
 		if req.ExpiresAt != nil && *req.ExpiresAt <= time.Now().Unix() {
 			writeError(w, http.StatusBadRequest, "invalid_expires_at", "Expiration time must be in future")
 			return
@@ -103,9 +113,9 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 				instanceIDMap[inst.ID] = true
 			}
 
-			for _, instanceID := range req.InstanceIDs {
-				if !instanceIDMap[instanceID] {
-					writeError(w, http.StatusBadRequest, "invalid_instance_id", fmt.Sprintf("Instance ID %d does not exist", instanceID))
+			for _, p := range req.Permissions {
+				if !instanceIDMap[p.InstanceID] {
+					writeError(w, http.StatusBadRequest, "invalid_instance_id", fmt.Sprintf("Instance ID %d does not exist", p.InstanceID))
 					return
 				}
 			}
@@ -137,12 +147,22 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			UpdatedAt:      now,
 		}
 
-		// Convert InstanceIDs to KeyPermissions
+		// Convert Permissions to KeyPermissions, resolving nil flags to true
 		var keyPermissions []auth.KeyPermission
-		for _, instanceID := range req.InstanceIDs {
+		for _, p := range req.Permissions {
+			canStart := true
+			if p.CanStart != nil {
+				canStart = *p.CanStart
+			}
+			canEvict := true
+			if p.CanEvict != nil {
+				canEvict = *p.CanEvict
+			}
 			keyPermissions = append(keyPermissions, auth.KeyPermission{
 				KeyID:      0, // Will be set by database after key creation
-				InstanceID: instanceID,
+				InstanceID: p.InstanceID,
+				CanStart:   canStart,
+				CanEvict:   canEvict,
 			})
 		}
 
@@ -345,6 +365,8 @@ func (h *Handler) GetKeyPermissions() http.HandlerFunc {
 			response = append(response, KeyPermissionResponse{
 				InstanceID:   perm.InstanceID,
 				InstanceName: instanceNameMap[perm.InstanceID],
+				CanStart:     perm.CanStart,
+				CanEvict:     perm.CanEvict,
 			})
 		}
 

@@ -2629,17 +2629,17 @@ const docTemplate = `{
                 "expires_at": {
                     "type": "integer"
                 },
-                "instance_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
                 "name": {
                     "type": "string"
                 },
                 "permission_mode": {
                     "$ref": "#/definitions/auth.PermissionMode"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.InstancePermissionSpec"
+                    }
                 }
             }
         },
@@ -2700,6 +2700,20 @@ const docTemplate = `{
                 }
             }
         },
+        "server.InstancePermissionSpec": {
+            "type": "object",
+            "properties": {
+                "can_evict": {
+                    "type": "boolean"
+                },
+                "can_start": {
+                    "type": "boolean"
+                },
+                "instance_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "server.JobResponse": {
             "type": "object",
             "properties": {
@@ -2735,6 +2749,12 @@ const docTemplate = `{
         "server.KeyPermissionResponse": {
             "type": "object",
             "properties": {
+                "can_evict": {
+                    "type": "boolean"
+                },
+                "can_start": {
+                    "type": "boolean"
+                },
                 "instance_id": {
                     "type": "integer"
                 },

@@ -28,6 +28,8 @@ type APIKey struct {
 type KeyPermission struct {
 	KeyID      int
 	InstanceID int
+	CanStart   bool
+	CanEvict   bool
 }
 
 // GenerateKey generates a cryptographically secure API key with the given prefix

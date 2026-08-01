@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 import { apiKeysApi } from "@/lib/api";
-import { PermissionMode, type CreateKeyRequest } from "@/types/apiKey";
+import { PermissionMode, type CreateKeyRequest, type InstancePermissionSpec } from "@/types/apiKey";
 import { useInstances } from "@/contexts/InstancesContext";
 import { format } from "date-fns";
 
@@ -18,12 +18,27 @@ interface CreateApiKeyDialogProps {
   onKeyCreated: (plainTextKey: string) => void;
 }
 
+interface InstancePermissionEntry {
+  selected: boolean
+  canStart: boolean
+  canEvict: boolean
+}
+
+// There are three meaningful permission levels. Modeling them as tiers makes the
+// impossible "evict without start" combo unrepresentable, so the state never holds it.
+type InstanceTier = "running" | "start" | "evict";
+
+const tierFromEntry = (e?: InstancePermissionEntry): InstanceTier => {
+  if (!e?.canStart) return "running";
+  return e.canEvict ? "evict" : "start";
+};
+
 function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDialogProps) {
   const { instances } = useInstances();
   const [name, setName] = useState("");
   const [permissionMode, setPermissionMode] = useState<PermissionMode>(PermissionMode.AllowAll);
   const [expiresAt, setExpiresAt] = useState<string>("");
-  const [instancePermissions, setInstancePermissions] = useState<Record<number, boolean>>({});
+  const [instancePermissions, setInstancePermissions] = useState<Record<number, InstancePermissionEntry>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +68,7 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
     }
 
     if (permissionMode === PermissionMode.PerInstance) {
-      const hasAnyPermission = Object.values(instancePermissions).some(v => v);
+      const hasAnyPermission = Object.values(instancePermissions).some(v => v.selected);
       if (!hasAnyPermission) {
         setError("At least one instance permission is required for per-instance mode");
         return;
@@ -61,11 +76,15 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
     }
 
     // Build request
-    const instanceIds: number[] = [];
+    const permissions: InstancePermissionSpec[] = [];
     if (permissionMode === PermissionMode.PerInstance) {
-      Object.entries(instancePermissions).forEach(([instanceId, hasPermission]) => {
-        if (hasPermission) {
-          instanceIds.push(parseInt(instanceId, 10));
+      Object.entries(instancePermissions).forEach(([instanceId, entry]) => {
+        if (entry.selected) {
+          permissions.push({
+            instance_id: parseInt(instanceId, 10),
+            can_start: entry.canStart,
+            can_evict: entry.canEvict,
+          });
         }
       });
     }
@@ -73,7 +92,7 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
     const request: CreateKeyRequest = {
       name: name.trim(),
       permission_mode: permissionMode,
-      instance_ids: instanceIds,
+      permissions,
     };
 
     // Add expiration if provided
@@ -103,10 +122,25 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
     }
   };
 
-  const handleInstancePermissionChange = (instanceId: number, checked: boolean) => {
+  const handleInstanceToggle = (instanceId: number, checked: boolean) => {
     setInstancePermissions(prev => ({
       ...prev,
-      [instanceId]: checked,
+      [instanceId]: {
+        selected: checked,
+        canStart: prev[instanceId]?.canStart ?? true,
+        canEvict: prev[instanceId]?.canEvict ?? true,
+      },
+    }));
+  };
+
+  const handleTierChange = (instanceId: number, tier: InstanceTier) => {
+    setInstancePermissions(prev => ({
+      ...prev,
+      [instanceId]: {
+        selected: true,
+        canStart: tier !== "running",
+        canEvict: tier === "evict",
+      },
     }));
   };
 
@@ -163,33 +197,106 @@ function CreateApiKeyDialog({ open, onOpenChange, onKeyCreated }: CreateApiKeyDi
             )}
 
             {permissionMode === PermissionMode.PerInstance && (
-              <div className="space-y-2 border rounded-lg p-4">
-                <Label className="text-sm font-semibold">Instance Permissions</Label>
+              <div className="space-y-3 border rounded-lg p-4">
+                <div className="space-y-1">
+                  <Label className="text-sm font-semibold">Instance Permissions</Label>
+                  <p className="text-xs text-muted-foreground">
+                    A key can always use a running instance. The access level controls
+                    starting a stopped instance — and whether it may evict <em>other</em>{" "}
+                    instances to make room.
+                  </p>
+                </div>
                 {instances.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No instances available</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {instances.map((instance) => {
-                      const isChecked = !!instancePermissions[instance.id];
+                      const entry = instancePermissions[instance.id];
+                      const isChecked = !!entry?.selected;
                       return (
                         <div
                           key={instance.id}
-                          className="flex items-center space-x-2"
+                          className={`rounded-md border p-3 ${isChecked ? "bg-muted/40" : ""}`}
                         >
-                          <Checkbox
-                            id={`instance-${instance.id}`}
-                            checked={isChecked}
-                            onCheckedChange={(checked) => {
-                              handleInstancePermissionChange(instance.id, checked as boolean);
-                            }}
-                            disabled={loading}
-                          />
-                          <Label
-                            htmlFor={`instance-${instance.id}`}
-                            className="font-normal cursor-pointer flex-1"
-                          >
-                            {instance.name}
-                          </Label>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`instance-${instance.id}`}
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                handleInstanceToggle(instance.id, checked as boolean);
+                              }}
+                              disabled={loading}
+                            />
+                            <Label
+                              htmlFor={`instance-${instance.id}`}
+                              className="font-medium cursor-pointer flex-1"
+                            >
+                              {instance.name}
+                            </Label>
+                          </div>
+                          {isChecked && (
+                            <RadioGroup
+                              value={tierFromEntry(entry)}
+                              onValueChange={(v) => handleTierChange(instance.id, v as InstanceTier)}
+                              disabled={loading}
+                              className="mt-3 pl-7 gap-2"
+                            >
+                              <div className="flex items-start space-x-2">
+                                <RadioGroupItem
+                                  value="running"
+                                  id={`tier-running-${instance.id}`}
+                                  className="mt-0.5"
+                                />
+                                <div className="space-y-0.5">
+                                  <Label
+                                    htmlFor={`tier-running-${instance.id}`}
+                                    className="text-sm font-normal cursor-pointer"
+                                  >
+                                    Use running only
+                                  </Label>
+                                  <p className="text-xs text-muted-foreground">
+                                    Requests work only while the instance is already running.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-start space-x-2">
+                                <RadioGroupItem
+                                  value="start"
+                                  id={`tier-start-${instance.id}`}
+                                  className="mt-0.5"
+                                />
+                                <div className="space-y-0.5">
+                                  <Label
+                                    htmlFor={`tier-start-${instance.id}`}
+                                    className="text-sm font-normal cursor-pointer"
+                                  >
+                                    Can start on demand
+                                  </Label>
+                                  <p className="text-xs text-muted-foreground">
+                                    Auto-starts when needed, but won&apos;t disrupt others.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-start space-x-2">
+                                <RadioGroupItem
+                                  value="evict"
+                                  id={`tier-evict-${instance.id}`}
+                                  className="mt-0.5"
+                                />
+                                <div className="space-y-0.5">
+                                  <Label
+                                    htmlFor={`tier-evict-${instance.id}`}
+                                    className="text-sm font-normal cursor-pointer"
+                                  >
+                                    Can start and evict others
+                                  </Label>
+                                  <p className="text-xs text-muted-foreground">
+                                    Auto-starts and may evict other instances to free up room.
+                                  </p>
+                                </div>
+                              </div>
+                            </RadioGroup>
+                          )}
                         </div>
                       );
                     })}

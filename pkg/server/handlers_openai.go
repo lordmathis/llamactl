@@ -198,8 +198,9 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 			return
 		}
 
-		// Check instance permissions
-		if err := h.authMiddleware.CheckInstancePermission(r.Context(), inst.ID); err != nil {
+		// Check instance permissions and resolve lifecycle flags in one query
+		perm, err := h.authMiddleware.ResolveInstancePermission(r.Context(), inst.ID)
+		if err != nil {
 			writeError(w, http.StatusForbidden, "permission_denied", err.Error())
 			return
 		}
@@ -223,9 +224,8 @@ func (h *Handler) OpenAIProxy() http.HandlerFunc {
 		}
 
 		if !inst.IsRemote() && !inst.IsRunning() {
-			err := h.ensureInstanceRunning(inst)
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, "instance_start_failed", err.Error())
+			if err := h.ensureInstanceRunning(inst, perm.CanStart, perm.CanEvict); err != nil {
+				writeStartError(w, err)
 				return
 			}
 		}

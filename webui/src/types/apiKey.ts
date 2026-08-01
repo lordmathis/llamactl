@@ -18,7 +18,13 @@ export interface CreateKeyRequest {
   name: string
   permission_mode: PermissionMode
   expires_at?: number
-  instance_ids: number[]
+  permissions?: InstancePermissionSpec[]
+}
+
+export interface InstancePermissionSpec {
+  instance_id: number
+  can_start?: boolean   // defaults to true
+  can_evict?: boolean   // defaults to true
 }
 
 export interface CreateKeyResponse extends ApiKey {
@@ -28,4 +34,6 @@ export interface CreateKeyResponse extends ApiKey {
 export interface KeyPermissionResponse {
   instance_id: number
   instance_name: string
+  can_start: boolean
+  can_evict: boolean
 }
