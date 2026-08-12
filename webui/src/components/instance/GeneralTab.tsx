@@ -84,7 +84,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
         />
         {nameError && <p className="text-sm text-red-500">{nameError}</p>}
         <p className="text-sm text-muted-foreground">
-          Unique identifier for the instance
+          A short, unique name for this instance (letters, numbers, hyphens). Cannot be changed after creation.
         </p>
       </div>
 
@@ -113,7 +113,8 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           placeholder="e.g., large-models"
         />
         <p className="text-sm text-muted-foreground">
-          Optional group for managing instance quotas and hierarchical eviction
+          Optional label for grouping instances (e.g. <code>large-models</code>). Groups can have
+          shared running-instance limits configured in the server config under <code>instances.group_limits</code>.
         </p>
       </div>
 
@@ -126,7 +127,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           value={formData.idle_timeout}
           onChange={(value) => onChange("idle_timeout", value)}
           placeholder="30"
-          description="Minutes before stopping an idle instance"
+          description="Minutes of inactivity before the instance is automatically stopped to free resources (0 = never stop automatically)."
         />
 
         <CheckboxInput
@@ -134,7 +135,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           label="On Demand Start"
           value={formData.on_demand_start}
           onChange={(value) => onChange("on_demand_start", value)}
-          description="Start instance only when needed"
+          description="When enabled, llamactl starts this instance automatically the first time a request arrives for it, instead of requiring a manual start."
         />
       </div>
 

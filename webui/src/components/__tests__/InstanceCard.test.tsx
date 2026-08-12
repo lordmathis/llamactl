@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InstanceCard from '@/components/InstanceCard'
 import { type Instance, BackendType } from '@/types/instance'
@@ -12,6 +12,17 @@ vi.mock('@/hooks/useInstanceHealth', () => ({
     lastChecked: new Date(),
     source: 'http'
   }))
+}))
+
+// Mock the API so model fetches are controllable
+vi.mock('@/lib/api', () => ({
+  instancesApi: {
+    get: vi.fn(),
+    getHealth: vi.fn(() => Promise.resolve()),
+  },
+  llamaCppApi: {
+    getModels: vi.fn(() => Promise.resolve([])),
+  },
 }))
 
 describe('InstanceCard - Instance Actions and State', () => {
@@ -338,6 +349,111 @@ afterEach(() => {
 
       // Modal should close
       expect(screen.queryByText('Logs: running-instance')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Model Status Badge', () => {
+    it('shows loaded model name badge for a single-model running llama.cpp instance', async () => {
+      const { llamaCppApi } = await import('@/lib/api')
+      vi.mocked(llamaCppApi.getModels).mockResolvedValue([
+        {
+          id: 'ggml-org/gemma-3-1b-it-GGUF:Q4_K_M',
+          object: 'model',
+          owned_by: 'llamacpp',
+          created: 0,
+          in_cache: true,
+          path: '/path/to/model.gguf',
+          status: { value: 'loaded', args: [] },
+        },
+      ])
+
+      render(
+        <InstanceCard
+          instance={runningInstance}
+          startInstance={mockStartInstance}
+          stopInstance={mockStopInstance}
+          deleteInstance={mockDeleteInstance}
+          editInstance={mockEditInstance}
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTitle('ggml-org/gemma-3-1b-it-GGUF:Q4_K_M')).toBeInTheDocument()
+      })
+    })
+
+    it('shows X/N models badge for multi-model running instances', async () => {
+      const { llamaCppApi } = await import('@/lib/api')
+      vi.mocked(llamaCppApi.getModels).mockResolvedValue([
+        { id: 'model-a', object: 'model', owned_by: 'llamacpp', created: 0, in_cache: true, path: '', status: { value: 'loaded', args: [] } },
+        { id: 'model-b', object: 'model', owned_by: 'llamacpp', created: 0, in_cache: true, path: '', status: { value: 'unloaded', args: [] } },
+        { id: 'model-c', object: 'model', owned_by: 'llamacpp', created: 0, in_cache: true, path: '', status: { value: 'unloaded', args: [] } },
+      ])
+
+      render(
+        <InstanceCard
+          instance={runningInstance}
+          startInstance={mockStartInstance}
+          stopInstance={mockStopInstance}
+          deleteInstance={mockDeleteInstance}
+          editInstance={mockEditInstance}
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText('1/3 models')).toBeInTheDocument()
+      })
+    })
+
+    it('does not show model badge for stopped instances', async () => {
+      const { llamaCppApi } = await import('@/lib/api')
+      vi.mocked(llamaCppApi.getModels).mockResolvedValue([
+        { id: 'some-model', object: 'model', owned_by: 'llamacpp', created: 0, in_cache: true, path: '', status: { value: 'loaded', args: [] } },
+      ])
+
+      render(
+        <InstanceCard
+          instance={stoppedInstance}
+          startInstance={mockStartInstance}
+          stopInstance={mockStopInstance}
+          deleteInstance={mockDeleteInstance}
+          editInstance={mockEditInstance}
+        />
+      )
+
+      // Model fetch should not be called for stopped instances
+      expect(llamaCppApi.getModels).not.toHaveBeenCalled()
+      expect(screen.queryByTitle('some-model')).not.toBeInTheDocument()
+    })
+
+    it('sets up polling interval for running llama.cpp instances', async () => {
+      vi.useFakeTimers()
+      const { llamaCppApi } = await import('@/lib/api')
+      vi.mocked(llamaCppApi.getModels).mockResolvedValue([])
+
+      const { unmount } = render(
+        <InstanceCard
+          instance={runningInstance}
+          startInstance={mockStartInstance}
+          stopInstance={mockStopInstance}
+          deleteInstance={mockDeleteInstance}
+          editInstance={mockEditInstance}
+        />
+      )
+
+      // Let the initial render and async fetch settle
+      await act(async () => { await Promise.resolve() })
+      expect(llamaCppApi.getModels).toHaveBeenCalledTimes(1)
+
+      // Advance past the 10 s polling interval
+      await act(async () => {
+        vi.advanceTimersByTime(10_000)
+        await Promise.resolve()
+      })
+      expect(llamaCppApi.getModels).toHaveBeenCalledTimes(2)
+
+      unmount()
+      vi.useRealTimers()
     })
   })
 

@@ -2,7 +2,7 @@ import type React from 'react'
 import { useState } from 'react'
 import { BackendType, type CreateInstanceOptions } from '@/types/instance'
 import { Button } from '@/components/ui/button'
-import { Terminal, ChevronDown, ChevronRight } from 'lucide-react'
+import { Terminal, ChevronDown, ChevronRight, Info } from 'lucide-react'
 import { getBasicBackendFields } from '@/lib/zodFormUtils'
 import BackendFormField from '@/components/BackendFormField'
 import SelectInput from '@/components/form/SelectInput'
@@ -30,6 +30,14 @@ const BackendTab: React.FC<BackendTabProps> = ({
   const backendSettings = useBackendSettings(formData.backend_type)
   const basicBackendFields = getBasicBackendFields(formData.backend_type)
 
+  // Show router-mode callout for llama.cpp when no explicit model is configured
+  const llamaCppOptions = formData.backend_options as Record<string, unknown> | undefined
+  const showRouterModeCallout =
+    formData.backend_type === BackendType.LLAMA_CPP &&
+    !llamaCppOptions?.model &&
+    !llamaCppOptions?.hf_repo &&
+    !formData.preset_ini?.trim()
+
   const getCommandPlaceholder = () => {
     if (backendSettings?.command) {
       return backendSettings.command
@@ -49,6 +57,29 @@ const BackendTab: React.FC<BackendTabProps> = ({
 
   return (
     <div className="space-y-6 py-4">
+      {showRouterModeCallout && (
+        <div className="flex gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+          <Info className="h-5 w-5 shrink-0 text-blue-500 mt-0.5" />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium text-blue-800 dark:text-blue-200">No model specified — router mode will be used</p>
+            <p className="text-blue-700 dark:text-blue-300">
+              Without a model, llama-server starts in <strong>router mode</strong> and
+              auto-discovers any model presets cached in your Hugging Face cache directory.
+              This is how multi-model instances work, but it can be surprising if you intended
+              to load a single model.
+            </p>
+            <p className="text-blue-700 dark:text-blue-300">
+              To load a specific model, set one of:
+            </p>
+            <ul className="list-disc list-inside text-blue-700 dark:text-blue-300 space-y-0.5">
+              <li><strong>Model Path</strong> — local <code>.gguf</code> file (e.g. <code>/models/gemma-3-1b.gguf</code>)</li>
+              <li><strong>HF Repo</strong> + <strong>HF File</strong> — download from Hugging Face on first start</li>
+              <li><strong>Preset tab</strong> — define a <code>preset.ini</code> to intentionally configure multiple models for router mode</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
       <SelectInput
         id="backend_type"
         label="Backend Type"
