@@ -207,7 +207,6 @@ describe('App Component - Critical Business Logic Only', () => {
       expect(screen.getAllByTitle('Start instance').length).toBeGreaterThan(0)
       expect(screen.getAllByTitle('Stop instance').length).toBeGreaterThan(0)
       expect(screen.getAllByTitle('Edit instance').length).toBe(2)
-      expect(screen.getAllByTitle('More actions').length).toBe(2)
     })
 
     it('delete confirmation calls correct API', async () => {
@@ -221,17 +220,16 @@ describe('App Component - Critical Business Logic Only', () => {
         expect(screen.getByText('test-instance-1')).toBeInTheDocument()
       })
 
-      // First click the "More actions" button to reveal the delete button
-      const moreActionsButtons = screen.getAllByTitle('More actions')
-      await user.click(moreActionsButtons[0])
-
-      // Wait for the delete button to appear and click it
+      // Wait for the delete buttons to appear and click the enabled one
+      // (test-instance-1 is stopped so its delete button is enabled;
+      // test-instance-2 is running so its delete button is disabled)
       await waitFor(() => {
-        expect(screen.getByTitle('Delete instance')).toBeInTheDocument()
+        expect(screen.getAllByTitle('Delete instance').length).toBeGreaterThan(0)
       })
 
-      const deleteButton = screen.getByTitle('Delete instance')
-      await user.click(deleteButton)
+      const deleteButton = screen.getAllByTitle('Delete instance').find(button => !button.hasAttribute('disabled'))
+      expect(deleteButton).toBeTruthy()
+      await user.click(deleteButton!)
 
       // Verify confirmation and API call
       expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete instance "test-instance-1"?')

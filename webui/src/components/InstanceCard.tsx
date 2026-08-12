@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Instance } from "@/types/instance";
-import { Edit, ExternalLink, FileText, Play, Square, Trash2, MoreHorizontal, Download, Boxes, Layers } from "lucide-react";
+import { Edit, ExternalLink, FileText, Play, Square, Trash2, Download, Boxes, Layers } from "lucide-react";
 import LogsDialog from "@/components/LogDialog";
 import ModelsDialog from "@/components/ModelsDialog";
 import HealthBadge from "@/components/HealthBadge";
@@ -29,7 +29,6 @@ function InstanceCard({
 }: InstanceCardProps) {
   const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [isModelsOpen, setIsModelsOpen] = useState(false);
-  const [showAllActions, setShowAllActions] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const health = useInstanceHealth(instance.name, instance.status);
 
@@ -178,80 +177,69 @@ function InstanceCard({
             >
               <Edit className="h-4 w-4" />
             </Button>
+          </div>
+
+          {/* Secondary actions */}
+          <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleLogs}
+              title="View logs"
+              data-testid="view-logs-button"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              Logs
+            </Button>
+
+            {isLlamaCpp && running && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.open(`${document.baseURI}api/v1/instances/${instance.name}/proxy/`, "_blank")}
+                title="Open llama-server UI"
+                data-testid="open-llama-ui-button"
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                Server UI
+              </Button>
+            )}
+
+            {isLlamaCpp && totalModels > 1 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleModels}
+                title="Manage models"
+                data-testid="manage-models-button"
+              >
+                <Boxes className="h-4 w-4 mr-1" />
+                Models
+              </Button>
+            )}
 
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setShowAllActions(!showAllActions)}
-              title="More actions"
+              onClick={handleExport}
+              title="Export instance"
+              data-testid="export-instance-button"
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <Download className="h-4 w-4 mr-1" />
+              Export
+            </Button>
+
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={running}
+              title="Delete instance"
+              data-testid="delete-instance-button"
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-
-          {/* Secondary actions - collapsible */}
-          {showAllActions && (
-            <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleLogs}
-                title="View logs"
-                data-testid="view-logs-button"
-              >
-                <FileText className="h-4 w-4 mr-1" />
-                Logs
-              </Button>
-
-              {isLlamaCpp && running && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(`${document.baseURI}api/v1/instances/${instance.name}/proxy/`, "_blank")}
-                  title="Open llama-server UI"
-                  data-testid="open-llama-ui-button"
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  Server UI
-                </Button>
-              )}
-
-              {isLlamaCpp && totalModels > 1 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleModels}
-                  title="Manage models"
-                  data-testid="manage-models-button"
-                >
-                  <Boxes className="h-4 w-4 mr-1" />
-                  Models
-                </Button>
-              )}
-
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleExport}
-                title="Export instance"
-                data-testid="export-instance-button"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
-
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={running}
-                title="Delete instance"
-                data-testid="delete-instance-button"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
 

@@ -119,10 +119,6 @@ afterEach(() => {
         />
       )
 
-      // First click "More actions" to reveal the logs button
-      const moreActionsButton = screen.getByTitle('More actions')
-      await user.click(moreActionsButton)
-
       const logsButton = screen.getByTitle('View logs')
       await user.click(logsButton)
 
@@ -145,10 +141,6 @@ afterEach(() => {
           editInstance={mockEditInstance}
         />
       )
-
-      // First click "More actions" to reveal the delete button
-      const moreActionsButton = screen.getByTitle('More actions')
-      await user.click(moreActionsButton)
 
       const deleteButton = screen.getByTitle('Delete instance')
       await user.click(deleteButton)
@@ -173,10 +165,6 @@ afterEach(() => {
         />
       )
 
-      // First click "More actions" to reveal the delete button
-      const moreActionsButton = screen.getByTitle('More actions')
-      await user.click(moreActionsButton)
-
       const deleteButton = screen.getByTitle('Delete instance')
       await user.click(deleteButton)
 
@@ -188,9 +176,7 @@ afterEach(() => {
   })
 
   describe('Button State Based on Instance Status', () => {
-    it('disables start button and enables stop button for running instance', async () => {
-      const user = userEvent.setup()
-
+    it('disables start button and enables stop button for running instance', () => {
       render(
         <InstanceCard
           instance={runningInstance}
@@ -204,16 +190,10 @@ afterEach(() => {
       expect(screen.queryByTitle('Start instance')).not.toBeInTheDocument()
       expect(screen.getByTitle('Stop instance')).not.toBeDisabled()
 
-      // Expand more actions to access delete button
-      const moreActionsButton = screen.getByTitle('More actions')
-      await user.click(moreActionsButton)
-
       expect(screen.getByTitle('Delete instance')).toBeDisabled() // Can't delete running instance
     })
 
-    it('enables start button and disables stop button for stopped instance', async () => {
-      const user = userEvent.setup()
-
+    it('enables start button and disables stop button for stopped instance', () => {
       render(
         <InstanceCard
           instance={stoppedInstance}
@@ -227,16 +207,10 @@ afterEach(() => {
       expect(screen.getByTitle('Start instance')).not.toBeDisabled()
       expect(screen.queryByTitle('Stop instance')).not.toBeInTheDocument()
 
-      // Expand more actions to access delete button
-      const moreActionsButton = screen.getByTitle('More actions')
-      await user.click(moreActionsButton)
-
       expect(screen.getByTitle('Delete instance')).not.toBeDisabled() // Can delete stopped instance
     })
 
-    it('edit and logs buttons are always enabled', async () => {
-      const user = userEvent.setup()
-
+    it('edit and logs buttons are always enabled', () => {
       render(
         <InstanceCard
           instance={runningInstance}
@@ -248,10 +222,6 @@ afterEach(() => {
       )
 
       expect(screen.getByTitle('Edit instance')).not.toBeDisabled()
-
-      // Expand more actions to access logs button
-      const moreActionsButton = screen.getByTitle('More actions')
-      await user.click(moreActionsButton)
 
       expect(screen.getByTitle('View logs')).not.toBeDisabled()
     })
@@ -317,10 +287,6 @@ afterEach(() => {
           editInstance={mockEditInstance}
         />
       )
-
-      // First click "More actions" to reveal the logs button
-      const moreActionsButton = screen.getByTitle('More actions')
-      await user.click(moreActionsButton)
 
       // Open logs dialog
       await user.click(screen.getByTitle('View logs'))
