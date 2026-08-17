@@ -651,7 +651,7 @@ func (m *mockTimeProvider) Now() time.Time {
 	return time.Unix(m.currentTime, 0)
 }
 
-func TestWritePresetIni(t *testing.T) {
+func TestSyncPresetIni(t *testing.T) {
 	globalConfig := &config.AppConfig{
 		Backends: config.BackendConfig{
 			LlamaCpp: config.BackendSettings{
@@ -726,6 +726,64 @@ func TestWritePresetIni(t *testing.T) {
 		presetPath := "/tmp/test-instances/test-empty/preset.ini"
 		if _, err := os.Stat(presetPath); err == nil {
 			t.Error("Expected preset.ini file to NOT exist when preset_ini is empty, but it does")
+		}
+	})
+}
+
+func TestSetOptions_UpdatesPresetIniOnDisk(t *testing.T) {
+	globalConfig := &config.AppConfig{
+		Backends: config.BackendConfig{
+			LlamaCpp: config.BackendSettings{Command: "llama-server"},
+		},
+		Instances: config.InstancesConfig{
+			LogsDir:      "/tmp/test-logs",
+			InstancesDir: "/tmp/test-instances",
+		},
+		Nodes:     map[string]config.NodeConfig{},
+		LocalNode: "main",
+	}
+
+	mockOnStatusChange := func(oldStatus, newStatus instance.Status) {}
+
+	backendOptions := backends.Options{
+		BackendType: backends.BackendTypeLlamaCpp,
+		LlamaServerOptions: &backends.LlamaServerOptions{
+			Model: "/path/to/model.gguf",
+			Port:  8080,
+		},
+	}
+
+	initialPreset := "[model1]\nmodel = /path/to/model1.gguf\n"
+	inst := instance.New("test-preset-update", globalConfig, &instance.Options{
+		PresetIni:      &initialPreset,
+		BackendOptions: backendOptions,
+	}, mockOnStatusChange)
+
+	presetPath := "/tmp/test-instances/test-preset-update/preset.ini"
+
+	t.Run("SetOptions rewrites preset.ini on disk", func(t *testing.T) {
+		updatedPreset := "[model1]\nmodel = /path/to/model2.gguf\n"
+		inst.SetOptions(&instance.Options{
+			PresetIni:      &updatedPreset,
+			BackendOptions: backendOptions,
+		})
+
+		content, err := os.ReadFile(presetPath)
+		if err != nil {
+			t.Fatalf("preset.ini not written after SetOptions: %v", err)
+		}
+		if string(content) != updatedPreset {
+			t.Errorf("Expected preset.ini content '%s', got '%s'", updatedPreset, string(content))
+		}
+	})
+
+	t.Run("SetOptions removes preset.ini when preset cleared", func(t *testing.T) {
+		inst.SetOptions(&instance.Options{
+			BackendOptions: backendOptions,
+		})
+
+		if _, err := os.Stat(presetPath); !os.IsNotExist(err) {
+			t.Error("Expected preset.ini to be removed when preset is cleared")
 		}
 	})
 }
