@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { FileCode } from 'lucide-react'
 import { getBackendFieldType, basicBackendFieldsConfig } from '@/lib/zodFormUtils'
 import ExtraArgsInput from '@/components/form/ExtraArgsInput'
@@ -23,12 +24,20 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
     const hasPresetContent = formData?.preset_ini && formData.preset_ini.trim().length > 0
     const isCustomPath = value && value.toString().trim().length > 0
 
-    let helpText = 'Optional: Path to preset.ini for router mode'
     let badge = null
+    let callout = null
 
     if (!isCustomPath && hasPresetContent) {
-      helpText = 'Will be auto-set to the preset.ini created in Preset Editor'
       badge = <Badge variant="secondary" className="ml-2">Auto</Badge>
+      callout = (
+        <Alert className="border-primary/40 bg-primary/10 text-primary">
+          <FileCode />
+          <AlertTitle>Preset defined</AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            Will be auto-set to the preset.ini created in Preset Editor
+          </AlertDescription>
+        </Alert>
+      )
     } else if (isCustomPath) {
       badge = <Badge variant="outline" className="ml-2">Custom</Badge>
     }
@@ -59,7 +68,9 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
           onChange={(e) => onChange(fieldKey, e.target.value)}
           placeholder="/path/to/preset.ini"
         />
-        <p className="text-sm text-muted-foreground">{helpText}</p>
+        {callout || (
+          <p className="text-sm text-muted-foreground">Optional: Path to preset.ini for router mode</p>
+        )}
       </div>
     )
   }
