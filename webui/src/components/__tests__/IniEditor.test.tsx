@@ -7,6 +7,8 @@ import { getLlamaFieldSuggestions } from '@/lib/llamaFieldSuggestions'
 
 const [first, second] = getLlamaFieldSuggestions('m')
 
+const SELECTED = 'bg-accent text-accent-foreground'
+
 function rowOf(name: string): HTMLElement {
   return screen.getByText(name).closest('div') as HTMLElement
 }
@@ -29,12 +31,12 @@ describe('IniEditor - suggestion popup keyboard navigation', () => {
     const textarea = screen.getByRole('textbox')
     await user.type(textarea, 'm')
 
-    expect(rowOf(first.name).className).toContain('bg-accent')
+    expect(rowOf(first.name).className).toContain(SELECTED)
 
     await user.keyboard('{ArrowDown}')
 
-    expect(rowOf(second.name).className).toContain('bg-accent')
-    expect(rowOf(first.name).className).not.toContain('bg-accent')
+    expect(rowOf(second.name).className).toContain(SELECTED)
+    expect(rowOf(first.name).className).not.toContain(SELECTED)
 
     await user.keyboard('{Enter}')
 
