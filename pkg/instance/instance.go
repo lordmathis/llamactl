@@ -84,7 +84,7 @@ func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusCha
 		)
 		instance.process = newProcess(instance)
 
-		if err := writePresetIni(name, opts, globalInstanceSettings.InstancesDir); err != nil {
+		if err := syncPresetIni(name, opts, globalInstanceSettings.InstancesDir); err != nil {
 			log.Printf("Warning: Failed to write preset.ini for instance %s: %v", name, err)
 		}
 	}
@@ -92,9 +92,15 @@ func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusCha
 	return instance
 }
 
-// writePresetIni writes the preset.ini file if provided in options and updates models_preset
-func writePresetIni(name string, opts *Options, instancesDir string) error {
+// syncPresetIni keeps the preset.ini file in sync with options:
+// written when a preset is set, removed when it is cleared
+func syncPresetIni(name string, opts *Options, instancesDir string) error {
 	if opts == nil || opts.PresetIni == nil || *opts.PresetIni == "" {
+		// A stale file would still be handed to the backend via --models-preset
+		presetPath := filepath.Join(instancesDir, name, "preset.ini")
+		if err := os.Remove(presetPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove preset.ini: %w", err)
+		}
 		return nil
 	}
 
@@ -200,6 +206,12 @@ func (i *Instance) SetOptions(opts *Options) {
 
 	if i.options != nil {
 		i.options.set(opts)
+	}
+
+	if !i.IsRemote() && i.globalInstanceSettings != nil {
+		if err := syncPresetIni(i.Name, opts, i.globalInstanceSettings.InstancesDir); err != nil {
+			log.Printf("Warning: Failed to sync preset.ini for instance %s: %v", i.Name, err)
+		}
 	}
 
 	// Clear the proxy so it gets recreated with new options

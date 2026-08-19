@@ -11,6 +11,10 @@ interface IniEditorProps {
 
 const IniEditor: React.FC<IniEditorProps> = ({ value, onChange, className }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // keyup listener must not re-run updateSuggestions for keys the keydown handler already
+  // consumed (arrow navigation, Enter/Tab apply, Escape dismiss) — it would reset selectedIndex
+  // and resurrect a dismissed popup
+  const consumedKeyRef = useRef<string | null>(null)
   const [cursorPosition, setCursorPosition] = useState(0)
   const [suggestions, setSuggestions] = useState<FieldSuggestion[]>([])
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -97,17 +101,21 @@ const IniEditor: React.FC<IniEditorProps> = ({ value, onChange, className }) => 
 
     if (e.key === 'ArrowDown') {
       e.preventDefault()
+      consumedKeyRef.current = e.key
       setSelectedIndex((prev) => (prev + 1) % suggestions.length)
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
+      consumedKeyRef.current = e.key
       setSelectedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length)
     } else if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault()
+      consumedKeyRef.current = e.key
       if (suggestions.length > 0) {
         applySuggestion(suggestions[selectedIndex])
       }
     } else if (e.key === 'Escape') {
       e.preventDefault()
+      consumedKeyRef.current = e.key
       setShowSuggestions(false)
     }
   }
@@ -119,7 +127,11 @@ const IniEditor: React.FC<IniEditorProps> = ({ value, onChange, className }) => 
     updateSuggestions(newValue, e.target.selectionStart)
   }
 
-  const handleCursorChange = () => {
+  const handleCursorChange = (e?: Event) => {
+    if (e && 'key' in e && e.key === consumedKeyRef.current) {
+      consumedKeyRef.current = null
+      return
+    }
     if (textareaRef.current) {
       setCursorPosition(textareaRef.current.selectionStart)
       updateSuggestions(value, textareaRef.current.selectionStart)
