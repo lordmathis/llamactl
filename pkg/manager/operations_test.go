@@ -1,6 +1,8 @@
 package manager_test
 
 import (
+	"errors"
+	"fmt"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/config"
 	"llamactl/pkg/database"
@@ -297,5 +299,64 @@ func TestUpdateInstance_ReleasesOldPort(t *testing.T) {
 	_, err = mgr.CreateInstance("test-instance-2", options2)
 	if err != nil {
 		t.Errorf("Should be able to use old port 8080: %v", err)
+	}
+}
+
+// TestIsNotFoundError verifies that IsNotFoundError detects the various
+// error shapes the manager produces for missing instances: the local
+// sentinel and remote-side not-found variants (404, or 4xx bodies that
+// report invalid_instance / not_found).
+func TestIsNotFoundError(t *testing.T) {
+	if manager.IsNotFoundError(nil) {
+		t.Error("nil error must not be classified as not-found")
+	}
+	if manager.IsNotFoundError(fmt.Errorf("random failure")) {
+		t.Error("unrelated error must not be classified as not-found")
+	}
+	if !manager.IsNotFoundError(manager.ErrInstanceNotFound) {
+		t.Error("ErrInstanceNotFound must satisfy IsNotFoundError directly")
+	}
+	if !manager.IsNotFoundError(fmt.Errorf("%w: foo", manager.ErrInstanceNotFound)) {
+		t.Error("errors.Is chain with ErrInstanceNotFound must satisfy IsNotFoundError")
+	}
+	if !manager.IsNotFoundError(&manager.RemoteNotFoundError{
+		Err: fmt.Errorf("remote not here"),
+	}) {
+		t.Error("RemoteNotFoundError must satisfy IsNotFoundError via its Is method")
+	}
+	// 4xx body patterns the manager used to misclassify:
+	if !manager.IsNotFoundError(fmt.Errorf(`API request failed with status 400: {"error":"invalid_instance","details":"instance with name foo not found"}`)) {
+		t.Error("400 with invalid_instance + 'not found' must be classified as not-found")
+	}
+	if manager.IsNotFoundError(fmt.Errorf(`API request failed with status 500: {"error":"internal"}`)) {
+		t.Error("500 must not be classified as not-found")
+	}
+}
+
+// TestDeleteInstance_NotFoundReturnsSentinel verifies that asking the
+// manager to delete an instance the registry has never heard of surfaces
+// ErrInstanceNotFound so the HTTP layer can return 404.
+func TestDeleteInstance_NotFoundReturnsSentinel(t *testing.T) {
+	mgr := createTestManager(t)
+
+	err := mgr.DeleteInstance("never-existed")
+	if err == nil {
+		t.Fatal("expected an error deleting a non-existent instance")
+	}
+	if !errors.Is(err, manager.ErrInstanceNotFound) {
+		t.Errorf("expected ErrInstanceNotFound, got: %v", err)
+	}
+}
+
+// TestGetInstance_NotFoundReturnsSentinel mirrors the delete check.
+func TestGetInstance_NotFoundReturnsSentinel(t *testing.T) {
+	mgr := createTestManager(t)
+
+	_, err := mgr.GetInstance("never-existed")
+	if err == nil {
+		t.Fatal("expected an error getting a non-existent instance")
+	}
+	if !errors.Is(err, manager.ErrInstanceNotFound) {
+		t.Errorf("expected ErrInstanceNotFound, got: %v", err)
 	}
 }

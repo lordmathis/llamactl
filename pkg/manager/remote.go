@@ -4,17 +4,62 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 )
 
 const apiBasePath = "/api/v1/instances/"
+
+// ErrInstanceNotFound is the sentinel returned when an instance cannot be
+// located, either in the local registry or on the remote node. Use errors.Is
+// to detect it.
+var ErrInstanceNotFound = errors.New("instance not found")
+
+// IsNotFoundError reports whether err (or anything in its chain) signals that
+// the targeted instance does not exist. It catches both the local sentinel
+// (ErrInstanceNotFound) and remote-side variants returned as a different body
+// shape by older nodes.
+func IsNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, ErrInstanceNotFound) {
+		return true
+	}
+	var rnf *RemoteNotFoundError
+	if errors.As(err, &rnf) {
+		return true
+	}
+	// Fallback: some nodes return 400 with an "invalid_instance" body and a
+	// message containing "not found". Treat those as not-found as well.
+	msg := err.Error()
+	return strings.Contains(msg, `"invalid_instance"`) &&
+		strings.Contains(strings.ToLower(msg), "not found")
+}
+
+// RemoteNotFoundError is returned by remoteManager CRUD functions when the
+// remote node reports the target instance does not exist. Callers can use
+// errors.As to detect it; it also satisfies errors.Is(err, ErrInstanceNotFound)
+// so IsNotFoundError works uniformly across local and remote failures.
+type RemoteNotFoundError struct {
+	Name string
+	Err  error
+}
+
+func (e *RemoteNotFoundError) Error() string { return e.Err.Error() }
+func (e *RemoteNotFoundError) Unwrap() error   { return e.Err }
+
+func (e *RemoteNotFoundError) Is(target error) bool {
+	return target == ErrInstanceNotFound
+}
 
 // remoteManager handles HTTP operations for remote instances.
 type remoteManager struct {
@@ -115,6 +160,11 @@ func (rm *remoteManager) makeRemoteRequest(ctx context.Context, nodeConfig *conf
 }
 
 // parseRemoteResponse parses an HTTP response and unmarshals the result.
+//
+// If the response indicates the target instance does not exist (HTTP 404, or a
+// 4xx whose JSON body has error == "invalid_instance"/"not_found"), the
+// returned error is *RemoteNotFoundError so callers can distinguish "not there"
+// from real failures and complete local cleanup, idempotent-retry, etc.
 func parseRemoteResponse(resp *http.Response, result any) error {
 	defer resp.Body.Close()
 
@@ -123,7 +173,18 @@ func parseRemoteResponse(resp *http.Response, result any) error {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	if resp.StatusCode == http.StatusNotFound {
+		return &RemoteNotFoundError{
+			Err: fmt.Errorf("remote returned 404: %s", string(body)),
+		}
+	}
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if remoteBodyIsNotFound(body) {
+			return &RemoteNotFoundError{
+				Err: fmt.Errorf("remote returned %d with not-found body: %s", resp.StatusCode, string(body)),
+			}
+		}
 		return fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -134,6 +195,30 @@ func parseRemoteResponse(resp *http.Response, result any) error {
 	}
 
 	return nil
+}
+
+// remoteBodyIsNotFound returns true if the response body's JSON indicates the
+// target object is missing. Older llamactl nodes and some existing handlers
+// return 400 with {"error":"invalid_instance","details":"<name> not found"}
+// instead of a real 404; we map those to the same not-found sentinel.
+func remoteBodyIsNotFound(body []byte) bool {
+	var payload struct {
+		Error   string `json:"error"`
+		Details string `json:"details"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return false
+	}
+	if payload.Error == "invalid_instance" {
+		return true
+	}
+	if payload.Error == "not_found" || payload.Error == "notfound" {
+		return true
+	}
+	if strings.Contains(strings.ToLower(payload.Details), "not found") {
+		return true
+	}
+	return false
 }
 
 // --- Remote CRUD operations ---
