@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"llamactl/pkg/config"
@@ -15,6 +16,41 @@ import (
 )
 
 const apiBasePath = "/api/v1/instances/"
+
+// ErrInstanceNotFound is the sentinel returned when an instance cannot be
+// located, either in the local registry or on the remote node. Use errors.Is
+// to detect it.
+var ErrInstanceNotFound = errors.New("instance not found")
+
+// IsNotFoundError reports whether err (or anything in its chain) signals that
+// the targeted instance does not exist. It catches the local sentinel
+// (ErrInstanceNotFound) and the remote wrapper (RemoteNotFoundError).
+func IsNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, ErrInstanceNotFound) {
+		return true
+	}
+	var rnf *RemoteNotFoundError
+	return errors.As(err, &rnf)
+}
+
+// RemoteNotFoundError is returned by remoteManager CRUD functions when the
+// remote node reports the target instance does not exist. Callers can use
+// errors.As to detect it; it also satisfies errors.Is(err, ErrInstanceNotFound)
+// so IsNotFoundError works uniformly across local and remote failures.
+type RemoteNotFoundError struct {
+	Name string
+	Err  error
+}
+
+func (e *RemoteNotFoundError) Error() string { return e.Err.Error() }
+func (e *RemoteNotFoundError) Unwrap() error   { return e.Err }
+
+func (e *RemoteNotFoundError) Is(target error) bool {
+	return target == ErrInstanceNotFound
+}
 
 // remoteManager handles HTTP operations for remote instances.
 type remoteManager struct {
@@ -115,12 +151,23 @@ func (rm *remoteManager) makeRemoteRequest(ctx context.Context, nodeConfig *conf
 }
 
 // parseRemoteResponse parses an HTTP response and unmarshals the result.
+//
+// If the response indicates the target instance does not exist (HTTP 404, or a
+// 4xx whose JSON body has error == "invalid_instance"/"not_found"), the
+// returned error is *RemoteNotFoundError so callers can distinguish "not there"
+// from real failures and complete local cleanup, idempotent-retry, etc.
 func parseRemoteResponse(resp *http.Response, result any) error {
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &RemoteNotFoundError{
+			Err: fmt.Errorf("remote returned 404: %s", string(body)),
+		}
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

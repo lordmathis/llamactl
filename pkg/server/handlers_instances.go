@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
@@ -74,13 +75,15 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 
 // GetInstance godoc
 // @Summary Get details of a specific instance
-// @Description Returns the details of a specific instance by name
+// @Description Returns the details of a specific instance by name. Returns
+// @Description 404 when the instance does not exist locally or on its node.
 // @Tags Instances
 // @Security ApiKeyAuth
 // @Produces json
 // @Param name path string true "Instance Name"
 // @Success 200 {object} instance.Instance "Instance details"
 // @Failure 400 {string} string "Invalid name format"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/instances/{name} [get]
 func (h *Handler) GetInstance() http.HandlerFunc {
@@ -94,7 +97,13 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
+			// Not-found is its own status — distinguish it from real
+			// failures so clients can react correctly (HTTP 404 vs 500).
+			if errors.Is(err, manager.ErrInstanceNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", err.Error())
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "get_failed", "Failed to get instance: "+err.Error())
 			return
 		}
 
@@ -256,6 +265,13 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 		}
 
 		if err := h.InstanceManager.DeleteInstance(validatedName); err != nil {
+			// Not-found maps to 404 rather than 500, so clients can
+			// distinguish "already gone" (idempotent success path) from
+			// real delete failures.
+			if errors.Is(err, manager.ErrInstanceNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", err.Error())
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "delete_failed", "Failed to delete instance: "+err.Error())
 			return
 		}

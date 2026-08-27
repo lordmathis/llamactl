@@ -173,10 +173,16 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 
 // GetInstance retrieves an instance by its name.
 // For remote instances, this fetches the live state from the remote node and updates the local stub.
+//
+// If the local registry has the instance but the remote reports it as gone,
+// the local tracking (registry, persistence, node map) is cleaned up and
+// ErrInstanceNotFound is returned. If the remote fails for any other reason
+// the cached local stub is returned so callers keep working through brief
+// remote outages.
 func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) {
 	inst, exists := im.registry.get(name)
 	if !exists {
-		return nil, fmt.Errorf("instance with name %s not found", name)
+		return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
 	}
 
 	// Check if instance is remote and fetch live state
@@ -184,7 +190,13 @@ func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) 
 		ctx := context.Background()
 		remoteInst, err := im.remote.getInstance(ctx, node, name)
 		if err != nil {
-			return nil, err
+			if IsNotFoundError(err) {
+				im.remote.removeInstance(name)
+				im.registry.remove(name)
+				_ = im.db.Delete(name)
+				return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
+			}
+			return inst, nil
 		}
 
 		// Update the local stub with all remote data (preserving Nodes)
@@ -298,17 +310,22 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 }
 
 // DeleteInstance removes stopped instance by its name.
+//
+// For remote instances we always complete the local cleanup (registry,
+// persistence, node map) so a stale gateway record can be evicted even
+// when the remote node is unreachable or already in the desired state.
+// Errors from the remote delete are surfaced only if they are not a
+// not-found signal, so transient outages don't block recovery.
 func (im *instanceManager) DeleteInstance(name string) error {
 	inst, exists := im.registry.get(name)
 	if !exists {
-		return fmt.Errorf("instance with name %s not found", name)
+		return fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
 	}
 
 	// Check if instance is remote and delegate to remote operation
 	if node := im.getNodeForInstance(inst); node != nil {
 		ctx := context.Background()
-		err := im.remote.deleteInstance(ctx, node, name)
-		if err != nil {
+		if err := im.remote.deleteInstance(ctx, node, name); err != nil && !IsNotFoundError(err) {
 			return err
 		}
 
