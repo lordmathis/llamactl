@@ -324,9 +324,11 @@ func TestIsNotFoundError(t *testing.T) {
 	}) {
 		t.Error("RemoteNotFoundError must satisfy IsNotFoundError via its Is method")
 	}
-	// 4xx body patterns the manager used to misclassify:
-	if !manager.IsNotFoundError(fmt.Errorf(`API request failed with status 400: {"error":"invalid_instance","details":"instance with name foo not found"}`)) {
-		t.Error("400 with invalid_instance + 'not found' must be classified as not-found")
+	// Unrelated errors that merely contain "not found" in their message must
+	// NOT be classified as not-found — detection is typed, not string-based.
+	// (e.g. "model not found" on an instance that does exist.)
+	if manager.IsNotFoundError(fmt.Errorf(`API request failed with status 400: {"error":"invalid_instance","details":"model /path/x.gguf not found"}`)) {
+		t.Error("an error merely containing 'not found' must not be classified as instance-not-found")
 	}
 	if manager.IsNotFoundError(fmt.Errorf(`API request failed with status 500: {"error":"internal"}`)) {
 		t.Error("500 must not be classified as not-found")

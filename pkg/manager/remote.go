@@ -11,7 +11,6 @@ import (
 	"llamactl/pkg/instance"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 )
@@ -24,9 +23,8 @@ const apiBasePath = "/api/v1/instances/"
 var ErrInstanceNotFound = errors.New("instance not found")
 
 // IsNotFoundError reports whether err (or anything in its chain) signals that
-// the targeted instance does not exist. It catches both the local sentinel
-// (ErrInstanceNotFound) and remote-side variants returned as a different body
-// shape by older nodes.
+// the targeted instance does not exist. It catches the local sentinel
+// (ErrInstanceNotFound) and the remote wrapper (RemoteNotFoundError).
 func IsNotFoundError(err error) bool {
 	if err == nil {
 		return false
@@ -35,14 +33,7 @@ func IsNotFoundError(err error) bool {
 		return true
 	}
 	var rnf *RemoteNotFoundError
-	if errors.As(err, &rnf) {
-		return true
-	}
-	// Fallback: some nodes return 400 with an "invalid_instance" body and a
-	// message containing "not found". Treat those as not-found as well.
-	msg := err.Error()
-	return strings.Contains(msg, `"invalid_instance"`) &&
-		strings.Contains(strings.ToLower(msg), "not found")
+	return errors.As(err, &rnf)
 }
 
 // RemoteNotFoundError is returned by remoteManager CRUD functions when the
@@ -180,11 +171,6 @@ func parseRemoteResponse(resp *http.Response, result any) error {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		if remoteBodyIsNotFound(body) {
-			return &RemoteNotFoundError{
-				Err: fmt.Errorf("remote returned %d with not-found body: %s", resp.StatusCode, string(body)),
-			}
-		}
 		return fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -195,30 +181,6 @@ func parseRemoteResponse(resp *http.Response, result any) error {
 	}
 
 	return nil
-}
-
-// remoteBodyIsNotFound returns true if the response body's JSON indicates the
-// target object is missing. Older llamactl nodes and some existing handlers
-// return 400 with {"error":"invalid_instance","details":"<name> not found"}
-// instead of a real 404; we map those to the same not-found sentinel.
-func remoteBodyIsNotFound(body []byte) bool {
-	var payload struct {
-		Error   string `json:"error"`
-		Details string `json:"details"`
-	}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return false
-	}
-	if payload.Error == "invalid_instance" {
-		return true
-	}
-	if payload.Error == "not_found" || payload.Error == "notfound" {
-		return true
-	}
-	if strings.Contains(strings.ToLower(payload.Details), "not found") {
-		return true
-	}
-	return false
 }
 
 // --- Remote CRUD operations ---

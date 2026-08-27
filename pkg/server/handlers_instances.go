@@ -265,6 +265,13 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 		}
 
 		if err := h.InstanceManager.DeleteInstance(validatedName); err != nil {
+			// Not-found maps to 404 rather than 500, so clients can
+			// distinguish "already gone" (idempotent success path) from
+			// real delete failures.
+			if errors.Is(err, manager.ErrInstanceNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", err.Error())
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "delete_failed", "Failed to delete instance: "+err.Error())
 			return
 		}
