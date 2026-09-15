@@ -12,14 +12,13 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { instancesApi } from '@/lib/api'
-import { 
-  RefreshCw, 
-  Download, 
-  Copy, 
-  CheckCircle, 
+import {
+  RefreshCw,
+  Download,
+  Copy,
+  CheckCircle,
   AlertCircle,
-  Loader2,
-  Settings
+  Loader2
 } from 'lucide-react'
 
 interface LogsDialogProps {
@@ -41,8 +40,7 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
   const [lineCount, setLineCount] = useState(100)
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
-  
+
   const logContainerRef = useRef<HTMLDivElement>(null)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -130,12 +128,6 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
     setLineCount(num)
   }
 
-  // Apply new line count
-  const applyLineCount = () => {
-    void fetchLogs(lineCount)
-    setShowSettings(false)
-  }
-
   // Format logs with basic syntax highlighting
   const formatLogs = (logText: string) => {
     if (!logText) return ''
@@ -169,7 +161,7 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-w-[calc(100%-2rem)] max-h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-6xl max-w-[calc(100%-2rem)] max-h-[80vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -183,69 +175,8 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
                 Instance logs and output
               </DialogDescription>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSettings(!showSettings)}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void fetchLogs(lineCount)}
-                disabled={loading}
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
           </div>
         </DialogHeader>
-
-        {/* Settings Panel */}
-        {showSettings && (
-          <div className="border rounded-lg p-4 bg-muted/50">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="lineCount">Lines:</Label>
-                <Input
-                  id="lineCount"
-                  type="number"
-                  value={lineCount}
-                  onChange={(e) => handleLineCountChange(e.target.value)}
-                  className="w-24"
-                  min="1"
-                  max="10000"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="autoRefresh"
-                  checked={autoRefresh}
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                  disabled={!isRunning}
-                  className="rounded"
-                />
-                <Label htmlFor="autoRefresh">
-                  Auto-refresh {!isRunning && '(instance not running)'}
-                </Label>
-              </div>
-              
-              <Button size="sm" onClick={applyLineCount}>
-                Apply
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* Log Content */}
         <div className="flex-1 flex flex-col min-h-0">
@@ -255,10 +186,10 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
               <span className="text-sm text-destructive">{error}</span>
             </div>
           )}
-          
-          <div 
+
+          <div
             ref={logContainerRef}
-            className="flex-1 bg-gray-900 rounded-lg p-4 overflow-auto min-h-[400px] max-h-[500px]"
+            className="flex-1 bg-gray-900 rounded-lg p-4 overflow-auto min-h-[400px] max-h-[500px] mb-3"
           >
             {loading && !logs ? (
               <div className="flex items-center justify-center h-full">
@@ -275,17 +206,50 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
               </div>
             )}
           </div>
-          
-          {autoRefresh && isRunning && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              Auto-refreshing every 2 seconds
-            </div>
-          )}
         </div>
 
         <DialogFooter className="flex-shrink-0">
-          <div className="flex items-center gap-2 w-full">
+          <div className="flex items-center gap-4 w-full flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void fetchLogs(lineCount)}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+
+            <div className="flex items-center gap-2">
+              <Label htmlFor="lineCount">Lines:</Label>
+              <Input
+                id="lineCount"
+                type="number"
+                value={lineCount}
+                onChange={(e) => handleLineCountChange(e.target.value)}
+                className="w-24"
+                min="1"
+                max="10000"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="autoRefresh"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                disabled={!isRunning}
+                className="rounded"
+              />
+              <Label htmlFor="autoRefresh">
+                Auto-refresh {!isRunning && '(instance not running)'}
+              </Label>
+            </div>
+
             <Button
               variant="outline"
               onClick={() => void copyLogs()}
@@ -303,7 +267,7 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
                 </>
               )}
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={downloadLogs}
@@ -312,9 +276,9 @@ const LogsDialog: React.FC<LogsDialogProps> = ({
               <Download className="h-4 w-4" />
               Download
             </Button>
-            
+
             <div className="flex-1" />
-            
+
             <Button onClick={() => onOpenChange(false)}>
               Close
             </Button>
