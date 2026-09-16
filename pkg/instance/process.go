@@ -83,7 +83,11 @@ func (p *process) start() error {
 	// bound to it. Waiting it out avoids double-binding, which would run
 	// two copies of the model in VRAM at once.
 	host, port := p.instance.options.GetHost(), p.instance.options.GetPort()
-	if host == "" {
+	// Dial to loopback regardless of the configured bind host: a server bound
+	// to 0.0.0.0/:: is reachable via 127.0.0.1, but net.DialTimeout to
+	// 0.0.0.0 (or ::) fails on Windows with an invalid-address error and the
+	// guard would silently no-op.
+	if host == "" || host == "0.0.0.0" || host == "::" {
 		host = "127.0.0.1"
 	}
 	if port > 0 {
@@ -94,7 +98,7 @@ func (p *process) start() error {
 				if p.cancel != nil {
 					p.cancel()
 				}
-				return fmt.Errorf("port %s:%d is still occupied by a surviving process; refusing to start a second server on it (find it with: netstat -ano | findstr %d)", host, port, port)
+				return fmt.Errorf("port %d is still occupied by a surviving process; refusing to start a second server on it", port)
 			}
 			log.Printf("Instance %s: port %d still in use, waiting for it to be released...", p.instance.Name, port)
 			time.Sleep(500 * time.Millisecond)
@@ -162,7 +166,12 @@ func (p *process) stop() error {
 	// Set status to ShuttingDown first to reject new requests
 	p.instance.SetStatus(ShuttingDown)
 
-	// Get the monitor done channel before releasing the lock
+	// Capture this generation's pipes, cmd, and monitor channel before
+	// releasing the lock. start() may replace p.cmd/p.stdin while the
+	// inflight drain below runs; stop() must signal only the process it saw
+	// when it locked, never a newer generation.
+	cmd := p.cmd
+	stdin := p.stdin
 	monitorDone := p.monitorDone
 
 	p.mu.Unlock()
@@ -185,16 +194,15 @@ func (p *process) stop() error {
 	// backend honors it), then the platform interrupt (SIGINT on Unix).
 	// On Windows SIGINT/Ctrl-C do not reach the child, so the force-kill
 	// below is the reliable stop; the shorter grace there trims the wait.
-	if p.stdin != nil {
-		if cerr := p.stdin.Close(); cerr != nil {
+	if stdin != nil {
+		if cerr := stdin.Close(); cerr != nil {
 			log.Printf("Failed to close stdin for instance %s: %v", p.instance.Name, cerr)
 		}
-		p.stdin = nil
 	}
-	signalStop(p.cmd)
+	signalStop(cmd)
 
 	// If no process exists, we can return immediately
-	if p.cmd == nil || monitorDone == nil {
+	if cmd == nil || monitorDone == nil {
 		p.instance.logger.close()
 		return nil
 	}
@@ -214,8 +222,8 @@ func (p *process) stop() error {
 		log.Printf("Instance %s shut down gracefully", p.instance.Name)
 	case <-time.After(killGrace):
 		// Force kill if it doesn't exit within 30 seconds
-		if p.cmd != nil && p.cmd.Process != nil {
-			killErr := p.cmd.Process.Kill()
+		if cmd != nil && cmd.Process != nil {
+			killErr := cmd.Process.Kill()
 			if killErr != nil {
 				log.Printf("Failed to force kill instance %s: %v", p.instance.Name, killErr)
 			}
@@ -328,9 +336,14 @@ func (p *process) monitorProcess() {
 
 	defer func() {
 		p.mu.Lock()
-		if myDone != nil && p.monitorDone == myDone {
+		if myDone != nil {
+			// Always close our generation's channel so a stop() waiting on it
+			// (even for a superseded process) is released. Clear the field only
+			// if this is still the current generation.
 			close(myDone)
-			p.monitorDone = nil
+			if p.monitorDone == myDone {
+				p.monitorDone = nil
+			}
 		}
 		p.mu.Unlock()
 	}()

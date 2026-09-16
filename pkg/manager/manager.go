@@ -244,24 +244,26 @@ func (im *instanceManager) autoStartInstances() {
 	})
 
 	limits := im.globalConfig.Instances
-	groupRunning := map[string]int{}
-	started := 0
 	for _, inst := range instancesToStart {
 		group := ""
 		if inst.GetOptions() != nil {
 			group = inst.GetOptions().Group
 		}
 
+		// Enforce limits against live registry state (not loop-local tallies):
+		// on-demand starts made concurrently during boot are visible here, so
+		// the loop can't approve a start past a limit that is already reached.
 		if group != "" {
-			if limit, ok := limits.GroupLimits[group]; ok && limit > 0 && groupRunning[group] >= limit {
-				log.Printf("Instance %s: group %s already at boot limit (%d); leaving stopped (will start on demand)", inst.Name, group, limit)
+			if limit, ok := limits.GroupLimits[group]; ok && limit > 0 &&
+				im.CountRunningInGroup(group) >= limit {
+				log.Printf("Instance %s: group %s already at limit (%d); leaving stopped (will start on demand)", inst.Name, group, limit)
 				inst.SetStatus(instance.Stopped)
 				im.registry.markStopped(inst.Name)
 				continue
 			}
 		}
-		if limits.MaxRunningInstances > 0 && started >= limits.MaxRunningInstances {
-			log.Printf("Instance %s: at global boot limit (%d); leaving stopped (will start on demand)", inst.Name, limits.MaxRunningInstances)
+		if limits.MaxRunningInstances > 0 && im.AtMaxRunning() {
+			log.Printf("Instance %s: at global running limit; leaving stopped (will start on demand)", inst.Name)
 			inst.SetStatus(instance.Stopped)
 			im.registry.markStopped(inst.Name)
 			continue
@@ -278,6 +280,7 @@ func (im *instanceManager) autoStartInstances() {
 			ctx := context.Background()
 			if _, err := im.remote.startInstance(ctx, node, inst.Name); err != nil {
 				log.Printf("Failed to auto-start remote instance %s: %v", inst.Name, err)
+				continue
 			}
 		} else {
 			// Local instance - call Start() directly
@@ -286,10 +289,6 @@ func (im *instanceManager) autoStartInstances() {
 				continue
 			}
 		}
-		if group != "" {
-			groupRunning[group]++
-		}
-		started++
 	}
 }
 

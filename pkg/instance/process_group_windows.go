@@ -15,7 +15,5 @@ func setProcAttrs(cmd *exec.Cmd) {
 // and the console Ctrl-C path proved unreliable, so the caller relies on
 // the force-kill after the grace period.
 func signalStop(cmd *exec.Cmd) {
-	if cmd == nil || cmd.Process == nil {
-		return
-	}
+	// No-op on Windows — see setProcAttrs.
 }

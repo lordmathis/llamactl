@@ -119,13 +119,41 @@ func (h *Handler) ensureInstanceRunning(inst *instance.Instance, canStart bool, 
 		return ErrInstanceNotRunning
 	}
 
-	// See Handler.startMu for why this whole section is serialized.
+	// See Handler.startMu for why the start section is serialized.
 	h.startMu.Lock()
-	defer h.startMu.Unlock()
+	startErr := h.maybeStartLocked(inst, canEvict)
+	h.startMu.Unlock()
+	if startErr != nil {
+		return startErr
+	}
 
+	// The health wait is deliberately outside the start lock: it can run up
+	// to OnDemandStartTimeout (a full model load), and serializing unrelated
+	// instance starts behind it is the slow path startMu exists to avoid.
+	if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil {
+		return fmt.Errorf("instance failed to become healthy: %w", err)
+	}
+
+	return nil
+}
+
+// maybeStartLocked starts inst if it is not already running, enforcing group
+// quotas and global capacity. Callers must hold h.startMu. It re-checks
+// IsRunning() under the lock because the caller's check (done before we took
+// the lock) may be stale: a concurrent request may have started this same
+// instance in the meantime, and calling StartInstance on an already-running
+// instance would surface as a spurious 500 for requests that should just be
+// served.
+func (h *Handler) maybeStartLocked(inst *instance.Instance, canEvict bool) error {
 	options := inst.GetOptions()
 	if options == nil || options.OnDemandStart == nil || !*options.OnDemandStart {
 		return fmt.Errorf("instance is not running and on-demand start is not enabled")
+	}
+
+	// A concurrent request already started it while we waited for the lock —
+	// nothing to do; the caller waits for health below.
+	if inst.IsRunning() {
+		return nil
 	}
 
 	if !h.cfg.Instances.EnableLRUEviction {
@@ -148,10 +176,6 @@ func (h *Handler) ensureInstanceRunning(inst *instance.Instance, canStart bool, 
 
 	if _, err := h.InstanceManager.StartInstance(inst.Name); err != nil {
 		return fmt.Errorf("failed to start instance: %w", err)
-	}
-
-	if err := inst.WaitForHealthy(h.cfg.Instances.OnDemandStartTimeout); err != nil {
-		return fmt.Errorf("instance failed to become healthy: %w", err)
 	}
 
 	return nil
