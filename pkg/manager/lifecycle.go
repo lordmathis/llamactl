@@ -94,6 +94,13 @@ func (l *lifecycleManager) checkTimeouts() {
 		}
 
 		if inst.ShouldTimeout() {
+			// Never idle-stop an instance that is actively serving a request:
+			// the stop path only gives in-flight work a 30 s grace, which is
+			// far too short for long generations.
+			if inflight := inst.GetInflightRequests(); inflight > 0 {
+				log.Printf("Instance %s timed out but has %d in-flight request(s); deferring idle stop", inst.Name, inflight)
+				continue
+			}
 			timeoutInstances = append(timeoutInstances, inst.Name)
 		}
 	}

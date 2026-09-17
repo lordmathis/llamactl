@@ -7,6 +7,7 @@ import (
 	"llamactl/pkg/database"
 	"llamactl/pkg/instance"
 	"log"
+	"sort"
 	"sync"
 	"time"
 )
@@ -233,12 +234,50 @@ func (im *instanceManager) autoStartInstances() {
 		im.registry.markStopped(inst.Name)
 	}
 
-	// Start instances that have auto-restart enabled
+	// Start instances that have auto-restart enabled. Enforce group and
+	// global limits: start the most recently used first and leave the rest
+	// stopped (they start on demand). Previously this started every
+	// persisted-running instance, which could boot two large models at
+	// once and spill VRAM into system RAM.
+	sort.Slice(instancesToStart, func(i, j int) bool {
+		return instancesToStart[i].LastRequestTime() > instancesToStart[j].LastRequestTime()
+	})
+
+	// Clear the persisted "running" state of every candidate *before* the limit
+	// checks below. loadInstance restored these instances as running, so the
+	// registry still reports them as running; counting that phantom occupancy
+	// skips candidates this loop has not reached yet and starts fewer instances
+	// than the limits allow (with a group limit, possibly none). Each successful
+	// Start() marks its own instance running again, so earlier starts in this
+	// loop — and concurrent on-demand starts — still count against the limits.
 	for _, inst := range instancesToStart {
-		log.Printf("Auto-starting instance %s", inst.Name)
-		// Reset running state before starting (since Start() expects stopped instance)
 		inst.SetStatus(instance.Stopped)
 		im.registry.markStopped(inst.Name)
+	}
+
+	limits := im.globalConfig.Instances
+	for _, inst := range instancesToStart {
+		group := ""
+		if inst.GetOptions() != nil {
+			group = inst.GetOptions().Group
+		}
+
+		// Enforce limits against live registry state (not loop-local tallies):
+		// on-demand starts made concurrently during boot are visible here, so
+		// the loop can't approve a start past a limit that is already reached.
+		if group != "" {
+			if limit, ok := limits.GroupLimits[group]; ok && limit > 0 &&
+				im.CountRunningInGroup(group) >= limit {
+				log.Printf("Instance %s: group %s already at limit (%d); leaving stopped (will start on demand)", inst.Name, group, limit)
+				continue
+			}
+		}
+		if limits.MaxRunningInstances > 0 && im.AtMaxRunning() {
+			log.Printf("Instance %s: at global running limit; leaving stopped (will start on demand)", inst.Name)
+			continue
+		}
+
+		log.Printf("Auto-starting instance %s", inst.Name)
 
 		// Check if this is a remote instance
 		if node, exists := im.remote.getNodeForInstance(inst.Name); exists && node != nil {
@@ -246,11 +285,13 @@ func (im *instanceManager) autoStartInstances() {
 			ctx := context.Background()
 			if _, err := im.remote.startInstance(ctx, node, inst.Name); err != nil {
 				log.Printf("Failed to auto-start remote instance %s: %v", inst.Name, err)
+				continue
 			}
 		} else {
 			// Local instance - call Start() directly
 			if err := inst.Start(); err != nil {
 				log.Printf("Failed to auto-start instance %s: %v", inst.Name, err)
+				continue
 			}
 		}
 	}

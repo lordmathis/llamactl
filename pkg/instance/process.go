@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -23,6 +23,7 @@ type process struct {
 	cmd           *exec.Cmd
 	ctx           context.Context
 	cancel        context.CancelFunc
+	stdin         io.Closer
 	stdout        io.ReadCloser
 	stderr        io.ReadCloser
 	restarts      int
@@ -77,11 +78,41 @@ func (p *process) start() error {
 	}
 	p.cmd = cmd
 
-	if runtime.GOOS != "windows" {
-		setProcAttrs(p.cmd)
+	// Double-spawn guard: if our port is already accepting connections, a
+	// surviving llama-server from a previous (or crashed) start is still
+	// bound to it. Waiting it out avoids double-binding, which would run
+	// two copies of the model in VRAM at once.
+	host, port := p.instance.options.GetHost(), p.instance.options.GetPort()
+	// Dial to loopback regardless of the configured bind host: a server bound
+	// to 0.0.0.0/:: is reachable via 127.0.0.1, but net.DialTimeout to
+	// 0.0.0.0 (or ::) fails on Windows with an invalid-address error and the
+	// guard would silently no-op.
+	if host == "" || host == "0.0.0.0" || host == "::" {
+		host = "127.0.0.1"
+	}
+	if port > 0 {
+		deadline := time.Now().Add(15 * time.Second)
+		for portInUse(host, port) {
+			if time.Now().After(deadline) {
+				p.instance.logger.close()
+				if p.cancel != nil {
+					p.cancel()
+				}
+				return fmt.Errorf("port %d is still occupied by a surviving process; refusing to start a second server on it", port)
+			}
+			log.Printf("Instance %s: port %d still in use, waiting for it to be released...", p.instance.Name, port)
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 
+	setProcAttrs(p.cmd)
+
 	var err error
+	p.stdin, err = p.cmd.StdinPipe()
+	if err != nil {
+		p.instance.logger.close()
+		return fmt.Errorf("failed to get stdin pipe: %w", err)
+	}
 	p.stdout, err = p.cmd.StdoutPipe()
 	if err != nil {
 		p.instance.logger.close()
@@ -135,7 +166,12 @@ func (p *process) stop() error {
 	// Set status to ShuttingDown first to reject new requests
 	p.instance.SetStatus(ShuttingDown)
 
-	// Get the monitor done channel before releasing the lock
+	// Capture this generation's pipes, cmd, and monitor channel before
+	// releasing the lock. start() may replace p.cmd/p.stdin while the
+	// inflight drain below runs; stop() must signal only the process it saw
+	// when it locked, never a newer generation.
+	cmd := p.cmd
+	stdin := p.stdin
 	monitorDone := p.monitorDone
 
 	p.mu.Unlock()
@@ -154,27 +190,40 @@ func (p *process) stop() error {
 	// Now set status to stopped to signal intentional stop
 	p.instance.SetStatus(Stopped)
 
-	// Stop the process with SIGINT if cmd exists
-	if p.cmd != nil && p.cmd.Process != nil {
-		if err := p.cmd.Process.Signal(syscall.SIGINT); err != nil {
-			log.Printf("Failed to send SIGINT to instance %s: %v", p.instance.Name, err)
+	// Graceful stop: close stdin (EOF is a shutdown request where the
+	// backend honors it), then the platform interrupt (SIGINT on Unix).
+	// On Windows SIGINT/Ctrl-C do not reach the child, so the force-kill
+	// below is the reliable stop; the shorter grace there trims the wait.
+	if stdin != nil {
+		if cerr := stdin.Close(); cerr != nil {
+			log.Printf("Failed to close stdin for instance %s: %v", p.instance.Name, cerr)
 		}
 	}
+	signalStop(cmd)
 
 	// If no process exists, we can return immediately
-	if p.cmd == nil || monitorDone == nil {
+	if cmd == nil || monitorDone == nil {
 		p.instance.logger.close()
 		return nil
+	}
+
+	// Wait for the process to exit after the shutdown signal. On Unix a
+	// SIGINT graceful stop usually finishes in a second or two and the long
+	// grace is the safety net. On Windows the stop is the force-kill, so use
+	// a shorter grace there to avoid a slow shutdown.
+	killGrace := 30 * time.Second
+	if runtime.GOOS == "windows" {
+		killGrace = 5 * time.Second
 	}
 
 	select {
 	case <-monitorDone:
 		// Process exited normally
 		log.Printf("Instance %s shut down gracefully", p.instance.Name)
-	case <-time.After(30 * time.Second):
+	case <-time.After(killGrace):
 		// Force kill if it doesn't exit within 30 seconds
-		if p.cmd != nil && p.cmd.Process != nil {
-			killErr := p.cmd.Process.Kill()
+		if cmd != nil && cmd.Process != nil {
+			killErr := cmd.Process.Kill()
 			if killErr != nil {
 				log.Printf("Failed to force kill instance %s: %v", p.instance.Name, killErr)
 			}
@@ -184,7 +233,7 @@ func (p *process) stop() error {
 			select {
 			case <-monitorDone:
 				// Monitor completed after force kill
-			case <-time.After(2 * time.Second):
+			case <-time.After(10 * time.Second):
 				log.Printf("Warning: Monitor goroutine did not complete after force kill for instance %s", p.instance.Name)
 			}
 		}
@@ -277,18 +326,39 @@ func (p *process) waitForHealthy(timeout int) error {
 
 // monitorProcess monitors the OS process and handles crashes/exits
 func (p *process) monitorProcess() {
+	// Capture this generation's identity up front so a stale monitor
+	// (left over from a superseded start) can never close a newer
+	// monitor's completion channel or overwrite live instance state.
+	p.mu.Lock()
+	myCmd := p.cmd
+	myDone := p.monitorDone
+	p.mu.Unlock()
+
 	defer func() {
 		p.mu.Lock()
-		if p.monitorDone != nil {
-			close(p.monitorDone)
-			p.monitorDone = nil
+		if myDone != nil {
+			// Always close our generation's channel so a stop() waiting on it
+			// (even for a superseded process) is released. Clear the field only
+			// if this is still the current generation.
+			close(myDone)
+			if p.monitorDone == myDone {
+				p.monitorDone = nil
+			}
 		}
 		p.mu.Unlock()
 	}()
 
-	err := p.cmd.Wait()
+	err := myCmd.Wait()
 
 	p.mu.Lock()
+
+	// Stale monitor: a newer start replaced p.cmd while we were waiting.
+	// The defer signals our channel; leave the live state untouched.
+	if p.cmd != myCmd {
+		log.Printf("Instance %s: ignoring exit of superseded process (stale monitor)", p.instance.Name)
+		p.mu.Unlock()
+		return
+	}
 
 	// Check if the instance was intentionally stopped
 	if !p.instance.IsRunning() {
@@ -425,4 +495,14 @@ func (p *process) buildCommand() (*exec.Cmd, error) {
 	}
 
 	return cmd, nil
+}
+
+// portInUse reports whether something is accepting TCP connections on host:port.
+func portInUse(host string, port int) bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", host, port), 500*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
 }
