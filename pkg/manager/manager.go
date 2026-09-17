@@ -243,6 +243,18 @@ func (im *instanceManager) autoStartInstances() {
 		return instancesToStart[i].LastRequestTime() > instancesToStart[j].LastRequestTime()
 	})
 
+	// Clear the persisted "running" state of every candidate *before* the limit
+	// checks below. loadInstance restored these instances as running, so the
+	// registry still reports them as running; counting that phantom occupancy
+	// skips candidates this loop has not reached yet and starts fewer instances
+	// than the limits allow (with a group limit, possibly none). Each successful
+	// Start() marks its own instance running again, so earlier starts in this
+	// loop — and concurrent on-demand starts — still count against the limits.
+	for _, inst := range instancesToStart {
+		inst.SetStatus(instance.Stopped)
+		im.registry.markStopped(inst.Name)
+	}
+
 	limits := im.globalConfig.Instances
 	for _, inst := range instancesToStart {
 		group := ""
@@ -257,22 +269,15 @@ func (im *instanceManager) autoStartInstances() {
 			if limit, ok := limits.GroupLimits[group]; ok && limit > 0 &&
 				im.CountRunningInGroup(group) >= limit {
 				log.Printf("Instance %s: group %s already at limit (%d); leaving stopped (will start on demand)", inst.Name, group, limit)
-				inst.SetStatus(instance.Stopped)
-				im.registry.markStopped(inst.Name)
 				continue
 			}
 		}
 		if limits.MaxRunningInstances > 0 && im.AtMaxRunning() {
 			log.Printf("Instance %s: at global running limit; leaving stopped (will start on demand)", inst.Name)
-			inst.SetStatus(instance.Stopped)
-			im.registry.markStopped(inst.Name)
 			continue
 		}
 
 		log.Printf("Auto-starting instance %s", inst.Name)
-		// Reset running state before starting (since Start() expects stopped instance)
-		inst.SetStatus(instance.Stopped)
-		im.registry.markStopped(inst.Name)
 
 		// Check if this is a remote instance
 		if node, exists := im.remote.getNodeForInstance(inst.Name); exists && node != nil {
