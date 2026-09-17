@@ -6,11 +6,11 @@ require (
 	github.com/DeRuina/timberjack v1.4.0
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-chi/cors v1.2.2
-	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/golang-migrate/migrate/v4 v4.20.1
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.5
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.57.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -24,9 +24,9 @@ require (
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
-	golang.org/x/mod v0.29.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/tools v0.38.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 )
