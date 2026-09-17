@@ -71,11 +71,12 @@ type Handler struct {
 	authStore       database.AuthStore
 	authMiddleware  *APIAuthMiddleware
 
-	// startMu serializes the evict→start→wait critical section in
+	// startMu serializes the evict→start critical section in
 	// ensureInstanceRunning. Group quotas are check-then-act; without this,
 	// two concurrent requests can each see room (or evict the other's LRU)
-	// and start two models in the same group. Holding it through
-	// WaitForHealthy also sequences VRAM-heavy model loads on a shared GPU.
+	// and start two models in the same group. The health wait deliberately
+	// runs outside this lock so unrelated starts don't serialize behind a
+	// model load.
 	startMu sync.Mutex
 }
 
