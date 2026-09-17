@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom/vitest'
 import { afterEach, beforeEach, vi } from 'vitest'
 
 // Create a working localStorage implementation for tests
@@ -31,8 +31,13 @@ class LocalStorageMock implements Storage {
   }
 }
 
-// Replace global localStorage
-global.localStorage = new LocalStorageMock()
+// Replace global localStorage (jsdom defines it as a getter-only property,
+// so plain assignment throws — redefine it instead)
+Object.defineProperty(global, 'localStorage', {
+  configurable: true,
+  writable: true,
+  value: new LocalStorageMock(),
+})
 
 // Create a default fetch mock that handles common API endpoints
 const createMockFetch = () => {
