@@ -182,6 +182,8 @@ backends:
     environment: {}              # Environment variables for the backend process
     # MLX does not support Docker
     response_headers: {}         # Additional response headers to send with responses
+
+  custom: {}                     # Named custom backends, see "Custom Backends" below
 ```
 
 **Backend Configuration Fields:**
@@ -224,6 +226,52 @@ backends:
 - `LLAMACTL_MLX_ARGS` - Space-separated default arguments
 - `LLAMACTL_MLX_ENV` - Environment variables in format "KEY1=value1,KEY2=value2"
 - `LLAMACTL_MLX_RESPONSE_HEADERS` - Response headers in format "KEY1=value1;KEY2=value2"
+
+### Custom Backends
+
+Custom backends let you manage any OpenAI-compatible inference server with llamactl, without waiting for native support. You define one or more named entries under `backends.custom`, each with a command and optional default arguments, environment, and Docker settings:
+
+```yaml
+backends:
+  custom:
+    my-engine:
+      command: "my-server"
+      args: ["serve"]            # Default arguments prepended to instance args
+      environment: {}            # Environment variables for the backend process
+```
+
+Create an instance via the API (or the web UI, where each configured name appears in the backend dropdown):
+
+```json
+{
+  "name": "my-instance",
+  "backend_options": {
+    "backend_type": "custom",
+    "backend_options": {
+      "name": "my-engine",
+      "model": "org/model-name",
+      "args": ["--port", "{port}"],
+      "health_path": "/ready"
+    }
+  }
+}
+```
+
+Instance options:
+
+- `name` (required): references the `backends.custom.<name>` config entry.
+- `args`: instance-level arguments, appended after the entry's configured `args`.
+- `model`: model identifier reported to OpenAI-compatible clients; use the `{model}` placeholder in args to inject it.
+- `host` / `port`: connection details for the proxy and health check. Leave `port` empty for automatic allocation.
+- `health_path`: path expected to return HTTP 200 when the server is ready (default `/health`).
+
+**Contract:** the command must start a server that binds a TCP port and serves OpenAI-compatible endpoints (`/v1/chat/completions`, etc.). The port is communicated through the `{port}` placeholder — merged args (config args, then instance args) must contain it, and instance creation is rejected otherwise.
+
+Notes:
+
+- Custom backends are configured in the config file only; there are no environment variable overrides for them.
+- On multi-node setups, the command must exist on the node that runs the instance.
+- Servers that download models or run long setup on first start may exceed the on-demand start timeout (`instances.on_demand_start_timeout`). Raise the timeout or pre-warm the server's model cache by running the command once manually.
 
 ### Data Directory Configuration
 

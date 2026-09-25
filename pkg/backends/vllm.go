@@ -201,6 +201,10 @@ func (o *VllmServerOptions) GetHost() string {
 	return o.Host
 }
 
+func (o *VllmServerOptions) GetHealthPath() string {
+	return "/health"
+}
+
 func (o *VllmServerOptions) Validate() error {
 	if o == nil {
 		return validation.ValidationError(fmt.Errorf("vLLM server options cannot be nil for vLLM backend"))

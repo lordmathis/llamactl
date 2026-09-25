@@ -21,11 +21,13 @@ type DockerSettings struct {
 	Environment map[string]string `yaml:"environment,omitempty" json:"environment,omitempty"`
 }
 
-// BackendConfig contains backend executable configurations
+// BackendConfig contains backend executable configurations.
+// Custom holds named user-defined backends (backends.custom.<name>).
 type BackendConfig struct {
-	LlamaCpp BackendSettings `yaml:"llama-cpp" json:"llama-cpp"`
-	VLLM     BackendSettings `yaml:"vllm" json:"vllm"`
-	MLX      BackendSettings `yaml:"mlx" json:"mlx"`
+	LlamaCpp BackendSettings            `yaml:"llama-cpp" json:"llama-cpp"`
+	VLLM     BackendSettings            `yaml:"vllm" json:"vllm"`
+	MLX      BackendSettings            `yaml:"mlx" json:"mlx"`
+	Custom   map[string]BackendSettings `yaml:"custom,omitempty" json:"custom,omitempty"`
 }
 
 // AppConfig represents the configuration for llamactl

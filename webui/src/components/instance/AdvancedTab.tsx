@@ -1,6 +1,7 @@
 import type React from 'react'
 import { useState } from 'react'
 import type { CreateInstanceOptions } from '@/types/instance'
+import { BackendType } from '@/types/instance'
 import { getAdvancedBackendFields } from '@/lib/zodFormUtils'
 import BackendFormField from '@/components/BackendFormField'
 import { ChevronDown, ChevronRight } from 'lucide-react'
@@ -68,14 +69,18 @@ const AdvancedTab: React.FC<AdvancedTabProps> = ({
         </div>
       )}
 
-      <div className="space-y-4">
-        <BackendFormField
-          key="extra_args"
-          fieldKey="extra_args"
-          value={extraArgs}
-          onChange={onBackendFieldChange}
-        />
-      </div>
+      {/* Custom backends have no flag grammar: args are free-form and
+          unknown fields are dropped by the server, so extra_args is meaningless. */}
+      {formData.backend_type !== BackendType.CUSTOM && (
+        <div className="space-y-4">
+          <BackendFormField
+            key="extra_args"
+            fieldKey="extra_args"
+            value={extraArgs}
+            onChange={onBackendFieldChange}
+          />
+        </div>
+      )}
     </div>
   )
 }

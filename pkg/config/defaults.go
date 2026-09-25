@@ -48,11 +48,12 @@ func getDefaultConfig(dataDir string) AppConfig {
 					Environment: map[string]string{},
 				},
 			},
-			MLX: BackendSettings{
-				Command: "mlx_lm.server",
-				Args:    []string{},
-				// No Docker section for MLX - not supported
-			},
+		MLX: BackendSettings{
+			Command: "mlx_lm.server",
+			Args:    []string{},
+			// No Docker section for MLX - not supported
+		},
+		Custom: map[string]BackendSettings{},
 		},
 		Instances: InstancesConfig{
 			PortRange:            [2]int{8000, 9000},

@@ -2,15 +2,19 @@ import {
   type LlamaCppBackendOptions,
   type MlxBackendOptions,
   type VllmBackendOptions,
+  type CustomBackendOptions,
   LlamaCppBackendOptionsSchema,
   MlxBackendOptionsSchema,
   VllmBackendOptionsSchema,
+  CustomBackendOptionsSchema,
   getAllLlamaCppFieldKeys,
   getAllMlxFieldKeys,
   getAllVllmFieldKeys,
+  getAllCustomFieldKeys,
   getLlamaCppFieldType,
   getMlxFieldType,
-  getVllmFieldType
+  getVllmFieldType,
+  getCustomFieldType
 } from '@/schemas/instanceOptions'
 
 // LlamaCpp backend-specific basic fields
@@ -102,17 +106,57 @@ const basicVllmFieldsConfig: Record<string, {
   }
 }
 
+// Custom backend-specific basic fields
+const basicCustomFieldsConfig: Record<string, {
+  label: string
+  description?: string
+  placeholder?: string
+}> = {
+  name: {
+    label: 'Custom Backend Name',
+    placeholder: 'my-backend',
+    description: 'Name of the backends.custom.<name> config entry to use'
+  },
+  model: {
+    label: 'Model',
+    placeholder: 'org/model-name',
+    description: 'Model identifier reported to clients; use {model} in args to inject it'
+  },
+  host: {
+    label: 'Host',
+    placeholder: '127.0.0.1',
+    description: 'Host the proxy and health check connect to'
+  },
+  port: {
+    label: 'Port',
+    placeholder: 'auto-assigned',
+    description: 'Leave empty for automatic port allocation'
+  },
+  args: {
+    label: 'Arguments',
+    placeholder: 'serve, --port, {port}',
+    description: 'Arguments appended after the config args; {port} is required so the server learns its port'
+  },
+  health_path: {
+    label: 'Health Path',
+    placeholder: '/health',
+    description: 'Path returning HTTP 200 when the server is ready'
+  }
+}
+
 // Backend field configuration lookup
 const backendFieldConfigs = {
   mlx_lm: basicMlxFieldsConfig,
   vllm: basicVllmFieldsConfig,
   llama_cpp: basicLlamaCppFieldsConfig,
+  custom: basicCustomFieldsConfig,
 } as const
 
 const backendFieldGetters = {
   mlx_lm: getAllMlxFieldKeys,
   vllm: getAllVllmFieldKeys,
   llama_cpp: getAllLlamaCppFieldKeys,
+  custom: getAllCustomFieldKeys,
 } as const
 
 export function getBasicBackendFields(backendType?: string): string[] {
@@ -129,12 +173,15 @@ export function getAdvancedBackendFields(backendType?: string): string[] {
   return fieldGetter().filter(key => !(key in basicConfig) && key !== 'extra_args')
 }
 
-// Combined backend fields config for use in BackendFormField
+// Combined backend fields config for use in BackendFormField.
+// Custom goes first: 'model' collides across backends and the built-in
+// entries must keep winning so existing forms stay unchanged.
 export const basicBackendFieldsConfig: Record<string, {
   label: string
   description?: string
   placeholder?: string
 }> = {
+  ...basicCustomFieldsConfig,
   ...basicLlamaCppFieldsConfig,
   ...basicMlxFieldsConfig,
   ...basicVllmFieldsConfig
@@ -164,6 +211,15 @@ export function getBackendFieldType(key: string): 'text' | 'number' | 'boolean' 
   try {
     if (VllmBackendOptionsSchema.shape && key in VllmBackendOptionsSchema.shape) {
       return getVllmFieldType(key as keyof VllmBackendOptions)
+    }
+  } catch {
+    // Schema might not be available
+  }
+
+  // Try Custom schema (keys unique to it, e.g. args, health_path)
+  try {
+    if (CustomBackendOptionsSchema.shape && key in CustomBackendOptionsSchema.shape) {
+      return getCustomFieldType(key as keyof CustomBackendOptions)
     }
   } catch {
     // Schema might not be available

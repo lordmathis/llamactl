@@ -14,6 +14,7 @@ const (
 	BackendTypeLlamaCpp BackendType = "llama_cpp"
 	BackendTypeMlxLm    BackendType = "mlx_lm"
 	BackendTypeVllm     BackendType = "vllm"
+	BackendTypeCustom   BackendType = "custom"
 	BackendTypeUnknown  BackendType = "unknown"
 )
 
@@ -24,6 +25,7 @@ type backend interface {
 	GetPort() int
 	SetPort(int)
 	GetHost() string
+	GetHealthPath() string
 	Validate() error
 	ParseCommand(string) (any, error)
 }
@@ -32,6 +34,7 @@ var backendConstructors = map[BackendType]func() backend{
 	BackendTypeLlamaCpp: func() backend { return &LlamaServerOptions{} },
 	BackendTypeMlxLm:    func() backend { return &MlxServerOptions{} },
 	BackendTypeVllm:     func() backend { return &VllmServerOptions{} },
+	BackendTypeCustom:   func() backend { return &CustomServerOptions{} },
 }
 
 type Options struct {
@@ -39,9 +42,10 @@ type Options struct {
 	BackendOptions map[string]any `json:"backend_options,omitempty"`
 
 	// Backend-specific options
-	LlamaServerOptions *LlamaServerOptions `json:"-"`
-	MlxServerOptions   *MlxServerOptions   `json:"-"`
-	VllmServerOptions  *VllmServerOptions  `json:"-"`
+	LlamaServerOptions  *LlamaServerOptions  `json:"-"`
+	MlxServerOptions    *MlxServerOptions    `json:"-"`
+	VllmServerOptions   *VllmServerOptions   `json:"-"`
+	CustomServerOptions *CustomServerOptions `json:"-"`
 }
 
 func (o *Options) UnmarshalJSON(data []byte) error {
@@ -117,6 +121,8 @@ func (o *Options) setBackendOptions(bcknd backend) {
 		o.MlxServerOptions = v
 	case *VllmServerOptions:
 		o.VllmServerOptions = v
+	case *CustomServerOptions:
+		o.CustomServerOptions = v
 	}
 }
 
@@ -128,9 +134,24 @@ func (o *Options) getBackendSettings(backendConfig *config.BackendConfig) *confi
 		return &backendConfig.MLX
 	case BackendTypeVllm:
 		return &backendConfig.VLLM
+	case BackendTypeCustom:
+		return o.getCustomBackendSettings(backendConfig)
 	default:
 		return nil
 	}
+}
+
+// getCustomBackendSettings resolves the named backends.custom.<name> entry.
+// Unknown names return zero-value settings instead of nil so GetCommand
+// cannot panic on instances whose config entry was removed after creation.
+func (o *Options) getCustomBackendSettings(backendConfig *config.BackendConfig) *config.BackendSettings {
+	if o.CustomServerOptions == nil {
+		return &config.BackendSettings{}
+	}
+	if settings, exists := backendConfig.Custom[o.CustomServerOptions.Name]; exists {
+		return &settings
+	}
+	return &config.BackendSettings{}
 }
 
 // getBackend returns the actual backend implementation
@@ -142,6 +163,8 @@ func (o *Options) getBackend() backend {
 		return o.MlxServerOptions
 	case BackendTypeVllm:
 		return o.VllmServerOptions
+	case BackendTypeCustom:
+		return o.CustomServerOptions
 	default:
 		return nil
 	}
@@ -271,6 +294,14 @@ func (o *Options) GetHost() string {
 		return backend.GetHost()
 	}
 	return "localhost"
+}
+
+func (o *Options) GetHealthPath() string {
+	backend := o.getBackend()
+	if backend != nil {
+		return backend.GetHealthPath()
+	}
+	return "/health"
 }
 
 func (o *Options) GetResponseHeaders(backendConfig *config.BackendConfig) map[string]string {

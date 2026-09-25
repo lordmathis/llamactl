@@ -18,7 +18,7 @@
 
 **🔗 Flexible Integration**
 - **API Compatible**: OpenAI chat completions and resources endpoints, Anthropic messages endpoint (depending on backend) - route requests to different models by instance name
-- **Multi-Backend Support**: Native support for llama.cpp, MLX (Apple Silicon optimized), and vLLM
+- **Multi-Backend Support**: Native support for llama.cpp, MLX (Apple Silicon optimized), and vLLM, plus any OpenAI-compatible server via configurable [custom backends](https://llamactl.org/configuration/#custom-backends)
 - **Docker Ready**: Run backends in containers with full GPU support
 
 **🌐 Distributed Deployment**

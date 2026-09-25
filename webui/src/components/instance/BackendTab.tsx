@@ -9,8 +9,10 @@ import SelectInput from '@/components/form/SelectInput'
 import CheckboxInput from '@/components/form/CheckboxInput'
 import TextInput from '@/components/form/TextInput'
 import EnvVarsInput from '@/components/form/EnvVarsInput'
-import { useBackendSettings } from '@/hooks/useConfig'
+import { useBackendSettings, useCustomBackends, useCustomBackendSettings } from '@/hooks/useConfig'
 import PresetDialog from './PresetDialog'
+
+const CUSTOM_OPTION_PREFIX = 'custom:'
 
 interface BackendTabProps {
   formData: CreateInstanceOptions
@@ -30,7 +32,27 @@ const BackendTab: React.FC<BackendTabProps> = ({
   const backendSettings = useBackendSettings(formData.backend_type)
   const basicBackendFields = getBasicBackendFields(formData.backend_type)
 
+  const isCustom = formData.backend_type === BackendType.CUSTOM
+  const customName = (formData.backend_options as Record<string, unknown> | undefined)?.name as string | undefined
+  const customBackends = useCustomBackends()
+  const customSettings = useCustomBackendSettings(customName)
+
+  const handleBackendTypeChange = (value: string | undefined) => {
+    if (value?.startsWith(CUSTOM_OPTION_PREFIX)) {
+      const name = value.slice(CUSTOM_OPTION_PREFIX.length)
+      onChange('backend_type', BackendType.CUSTOM)
+      onBackendFieldChange('name', name)
+      onChange('docker_enabled', customBackends[name]?.docker?.enabled ?? false)
+      return
+    }
+    onChange('backend_type', value)
+  }
+
   const getCommandPlaceholder = () => {
+    if (isCustom) {
+      return customSettings?.command || 'configured in backends.custom.<name>'
+    }
+
     if (backendSettings?.command) {
       return backendSettings.command
     }
@@ -47,18 +69,28 @@ const BackendTab: React.FC<BackendTabProps> = ({
     }
   }
 
+  const backendTypeOptions = [
+    { value: BackendType.LLAMA_CPP, label: 'Llama Server' },
+    { value: BackendType.MLX_LM, label: 'MLX LM' },
+    { value: BackendType.VLLM, label: 'vLLM' },
+    ...Object.keys(customBackends).map((name) => ({
+      value: `${CUSTOM_OPTION_PREFIX}${name}`,
+      label: name,
+    })),
+  ]
+
+  const selectedBackendType = isCustom
+    ? `${CUSTOM_OPTION_PREFIX}${customName ?? ''}`
+    : formData.backend_type || BackendType.LLAMA_CPP
+
   return (
     <div className="space-y-6 py-4">
       <SelectInput
         id="backend_type"
         label="Backend Type"
-        value={formData.backend_type || BackendType.LLAMA_CPP}
-        onChange={(value) => onChange('backend_type', value)}
-        options={[
-          { value: BackendType.LLAMA_CPP, label: 'Llama Server' },
-          { value: BackendType.MLX_LM, label: 'MLX LM' },
-          { value: BackendType.VLLM, label: 'vLLM' }
-        ]}
+        value={selectedBackendType}
+        onChange={handleBackendTypeChange}
+        options={backendTypeOptions}
         description="Select the backend server type"
       />
 
@@ -132,19 +164,21 @@ const BackendTab: React.FC<BackendTabProps> = ({
         )}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Button
-          variant="outline"
-          onClick={onParseCommand}
-          className="flex items-center gap-2 w-fit"
-        >
-          <Terminal className="h-4 w-4" />
-          Parse Command
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          Import settings from your backend command
-        </p>
-      </div>
+      {!isCustom && (
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="outline"
+            onClick={onParseCommand}
+            className="flex items-center gap-2 w-fit"
+          >
+            <Terminal className="h-4 w-4" />
+            Parse Command
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Import settings from your backend command
+          </p>
+        </div>
+      )}
 
       {basicBackendFields.length > 0 && (
         <div className="space-y-4">

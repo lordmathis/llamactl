@@ -362,3 +362,99 @@ func TestGetInstance_NotFoundReturnsSentinel(t *testing.T) {
 		t.Errorf("expected ErrInstanceNotFound, got: %v", err)
 	}
 }
+
+func createCustomTestManager(t *testing.T) manager.InstanceManager {
+	appConfig := createTestAppConfig(t.TempDir())
+	appConfig.Backends.Custom = map[string]config.BackendSettings{
+		"splash":      {Command: "splash", Args: []string{"serve"}},
+		"portless":    {Command: "some-server", Args: []string{"--verbose"}},
+		"commandless": {Args: []string{"--port", "{port}"}},
+	}
+
+	db, err := database.Open(&database.Config{
+		Path:               appConfig.Database.Path,
+		MaxOpenConnections: appConfig.Database.MaxOpenConnections,
+		MaxIdleConnections: appConfig.Database.MaxIdleConnections,
+		ConnMaxLifetime:    appConfig.Database.ConnMaxLifetime,
+	})
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	if err := database.RunMigrations(db); err != nil {
+		t.Fatalf("Failed to run migrations: %v", err)
+	}
+	return manager.New(appConfig, db)
+}
+
+func TestCreateInstance_CustomBackendValidation(t *testing.T) {
+	mgr := createCustomTestManager(t)
+
+	tests := []struct {
+		name        string
+		instance    string
+		customOpts  *backends.CustomServerOptions
+		expectError string
+	}{
+		{
+			name:     "valid custom backend",
+			instance: "splash-ok",
+			customOpts: &backends.CustomServerOptions{
+				Name: "splash",
+				Args: []string{"--port", "{port}"},
+			},
+		},
+		{
+			name:     "port placeholder in instance args",
+			instance: "portless-ok",
+			customOpts: &backends.CustomServerOptions{
+				Name: "portless",
+				Args: []string{"--port", "{port}"},
+			},
+		},
+		{
+			name:        "unknown custom backend name",
+			instance:    "unknown-name",
+			customOpts:  &backends.CustomServerOptions{Name: "nope", Args: []string{"--port", "{port}"}},
+			expectError: "not defined in config",
+		},
+		{
+			name:        "missing port placeholder",
+			instance:    "no-port",
+			customOpts:  &backends.CustomServerOptions{Name: "splash"},
+			expectError: "{port}",
+		},
+		{
+			name:        "missing command",
+			instance:    "no-command",
+			customOpts:  &backends.CustomServerOptions{Name: "commandless"},
+			expectError: "no command configured",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			options := &instance.Options{
+				BackendOptions: backends.Options{
+					BackendType:          backends.BackendTypeCustom,
+					CustomServerOptions: tt.customOpts,
+				},
+			}
+
+			_, err := mgr.CreateInstance(tt.instance, options)
+
+			if tt.expectError == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+
+			if err == nil {
+				t.Fatalf("expected error containing %q, got none", tt.expectError)
+			}
+			if !strings.Contains(err.Error(), tt.expectError) {
+				t.Errorf("expected error containing %q, got: %v", tt.expectError, err)
+			}
+		})
+	}
+}

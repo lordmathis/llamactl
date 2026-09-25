@@ -123,6 +123,62 @@ instances:
 	}
 }
 
+func TestLoadConfig_CustomBackends(t *testing.T) {
+	cfg, err := config.LoadConfig("nonexistent-file.yaml")
+	if err != nil {
+		t.Fatalf("LoadConfig should not error with defaults: %v", err)
+	}
+	if cfg.Backends.Custom == nil {
+		t.Fatal("Expected default Custom map to be non-nil")
+	}
+	if len(cfg.Backends.Custom) != 0 {
+		t.Errorf("Expected default Custom map to be empty, got %v", cfg.Backends.Custom)
+	}
+
+	tempDir := t.TempDir()
+	configFile := filepath.Join(tempDir, "custom-backends.yaml")
+
+	configContent := `
+backends:
+  custom:
+    splash:
+      command: splash
+      args: ["serve"]
+    ollama:
+      command: ollama
+      args: ["serve"]
+      environment:
+        OLLAMA_DEBUG: "1"
+`
+
+	err = os.WriteFile(configFile, []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	cfg, err = config.LoadConfig(configFile)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	if len(cfg.Backends.Custom) != 2 {
+		t.Fatalf("Expected 2 custom backends, got %d", len(cfg.Backends.Custom))
+	}
+
+	splash := cfg.Backends.Custom["splash"]
+	if splash.Command != "splash" {
+		t.Errorf("Expected splash command 'splash', got %q", splash.Command)
+	}
+	if len(splash.Args) != 1 || splash.Args[0] != "serve" {
+		t.Errorf("Expected splash args ['serve'], got %v", splash.Args)
+	}
+
+	ollama := cfg.Backends.Custom["ollama"]
+	if ollama.Environment["OLLAMA_DEBUG"] != "1" {
+		t.Errorf("Expected ollama env OLLAMA_DEBUG=1, got %v", ollama.Environment)
+	}
+}
+
 func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 	// Set environment variables
 	envVars := map[string]string{

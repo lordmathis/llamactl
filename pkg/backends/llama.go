@@ -347,6 +347,10 @@ func (o *LlamaServerOptions) GetHost() string {
 	return o.Host
 }
 
+func (o *LlamaServerOptions) GetHealthPath() string {
+	return "/health"
+}
+
 func (o *LlamaServerOptions) Validate() error {
 	// Allow nil options for router mode where llama.cpp manages models dynamically
 	if o == nil {

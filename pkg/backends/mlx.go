@@ -88,6 +88,10 @@ func (o *MlxServerOptions) GetHost() string {
 	return o.Host
 }
 
+func (o *MlxServerOptions) GetHealthPath() string {
+	return "/health"
+}
+
 func (o *MlxServerOptions) Validate() error {
 	if o == nil {
 		return validation.ValidationError(fmt.Errorf("MLX server options cannot be nil for MLX backend"))
