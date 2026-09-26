@@ -139,12 +139,12 @@ func TestCustomValidate(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "model placeholder without model",
+			name: "model placeholder is validated by the manager against merged args",
 			options: &backends.CustomServerOptions{
 				Name: "x",
 				Args: []string{"--model", "{model}"},
 			},
-			expectErr: true,
+			expectErr: false,
 		},
 		{
 			name: "valid options",

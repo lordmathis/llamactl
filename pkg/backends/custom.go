@@ -3,7 +3,6 @@ package backends
 import (
 	"fmt"
 	"llamactl/pkg/validation"
-	"slices"
 	"strconv"
 	"strings"
 )
@@ -69,13 +68,6 @@ func (o *CustomServerOptions) Validate() error {
 
 	if o.Port < 0 || o.Port > 65535 {
 		return validation.ValidationError(fmt.Errorf("invalid port range: %d", o.Port))
-	}
-
-	hasModelPlaceholder := slices.ContainsFunc(o.Args, func(arg string) bool {
-		return strings.Contains(arg, "{model}")
-	})
-	if hasModelPlaceholder && o.Model == "" {
-		return validation.ValidationError(fmt.Errorf("custom backend args use the {model} placeholder but no model is set"))
 	}
 
 	return nil

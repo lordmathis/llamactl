@@ -558,6 +558,7 @@ func (im *instanceManager) setPortInOptions(options *instance.Options, port int)
 // validateCustomBackend checks custom backend instances against config:
 // the referenced backends.custom.<name> entry must exist, provide a
 // command, and the merged args must contain the {port} placeholder.
+// If the merged args use the {model} placeholder, a model must be set.
 // The options struct itself has no access to config, so this runs here.
 func (im *instanceManager) validateCustomBackend(options *instance.Options) error {
 	if options.BackendOptions.BackendType != backends.BackendTypeCustom {
@@ -588,6 +589,13 @@ func (im *instanceManager) validateCustomBackend(options *instance.Options) erro
 	})
 	if !hasPortPlaceholder {
 		return validation.ValidationError(fmt.Errorf("custom backend '%s' args must contain the {port} placeholder so the server learns its port", customOpts.Name))
+	}
+
+	hasModelPlaceholder := slices.ContainsFunc(mergedArgs, func(arg string) bool {
+		return strings.Contains(arg, "{model}")
+	})
+	if hasModelPlaceholder && customOpts.Model == "" {
+		return validation.ValidationError(fmt.Errorf("custom backend '%s' args use the {model} placeholder but no model is set", customOpts.Name))
 	}
 
 	return nil

@@ -369,6 +369,7 @@ func createCustomTestManager(t *testing.T) manager.InstanceManager {
 		"splash":      {Command: "splash", Args: []string{"serve"}},
 		"portless":    {Command: "some-server", Args: []string{"--verbose"}},
 		"commandless": {Args: []string{"--port", "{port}"}},
+		"modely":      {Command: "some-server", Args: []string{"serve", "--model", "{model}", "--port", "{port}"}},
 	}
 
 	db, err := database.Open(&database.Config{
@@ -428,6 +429,26 @@ func TestCreateInstance_CustomBackendValidation(t *testing.T) {
 			instance:    "no-command",
 			customOpts:  &backends.CustomServerOptions{Name: "commandless"},
 			expectError: "no command configured",
+		},
+		{
+			name:        "model placeholder in config args without model",
+			instance:    "no-model",
+			customOpts:  &backends.CustomServerOptions{Name: "modely"},
+			expectError: "{model}",
+		},
+		{
+			name:        "model placeholder in instance args without model",
+			instance:    "no-model-instance-args",
+			customOpts:  &backends.CustomServerOptions{Name: "splash", Args: []string{"--model", "{model}", "--port", "{port}"}},
+			expectError: "{model}",
+		},
+		{
+			name:     "model placeholder with model set",
+			instance: "model-ok",
+			customOpts: &backends.CustomServerOptions{
+				Name:  "modely",
+				Model: "org/model",
+			},
 		},
 	}
 
