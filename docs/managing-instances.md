@@ -142,7 +142,35 @@ curl -X POST http://localhost:8080/api/v1/instances/my-mlx-instance \
     },
     "nodes": ["main"]
   }'
+
+# Create custom backend instance
+curl -X POST http://localhost:8080/api/v1/instances/my-custom-instance \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "backend_type": "custom",
+    "backend_options": {
+      "name": "my-engine",
+      "model": "org/model-name",
+      "args": ["--port", "{port}"],
+      "health_path": "/ready"
+    },
+    "nodes": ["main"]
+  }'
 ```
+
+Custom backend instances reference a `backends.custom.<name>` entry from the [configuration](configuration.md#custom-backends). Their options:
+
+- `name` (required): the config entry to use.
+- `args`: instance-level arguments, appended after the entry's configured `args`.
+- `model`: model identifier reported to OpenAI-compatible clients.
+- `host` / `port`: where llamactl reaches the server (proxy and health checks). Leave `port` empty for automatic allocation.
+- `health_path`: path that returns HTTP 200 when the server is ready (default `/health`).
+
+When the instance starts, the entry's default arguments are prepended to the instance arguments and two placeholders are replaced:
+
+- `{port}` — the port assigned to the instance. The combined arguments must contain it somewhere, otherwise the server has no way to learn its port and instance creation is rejected.
+- `{model}` — the model identifier of the instance. Optional; if the arguments use it, the instance must have a model set.
 
 ## Start Instance
 
