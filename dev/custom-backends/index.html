@@ -12,22 +12,28 @@
         <meta name="author" content="Llamactl Team">
       
       
+        <link rel="canonical" href="https://llamactl.org/dev/custom-backends/">
       
       
+        <link rel="prev" href="../managing-models/">
       
-      <link rel="icon" href="/dev/assets/images/favicon.png">
+      
+        <link rel="next" href="../api-keys/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.22">
     
     
       
-        <title>Llamactl Documentation</title>
+        <title>Custom Backends - Llamactl Documentation</title>
       
     
     
-      <link rel="stylesheet" href="/dev/assets/stylesheets/main.84d31ad4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.84d31ad4.min.css">
       
         
-        <link rel="stylesheet" href="/dev/assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,9 +52,9 @@
       
     
     
-      <link rel="stylesheet" href="/dev/css/css-v1.1.3.css">
+      <link rel="stylesheet" href="../css/css-v1.1.3.css">
     
-    <script>__md_scope=new URL("/dev",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -73,6 +79,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#custom-backends" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -89,7 +100,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/dev/." title="Llamactl Documentation" class="md-header__button md-logo" aria-label="Llamactl Documentation" data-md-component="logo">
+    <a href=".." title="Llamactl Documentation" class="md-header__button md-logo" aria-label="Llamactl Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -109,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Custom Backends
             
           </span>
         </div>
@@ -219,7 +230,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/dev/." class="md-tabs__link">
+      <a href=".." class="md-tabs__link">
         
   
   
@@ -238,7 +249,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/dev/installation/" class="md-tabs__link">
+      <a href="../installation/" class="md-tabs__link">
         
   
   
@@ -257,7 +268,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/dev/quick-start/" class="md-tabs__link">
+      <a href="../quick-start/" class="md-tabs__link">
         
   
   
@@ -276,7 +287,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/dev/configuration/" class="md-tabs__link">
+      <a href="../configuration/" class="md-tabs__link">
         
   
   
@@ -295,7 +306,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/dev/managing-instances/" class="md-tabs__link">
+      <a href="../managing-instances/" class="md-tabs__link">
         
   
   
@@ -314,7 +325,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/dev/managing-models/" class="md-tabs__link">
+      <a href="../managing-models/" class="md-tabs__link">
         
   
   
@@ -331,9 +342,11 @@
   
   
   
+    
   
-    <li class="md-tabs__item">
-      <a href="/dev/custom-backends/" class="md-tabs__link">
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
         
   
   
@@ -352,7 +365,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/dev/api-keys/" class="md-tabs__link">
+      <a href="../api-keys/" class="md-tabs__link">
         
   
   
@@ -371,7 +384,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/dev/api-reference/" class="md-tabs__link">
+      <a href="../api-reference/" class="md-tabs__link">
         
   
   
@@ -390,7 +403,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/dev/troubleshooting/" class="md-tabs__link">
+      <a href="../troubleshooting/" class="md-tabs__link">
         
   
   
@@ -433,7 +446,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/dev/." title="Llamactl Documentation" class="md-nav__button md-logo" aria-label="Llamactl Documentation" data-md-component="logo">
+    <a href=".." title="Llamactl Documentation" class="md-nav__button md-logo" aria-label="Llamactl Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -463,7 +476,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/dev/." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -485,7 +498,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/dev/installation/" class="md-nav__link">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -507,7 +520,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/dev/quick-start/" class="md-nav__link">
+      <a href="../quick-start/" class="md-nav__link">
         
   
   
@@ -529,7 +542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/dev/configuration/" class="md-nav__link">
+      <a href="../configuration/" class="md-nav__link">
         
   
   
@@ -551,7 +564,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/dev/managing-instances/" class="md-nav__link">
+      <a href="../managing-instances/" class="md-nav__link">
         
   
   
@@ -573,7 +586,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/dev/managing-models/" class="md-nav__link">
+      <a href="../managing-models/" class="md-nav__link">
         
   
   
@@ -592,10 +605,32 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/dev/custom-backends/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Custom Backends
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -606,6 +641,53 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      How It Works
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-an-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating an Instance
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#health-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Health Checks
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -617,7 +699,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/dev/api-keys/" class="md-nav__link">
+      <a href="../api-keys/" class="md-nav__link">
         
   
   
@@ -639,7 +721,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/dev/api-reference/" class="md-nav__link">
+      <a href="../api-reference/" class="md-nav__link">
         
   
   
@@ -661,7 +743,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/dev/troubleshooting/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
@@ -688,8 +770,67 @@
             <div class="md-content" data-md-component="content">
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="custom-backends">Custom Backends<a class="headerlink" href="#custom-backends" title="Permanent link">&para;</a></h1>
+<p>Custom backends provide support for inference servers without native llamactl integration. Any server can be managed (launched, health-checked, proxied, and evicted) by defining it as a named entry in the config file.  </p>
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p>A custom backend is a named entry under <code>backends.custom</code> in the config file; instances reference the entry by name, and llamactl runs the configured command with the instance's arguments. The available fields are documented in <a href="../configuration/#custom-backends">Backend Configuration</a>.  </p>
+<p>The managed server must meet three requirements:  </p>
+<ul>
+<li>It starts an HTTP server that listens on a TCP port.  </li>
+<li>It serves inference endpoints under <code>/v1/</code>. All <code>POST /v1/*</code> requests are proxied to the instance, so OpenAI-style (<code>/v1/chat/completions</code>, <code>/v1/responses</code>) and Anthropic-style (<code>/v1/messages</code>) conventions all work.  </li>
+<li>It exposes a health endpoint that returns a 2xx response when the server is ready (see <a href="#health-checks">Health Checks</a>).  </li>
+</ul>
+<p>The server learns its port through the <code>{port}</code> placeholder in its arguments — llamactl has no other way to communicate it.  </p>
+<h2 id="creating-an-instance">Creating an Instance<a class="headerlink" href="#creating-an-instance" title="Permanent link">&para;</a></h2>
+<p>Instances of a custom backend are created like any other instance, with <code>backend_type: "custom"</code>; see <a href="../managing-instances/">Managing Instances</a> for the API examples and instance options. In the web UI, each configured name appears in the backend dropdown.  </p>
+<p>The launched command receives arguments from two places: the entry's <code>args</code> first, then the instance's <code>args</code>. Both support two placeholders, substituted when the instance starts:  </p>
+<ul>
+<li><code>{port}</code> — the port assigned to the instance. The combined arguments must contain it somewhere, otherwise the server cannot learn its port and instance creation is rejected.  </li>
+<li><code>{model}</code> — the model identifier of the instance. Optional; if the arguments use it, the instance must have a model set.  </li>
+</ul>
+<h2 id="health-checks">Health Checks<a class="headerlink" href="#health-checks" title="Permanent link">&para;</a></h2>
+<p>After launching the command, llamactl polls the entry's <code>health_path</code> until it returns a 2xx response, and only then marks the instance ready.  </p>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 26, 2026 21:04:14 UTC">September 26, 2026</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -747,10 +888,10 @@
     
     
       
-      <script id="__config" type="application/json">{"base": "/dev", "features": ["navigation.tabs", "navigation.tabs.sticky", "toc.integrate", "navigation.top", "search.highlight", "search.share", "content.code.copy"], "search": "/dev/assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "stable", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "toc.integrate", "navigation.top", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "stable", "provider": "mike"}}</script>
     
     
-      <script src="/dev/assets/javascripts/bundle.f55a23d4.min.js"></script>
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
       
     
   </body>

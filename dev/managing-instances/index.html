@@ -346,6 +346,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../custom-backends/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Custom Backends
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../api-keys/" class="md-tabs__link">
         
   
@@ -673,6 +692,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#custom-backends" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom Backends
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -895,6 +923,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../custom-backends/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Custom Backends
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../api-keys/" class="md-nav__link">
         
   
@@ -1059,6 +1109,15 @@
 <li>Add <strong>Extra Args</strong> as key-value pairs for custom command-line arguments  </li>
 <li>Click <strong>"Create Instance"</strong> to save the instance  </li>
 </ol>
+<h3 id="custom-backends">Custom Backends<a class="headerlink" href="#custom-backends" title="Permanent link">&para;</a></h3>
+<p>Custom backend instances reference a <code>backends.custom.&lt;name&gt;</code> entry from the <a href="../configuration/#custom-backends">configuration</a>; each configured name appears in the backend dropdown. Their options:  </p>
+<ul>
+<li><code>name</code> (required): the config entry to use.  </li>
+<li><code>args</code>: instance-level arguments, appended after the entry's configured <code>args</code>.  </li>
+<li><code>model</code>: model identifier reported to OpenAI-compatible clients.  </li>
+<li><code>host</code> / <code>port</code>: where llamactl reaches the server (proxy and health checks). Leave <code>port</code> empty for automatic allocation.  </li>
+</ul>
+<p>The <code>{port}</code> and <code>{model}</code> placeholders are substituted at start; see <a href="../custom-backends/">Custom Backends</a> for how they work.  </p>
 <p><strong>Via API</strong>  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Create llama.cpp instance with local model file</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-llama-instance<span class="w"> </span><span class="se">\</span>
@@ -1111,6 +1170,20 @@
 <a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="s1">    },</span>
 <a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="s1">    &quot;nodes&quot;: [&quot;main&quot;]</span>
 <a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="s1">  }&#39;</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>
+<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="c1"># Create custom backend instance</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/api/v1/instances/my-custom-instance<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a><span class="s1">    &quot;backend_type&quot;: &quot;custom&quot;,</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a><span class="s1">    &quot;backend_options&quot;: {</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a><span class="s1">      &quot;name&quot;: &quot;my-engine&quot;,</span>
+<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a><span class="s1">      &quot;model&quot;: &quot;org/model-name&quot;,</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a><span class="s1">      &quot;args&quot;: [&quot;--port&quot;, &quot;{port}&quot;]</span>
+<a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a><span class="s1">    },</span>
+<a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a><span class="s1">    &quot;nodes&quot;: [&quot;main&quot;]</span>
+<a id="__codelineno-0-65" name="__codelineno-0-65" href="#__codelineno-0-65"></a><span class="s1">  }&#39;</span>
 </code></pre></div>
 <h2 id="start-instance">Start Instance<a class="headerlink" href="#start-instance" title="Permanent link">&para;</a></h2>
 <p><strong>Via Web UI</strong><br />
@@ -1344,7 +1417,7 @@ Check instance status in real-time:  </p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 15, 2026 18:28:44 UTC">April 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 26, 2026 19:02:40 UTC">September 26, 2026</span>
   </span>
 
     
