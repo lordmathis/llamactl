@@ -86,6 +86,9 @@ const ParseCommandDialog: React.FC<ParseCommandDialogProps> = ({
     [BackendType.LLAMA_CPP]: "llama-server --model /path/to/model.gguf --gpu-layers 32 --ctx-size 4096",
     [BackendType.MLX_LM]: "mlx_lm.server --model mlx-community/Mistral-7B-Instruct-v0.3-4bit --host 0.0.0.0 --port 8080",
     [BackendType.VLLM]: "vllm serve microsoft/DialoGPT-medium --tensor-parallel-size 2 --gpu-memory-utilization 0.9",
+    // Custom backends have no flag grammar to parse; empty string makes
+    // getPlaceholderForBackend fall through to the generic placeholder
+    [BackendType.CUSTOM]: "",
   };
 
   const getPlaceholderForBackend = (backendType: BackendTypeValue): string => {

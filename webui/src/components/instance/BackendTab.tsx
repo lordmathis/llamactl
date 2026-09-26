@@ -69,11 +69,18 @@ const BackendTab: React.FC<BackendTabProps> = ({
     }
   }
 
+  const configuredNames = Object.keys(customBackends)
+  // Keep an existing selection resolvable even if its config entry was
+  // removed after creation; the server rejects the save with a clear error
+  if (isCustom && customName && !configuredNames.includes(customName)) {
+    configuredNames.push(customName)
+  }
+
   const backendTypeOptions = [
     { value: BackendType.LLAMA_CPP, label: 'Llama Server' },
     { value: BackendType.MLX_LM, label: 'MLX LM' },
     { value: BackendType.VLLM, label: 'vLLM' },
-    ...Object.keys(customBackends).map((name) => ({
+    ...configuredNames.map((name) => ({
       value: `${CUSTOM_OPTION_PREFIX}${name}`,
       label: name,
     })),

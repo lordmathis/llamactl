@@ -435,7 +435,7 @@ func TestCreateInstance_CustomBackendValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			options := &instance.Options{
 				BackendOptions: backends.Options{
-					BackendType:          backends.BackendTypeCustom,
+					BackendType:         backends.BackendTypeCustom,
 					CustomServerOptions: tt.customOpts,
 				},
 			}

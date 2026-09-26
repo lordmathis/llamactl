@@ -149,9 +149,10 @@ func TestCustomValidate(t *testing.T) {
 		{
 			name: "valid options",
 			options: &backends.CustomServerOptions{
-				Name: "x",
-				Args: []string{"serve", "--model", "{model}", "--port", "{port}"},
-				Port: 8123,
+				Name:  "x",
+				Model: "org/model",
+				Args:  []string{"serve", "--model", "{model}", "--port", "{port}"},
+				Port:  8123,
 			},
 			expectErr: false,
 		},
@@ -186,7 +187,9 @@ func TestCustomOptionsJSONRoundTrip(t *testing.T) {
 		},
 	}
 
-	data, err := json.Marshal(opts)
+	// Marshal a pointer: MarshalJSON has a pointer receiver, so marshaling
+	// the value would silently skip it and drop backend_options.
+	data, err := json.Marshal(&opts)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)
 	}
