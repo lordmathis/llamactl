@@ -555,11 +555,9 @@ func (im *instanceManager) setPortInOptions(options *instance.Options, port int)
 	options.BackendOptions.SetPort(port)
 }
 
-// validateCustomBackend checks custom backend instances against config:
-// the referenced backends.custom.<name> entry must exist, provide a
-// command, and the merged args must contain the {port} placeholder.
-// If the merged args use the {model} placeholder, a model must be set.
-// The options struct itself has no access to config, so this runs here.
+// validateCustomBackend checks the backends.custom.<name> entry exists and
+// provides a command; merged args must contain {port}, and {model} requires
+// a model set. Runs in the manager because options lack config access.
 func (im *instanceManager) validateCustomBackend(options *instance.Options) error {
 	if options.BackendOptions.BackendType != backends.BackendTypeCustom {
 		return nil

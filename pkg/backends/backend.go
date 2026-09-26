@@ -127,6 +127,9 @@ func (o *Options) setBackendOptions(bcknd backend) {
 }
 
 func (o *Options) getBackendSettings(backendConfig *config.BackendConfig) *config.BackendSettings {
+	if backendConfig == nil {
+		return nil
+	}
 	switch o.BackendType {
 	case BackendTypeLlamaCpp:
 		return &backendConfig.LlamaCpp
@@ -141,9 +144,7 @@ func (o *Options) getBackendSettings(backendConfig *config.BackendConfig) *confi
 	}
 }
 
-// getCustomBackendSettings resolves the named backends.custom.<name> entry.
-// Unknown names return zero-value settings instead of nil so GetCommand
-// cannot panic on instances whose config entry was removed after creation.
+// getCustomBackendSettings resolves the named backends.custom.<name> entry
 func (o *Options) getCustomBackendSettings(backendConfig *config.BackendConfig) *config.BackendSettings {
 	if o.CustomServerOptions == nil {
 		return &config.BackendSettings{}
@@ -296,13 +297,9 @@ func (o *Options) GetHost() string {
 	return "localhost"
 }
 
-// GetHealthPath resolves the health check path from backend config.
-// It is a property of the server software, not of a specific instance,
-// so it lives in backends.<type>.health_path (default: /health).
+// GetHealthPath returns the configured health check path, defaulting to
+// /health and prefixing the slash if the user omitted it.
 func (o *Options) GetHealthPath(backendConfig *config.BackendConfig) string {
-	if backendConfig == nil {
-		return "/health"
-	}
 	backendSettings := o.getBackendSettings(backendConfig)
 	if backendSettings == nil || backendSettings.HealthPath == "" {
 		return "/health"

@@ -65,6 +65,10 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.Instances.DefaultRestartDelay != 5 {
 		t.Errorf("Expected default restart delay 5, got %d", cfg.Instances.DefaultRestartDelay)
 	}
+	if cfg.Backends.LlamaCpp.HealthPath != "/health" || cfg.Backends.VLLM.HealthPath != "/health" || cfg.Backends.MLX.HealthPath != "/health" {
+		t.Errorf("Expected default health path /health for all built-in backends, got llama=%q vllm=%q mlx=%q",
+			cfg.Backends.LlamaCpp.HealthPath, cfg.Backends.VLLM.HealthPath, cfg.Backends.MLX.HealthPath)
+	}
 }
 
 func TestLoadConfig_FromFile(t *testing.T) {
@@ -141,14 +145,14 @@ func TestLoadConfig_CustomBackends(t *testing.T) {
 	configContent := `
 backends:
   custom:
-    splash:
-      command: splash
+    my-engine:
+      command: my-server
       args: ["serve"]
-    ollama:
-      command: ollama
+    other-engine:
+      command: other-server
       args: ["serve"]
       environment:
-        OLLAMA_DEBUG: "1"
+        ENGINE_DEBUG: "1"
 `
 
 	err = os.WriteFile(configFile, []byte(configContent), 0644)
@@ -165,17 +169,17 @@ backends:
 		t.Fatalf("Expected 2 custom backends, got %d", len(cfg.Backends.Custom))
 	}
 
-	splash := cfg.Backends.Custom["splash"]
-	if splash.Command != "splash" {
-		t.Errorf("Expected splash command 'splash', got %q", splash.Command)
+	engine := cfg.Backends.Custom["my-engine"]
+	if engine.Command != "my-server" {
+		t.Errorf("Expected my-engine command 'my-server', got %q", engine.Command)
 	}
-	if len(splash.Args) != 1 || splash.Args[0] != "serve" {
-		t.Errorf("Expected splash args ['serve'], got %v", splash.Args)
+	if len(engine.Args) != 1 || engine.Args[0] != "serve" {
+		t.Errorf("Expected my-engine args ['serve'], got %v", engine.Args)
 	}
 
-	ollama := cfg.Backends.Custom["ollama"]
-	if ollama.Environment["OLLAMA_DEBUG"] != "1" {
-		t.Errorf("Expected ollama env OLLAMA_DEBUG=1, got %v", ollama.Environment)
+	other := cfg.Backends.Custom["other-engine"]
+	if other.Environment["ENGINE_DEBUG"] != "1" {
+		t.Errorf("Expected other-engine env ENGINE_DEBUG=1, got %v", other.Environment)
 	}
 }
 

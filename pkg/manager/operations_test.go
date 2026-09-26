@@ -366,7 +366,7 @@ func TestGetInstance_NotFoundReturnsSentinel(t *testing.T) {
 func createCustomTestManager(t *testing.T) manager.InstanceManager {
 	appConfig := createTestAppConfig(t.TempDir())
 	appConfig.Backends.Custom = map[string]config.BackendSettings{
-		"splash":      {Command: "splash", Args: []string{"serve"}},
+		"my-engine":      {Command: "my-engine", Args: []string{"serve"}},
 		"portless":    {Command: "some-server", Args: []string{"--verbose"}},
 		"commandless": {Args: []string{"--port", "{port}"}},
 		"modely":      {Command: "some-server", Args: []string{"serve", "--model", "{model}", "--port", "{port}"}},
@@ -398,9 +398,9 @@ func TestCreateInstance_CustomBackendValidation(t *testing.T) {
 	}{
 		{
 			name:     "valid custom backend",
-			instance: "splash-ok",
+			instance: "my-engine-ok",
 			customOpts: &backends.CustomServerOptions{
-				Name: "splash",
+				Name: "my-engine",
 				Args: []string{"--port", "{port}"},
 			},
 		},
@@ -421,7 +421,7 @@ func TestCreateInstance_CustomBackendValidation(t *testing.T) {
 		{
 			name:        "missing port placeholder",
 			instance:    "no-port",
-			customOpts:  &backends.CustomServerOptions{Name: "splash"},
+			customOpts:  &backends.CustomServerOptions{Name: "my-engine"},
 			expectError: "{port}",
 		},
 		{
@@ -439,7 +439,7 @@ func TestCreateInstance_CustomBackendValidation(t *testing.T) {
 		{
 			name:        "model placeholder in instance args without model",
 			instance:    "no-model-instance-args",
-			customOpts:  &backends.CustomServerOptions{Name: "splash", Args: []string{"--model", "{model}", "--port", "{port}"}},
+			customOpts:  &backends.CustomServerOptions{Name: "my-engine", Args: []string{"--model", "{model}", "--port", "{port}"}},
 			expectError: "{model}",
 		},
 		{

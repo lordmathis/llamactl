@@ -24,6 +24,7 @@ func getDefaultConfig(dataDir string) AppConfig {
 				Command:         "llama-server",
 				Args:            []string{},
 				Environment:     map[string]string{},
+				HealthPath:      "/health",
 				CacheDir:        getDefaultLlamaCacheDir(),
 				DownloadTimeout: 3600 * time.Second,
 				Docker: &DockerSettings{
@@ -36,8 +37,9 @@ func getDefaultConfig(dataDir string) AppConfig {
 				},
 			},
 			VLLM: BackendSettings{
-				Command: "vllm",
-				Args:    []string{"serve"},
+				Command:    "vllm",
+				Args:       []string{"serve"},
+				HealthPath: "/health",
 				Docker: &DockerSettings{
 					Enabled: false,
 					Image:   "vllm/vllm-openai:latest",
@@ -49,8 +51,9 @@ func getDefaultConfig(dataDir string) AppConfig {
 				},
 			},
 			MLX: BackendSettings{
-				Command: "mlx_lm.server",
-				Args:    []string{},
+				Command:    "mlx_lm.server",
+				Args:       []string{},
+				HealthPath: "/health",
 				// No Docker section for MLX - not supported
 			},
 			Custom: map[string]BackendSettings{},

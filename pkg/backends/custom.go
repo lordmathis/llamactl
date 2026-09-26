@@ -62,9 +62,7 @@ func (o *CustomServerOptions) Validate() error {
 	return nil
 }
 
-// BuildCommandArgs returns the instance args with {port} and {model}
-// substituted. The original Args slice is never modified because options
-// are persisted and rebuilt on every command construction.
+// BuildCommandArgs returns the instance args with {port} and {model} substituted.
 func (o *CustomServerOptions) BuildCommandArgs() []string {
 	if o == nil {
 		return []string{}

@@ -299,7 +299,8 @@ func (p *process) waitForHealthy(timeout int) error {
 		}
 		defer resp.Body.Close()
 
-		return resp.StatusCode == http.StatusOK
+		// Any 2xx counts as healthy; some servers return 204.
+		return resp.StatusCode >= 200 && resp.StatusCode < 300
 	}
 
 	// Try immediate check first
@@ -479,6 +480,9 @@ func (p *process) buildCommand() (*exec.Cmd, error) {
 
 	// Get the command to execute
 	command := p.instance.getCommand()
+	if command == "" {
+		return nil, fmt.Errorf("instance %s has no backend command configured (was its backends.custom.<name> entry removed from the config?)", p.instance.Name)
+	}
 
 	// Build command arguments
 	args := p.instance.buildCommandArgs()

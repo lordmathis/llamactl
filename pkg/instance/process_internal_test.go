@@ -7,19 +7,21 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 )
 
-// waitForHealthy is unexported, so this internal test exercises it directly
-// to prove the backend-configured health path flows through (spec: custom
-// backends). The server returns 200 only on the custom path, 404 on /health.
+// Server returns 200 only on the custom path, 404 elsewhere.
 func TestWaitForHealthy_CustomHealthPath(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/ready" {
+		switch r.URL.Path {
+		case "/ready":
 			w.WriteHeader(http.StatusOK)
-			return
+		case "/nocontent":
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
 		}
-		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
 
@@ -62,6 +64,12 @@ func TestWaitForHealthy_CustomHealthPath(t *testing.T) {
 		}
 	})
 
+	t.Run("204 No Content counts as healthy", func(t *testing.T) {
+		if err := newTestInstance("/nocontent").process.waitForHealthy(2); err != nil {
+			t.Errorf("expected healthy on 204 path, got: %v", err)
+		}
+	})
+
 	t.Run("path other than the configured one times out", func(t *testing.T) {
 		// The server 404s /health; success here would mean the
 		// configured path was ignored and /health was probed anyway.
@@ -69,4 +77,26 @@ func TestWaitForHealthy_CustomHealthPath(t *testing.T) {
 			t.Error("expected timeout on /health (server returns 404), got healthy")
 		}
 	})
+}
+
+func TestBuildCommand_RemovedCustomEntryReturnsError(t *testing.T) {
+	inst := &Instance{Name: "gone"}
+	inst.options = newOptions(&Options{
+		BackendOptions: backends.Options{
+			BackendType:         backends.BackendTypeCustom,
+			CustomServerOptions: &backends.CustomServerOptions{Name: "gone"},
+		},
+	})
+	inst.globalBackendSettings = &config.BackendConfig{
+		Custom: map[string]config.BackendSettings{},
+	}
+	inst.process = newProcess(inst)
+
+	_, err := inst.process.buildCommand()
+	if err == nil {
+		t.Fatal("expected error for removed custom backend entry, got none")
+	}
+	if !strings.Contains(err.Error(), "no backend command configured") {
+		t.Errorf("expected clear error message, got: %v", err)
+	}
 }
