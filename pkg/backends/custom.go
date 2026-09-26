@@ -62,20 +62,25 @@ func (o *CustomServerOptions) Validate() error {
 	return nil
 }
 
-// BuildCommandArgs returns the instance args with {port} and {model} substituted.
-func (o *CustomServerOptions) BuildCommandArgs() []string {
+// SubstituteArgs returns a copy of args with {port} and {model} replaced.
+// The input slice is never modified.
+func (o *CustomServerOptions) SubstituteArgs(args []string) []string {
 	if o == nil {
 		return []string{}
 	}
 
-	args := make([]string, len(o.Args))
-	for i, arg := range o.Args {
+	out := make([]string, len(args))
+	for i, arg := range args {
 		arg = strings.ReplaceAll(arg, "{port}", strconv.Itoa(o.Port))
 		arg = strings.ReplaceAll(arg, "{model}", o.Model)
-		args[i] = arg
+		out[i] = arg
 	}
 
-	return args
+	return out
+}
+
+func (o *CustomServerOptions) BuildCommandArgs() []string {
+	return o.SubstituteArgs(o.Args)
 }
 
 func (o *CustomServerOptions) BuildDockerArgs() []string {

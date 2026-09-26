@@ -240,6 +240,11 @@ func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig, dockerEn
 		args = append(args, backend.BuildCommandArgs()...)
 	}
 
+	// Custom backends: config-level args may also contain {port}/{model}
+	if o.BackendType == BackendTypeCustom {
+		args = o.CustomServerOptions.SubstituteArgs(args)
+	}
+
 	return args
 }
 

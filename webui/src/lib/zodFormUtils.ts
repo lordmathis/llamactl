@@ -134,7 +134,7 @@ const basicCustomFieldsConfig: Record<string, {
   },
   args: {
     label: 'Arguments',
-    placeholder: 'serve, --port, {port}',
+    placeholder: 'serve --port {port}',
     description: 'Arguments appended after the config args; {port} is required so the server learns its port'
   }
 }

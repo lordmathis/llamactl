@@ -176,18 +176,18 @@ func TestCustomGetCommandAndBuildCommandArgs(t *testing.T) {
 		Custom: map[string]config.BackendSettings{
 			"my-engine": {
 				Command: "my-engine",
-				Args:    []string{"serve"},
+				Args:    []string{"serve", "--port", "{port}"},
 			},
 		},
 	}
 
-	t.Run("known name resolves command and merges args", func(t *testing.T) {
+	t.Run("known name resolves command and substitutes placeholders in config args", func(t *testing.T) {
 		opts := backends.Options{
 			BackendType: backends.BackendTypeCustom,
 			CustomServerOptions: &backends.CustomServerOptions{
 				Name: "my-engine",
 				Port: 8456,
-				Args: []string{"--port", "{port}"},
+				Args: []string{"--verbose"},
 			},
 		}
 
@@ -196,7 +196,7 @@ func TestCustomGetCommandAndBuildCommandArgs(t *testing.T) {
 		}
 
 		args := opts.BuildCommandArgs(backendConfig, nil)
-		expected := []string{"serve", "--port", "8456"}
+		expected := []string{"serve", "--port", "8456", "--verbose"}
 		if !reflect.DeepEqual(args, expected) {
 			t.Errorf("BuildCommandArgs() = %v, want %v", args, expected)
 		}

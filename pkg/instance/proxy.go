@@ -128,7 +128,7 @@ func (p *proxy) build() (*httputil.ReverseProxy, error) {
 			req.Header.Set("Authorization", "Bearer "+p.apiKey)
 		}
 
-		// Update last request time
+		// Update last request time (including health checks)
 		p.updateLastRequestTime()
 	}
 
@@ -162,13 +162,21 @@ func (p *proxy) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	// Track inflight requests
-	p.incInflightRequests()
-	defer p.decInflightRequests()
+	// Track inflight requests (exclude health checks)
+	isHealth := p.isHealthRequest(r)
+	if !isHealth {
+		p.incInflightRequests()
+		defer p.decInflightRequests()
+	}
 
 	// Serve the request
 	reverseProxy.ServeHTTP(w, r)
 	return nil
+}
+
+// isHealthRequest checks if the request is a health check
+func (p *proxy) isHealthRequest(r *http.Request) bool {
+	return r.URL.Path == p.instance.GetHealthPath()
 }
 
 // clear resets the proxy, allowing it to be recreated when options change.
