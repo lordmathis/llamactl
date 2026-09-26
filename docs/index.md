@@ -19,6 +19,7 @@ Welcome to the Llamactl documentation!
 - [Quick Start](quick-start.md) - Your first steps with Llamactl
 - [Managing Instances](managing-instances.md) - Instance lifecycle management
 - [Managing Models](managing-models.md) - Download and manage models from HuggingFace
+- [Custom Backends](custom-backends.md) - Manage inference servers without native support
 - [API Reference](api-reference.md) - Complete API documentation
 
 

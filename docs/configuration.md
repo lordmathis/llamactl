@@ -230,7 +230,7 @@ backends:
 
 ### Custom Backends
 
-Custom backends provide support for arbitrary inference servers. The command must start an HTTP server on the assigned port that serves inference endpoints under `/v1/`, such as `/v1/chat/completions`, `/v1/responses`, or `/v1/messages` — all `POST /v1/*` requests are proxied to the instance. Each named entry under `backends.custom` accepts a command and optional default arguments, environment, and Docker settings:
+Custom backends are user-defined named entries under `backends.custom` for managing inference servers without native support. Each entry accepts the same fields as the built-in backends; see the [Custom Backends](custom-backends.md) guide for how they work.
 
 ```yaml
 backends:
@@ -248,7 +248,7 @@ backends:
       response_headers: {}         # Additional response headers to send with responses
 ```
 
-Default arguments are prepended to instance arguments and support the `{port}` and `{model}` placeholders; see [Managing Instances](managing-instances.md) for details.
+Configured `args` are prepended to instance arguments and support the `{port}` and `{model}` placeholders; see [Custom Backends](custom-backends.md) for details.
 
 !!! note
     - Custom backends are configured in the config file only; there are no environment variable overrides for them.
