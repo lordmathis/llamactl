@@ -6,9 +6,10 @@ import { Server, Package } from "lucide-react";
 interface BackendBadgeProps {
   backend?: BackendTypeValue;
   docker?: boolean;
+  customName?: string;
 }
 
-const BackendBadge: React.FC<BackendBadgeProps> = ({ backend, docker }) => {
+const BackendBadge: React.FC<BackendBadgeProps> = ({ backend, docker, customName }) => {
   if (!backend) {
     return null;
   }
@@ -21,6 +22,8 @@ const BackendBadge: React.FC<BackendBadgeProps> = ({ backend, docker }) => {
         return "MLX";
       case BackendType.VLLM:
         return "vLLM";
+      case BackendType.CUSTOM:
+        return customName || "custom";
       default:
         return backend;
     }
@@ -34,6 +37,8 @@ const BackendBadge: React.FC<BackendBadgeProps> = ({ backend, docker }) => {
         return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-800";
       case BackendType.VLLM:
         return "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-800";
+      case BackendType.CUSTOM:
+        return "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900 dark:text-indigo-200 dark:border-indigo-800";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-200 dark:border-gray-800";
     }

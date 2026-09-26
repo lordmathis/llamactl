@@ -6,6 +6,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/validation"
 	"maps"
+	"strings"
 )
 
 type BackendType string
@@ -14,6 +15,7 @@ const (
 	BackendTypeLlamaCpp BackendType = "llama_cpp"
 	BackendTypeMlxLm    BackendType = "mlx_lm"
 	BackendTypeVllm     BackendType = "vllm"
+	BackendTypeCustom   BackendType = "custom"
 	BackendTypeUnknown  BackendType = "unknown"
 )
 
@@ -32,6 +34,7 @@ var backendConstructors = map[BackendType]func() backend{
 	BackendTypeLlamaCpp: func() backend { return &LlamaServerOptions{} },
 	BackendTypeMlxLm:    func() backend { return &MlxServerOptions{} },
 	BackendTypeVllm:     func() backend { return &VllmServerOptions{} },
+	BackendTypeCustom:   func() backend { return &CustomServerOptions{} },
 }
 
 type Options struct {
@@ -39,9 +42,10 @@ type Options struct {
 	BackendOptions map[string]any `json:"backend_options,omitempty"`
 
 	// Backend-specific options
-	LlamaServerOptions *LlamaServerOptions `json:"-"`
-	MlxServerOptions   *MlxServerOptions   `json:"-"`
-	VllmServerOptions  *VllmServerOptions  `json:"-"`
+	LlamaServerOptions  *LlamaServerOptions  `json:"-"`
+	MlxServerOptions    *MlxServerOptions    `json:"-"`
+	VllmServerOptions   *VllmServerOptions   `json:"-"`
+	CustomServerOptions *CustomServerOptions `json:"-"`
 }
 
 func (o *Options) UnmarshalJSON(data []byte) error {
@@ -117,10 +121,15 @@ func (o *Options) setBackendOptions(bcknd backend) {
 		o.MlxServerOptions = v
 	case *VllmServerOptions:
 		o.VllmServerOptions = v
+	case *CustomServerOptions:
+		o.CustomServerOptions = v
 	}
 }
 
 func (o *Options) getBackendSettings(backendConfig *config.BackendConfig) *config.BackendSettings {
+	if backendConfig == nil {
+		return nil
+	}
 	switch o.BackendType {
 	case BackendTypeLlamaCpp:
 		return &backendConfig.LlamaCpp
@@ -128,9 +137,22 @@ func (o *Options) getBackendSettings(backendConfig *config.BackendConfig) *confi
 		return &backendConfig.MLX
 	case BackendTypeVllm:
 		return &backendConfig.VLLM
+	case BackendTypeCustom:
+		return o.getCustomBackendSettings(backendConfig)
 	default:
 		return nil
 	}
+}
+
+// getCustomBackendSettings resolves the named backends.custom.<name> entry
+func (o *Options) getCustomBackendSettings(backendConfig *config.BackendConfig) *config.BackendSettings {
+	if o.CustomServerOptions == nil {
+		return &config.BackendSettings{}
+	}
+	if settings, exists := backendConfig.Custom[o.CustomServerOptions.Name]; exists {
+		return &settings
+	}
+	return &config.BackendSettings{}
 }
 
 // getBackend returns the actual backend implementation
@@ -142,6 +164,8 @@ func (o *Options) getBackend() backend {
 		return o.MlxServerOptions
 	case BackendTypeVllm:
 		return o.VllmServerOptions
+	case BackendTypeCustom:
+		return o.CustomServerOptions
 	default:
 		return nil
 	}
@@ -216,6 +240,11 @@ func (o *Options) BuildCommandArgs(backendConfig *config.BackendConfig, dockerEn
 		args = append(args, backend.BuildCommandArgs()...)
 	}
 
+	// Custom backends: config-level args may also contain {port}/{model}
+	if o.BackendType == BackendTypeCustom {
+		args = o.CustomServerOptions.SubstituteArgs(args)
+	}
+
 	return args
 }
 
@@ -271,6 +300,19 @@ func (o *Options) GetHost() string {
 		return backend.GetHost()
 	}
 	return "localhost"
+}
+
+// GetHealthPath returns the configured health check path, defaulting to
+// /health and prefixing the slash if the user omitted it.
+func (o *Options) GetHealthPath(backendConfig *config.BackendConfig) string {
+	backendSettings := o.getBackendSettings(backendConfig)
+	if backendSettings == nil || backendSettings.HealthPath == "" {
+		return "/health"
+	}
+	if !strings.HasPrefix(backendSettings.HealthPath, "/") {
+		return "/" + backendSettings.HealthPath
+	}
+	return backendSettings.HealthPath
 }
 
 func (o *Options) GetResponseHeaders(backendConfig *config.BackendConfig) map[string]string {

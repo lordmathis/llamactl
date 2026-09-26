@@ -88,6 +88,17 @@ Configure advanced backend options:
 12. Add **Extra Args** as key-value pairs for custom command-line arguments
 13. Click **"Create Instance"** to save the instance  
 
+### Custom Backends
+
+Custom backend instances reference a `backends.custom.<name>` entry from the [configuration](configuration.md#custom-backends); each configured name appears in the backend dropdown. Their options:
+
+- `name` (required): the config entry to use.
+- `args`: instance-level arguments, appended after the entry's configured `args`.
+- `model`: model identifier reported to OpenAI-compatible clients.
+- `host` / `port`: where llamactl reaches the server (proxy and health checks). Leave `port` empty for automatic allocation.
+
+The `{port}` and `{model}` placeholders are substituted at start; see [Custom Backends](custom-backends.md) for how they work.
+
 **Via API**
 
 ```bash
@@ -139,6 +150,20 @@ curl -X POST http://localhost:8080/api/v1/instances/my-mlx-instance \
       "model": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
       "temp": 0.7,
       "max_tokens": 2048
+    },
+    "nodes": ["main"]
+  }'
+
+# Create custom backend instance
+curl -X POST http://localhost:8080/api/v1/instances/my-custom-instance \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "backend_type": "custom",
+    "backend_options": {
+      "name": "my-engine",
+      "model": "org/model-name",
+      "args": ["--port", "{port}"]
     },
     "nodes": ["main"]
   }'

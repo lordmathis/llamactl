@@ -6,6 +6,7 @@ export const BackendType = {
   LLAMA_CPP: 'llama_cpp',
   MLX_LM: 'mlx_lm',
   VLLM: 'vllm',
+  CUSTOM: 'custom',
   // MLX_VLM: 'mlx_vlm',  // Future expansion
 } as const
 

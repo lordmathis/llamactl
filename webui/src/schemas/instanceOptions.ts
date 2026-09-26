@@ -16,11 +16,17 @@ import {
   VllmBackendOptionsSchema,
   type VllmBackendOptions,
   getAllVllmFieldKeys,
-  getVllmFieldType
+  getVllmFieldType,
+  CustomBackendOptionsSchema,
+  type CustomBackendOptions,
+  getAllCustomFieldKeys,
+  getCustomFieldType
 } from './backends'
 
-// Backend options union
+// Backend options union. Custom is first: its required `name` field
+// discriminates it from the all-optional built-in option objects.
 export const BackendOptionsSchema = z.union([
+  CustomBackendOptionsSchema,
   LlamaCppBackendOptionsSchema,
   MlxBackendOptionsSchema,
   VllmBackendOptionsSchema,
@@ -43,7 +49,7 @@ export const CreateInstanceOptionsSchema = z.object({
   command_override: z.string().optional(),
 
   // Backend configuration
-  backend_type: z.enum([BackendType.LLAMA_CPP, BackendType.MLX_LM, BackendType.VLLM]).optional(),
+  backend_type: z.enum([BackendType.LLAMA_CPP, BackendType.MLX_LM, BackendType.VLLM, BackendType.CUSTOM]).optional(),
   backend_options: BackendOptionsSchema.optional(),
 
   // Node configuration
@@ -61,15 +67,19 @@ export {
   LlamaCppBackendOptionsSchema,
   MlxBackendOptionsSchema,
   VllmBackendOptionsSchema,
+  CustomBackendOptionsSchema,
   type LlamaCppBackendOptions,
   type MlxBackendOptions,
   type VllmBackendOptions,
+  type CustomBackendOptions,
   getAllLlamaCppFieldKeys,
   getAllMlxFieldKeys,
   getAllVllmFieldKeys,
+  getAllCustomFieldKeys,
   getLlamaCppFieldType,
   getMlxFieldType,
   getVllmFieldType,
+  getCustomFieldType,
   // LlamaCpp Alt Keys
   getAllLlamaCppAltKeys,
   getLlamaCppAltKeyType

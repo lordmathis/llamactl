@@ -1,4 +1,5 @@
 import type React from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { FileCode } from 'lucide-react'
 import { getBackendFieldType, basicBackendFieldsConfig } from '@/lib/zodFormUtils'
+import { parseArgs } from '@/lib/parseArgs'
 import ExtraArgsInput from '@/components/form/ExtraArgsInput'
 import type { CreateInstanceOptions } from '@/schemas/instanceOptions'
 
@@ -19,6 +21,16 @@ interface BackendFormFieldProps {
 }
 
 const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, onChange, formData, onOpenPresetDialog }) => {
+  // Local state for array fields to handle spaces correctly
+  const [localArrayValue, setLocalArrayValue] = useState<string>('')
+  const [isEditingArray, setIsEditingArray] = useState(false)
+
+  // Sync local value when not editing
+  useEffect(() => {
+    if (!isEditingArray && Array.isArray(value)) {
+      setLocalArrayValue(value.join(' '))
+    }
+  }, [value, isEditingArray])
   // Special handling for models_preset field
   if (fieldKey === 'models_preset') {
     const hasPresetContent = formData?.preset_ini && formData.preset_ini.trim().length > 0
@@ -152,19 +164,27 @@ const BackendFormField: React.FC<BackendFormFieldProps> = ({ fieldKey, value, on
             <Input
               id={fieldKey}
               type="text"
-              value={Array.isArray(value) ? value.join(', ') : ''}
+              value={isEditingArray ? localArrayValue : (Array.isArray(value) ? value.join(' ') : '')}
               onChange={(e) => {
-                const arrayValue = e.target.value 
-                  ? e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                  : undefined
-                handleChange(arrayValue)
+                setLocalArrayValue(e.target.value)
+                const arrayValue = e.target.value ? parseArgs(e.target.value) : undefined
+                onChange(fieldKey, arrayValue)
               }}
-              placeholder="item1, item2, item3"
+              onFocus={() => {
+                setIsEditingArray(true)
+                if (Array.isArray(value)) {
+                  setLocalArrayValue(value.join(' '))
+                }
+              }}
+              onBlur={() => {
+                setIsEditingArray(false)
+              }}
+              placeholder={config.placeholder}
             />
             {config.description && (
               <p className="text-sm text-muted-foreground">{config.description}</p>
             )}
-            <p className="text-xs text-muted-foreground">Separate multiple values with commas</p>
+            <p className="text-xs text-muted-foreground">Space-separated, like on a command line; quote values containing spaces</p>
           </div>
         )
       default:

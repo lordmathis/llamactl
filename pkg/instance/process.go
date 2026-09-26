@@ -222,7 +222,7 @@ func (p *process) stop() error {
 		log.Printf("Instance %s shut down gracefully", p.instance.Name)
 	case <-time.After(killGrace):
 		// Force kill if it doesn't exit within 30 seconds
-		if cmd != nil && cmd.Process != nil {
+		if cmd.Process != nil {
 			killErr := cmd.Process.Kill()
 			if killErr != nil {
 				log.Printf("Failed to force kill instance %s: %v", p.instance.Name, killErr)
@@ -279,7 +279,7 @@ func (p *process) waitForHealthy(timeout int) error {
 	// Get host/port from instance
 	host := p.instance.options.GetHost()
 	port := p.instance.options.GetPort()
-	healthURL := fmt.Sprintf("http://%s:%d/health", host, port)
+	healthURL := fmt.Sprintf("http://%s:%d%s", host, port, p.instance.GetHealthPath())
 
 	// Create a dedicated HTTP client for health checks
 	client := &http.Client{
@@ -299,7 +299,8 @@ func (p *process) waitForHealthy(timeout int) error {
 		}
 		defer resp.Body.Close()
 
-		return resp.StatusCode == http.StatusOK
+		// Any 2xx counts as healthy; some servers return 204.
+		return resp.StatusCode >= 200 && resp.StatusCode < 300
 	}
 
 	// Try immediate check first
@@ -479,6 +480,9 @@ func (p *process) buildCommand() (*exec.Cmd, error) {
 
 	// Get the command to execute
 	command := p.instance.getCommand()
+	if command == "" {
+		return nil, fmt.Errorf("instance %s has no backend command configured (was its backends.custom.<name> entry removed from the config?)", p.instance.Name)
+	}
 
 	// Build command arguments
 	args := p.instance.buildCommandArgs()

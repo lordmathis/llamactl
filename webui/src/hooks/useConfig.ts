@@ -38,7 +38,9 @@ export const useBackendSettings = (backendType: string | undefined) => {
     return null
   }
 
-  const backendConfig = config.backends[backendKey as keyof typeof config.backends]
+  // 'custom' never reaches here (backendKey is null for it); the narrowed
+  // cast keeps the indexed access from unioning in backends.custom's type
+  const backendConfig = config.backends[backendKey as 'llama-cpp' | 'vllm' | 'mlx']
 
   if (!backendConfig) {
     return null
@@ -48,5 +50,33 @@ export const useBackendSettings = (backendType: string | undefined) => {
     command: backendConfig.command || '',
     dockerEnabled: backendConfig.docker?.enabled ?? false,
     dockerImage: backendConfig.docker?.image || '',
+  }
+}
+
+// All configured custom backends (backends.custom), keyed by name
+export const useCustomBackends = () => {
+  const { config } = useConfig()
+
+  return config?.backends?.custom ?? {}
+}
+
+// Get settings for one named custom backend (backends.custom.<name>)
+export const useCustomBackendSettings = (name: string | undefined) => {
+  const customBackends = useCustomBackends()
+
+  if (!name) {
+    return null
+  }
+
+  const settings = customBackends[name]
+
+  if (!settings) {
+    return null
+  }
+
+  return {
+    command: settings.command || '',
+    dockerEnabled: settings.docker?.enabled ?? false,
+    dockerImage: settings.docker?.image || '',
   }
 }

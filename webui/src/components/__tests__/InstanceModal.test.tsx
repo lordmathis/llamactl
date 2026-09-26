@@ -25,6 +25,8 @@ vi.mock('@/hooks/useConfig', () => ({
     dockerEnabled: false,
     dockerImage: '',
   }),
+  useCustomBackends: () => ({}),
+  useCustomBackendSettings: () => null,
 }))
 
 describe('InstanceModal - Form Logic and Validation', () => {

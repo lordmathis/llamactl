@@ -65,6 +65,10 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	if cfg.Instances.DefaultRestartDelay != 5 {
 		t.Errorf("Expected default restart delay 5, got %d", cfg.Instances.DefaultRestartDelay)
 	}
+	if cfg.Backends.LlamaCpp.HealthPath != "/health" || cfg.Backends.VLLM.HealthPath != "/health" || cfg.Backends.MLX.HealthPath != "/health" {
+		t.Errorf("Expected default health path /health for all built-in backends, got llama=%q vllm=%q mlx=%q",
+			cfg.Backends.LlamaCpp.HealthPath, cfg.Backends.VLLM.HealthPath, cfg.Backends.MLX.HealthPath)
+	}
 }
 
 func TestLoadConfig_FromFile(t *testing.T) {
@@ -120,6 +124,62 @@ instances:
 	}
 	if cfg.Instances.DefaultRestartDelay != 30 {
 		t.Errorf("Expected restart delay 30, got %d", cfg.Instances.DefaultRestartDelay)
+	}
+}
+
+func TestLoadConfig_CustomBackends(t *testing.T) {
+	cfg, err := config.LoadConfig("nonexistent-file.yaml")
+	if err != nil {
+		t.Fatalf("LoadConfig should not error with defaults: %v", err)
+	}
+	if cfg.Backends.Custom == nil {
+		t.Fatal("Expected default Custom map to be non-nil")
+	}
+	if len(cfg.Backends.Custom) != 0 {
+		t.Errorf("Expected default Custom map to be empty, got %v", cfg.Backends.Custom)
+	}
+
+	tempDir := t.TempDir()
+	configFile := filepath.Join(tempDir, "custom-backends.yaml")
+
+	configContent := `
+backends:
+  custom:
+    my-engine:
+      command: my-server
+      args: ["serve"]
+    other-engine:
+      command: other-server
+      args: ["serve"]
+      environment:
+        ENGINE_DEBUG: "1"
+`
+
+	err = os.WriteFile(configFile, []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	cfg, err = config.LoadConfig(configFile)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+
+	if len(cfg.Backends.Custom) != 2 {
+		t.Fatalf("Expected 2 custom backends, got %d", len(cfg.Backends.Custom))
+	}
+
+	engine := cfg.Backends.Custom["my-engine"]
+	if engine.Command != "my-server" {
+		t.Errorf("Expected my-engine command 'my-server', got %q", engine.Command)
+	}
+	if len(engine.Args) != 1 || engine.Args[0] != "serve" {
+		t.Errorf("Expected my-engine args ['serve'], got %v", engine.Args)
+	}
+
+	other := cfg.Backends.Custom["other-engine"]
+	if other.Environment["ENGINE_DEBUG"] != "1" {
+		t.Errorf("Expected other-engine env ENGINE_DEBUG=1, got %v", other.Environment)
 	}
 }
 

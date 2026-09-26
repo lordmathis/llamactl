@@ -182,6 +182,8 @@ backends:
     environment: {}              # Environment variables for the backend process
     # MLX does not support Docker
     response_headers: {}         # Additional response headers to send with responses
+
+  custom: {}                     # Named custom backends, see "Custom Backends" below
 ```
 
 **Backend Configuration Fields:**
@@ -189,6 +191,7 @@ backends:
 - `args`: Default arguments prepended to all instances
 - `environment`: Environment variables for the backend process (optional)
 - `response_headers`: Additional response headers to send with responses (optional)
+- `health_path`: Path polled for readiness; any 2xx response counts as healthy (default: `/health`)
 - `docker`: Docker-specific configuration (optional)
   - `enabled`: Boolean flag to enable Docker runtime
   - `image`: Docker image to use
@@ -224,6 +227,33 @@ backends:
 - `LLAMACTL_MLX_ARGS` - Space-separated default arguments
 - `LLAMACTL_MLX_ENV` - Environment variables in format "KEY1=value1,KEY2=value2"
 - `LLAMACTL_MLX_RESPONSE_HEADERS` - Response headers in format "KEY1=value1;KEY2=value2"
+
+### Custom Backends
+
+Custom backends are user-defined named entries under `backends.custom` for managing inference servers without native support. Each entry accepts the same fields as the built-in backends; see the [Custom Backends](custom-backends.md) guide for how they work.
+
+```yaml
+backends:
+  custom:
+    my-engine:
+      command: "my-server"
+      args: []                     # Default arguments prepended to instance args
+      environment: {}              # Environment variables for the backend process
+      health_path: "/health"       # Path polled for readiness (default: /health)
+      docker:
+        enabled: false             # Enable Docker runtime (default: false)
+        image: "my-server:latest"
+        args: ["run", "--rm", "--network", "host", "--gpus", "all"]
+        environment: {}
+      response_headers: {}         # Additional response headers to send with responses
+```
+
+Configured `args` are prepended to instance arguments and support the `{port}` and `{model}` placeholders; see [Custom Backends](custom-backends.md) for details.
+
+!!! note
+    - Custom backends are configured in the config file only; there are no environment variable overrides for them.
+    - On multi-node setups, the command must exist on the node that runs the instance.
+    - Servers that download models or run long setup on first start may exceed the on-demand start timeout (`instances.on_demand_start_timeout`). Raise the timeout or pre-warm the server's model cache by running the command once manually.
 
 ### Data Directory Configuration
 

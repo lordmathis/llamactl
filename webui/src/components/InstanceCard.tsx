@@ -126,11 +126,15 @@ function InstanceCard({
             </CardTitle>
             
             {/* Badges row */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <BackendBadge backend={instance.options?.backend_type} docker={instance.options?.docker_enabled} />
+            <div className="flex items-center gap-3 flex-wrap">
+              <BackendBadge
+                backend={instance.options?.backend_type}
+                docker={instance.options?.docker_enabled}
+                customName={(instance.options?.backend_options as Record<string, unknown> | undefined)?.name as string | undefined}
+              />
               {running && <HealthBadge health={health} />}
               {instance.options?.group && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs border-dashed text-muted-foreground">
                   <Layers className="h-3 w-3 mr-1" />
                   {instance.options.group}
                 </Badge>

@@ -3,8 +3,12 @@ package manager
 import (
 	"context"
 	"fmt"
+	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
+	"llamactl/pkg/validation"
 	"log"
+	"slices"
+	"strings"
 )
 
 type MaxRunningInstancesError error
@@ -58,6 +62,10 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 
 	err := options.BackendOptions.ValidateInstanceOptions()
 	if err != nil {
+		return nil, err
+	}
+
+	if err := im.validateCustomBackend(options); err != nil {
 		return nil, err
 	}
 
@@ -242,6 +250,10 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 
 	err := options.BackendOptions.ValidateInstanceOptions()
 	if err != nil {
+		return nil, err
+	}
+
+	if err := im.validateCustomBackend(options); err != nil {
 		return nil, err
 	}
 
@@ -541,6 +553,50 @@ func (im *instanceManager) getPortFromOptions(options *instance.Options) int {
 // setPortInOptions sets the port in backend-specific options
 func (im *instanceManager) setPortInOptions(options *instance.Options, port int) {
 	options.BackendOptions.SetPort(port)
+}
+
+// validateCustomBackend checks the backends.custom.<name> entry exists and
+// provides a command; merged args must contain {port}, and {model} requires
+// a model set. Runs in the manager because options lack config access.
+func (im *instanceManager) validateCustomBackend(options *instance.Options) error {
+	if options.BackendOptions.BackendType != backends.BackendTypeCustom {
+		return nil
+	}
+
+	customOpts := options.BackendOptions.CustomServerOptions
+	if customOpts == nil {
+		return validation.ValidationError(fmt.Errorf("custom backend options cannot be nil for custom backend"))
+	}
+
+	settings, exists := im.globalConfig.Backends.Custom[customOpts.Name]
+	if !exists {
+		return validation.ValidationError(fmt.Errorf("custom backend '%s' is not defined in config", customOpts.Name))
+	}
+
+	command := settings.Command
+	if options.CommandOverride != "" {
+		command = options.CommandOverride
+	}
+	if command == "" {
+		return validation.ValidationError(fmt.Errorf("custom backend '%s' has no command configured", customOpts.Name))
+	}
+
+	mergedArgs := slices.Concat(settings.Args, customOpts.Args)
+	hasPortPlaceholder := slices.ContainsFunc(mergedArgs, func(arg string) bool {
+		return strings.Contains(arg, "{port}")
+	})
+	if !hasPortPlaceholder {
+		return validation.ValidationError(fmt.Errorf("custom backend '%s' args must contain the {port} placeholder so the server learns its port", customOpts.Name))
+	}
+
+	hasModelPlaceholder := slices.ContainsFunc(mergedArgs, func(arg string) bool {
+		return strings.Contains(arg, "{model}")
+	})
+	if hasModelPlaceholder && customOpts.Model == "" {
+		return validation.ValidationError(fmt.Errorf("custom backend '%s' args use the {model} placeholder but no model is set", customOpts.Name))
+	}
+
+	return nil
 }
 
 // EvictLRUInstance finds and stops the least recently used running instance.
