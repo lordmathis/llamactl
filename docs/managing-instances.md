@@ -152,8 +152,7 @@ curl -X POST http://localhost:8080/api/v1/instances/my-custom-instance \
     "backend_options": {
       "name": "my-engine",
       "model": "org/model-name",
-      "args": ["--port", "{port}"],
-      "health_path": "/ready"
+      "args": ["--port", "{port}"]
     },
     "nodes": ["main"]
   }'
@@ -165,7 +164,6 @@ Custom backend instances reference a `backends.custom.<name>` entry from the [co
 - `args`: instance-level arguments, appended after the entry's configured `args`.
 - `model`: model identifier reported to OpenAI-compatible clients.
 - `host` / `port`: where llamactl reaches the server (proxy and health checks). Leave `port` empty for automatic allocation.
-- `health_path`: path that returns HTTP 200 when the server is ready (default `/health`).
 
 When the instance starts, the entry's default arguments are prepended to the instance arguments and two placeholders are replaced:
 

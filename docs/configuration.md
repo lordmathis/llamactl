@@ -191,6 +191,7 @@ backends:
 - `args`: Default arguments prepended to all instances
 - `environment`: Environment variables for the backend process (optional)
 - `response_headers`: Additional response headers to send with responses (optional)
+- `health_path`: Path polled for readiness; must return HTTP 200 when the server is ready (default: `/health`)
 - `docker`: Docker-specific configuration (optional)
   - `enabled`: Boolean flag to enable Docker runtime
   - `image`: Docker image to use
@@ -238,6 +239,7 @@ backends:
       command: "my-server"
       args: []                     # Default arguments prepended to instance args
       environment: {}              # Environment variables for the backend process
+      health_path: "/health"       # Path polled for readiness (default: /health)
       docker:
         enabled: false             # Enable Docker runtime (default: false)
         image: "my-server:latest"

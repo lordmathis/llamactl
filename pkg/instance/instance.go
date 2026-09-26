@@ -241,6 +241,14 @@ func (i *Instance) GetPort() int {
 	return i.options.GetPort()
 }
 
+func (i *Instance) GetHealthPath() string {
+	if i.options == nil {
+		return "/health"
+	}
+	opts := i.options.get()
+	return opts.BackendOptions.GetHealthPath(i.globalBackendSettings)
+}
+
 func (i *Instance) IsRemote() bool {
 	opts := i.GetOptions()
 	if opts == nil {

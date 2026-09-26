@@ -79,12 +79,6 @@ func (o *options) GetPort() int {
 	return o.opts.BackendOptions.GetPort()
 }
 
-func (o *options) GetHealthPath() string {
-	o.mu.RLock()
-	defer o.mu.RUnlock()
-	return o.opts.BackendOptions.GetHealthPath()
-}
-
 // MarshalJSON implements json.Marshaler for options wrapper
 func (o *options) MarshalJSON() ([]byte, error) {
 	o.mu.RLock()

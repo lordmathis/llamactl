@@ -136,11 +136,6 @@ const basicCustomFieldsConfig: Record<string, {
     label: 'Arguments',
     placeholder: 'serve, --port, {port}',
     description: 'Arguments appended after the config args; {port} is required so the server learns its port'
-  },
-  health_path: {
-    label: 'Health Path',
-    placeholder: '/health',
-    description: 'Path returning HTTP 200 when the server is ready'
   }
 }
 
@@ -216,7 +211,7 @@ export function getBackendFieldType(key: string): 'text' | 'number' | 'boolean' 
     // Schema might not be available
   }
 
-  // Try Custom schema (keys unique to it, e.g. args, health_path)
+  // Try Custom schema (keys unique to it, e.g. args)
   try {
     if (CustomBackendOptionsSchema.shape && key in CustomBackendOptionsSchema.shape) {
       return getCustomFieldType(key as keyof CustomBackendOptions)

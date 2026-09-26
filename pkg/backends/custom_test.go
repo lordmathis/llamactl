@@ -64,36 +64,34 @@ func TestCustomBuildCommandArgs_DoesNotMutateArgs(t *testing.T) {
 	}
 }
 
-func TestCustomGetHealthPath(t *testing.T) {
-	tests := []struct {
-		name     string
-		options  *backends.CustomServerOptions
-		expected string
-	}{
-		{name: "empty defaults to /health", options: &backends.CustomServerOptions{}, expected: "/health"},
-		{name: "missing leading slash is normalized", options: &backends.CustomServerOptions{HealthPath: "ready"}, expected: "/ready"},
-		{name: "leading slash preserved", options: &backends.CustomServerOptions{HealthPath: "/ready"}, expected: "/ready"},
-		{name: "nil options", options: nil, expected: "/health"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.options.GetHealthPath(); got != tt.expected {
-				t.Errorf("GetHealthPath() = %q, want %q", got, tt.expected)
-			}
-		})
-	}
-}
-
 func TestOptionsGetHealthPath(t *testing.T) {
+	backendConfig := &config.BackendConfig{
+		Custom: map[string]config.BackendSettings{
+			"x":    {HealthPath: "/ready"},
+			"bare": {HealthPath: "ready"},
+		},
+		LlamaCpp: config.BackendSettings{HealthPath: "/health"},
+	}
+
 	tests := []struct {
-		name     string
-		options  backends.Options
-		expected string
+		name      string
+		options   backends.Options
+		nilConfig bool
+		expected  string
 	}{
 		{
 			name:     "custom configured path",
-			options:  backends.Options{BackendType: backends.BackendTypeCustom, CustomServerOptions: &backends.CustomServerOptions{Name: "x", HealthPath: "/ready"}},
+			options:  backends.Options{BackendType: backends.BackendTypeCustom, CustomServerOptions: &backends.CustomServerOptions{Name: "x"}},
+			expected: "/ready",
+		},
+		{
+			name:     "custom entry without path falls back to default",
+			options:  backends.Options{BackendType: backends.BackendTypeCustom, CustomServerOptions: &backends.CustomServerOptions{Name: "other"}},
+			expected: "/health",
+		},
+		{
+			name:     "missing leading slash is normalized",
+			options:  backends.Options{BackendType: backends.BackendTypeCustom, CustomServerOptions: &backends.CustomServerOptions{Name: "bare"}},
 			expected: "/ready",
 		},
 		{
@@ -102,7 +100,7 @@ func TestOptionsGetHealthPath(t *testing.T) {
 			expected: "/health",
 		},
 		{
-			name:     "llama cpp default",
+			name:     "llama cpp configured path",
 			options:  backends.Options{BackendType: backends.BackendTypeLlamaCpp, LlamaServerOptions: &backends.LlamaServerOptions{}},
 			expected: "/health",
 		},
@@ -111,11 +109,21 @@ func TestOptionsGetHealthPath(t *testing.T) {
 			options:  backends.Options{BackendType: backends.BackendTypeUnknown},
 			expected: "/health",
 		},
+		{
+			name:      "nil backend config falls back to default",
+			options:   backends.Options{BackendType: backends.BackendTypeCustom, CustomServerOptions: &backends.CustomServerOptions{Name: "x"}},
+			nilConfig: true,
+			expected:  "/health",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.options.GetHealthPath(); got != tt.expected {
+			cfg := backendConfig
+			if tt.nilConfig {
+				cfg = nil
+			}
+			if got := tt.options.GetHealthPath(cfg); got != tt.expected {
 				t.Errorf("GetHealthPath() = %q, want %q", got, tt.expected)
 			}
 		})
@@ -179,11 +187,10 @@ func TestCustomOptionsJSONRoundTrip(t *testing.T) {
 	opts := backends.Options{
 		BackendType: backends.BackendTypeCustom,
 		CustomServerOptions: &backends.CustomServerOptions{
-			Name:       "splash",
-			Model:      "org/model",
-			Port:       8123,
-			Args:       []string{"--no-webui", "--port", "{port}"},
-			HealthPath: "/ready",
+			Name:  "splash",
+			Model: "org/model",
+			Port:  8123,
+			Args:  []string{"--no-webui", "--port", "{port}"},
 		},
 	}
 
@@ -215,9 +222,6 @@ func TestCustomOptionsJSONRoundTrip(t *testing.T) {
 	}
 	if got.Port != 8123 {
 		t.Errorf("expected port 8123, got %d", got.Port)
-	}
-	if got.HealthPath != "/ready" {
-		t.Errorf("expected health_path '/ready', got %q", got.HealthPath)
 	}
 	if !reflect.DeepEqual(got.Args, opts.CustomServerOptions.Args) {
 		t.Errorf("expected args %v, got %v", opts.CustomServerOptions.Args, got.Args)

@@ -6,6 +6,7 @@ import (
 	"llamactl/pkg/config"
 	"llamactl/pkg/validation"
 	"maps"
+	"strings"
 )
 
 type BackendType string
@@ -25,7 +26,6 @@ type backend interface {
 	GetPort() int
 	SetPort(int)
 	GetHost() string
-	GetHealthPath() string
 	Validate() error
 	ParseCommand(string) (any, error)
 }
@@ -296,12 +296,21 @@ func (o *Options) GetHost() string {
 	return "localhost"
 }
 
-func (o *Options) GetHealthPath() string {
-	backend := o.getBackend()
-	if backend != nil {
-		return backend.GetHealthPath()
+// GetHealthPath resolves the health check path from backend config.
+// It is a property of the server software, not of a specific instance,
+// so it lives in backends.<type>.health_path (default: /health).
+func (o *Options) GetHealthPath(backendConfig *config.BackendConfig) string {
+	if backendConfig == nil {
+		return "/health"
 	}
-	return "/health"
+	backendSettings := o.getBackendSettings(backendConfig)
+	if backendSettings == nil || backendSettings.HealthPath == "" {
+		return "/health"
+	}
+	if !strings.HasPrefix(backendSettings.HealthPath, "/") {
+		return "/" + backendSettings.HealthPath
+	}
+	return backendSettings.HealthPath
 }
 
 func (o *Options) GetResponseHeaders(backendConfig *config.BackendConfig) map[string]string {

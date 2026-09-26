@@ -11,12 +11,11 @@ import (
 // backends.custom.<name> in the config file. Args are literal strings,
 // not a flag grammar; {port} and {model} are substituted at build time.
 type CustomServerOptions struct {
-	Name       string   `json:"name,omitempty"`
-	Model      string   `json:"model,omitempty"`
-	Host       string   `json:"host,omitempty"`
-	Port       int      `json:"port,omitempty"`
-	Args       []string `json:"args,omitempty"`
-	HealthPath string   `json:"health_path,omitempty"`
+	Name  string   `json:"name,omitempty"`
+	Model string   `json:"model,omitempty"`
+	Host  string   `json:"host,omitempty"`
+	Port  int      `json:"port,omitempty"`
+	Args  []string `json:"args,omitempty"`
 }
 
 func (o *CustomServerOptions) GetModel() string {
@@ -45,16 +44,6 @@ func (o *CustomServerOptions) GetHost() string {
 		return "localhost"
 	}
 	return o.Host
-}
-
-func (o *CustomServerOptions) GetHealthPath() string {
-	if o == nil || o.HealthPath == "" {
-		return "/health"
-	}
-	if !strings.HasPrefix(o.HealthPath, "/") {
-		return "/" + o.HealthPath
-	}
-	return o.HealthPath
 }
 
 func (o *CustomServerOptions) Validate() error {

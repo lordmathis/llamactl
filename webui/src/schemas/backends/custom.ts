@@ -9,7 +9,6 @@ export const CustomBackendOptionsSchema = z.object({
   port: z.number().optional(),
   model: z.string().optional(),
   args: z.array(z.string()).optional(),
-  health_path: z.string().optional(),
 })
 
 // Infer the TypeScript type from the schema

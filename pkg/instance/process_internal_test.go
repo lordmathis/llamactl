@@ -2,6 +2,7 @@ package instance
 
 import (
 	"llamactl/pkg/backends"
+	"llamactl/pkg/config"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -31,17 +32,23 @@ func TestWaitForHealthy_CustomHealthPath(t *testing.T) {
 		t.Fatalf("failed to parse test server port: %v", err)
 	}
 
+	// The health path comes from backends.custom.<name>.health_path in
+	// config, not from instance options.
 	newTestInstance := func(healthPath string) *Instance {
 		inst := &Instance{Name: "custom-health"}
 		inst.status = newStatus(Running)
+		inst.globalBackendSettings = &config.BackendConfig{
+			Custom: map[string]config.BackendSettings{
+				"test-backend": {HealthPath: healthPath},
+			},
+		}
 		inst.options = newOptions(&Options{
 			BackendOptions: backends.Options{
 				BackendType: backends.BackendTypeCustom,
 				CustomServerOptions: &backends.CustomServerOptions{
-					Name:       "test-backend",
-					Host:       host,
-					Port:       port,
-					HealthPath: healthPath,
+					Name: "test-backend",
+					Host: host,
+					Port: port,
 				},
 			},
 		})

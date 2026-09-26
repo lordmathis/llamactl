@@ -279,7 +279,7 @@ func (p *process) waitForHealthy(timeout int) error {
 	// Get host/port from instance
 	host := p.instance.options.GetHost()
 	port := p.instance.options.GetPort()
-	healthURL := fmt.Sprintf("http://%s:%d%s", host, port, p.instance.options.GetHealthPath())
+	healthURL := fmt.Sprintf("http://%s:%d%s", host, port, p.instance.GetHealthPath())
 
 	// Create a dedicated HTTP client for health checks
 	client := &http.Client{
