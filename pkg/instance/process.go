@@ -222,7 +222,7 @@ func (p *process) stop() error {
 		log.Printf("Instance %s shut down gracefully", p.instance.Name)
 	case <-time.After(killGrace):
 		// Force kill if it doesn't exit within 30 seconds
-		if cmd != nil && cmd.Process != nil {
+		if cmd.Process != nil {
 			killErr := cmd.Process.Kill()
 			if killErr != nil {
 				log.Printf("Failed to force kill instance %s: %v", p.instance.Name, killErr)

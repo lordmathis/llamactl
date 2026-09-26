@@ -90,6 +90,11 @@ func (l *logger) readOutput(rc io.ReadCloser) {
 			fmt.Fprintln(lg, line)
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		if lg := l.logFile; lg != nil {
+			fmt.Fprintf(lg, "\n=== Error reading output for instance %s: %v ===\n", l.name, err)
+		}
+	}
 }
 
 func (l *logger) close() {
