@@ -1,6 +1,6 @@
 # Custom Backends
 
-Custom backends provide support for inference servers without native llamactl integration. Any server can be managed — launched, health-checked, proxied, and evicted — by defining it as a named entry in the config file.
+Custom backends provide support for inference servers without native llamactl integration. Any server can be managed (launched, health-checked, proxied, and evicted) by defining it as a named entry in the config file.
 
 ## How It Works
 
