@@ -28,17 +28,6 @@ function Header({ onCreateInstance, onShowSystemInfo, onShowSettings }: HeaderPr
           </h1>
 
           <div className="flex items-center gap-2">
-            {user && (
-              <div
-                className="hidden sm:flex items-center h-9 px-3 rounded-md border bg-muted text-sm text-muted-foreground"
-                title={user.sub}
-                data-testid="current-user"
-              >
-                <UserCircle className="h-4 w-4 mr-2" />
-                {user.name || user.email || user.sub}
-              </div>
-            )}
-
             <Button onClick={onCreateInstance} data-testid="create-instance-button">
               Create Instance
             </Button>
@@ -72,6 +61,17 @@ function Header({ onCreateInstance, onShowSystemInfo, onShowSettings }: HeaderPr
             >
               <HelpCircle className="h-4 w-4" />
             </Button>
+
+            {user && (
+              <div
+                className="hidden sm:flex items-center h-9 px-3 rounded-md border bg-muted text-sm text-muted-foreground"
+                title={user.email || user.sub}
+                data-testid="current-user"
+              >
+                <UserCircle className="h-4 w-4 mr-2" />
+                {user.name || user.email || user.sub}
+              </div>
+            )}
 
             <Button
               variant="outline"
