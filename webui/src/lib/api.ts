@@ -37,6 +37,12 @@ async function apiCall<T>(
       headers,
     });
 
+    // Signal auth loss so the app falls back to the login dialog instead of
+    // stranding contexts with error banners
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent('llamactl:unauthorized'))
+    }
+
     // Handle errors using centralized error handler
     await handleApiError(response);
 
@@ -179,6 +185,25 @@ export const instancesApi = {
 
   // GET /instances/{name}/proxy/health
   getHealth: (name: string) => apiCall<Record<string, unknown>>(`/instances/${encodeURIComponent(name)}/proxy/health`),
+};
+
+// Auth API types
+export interface WhoamiUser {
+  sub: string
+  name?: string
+  email?: string
+}
+
+export interface WhoamiResponse {
+  authenticated: boolean
+  oidc_enabled: boolean
+  user: WhoamiUser | null
+}
+
+// Auth API functions
+export const authApi = {
+  // GET /auth/whoami - reports session state and whether OIDC login exists
+  whoami: () => apiCall<WhoamiResponse>("/auth/whoami"),
 };
 
 // API Keys API functions

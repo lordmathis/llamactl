@@ -246,6 +246,33 @@ func loadEnvVars(cfg *AppConfig) {
 		cfg.Auth.ManagementKeys = strings.Split(managementKeys, ",")
 	}
 
+	// OIDC config
+	if v := os.Getenv("LLAMACTL_AUTH_OIDC_ISSUER_URL"); v != "" {
+		cfg.Auth.OIDC.IssuerURL = v
+	}
+	if v := os.Getenv("LLAMACTL_AUTH_OIDC_CLIENT_ID"); v != "" {
+		cfg.Auth.OIDC.ClientID = v
+	}
+	if v := os.Getenv("LLAMACTL_AUTH_OIDC_CLIENT_SECRET"); v != "" {
+		cfg.Auth.OIDC.ClientSecret = v
+	}
+	if v := os.Getenv("LLAMACTL_AUTH_OIDC_REDIRECT_URL"); v != "" {
+		cfg.Auth.OIDC.RedirectURL = v
+	}
+	if v := os.Getenv("LLAMACTL_AUTH_OIDC_SCOPES"); v != "" {
+		cfg.Auth.OIDC.Scopes = strings.Split(v, ",")
+	}
+	if v := os.Getenv("LLAMACTL_AUTH_OIDC_SESSION_TTL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			cfg.Auth.OIDC.SessionTTL = d
+		}
+	}
+	if v := os.Getenv("LLAMACTL_AUTH_OIDC_SECURE_COOKIE"); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			cfg.Auth.OIDC.SecureCookie = b
+		}
+	}
+
 	// Local node config
 	if localNode := os.Getenv("LLAMACTL_LOCAL_NODE"); localNode != "" {
 		cfg.LocalNode = localNode

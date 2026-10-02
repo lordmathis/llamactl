@@ -361,6 +361,44 @@ Inference API keys are managed through the web UI or management API and stored i
 - `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)
 - `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys
 
+#### OIDC / SSO Login
+
+The web UI can authenticate users through an OpenID Connect provider (Authentik, Keycloak, Authelia, etc.) instead of a management API key. OIDC login is enabled when both `issuer_url` and `client_id` are set; management API keys keep working alongside it, and inference endpoints always use API keys.
+
+```yaml
+auth:
+  oidc:
+    issuer_url: "https://authentik.example.com/application/o/llamactl/"  # IdP issuer URL
+    client_id: "llamactl"                  # OAuth2 client ID registered with the IdP
+    client_secret: "your-client-secret"    # OAuth2 client secret
+    # redirect_url: ""                     # Optional; derived from the request when empty
+    # scopes: [openid, profile, email]     # Default scopes
+    # session_ttl: 12h                     # Session lifetime (default: 12h)
+    # secure_cookie: true                  # Set false only for plain-HTTP LAN deployments
+```
+
+**Environment Variables:**
+- `LLAMACTL_AUTH_OIDC_ISSUER_URL` - IdP issuer URL
+- `LLAMACTL_AUTH_OIDC_CLIENT_ID` - OAuth2 client ID
+- `LLAMACTL_AUTH_OIDC_CLIENT_SECRET` - OAuth2 client secret
+- `LLAMACTL_AUTH_OIDC_REDIRECT_URL` - Redirect URL override
+- `LLAMACTL_AUTH_OIDC_SCOPES` - Comma-separated scopes
+- `LLAMACTL_AUTH_OIDC_SESSION_TTL` - Session lifetime (Go duration, e.g. `12h`)
+- `LLAMACTL_AUTH_OIDC_SECURE_COOKIE` - Mark the session cookie Secure (true/false)
+
+**Setting up the IdP client:**
+
+1. Create a confidential OAuth2/OIDC client in your IdP (Authentik: provider type *OAuth2/OpenID Connect*; Keycloak: client with *Client authentication* enabled)
+2. Set the redirect URI to `https://<your-llamactl-host>/api/v1/auth/oidc/callback` — under a subpath proxy, use the full external path
+3. Configure the `auth.oidc` block above and restart llamactl; discovery failures abort startup with an actionable error
+
+**Notes:**
+
+- Keep `require_management_auth: true` when enabling OIDC — otherwise management endpoints stay unauthenticated and login only adds session support. llamactl logs a warning at startup for this combination.
+- Behind a TLS-terminating reverse proxy, either forward `X-Forwarded-Proto`/`X-Forwarded-Host` or set `redirect_url` explicitly.
+- The authorization code flow uses PKCE (S256) and a signed, one-shot CSRF state cookie. Sessions live in memory: a llamactl restart logs everyone out, and `secure_cookie: false` is only appropriate on trusted plain-HTTP LANs.
+- API keys created while logged in via SSO are attributed to the user's OIDC subject (`sub`) instead of `system`.
+
 ### Remote Node Configuration
 
 llamactl supports remote node deployments. Configure remote nodes to deploy instances on remote hosts and manage them centrally.

@@ -70,6 +70,7 @@ type Handler struct {
 	httpClient      *http.Client
 	authStore       database.AuthStore
 	authMiddleware  *APIAuthMiddleware
+	oidc            *OIDCService
 
 	// startMu serializes the evict→start critical section in
 	// ensureInstanceRunning. Group quotas are check-then-act; without this,
@@ -80,8 +81,9 @@ type Handler struct {
 	startMu sync.Mutex
 }
 
-// NewHandler creates a new Handler instance with the provided instance manager and configuration
-func NewHandler(im manager.InstanceManager, mm *models.Manager, cfg config.AppConfig, authStore database.AuthStore) *Handler {
+// NewHandler creates a new Handler instance with the provided instance manager and configuration.
+// oidcService may be nil to run without OIDC login.
+func NewHandler(im manager.InstanceManager, mm *models.Manager, cfg config.AppConfig, authStore database.AuthStore, oidcService *OIDCService) *Handler {
 	handler := &Handler{
 		InstanceManager: im,
 		modelManager:    mm,
@@ -90,8 +92,12 @@ func NewHandler(im manager.InstanceManager, mm *models.Manager, cfg config.AppCo
 			Timeout: 30 * time.Second,
 		},
 		authStore: authStore,
+		oidc:      oidcService,
 	}
 	handler.authMiddleware = NewAPIAuthMiddleware(cfg.Auth, authStore)
+	if oidcService != nil {
+		handler.authMiddleware.sessions = oidcService.Sessions
+	}
 	return handler
 }
 

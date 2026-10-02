@@ -135,12 +135,17 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			return
 		}
 
-		// Create APIKey struct
+		// Create APIKey struct; keys created from an OIDC session belong to
+		// that user, everything else is attributed to "system".
+		userID := "system"
+		if sess := UserFromContext(r.Context()); sess != nil {
+			userID = sess.Sub
+		}
 		now := time.Now().Unix()
 		apiKey := &auth.APIKey{
 			KeyHash:        keyHash,
 			Name:           req.Name,
-			UserID:         "system",
+			UserID:         userID,
 			PermissionMode: req.PermissionMode,
 			ExpiresAt:      req.ExpiresAt,
 			CreatedAt:      now,

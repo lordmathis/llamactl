@@ -19,6 +19,7 @@ type contextKey string
 
 const (
 	apiKeyContextKey contextKey = "apiKey"
+	userContextKey   contextKey = "user"
 )
 
 type APIAuthMiddleware struct {
@@ -26,6 +27,7 @@ type APIAuthMiddleware struct {
 	requireInferenceAuth  bool
 	requireManagementAuth bool
 	managementKeys        map[string]bool // Config-based management keys
+	sessions              *auth.SessionStore
 }
 
 // NewAPIAuthMiddleware creates a new APIAuthMiddleware with the given configuration
@@ -128,13 +130,25 @@ func (a *APIAuthMiddleware) InferenceAuthMiddleware() func(http.Handler) http.Ha
 	}
 }
 
-// ManagementAuthMiddleware returns middleware for management endpoints
+// ManagementAuthMiddleware returns middleware for management endpoints.
+// Requests are authenticated either by a valid OIDC session cookie or by a
+// management API key.
 func (a *APIAuthMiddleware) ManagementAuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == "OPTIONS" {
 				next.ServeHTTP(w, r)
 				return
+			}
+
+			if a.sessions != nil {
+				if c, err := r.Cookie(sessionCookieName); err == nil {
+					if sess := a.sessions.Get(c.Value); sess != nil {
+						ctx := context.WithValue(r.Context(), userContextKey, sess)
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
+				}
 			}
 
 			// Extract API key from request
@@ -193,6 +207,16 @@ func (a *APIAuthMiddleware) CheckInstancePermission(ctx context.Context, instanc
 	return err
 }
 
+// UserFromContext returns the OIDC session user, or nil when the request was
+// authenticated with an API key.
+func UserFromContext(ctx context.Context) *auth.Session {
+	user, ok := ctx.Value(userContextKey).(*auth.Session)
+	if !ok {
+		return nil
+	}
+	return user
+}
+
 // extractAPIKey extracts the API key from the request
 func (a *APIAuthMiddleware) extractAPIKey(r *http.Request) string {
 	// Check Authorization header: "Bearer sk-..."
@@ -204,11 +228,6 @@ func (a *APIAuthMiddleware) extractAPIKey(r *http.Request) string {
 
 	// Check X-API-Key header
 	if apiKey := r.Header.Get("X-API-Key"); apiKey != "" {
-		return apiKey
-	}
-
-	// Check query parameter
-	if apiKey := r.URL.Query().Get("api_key"); apiKey != "" {
 		return apiKey
 	}
 

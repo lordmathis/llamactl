@@ -149,6 +149,42 @@ type AuthConfig struct {
 
 	// List of keys for management endpoints
 	ManagementKeys []string `yaml:"management_keys" json:"management_keys"`
+
+	// OpenID Connect login for the WebUI (optional)
+	OIDC OIDCConfig `yaml:"oidc,omitempty" json:"oidc,omitempty"`
+}
+
+// OIDCConfig contains OpenID Connect settings. OIDC login is enabled when
+// IssuerURL and ClientID are both set; all other fields have usable defaults.
+type OIDCConfig struct {
+
+	// Issuer URL of the IdP, e.g. https://authentik.example/application/o/llamactl/
+	IssuerURL string `yaml:"issuer_url" json:"issuer_url"`
+
+	// OAuth2 client ID registered with the IdP
+	ClientID string `yaml:"client_id" json:"client_id"`
+
+	// OAuth2 client secret
+	ClientSecret string `yaml:"client_secret,omitempty" json:"client_secret,omitempty"`
+
+	// Redirect URL override; derived from the request when empty. Set this
+	// when running behind a TLS-terminating proxy that does not forward
+	// X-Forwarded-Proto/X-Forwarded-Host, or when serving under a subpath.
+	RedirectURL string `yaml:"redirect_url,omitempty" json:"redirect_url,omitempty"`
+
+	// Scopes requested from the IdP (default: openid, profile, email)
+	Scopes []string `yaml:"scopes,omitempty" json:"scopes,omitempty"`
+
+	// Session lifetime (default: 12h)
+	SessionTTL time.Duration `yaml:"session_ttl,omitempty" json:"session_ttl,omitempty" swaggertype:"string" example:"12h"`
+
+	// Mark the session cookie Secure; disable only on plain-HTTP LAN deployments
+	SecureCookie bool `yaml:"secure_cookie" json:"secure_cookie"`
+}
+
+// Enabled reports whether OIDC login is configured
+func (c OIDCConfig) Enabled() bool {
+	return c.IssuerURL != "" && c.ClientID != ""
 }
 
 type NodeConfig struct {

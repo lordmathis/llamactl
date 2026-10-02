@@ -43,6 +43,12 @@ func LoadConfig(configPath string) (AppConfig, error) {
 	// 4. Override with environment variables
 	loadEnvVars(&cfg)
 
+	if cfg.Auth.OIDC.Enabled() && !cfg.Auth.RequireManagementAuth {
+		log.Printf("Warning: auth.oidc is enabled but require_management_auth is false; "+
+			"management endpoints stay unauthenticated and OIDC login only adds session support. "+
+			"Set require_management_auth: true so OIDC login actually protects the WebUI.")
+	}
+
 	// Set default directories if not specified
 	if cfg.Instances.LogsDir == "" {
 		cfg.Instances.LogsDir = filepath.Join(cfg.DataDir, "logs")
@@ -100,6 +106,7 @@ func (cfg *AppConfig) SanitizedCopy() (AppConfig, error) {
 
 	// Clear sensitive information
 	sanitized.Auth.ManagementKeys = []string{}
+	sanitized.Auth.OIDC.ClientSecret = ""
 
 	// Clear API keys from nodes
 	for nodeName, node := range sanitized.Nodes {

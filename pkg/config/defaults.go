@@ -88,6 +88,11 @@ func getDefaultConfig(dataDir string) AppConfig {
 			RequireInferenceAuth:  true,
 			RequireManagementAuth: true,
 			ManagementKeys:        []string{},
+			OIDC: OIDCConfig{
+				Scopes:       []string{"openid", "profile", "email"},
+				SessionTTL:   12 * time.Hour,
+				SecureCookie: true,
+			},
 		},
 	}
 }

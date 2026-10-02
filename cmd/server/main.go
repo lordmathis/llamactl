@@ -86,8 +86,19 @@ func main() {
 	// Initialize model manager
 	modelManager := models.NewManager(cfg.Backends.LlamaCpp.CacheDir, cfg.Backends.LlamaCpp.DownloadTimeout, cfg.Version)
 
+	// Set up OIDC login; discovery runs eagerly so a misconfigured issuer
+	// fails here, at startup, instead of at first login.
+	var oidcService *server.OIDCService
+	if cfg.Auth.OIDC.Enabled() {
+		oidcService, err = server.NewOIDCService(cfg.Auth)
+		if err != nil {
+			log.Fatalf("Failed to initialize OIDC: %v", err)
+		}
+		fmt.Println("OIDC login enabled")
+	}
+
 	// Create a new handler with the instance manager
-	handler := server.NewHandler(instanceManager, modelManager, cfg, db)
+	handler := server.NewHandler(instanceManager, modelManager, cfg, db, oidcService)
 
 	// Setup the router with the handler
 	r := server.SetupRouter(handler)
