@@ -151,7 +151,7 @@ type AuthConfig struct {
 	ManagementKeys []string `yaml:"management_keys" json:"management_keys"`
 
 	// OpenID Connect login for the WebUI (optional)
-	OIDC OIDCConfig `yaml:"oidc,omitempty" json:"oidc,omitempty"`
+	OIDC OIDCConfig `yaml:"oidc,omitempty" json:"oidc"`
 }
 
 // OIDCConfig contains OpenID Connect settings. OIDC login is enabled when
