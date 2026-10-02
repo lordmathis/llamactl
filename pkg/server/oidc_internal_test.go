@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -130,11 +131,9 @@ func TestManagementAuthMiddlewareKeyStillWorks(t *testing.T) {
 	}
 }
 
-func TestWhoami(t *testing.T) {
-	store := auth.NewSessionStore(time.Hour)
-	handler := &Handler{oidc: &OIDCService{Sessions: store}}
+func TestWhoamiUnauthenticated(t *testing.T) {
+	handler := &Handler{oidc: &OIDCService{Sessions: auth.NewSessionStore(time.Hour)}}
 
-	// Unauthenticated
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/whoami", nil)
 	recorder := httptest.NewRecorder()
 	handler.Whoami().ServeHTTP(recorder, req)
@@ -146,12 +145,16 @@ func TestWhoami(t *testing.T) {
 		`"authenticated":false`, `"oidc_enabled":true`, `"user":null`) {
 		t.Errorf("unexpected whoami body: %s", body)
 	}
+}
 
-	// Authenticated session
+func TestWhoamiAuthenticatedSession(t *testing.T) {
+	store := auth.NewSessionStore(time.Hour)
+	handler := &Handler{oidc: &OIDCService{Sessions: store}}
+
 	sess := store.Create("user-1", "Alice", "alice@example.com")
-	req = httptest.NewRequest(http.MethodGet, "/api/v1/auth/whoami", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/whoami", nil)
 	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sess.ID})
-	recorder = httptest.NewRecorder()
+	recorder := httptest.NewRecorder()
 	handler.Whoami().ServeHTTP(recorder, req)
 
 	if body := recorder.Body.String(); !containsAll(body,
@@ -170,6 +173,79 @@ func TestWhoamiWithoutOIDC(t *testing.T) {
 	if body := recorder.Body.String(); !containsAll(body,
 		`"authenticated":false`, `"oidc_enabled":false`) {
 		t.Errorf("unexpected whoami body: %s", body)
+	}
+}
+
+func TestOIDCLoginBindsStateCookieToRedirect(t *testing.T) {
+	s := &OIDCService{stateKey: []byte("test-key")}
+	handler := &Handler{oidc: s}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/oidc/login", nil)
+	recorder := httptest.NewRecorder()
+	handler.OIDCLogin().ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusFound {
+		t.Fatalf("status = %d, expected 302", recorder.Code)
+	}
+
+	redirect, err := url.Parse(recorder.Header().Get("Location"))
+	if err != nil {
+		t.Fatalf("parsing redirect location: %v", err)
+	}
+	if state := redirect.Query().Get("state"); state == "" {
+		t.Error("expected state parameter in redirect")
+	}
+	if method := redirect.Query().Get("code_challenge_method"); method != "S256" {
+		t.Errorf("code_challenge_method = %q, expected S256", method)
+	}
+
+	var stateCookie *http.Cookie
+	for _, c := range recorder.Result().Cookies() {
+		if c.Name == stateCookieName {
+			stateCookie = c
+		}
+	}
+	if stateCookie == nil {
+		t.Fatal("expected state cookie to be set")
+	}
+	if _, ok := verifyStateValue(s.stateKey, stateCookie.Value, redirect.Query().Get("state")); !ok {
+		t.Error("state cookie does not verify against the redirect's state parameter")
+	}
+}
+
+func TestOIDCCallbackRejectsBadRequests(t *testing.T) {
+	h := &Handler{oidc: &OIDCService{
+		stateKey: []byte("test-key"),
+		Sessions: auth.NewSessionStore(time.Hour),
+	}}
+	signed := signStateValue([]byte("test-key"), "some-state", "some-verifier")
+
+	tests := []struct {
+		name    string
+		target  string
+		cookies []*http.Cookie
+	}{
+		{"IdP returned an error", "/api/v1/auth/oidc/callback?error=access_denied", nil},
+		{"missing state parameter", "/api/v1/auth/oidc/callback?code=x", nil},
+		{"missing code parameter", "/api/v1/auth/oidc/callback?state=x", nil},
+		{"no state cookie", "/api/v1/auth/oidc/callback?state=x&code=y", nil},
+		{"garbage state cookie", "/api/v1/auth/oidc/callback?state=x&code=y", []*http.Cookie{{Name: stateCookieName, Value: "garbage"}}},
+		{"state does not match cookie", "/api/v1/auth/oidc/callback?state=other&code=y", []*http.Cookie{{Name: stateCookieName, Value: signed}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.target, nil)
+			for _, c := range tt.cookies {
+				req.AddCookie(c)
+			}
+			recorder := httptest.NewRecorder()
+
+			h.OIDCCallback().ServeHTTP(recorder, req)
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Errorf("status = %d, expected 400", recorder.Code)
+			}
+		})
 	}
 }
 

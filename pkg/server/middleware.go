@@ -141,14 +141,10 @@ func (a *APIAuthMiddleware) ManagementAuthMiddleware() func(http.Handler) http.H
 				return
 			}
 
-			if a.sessions != nil {
-				if c, err := r.Cookie(sessionCookieName); err == nil {
-					if sess := a.sessions.Get(c.Value); sess != nil {
-						ctx := context.WithValue(r.Context(), userContextKey, sess)
-						next.ServeHTTP(w, r.WithContext(ctx))
-						return
-					}
-				}
+			if sess := sessionFromRequest(r, a.sessions); sess != nil {
+				ctx := context.WithValue(r.Context(), userContextKey, sess)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
 			}
 
 			// Extract API key from request

@@ -32,8 +32,7 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		))
 	}
 
-	// OIDC login and whoami must be reachable without a management key or
-	// session, so they live outside the authenticated /api/v1 group below.
+	// OIDC login and whoami must be reachable without a management key or session
 	r.Get("/api/v1/auth/whoami", handler.Whoami())
 	if handler.oidc != nil {
 		r.Route("/api/v1/auth/oidc", func(r chi.Router) {

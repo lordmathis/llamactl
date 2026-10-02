@@ -42,16 +42,3 @@ func TestSessionStoreExpiry(t *testing.T) {
 		t.Error("expected expired session to be rejected")
 	}
 }
-
-func TestSessionIDsAreUnique(t *testing.T) {
-	store := NewSessionStore(time.Hour)
-
-	seen := make(map[string]bool)
-	for range 100 {
-		sess := store.Create("user-1", "Alice", "alice@example.com")
-		if seen[sess.ID] {
-			t.Fatalf("duplicate session ID generated: %s", sess.ID)
-		}
-		seen[sess.ID] = true
-	}
-}

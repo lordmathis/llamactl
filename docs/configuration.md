@@ -371,7 +371,7 @@ auth:
 - `LLAMACTL_AUTH_OIDC_SESSION_TTL` - Session lifetime (Go duration, e.g. `12h`)
 - `LLAMACTL_AUTH_OIDC_SECURE_COOKIE` - Mark the session cookie Secure (true/false)
 
-See [Authentication](authentication.md#oidc-sso-login) for IdP client setup, reverse-proxy considerations, and session behavior.
+See [Authentication](authentication.md#oidc-sso-login) for IdP client setup.
 
 ### Remote Node Configuration
 

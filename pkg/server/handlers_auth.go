@@ -92,10 +92,10 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_permission_mode", "Permission mode must be 'allow_all' or 'per_instance'")
 			return
 		}
-	if req.PermissionMode == auth.PermissionModePerInstance && len(req.Permissions) == 0 {
-		writeError(w, http.StatusBadRequest, "missing_permissions", "Permissions required when permission mode is 'per_instance'")
-		return
-	}
+		if req.PermissionMode == auth.PermissionModePerInstance && len(req.Permissions) == 0 {
+			writeError(w, http.StatusBadRequest, "missing_permissions", "Permissions required when permission mode is 'per_instance'")
+			return
+		}
 		if req.ExpiresAt != nil && *req.ExpiresAt <= time.Now().Unix() {
 			writeError(w, http.StatusBadRequest, "invalid_expires_at", "Expiration time must be in future")
 			return
@@ -135,8 +135,8 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			return
 		}
 
-		// Create APIKey struct; keys created from an OIDC session belong to
-		// that user, everything else is attributed to "system".
+		// Keys created from an OIDC session belong to that user; everything
+		// else is attributed to "system".
 		userID := "system"
 		if sess := UserFromContext(r.Context()); sess != nil {
 			userID = sess.Sub

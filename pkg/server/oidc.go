@@ -30,7 +30,6 @@ const (
 // OIDCService implements browser login against an OpenID Connect provider.
 // API keys remain the only way to authenticate non-browser clients.
 type OIDCService struct {
-	provider *oidc.Provider
 	verifier *oidc.IDTokenVerifier
 	oauth2   oauth2.Config
 	cfg      config.OIDCConfig
@@ -68,7 +67,6 @@ func NewOIDCService(authCfg config.AuthConfig) (*OIDCService, error) {
 	}
 
 	return &OIDCService{
-		provider: provider,
 		verifier: provider.Verifier(&oidc.Config{ClientID: cfg.ClientID}),
 		oauth2: oauth2.Config{
 			ClientID:     cfg.ClientID,
@@ -122,7 +120,7 @@ func verifyStateValue(key []byte, cookieValue, queryState string) (verifier stri
 		return "", false
 	}
 
-	state, verifier, _ := parts[0], parts[1], parts[2]
+	state, verifier := parts[0], parts[1]
 	if state != queryState {
 		return "", false
 	}
@@ -135,12 +133,17 @@ func verifyStateValue(key []byte, cookieValue, queryState string) (verifier stri
 	return verifier, true
 }
 
-func randomToken() string {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		panic("crypto/rand unavailable: " + err.Error())
+// sessionFromRequest returns the session for the request's session cookie,
+// or nil when there is no store, no cookie, or no valid session.
+func sessionFromRequest(r *http.Request, store *auth.SessionStore) *auth.Session {
+	if store == nil {
+		return nil
 	}
-	return hex.EncodeToString(b)
+	c, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		return nil
+	}
+	return store.Get(c.Value)
 }
 
 // OIDCLogin godoc
@@ -154,8 +157,8 @@ func (h *Handler) OIDCLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s := h.oidc
 
-		state := randomToken()
-		verifier := randomToken()
+		state := auth.RandomToken()
+		verifier := auth.RandomToken()
 
 		oc := s.oauth2
 		oc.RedirectURL = s.redirectURL(r)
@@ -220,6 +223,7 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 			MaxAge:   -1,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
+			Secure:   s.cfg.SecureCookie,
 		})
 
 		oc := s.oauth2
@@ -326,11 +330,9 @@ func (h *Handler) Whoami() http.HandlerFunc {
 		resp := WhoamiResponse{OIDCEnabled: h.oidc != nil}
 
 		if h.oidc != nil {
-			if c, err := r.Cookie(sessionCookieName); err == nil {
-				if sess := h.oidc.Sessions.Get(c.Value); sess != nil {
-					resp.Authenticated = true
-					resp.User = &WhoamiUser{Sub: sess.Sub, Name: sess.Name, Email: sess.Email}
-				}
+			if sess := sessionFromRequest(r, h.oidc.Sessions); sess != nil {
+				resp.Authenticated = true
+				resp.User = &WhoamiUser{Sub: sess.Sub, Name: sess.Name, Email: sess.Email}
 			}
 		}
 

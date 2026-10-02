@@ -32,16 +32,22 @@ func NewSessionStore(ttl time.Duration) *SessionStore {
 	}
 }
 
-// Create starts a new session for the given OIDC user and returns it.
-func (s *SessionStore) Create(sub, name, email string) *Session {
-	id := make([]byte, 32)
-	if _, err := rand.Read(id); err != nil {
-		// A broken CSPRNG is unrecoverable; failing loud beats failing open.
+// RandomToken returns 64 hex characters from crypto/rand. A broken CSPRNG
+// is unrecoverable; failing loud beats failing open.
+func RandomToken() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
 		panic("crypto/rand unavailable: " + err.Error())
 	}
+	return hex.EncodeToString(b)
+}
+
+// Create starts a new session for the given OIDC user and returns it.
+func (s *SessionStore) Create(sub, name, email string) *Session {
+	id := RandomToken()
 
 	sess := &Session{
-		ID:        hex.EncodeToString(id),
+		ID:        id,
 		Sub:       sub,
 		Name:      name,
 		Email:     email,

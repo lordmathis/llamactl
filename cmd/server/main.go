@@ -80,14 +80,9 @@ func main() {
 		log.Fatalf("Failed to run database migrations: %v", err)
 	}
 
-	// Initialize the instance manager with dependency injection
 	instanceManager := manager.New(&cfg, db)
-
-	// Initialize model manager
 	modelManager := models.NewManager(cfg.Backends.LlamaCpp.CacheDir, cfg.Backends.LlamaCpp.DownloadTimeout, cfg.Version)
 
-	// Set up OIDC login; discovery runs eagerly so a misconfigured issuer
-	// fails here, at startup, instead of at first login.
 	var oidcService *server.OIDCService
 	if cfg.Auth.OIDC.Enabled() {
 		oidcService, err = server.NewOIDCService(cfg.Auth)
