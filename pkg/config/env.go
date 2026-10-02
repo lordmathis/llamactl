@@ -262,6 +262,12 @@ func loadEnvVars(cfg *AppConfig) {
 	if v := os.Getenv("LLAMACTL_AUTH_OIDC_SCOPES"); v != "" {
 		cfg.Auth.OIDC.Scopes = strings.Split(v, ",")
 	}
+	if v := os.Getenv("LLAMACTL_AUTH_OIDC_ALLOWED_GROUPS"); v != "" {
+		cfg.Auth.OIDC.AllowedGroups = strings.Split(v, ",")
+	}
+	if v := os.Getenv("LLAMACTL_AUTH_OIDC_GROUPS_CLAIM"); v != "" {
+		cfg.Auth.OIDC.GroupsClaim = v
+	}
 	if v := os.Getenv("LLAMACTL_AUTH_OIDC_SESSION_TTL"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			cfg.Auth.OIDC.SessionTTL = d

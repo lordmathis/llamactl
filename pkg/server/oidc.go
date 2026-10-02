@@ -7,9 +7,12 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -50,6 +53,9 @@ func NewOIDCService(authCfg config.AuthConfig) (*OIDCService, error) {
 	}
 	if len(cfg.Scopes) == 0 {
 		cfg.Scopes = []string{"openid", "profile", "email"}
+	}
+	if cfg.GroupsClaim == "" {
+		cfg.GroupsClaim = "groups"
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -178,6 +184,51 @@ func (h *Handler) OIDCLogin() http.HandlerFunc {
 	}
 }
 
+// groupsFromClaims extracts the user's groups from raw ID-token claims.
+// present distinguishes "claim not in token" from "claim present but empty".
+// A scalar string is accepted and wrapped; any other shape is an error so a
+// misconfigured claim fails closed instead of silently matching nothing.
+func groupsFromClaims(raw map[string]json.RawMessage, claim string) (groups []string, present bool, err error) {
+	v, ok := raw[claim]
+	if !ok {
+		return nil, false, nil
+	}
+	if err := json.Unmarshal(v, &groups); err == nil {
+		return groups, true, nil
+	}
+	var single string
+	if err := json.Unmarshal(v, &single); err == nil {
+		return []string{single}, true, nil
+	}
+	return nil, true, fmt.Errorf("groups claim %q is not an array of strings: %s", claim, v)
+}
+
+// tokenGroups reads the configured groups claim plus the names of all claims
+// the token carries, so a denied login can be logged with enough context to
+// spot a wrong groups_claim setting.
+func (s *OIDCService) tokenGroups(idToken *oidc.IDToken) (groups, claimNames []string, err error) {
+	var raw map[string]json.RawMessage
+	if err := idToken.Claims(&raw); err != nil {
+		return nil, nil, fmt.Errorf("parsing id_token claims: %w", err)
+	}
+	groups, _, err = groupsFromClaims(raw, s.cfg.GroupsClaim)
+	return groups, slices.Sorted(maps.Keys(raw)), err
+}
+
+// authorizedForGroups reports whether the token's groups satisfy the
+// allowed_groups gate; an empty allowlist admits every authenticated user.
+func authorizedForGroups(allowed, tokenGroups []string) bool {
+	if len(allowed) == 0 {
+		return true
+	}
+	for _, g := range tokenGroups {
+		if slices.Contains(allowed, g) {
+			return true
+		}
+	}
+	return false
+}
+
 // OIDCCallback godoc
 // @Summary Complete OIDC login
 // @Description Handles the IdP redirect, verifies state and ID token, and establishes a session cookie
@@ -185,6 +236,7 @@ func (h *Handler) OIDCLogin() http.HandlerFunc {
 // @Produce html
 // @Success 302 {string} string "Redirect to the WebUI with a session cookie"
 // @Failure 400 {string} string "Invalid or expired login state"
+// @Failure 403 {string} string "User is not a member of an allowed group"
 // @Failure 502 {string} string "IdP exchange or token verification failed"
 // @Router /api/v1/auth/oidc/callback [get]
 func (h *Handler) OIDCCallback() http.HandlerFunc {
@@ -260,6 +312,21 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 			log.Printf("OIDC id_token claims parsing failed: %v", err)
 			http.Error(w, "login failed: claims parsing", http.StatusBadGateway)
 			return
+		}
+
+		if len(s.cfg.AllowedGroups) > 0 {
+			groups, claimNames, err := s.tokenGroups(idToken)
+			if err != nil {
+				log.Printf("OIDC login failed for %s: %v", claims.Sub, err)
+				http.Error(w, "login failed: unusable groups claim", http.StatusBadGateway)
+				return
+			}
+			if !authorizedForGroups(s.cfg.AllowedGroups, groups) {
+				log.Printf("OIDC login denied for %s: token groups %v (claim %q, token claims: %v), allowed_groups %v",
+					claims.Sub, groups, s.cfg.GroupsClaim, claimNames, s.cfg.AllowedGroups)
+				http.Error(w, "access denied: you are not a member of an allowed group", http.StatusForbidden)
+				return
+			}
 		}
 
 		sess := s.Sessions.Create(claims.Sub, claims.Name, claims.Email)

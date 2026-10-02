@@ -1,9 +1,11 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -53,6 +55,66 @@ func TestVerifyStateValueWrongKey(t *testing.T) {
 	signed := signStateValue([]byte("key-one"), "some-state", "some-verifier")
 	if _, ok := verifyStateValue([]byte("key-two"), signed, "some-state"); ok {
 		t.Error("expected verification to fail under a different key")
+	}
+}
+
+func TestGroupsFromClaims(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload string
+		claim   string
+		groups  []string
+		present bool
+		wantErr bool
+	}{
+		{"array of strings", `{"sub":"u1","groups":["admins","devs"]}`, "groups", []string{"admins", "devs"}, true, false},
+		{"empty array", `{"groups":[]}`, "groups", []string{}, true, false},
+		{"scalar string", `{"groups":"admins"}`, "groups", []string{"admins"}, true, false},
+		{"claim absent", `{"sub":"u1","roles":["admins"]}`, "groups", nil, false, false},
+		{"object shape", `{"groups":{"admins":true}}`, "groups", nil, true, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var raw map[string]json.RawMessage
+			if err := json.Unmarshal([]byte(tt.payload), &raw); err != nil {
+				t.Fatalf("fixture JSON invalid: %v", err)
+			}
+
+			groups, present, err := groupsFromClaims(raw, tt.claim)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected an error for a malformed claim")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if present != tt.present {
+				t.Errorf("present = %v, expected %v", present, tt.present)
+			}
+			if !slices.Equal(groups, tt.groups) {
+				t.Errorf("groups = %v, expected %v", groups, tt.groups)
+			}
+		})
+	}
+}
+
+func TestAuthorizedForGroups(t *testing.T) {
+	allow := []string{"llamactl-users", "admins"}
+
+	if !authorizedForGroups(nil, nil) {
+		t.Error("empty allowlist must admit everyone (gate disabled)")
+	}
+	if !authorizedForGroups(allow, []string{"devs", "admins"}) {
+		t.Error("expected overlap to authorize")
+	}
+	if authorizedForGroups(allow, []string{"devs"}) {
+		t.Error("expected disjoint groups to be denied")
+	}
+	if authorizedForGroups(allow, nil) {
+		t.Error("expected missing/empty groups to be denied when the gate is on")
 	}
 }
 

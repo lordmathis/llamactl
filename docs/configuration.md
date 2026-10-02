@@ -358,6 +358,8 @@ auth:
     client_secret: "your-client-secret"    # OAuth2 client secret
     # redirect_url: ""                     # Optional; derived from the request when empty
     # scopes: [openid, profile, email]     # Default scopes
+    # allowed_groups: []                   # Restrict login to these groups (empty = all IdP users)
+    # groups_claim: "groups"               # ID-token claim carrying group names
     # session_ttl: 12h                     # Session lifetime (default: 12h)
     # secure_cookie: true                  # Set false only for plain-HTTP LAN deployments
 ```
@@ -368,6 +370,8 @@ auth:
 - `LLAMACTL_AUTH_OIDC_CLIENT_SECRET` - OAuth2 client secret
 - `LLAMACTL_AUTH_OIDC_REDIRECT_URL` - Redirect URL override
 - `LLAMACTL_AUTH_OIDC_SCOPES` - Comma-separated scopes
+- `LLAMACTL_AUTH_OIDC_ALLOWED_GROUPS` - Comma-separated groups allowed to log in
+- `LLAMACTL_AUTH_OIDC_GROUPS_CLAIM` - Name of the ID-token claim carrying groups (default: `groups`)
 - `LLAMACTL_AUTH_OIDC_SESSION_TTL` - Session lifetime (Go duration, e.g. `12h`)
 - `LLAMACTL_AUTH_OIDC_SECURE_COOKIE` - Mark the session cookie Secure (true/false)
 

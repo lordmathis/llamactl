@@ -135,6 +135,8 @@ auth:
     client_secret: "your-client-secret"    # OAuth2 client secret
     # redirect_url: ""                     # Optional; derived from the request when empty
     # scopes: [openid, profile, email]     # Default scopes
+    # allowed_groups: []                   # Restrict login to these groups (empty = all IdP users)
+    # groups_claim: "groups"               # ID-token claim carrying group names
     # session_ttl: 12h                     # Session lifetime (default: 12h)
     # secure_cookie: true                  # Set false only for plain-HTTP LAN deployments
 ```
@@ -146,6 +148,20 @@ Environment variable equivalents (`LLAMACTL_AUTH_OIDC_*`) are listed in the [con
 1. Create a confidential OAuth2/OIDC client in your IdP (Authentik: provider type *OAuth2/OpenID Connect*; Keycloak: client with *Client authentication* enabled)
 2. Set the redirect URI to `https://<your-llamactl-host>/api/v1/auth/oidc/callback` — under a subpath proxy, use the full external path
 3. Configure the `auth.oidc` block above and restart llamactl; discovery failures abort startup with an actionable error
+
+### Restricting logins to specific groups
+
+By default, every user your IdP authenticates can log in. When the IdP serves more users than should have access to llamactl, set `allowed_groups` to require membership in at least one listed group:
+
+```yaml
+auth:
+  oidc:
+    allowed_groups: ["llamactl-users"]
+```
+
+- Groups are read from the ID token's `groups` claim (Authelia, Authentik, Keycloak, and Dex can all emit it — sometimes a mapper must be enabled). If your IdP exposes membership under a different claim, point `groups_claim` at it.
+- The check is fail-closed: if the claim is missing or unreadable, login is denied and the reason is logged with the claim names the token actually carried — check the llamactl log if a legitimate user cannot get in.
+- Membership is evaluated at login only. Removing a user from the group does not terminate their existing session; access ends when the session expires (`session_ttl`, default 12h) or llamactl restarts. Lower `session_ttl` if you need faster revocation.
 
 ### Notes
 

@@ -175,6 +175,14 @@ type OIDCConfig struct {
 	// Scopes requested from the IdP (default: openid, profile, email)
 	Scopes []string `yaml:"scopes,omitempty" json:"scopes,omitempty"`
 
+	// Groups allowed to log in, matched against the groups claim. Empty =
+	// every user the IdP authenticates is allowed (current behavior).
+	AllowedGroups []string `yaml:"allowed_groups,omitempty" json:"allowed_groups,omitempty"`
+
+	// Name of the ID-token claim carrying the user's groups (default: "groups").
+	// Override for IdPs that expose membership under a different claim (e.g. "roles").
+	GroupsClaim string `yaml:"groups_claim,omitempty" json:"groups_claim,omitempty"`
+
 	// Session lifetime (default: 12h)
 	SessionTTL time.Duration `yaml:"session_ttl,omitempty" json:"session_ttl,omitempty" swaggertype:"string" example:"12h"`
 
