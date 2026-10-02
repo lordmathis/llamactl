@@ -73,6 +73,7 @@ func NewOIDCService(authCfg config.AuthConfig) (*OIDCService, error) {
 		oauth2: oauth2.Config{
 			ClientID:     cfg.ClientID,
 			ClientSecret: cfg.ClientSecret,
+			Endpoint:     provider.Endpoint(),
 			Scopes:       cfg.Scopes,
 		},
 		cfg:      cfg,
@@ -158,7 +159,7 @@ func (h *Handler) OIDCLogin() http.HandlerFunc {
 
 		oc := s.oauth2
 		oc.RedirectURL = s.redirectURL(r)
-		authURL := oc.AuthCodeURL(state, oauth2.S256CodeChallenge(verifier))
+		authURL := oc.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     stateCookieName,
