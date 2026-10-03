@@ -1616,6 +1616,55 @@
                 }
             }
         },
+        "/api/v1/nodes/{name}/health": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Local node is healthy by definition; remote nodes are pinged. Unreachable nodes get a 200 with status \"unreachable\", not an error.",
+                "tags": [
+                    "Nodes"
+                ],
+                "summary": "Check the health of a specific node",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Node Name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Node health status",
+                        "schema": {
+                            "$ref": "#/definitions/server.NodeHealthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Node not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/version": {
             "get": {
                 "security": [
@@ -2940,6 +2989,35 @@
                     }
                 }
             }
+        },
+        "server.NodeHealthResponse": {
+            "type": "object",
+            "properties": {
+                "checked_at": {
+                    "type": "integer"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "latency_ms": {
+                    "description": "no omitempty: 0 is meaningful (local node, sub-ms ping)",
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/server.NodeHealthStatus"
+                }
+            }
+        },
+        "server.NodeHealthStatus": {
+            "type": "string",
+            "enum": [
+                "healthy",
+                "unreachable"
+            ],
+            "x-enum-varnames": [
+                "NodeStatusHealthy",
+                "NodeStatusUnreachable"
+            ]
         },
         "server.NodeResponse": {
             "type": "object",

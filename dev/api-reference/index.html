@@ -1275,6 +1275,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#get-apiv1nodesnamehealth" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/nodes/{name}/health
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3861,6 +3870,63 @@ config)  </p>
 <details class="note">
 <summary>Description</summary>
 <p>Returns the details of a specific node by name  </p>
+</details>
+<p><strong>Input parameters</strong>  </p>
+<table>
+    <thead>
+        <tr>
+            <th>Parameter</th>
+            <th>In</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Nullable</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td class="parameter-name"><code>ApiKeyAuth</code></td>
+            <td>header</td>
+            <td>string</td>
+            <td>N/A</td>
+            <td>No</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="parameter-name"><code>name</code></td>
+            <td>path</td>
+            <td>None</td>
+            <td></td>
+            <td>No</td>
+            <td>Node Name</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1nodesnamehealth"><span class="http-get">GET</span> /api/v1/nodes/<span class="route-param">{name}</span>/health<a class="headerlink" href="#get-apiv1nodesnamehealth" title="Permanent link">&para;</a></h3>
+<p>Check the health of a specific node  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Local node is healthy by definition; remote nodes are pinged. Unreachable<br />
+nodes get a 200 with status "unreachable", not an error.  </p>
 </details>
 <p><strong>Input parameters</strong>  </p>
 <table>
