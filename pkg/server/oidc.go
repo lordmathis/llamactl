@@ -229,41 +229,57 @@ func authorizedForGroups(allowed, tokenGroups []string) bool {
 	return false
 }
 
+// OIDC callback failure codes, surfaced to the WebUI as ?auth_error=<code>
+// on the app root. The SPA maps them to messages in the login dialog.
+const (
+	authErrDenied   = "denied"   // token groups do not intersect allowed_groups
+	authErrState    = "state"    // missing, invalid, or expired CSRF state
+	authErrIDP      = "idp"      // the IdP itself reported an OAuth error
+	authErrExchange = "exchange" // authorization code exchange failed
+	authErrToken    = "token"    // id_token missing, unverifiable, or unreadable
+	authErrGroups   = "groups"   // groups claim present but malformed
+)
+
+// redirectAuthError sends the browser back to the WebUI root with an error
+// code, where the login dialog renders it in the app's own style instead of
+// a bare http.Error page. Details stay in the server log.
+func redirectAuthError(w http.ResponseWriter, r *http.Request, code string) {
+	http.Redirect(w, r, "/?auth_error="+code, http.StatusFound)
+}
+
 // OIDCCallback godoc
 // @Summary Complete OIDC login
 // @Description Handles the IdP redirect, verifies state and ID token, and establishes a session cookie
 // @Tags Auth
 // @Produce html
-// @Success 302 {string} string "Redirect to the WebUI with a session cookie"
-// @Failure 400 {string} string "Invalid or expired login state"
-// @Failure 403 {string} string "User is not a member of an allowed group"
-// @Failure 502 {string} string "IdP exchange or token verification failed"
+// @Success 302 {string} string "Redirect to the WebUI root with an established session, or with ?auth_error=<denied|state|idp|exchange|token|groups> on failure"
 // @Router /api/v1/auth/oidc/callback [get]
 func (h *Handler) OIDCCallback() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s := h.oidc
 
 		if errParam := r.URL.Query().Get("error"); errParam != "" {
-			http.Error(w, "login failed: "+errParam, http.StatusBadRequest)
+			log.Printf("OIDC login failed: IdP returned error %q", errParam)
+			redirectAuthError(w, r, authErrIDP)
 			return
 		}
 
 		queryState := r.URL.Query().Get("state")
 		code := r.URL.Query().Get("code")
 		if queryState == "" || code == "" {
-			http.Error(w, "missing state or code", http.StatusBadRequest)
+			redirectAuthError(w, r, authErrState)
 			return
 		}
 
 		stateCookie, err := r.Cookie(stateCookieName)
 		if err != nil {
-			http.Error(w, "login state expired, try again", http.StatusBadRequest)
+			redirectAuthError(w, r, authErrState)
 			return
 		}
 
 		verifier, ok := verifyStateValue(s.stateKey, stateCookie.Value, queryState)
 		if !ok {
-			http.Error(w, "invalid login state", http.StatusBadRequest)
+			redirectAuthError(w, r, authErrState)
 			return
 		}
 
@@ -285,21 +301,21 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 		token, err := oc.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 		if err != nil {
 			log.Printf("OIDC code exchange failed: %v", err)
-			http.Error(w, "login failed during code exchange", http.StatusBadGateway)
+			redirectAuthError(w, r, authErrExchange)
 			return
 		}
 
 		rawIDToken, ok := token.Extra("id_token").(string)
 		if !ok || rawIDToken == "" {
 			log.Printf("OIDC token response missing id_token (requested scopes: %v)", s.cfg.Scopes)
-			http.Error(w, "login failed: no id_token in token response", http.StatusBadGateway)
+			redirectAuthError(w, r, authErrToken)
 			return
 		}
 
 		idToken, err := s.verifier.Verify(ctx, rawIDToken)
 		if err != nil {
 			log.Printf("OIDC id_token verification failed: %v", err)
-			http.Error(w, "login failed: token verification", http.StatusBadGateway)
+			redirectAuthError(w, r, authErrToken)
 			return
 		}
 
@@ -310,7 +326,7 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 		}
 		if err := idToken.Claims(&claims); err != nil {
 			log.Printf("OIDC id_token claims parsing failed: %v", err)
-			http.Error(w, "login failed: claims parsing", http.StatusBadGateway)
+			redirectAuthError(w, r, authErrToken)
 			return
 		}
 
@@ -318,13 +334,13 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 			groups, claimNames, err := s.tokenGroups(idToken)
 			if err != nil {
 				log.Printf("OIDC login failed for %s: %v", claims.Sub, err)
-				http.Error(w, "login failed: unusable groups claim", http.StatusBadGateway)
+				redirectAuthError(w, r, authErrGroups)
 				return
 			}
 			if !authorizedForGroups(s.cfg.AllowedGroups, groups) {
 				log.Printf("OIDC login denied for %s: token groups %v (claim %q, token claims: %v), allowed_groups %v",
 					claims.Sub, groups, s.cfg.GroupsClaim, claimNames, s.cfg.AllowedGroups)
-				http.Error(w, "access denied: you are not a member of an allowed group", http.StatusForbidden)
+				redirectAuthError(w, r, authErrDenied)
 				return
 			}
 		}

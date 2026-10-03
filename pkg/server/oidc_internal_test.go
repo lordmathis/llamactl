@@ -283,16 +283,17 @@ func TestOIDCCallbackRejectsBadRequests(t *testing.T) {
 	signed := signStateValue([]byte("test-key"), "some-state", "some-verifier")
 
 	tests := []struct {
-		name    string
-		target  string
-		cookies []*http.Cookie
+		name       string
+		target     string
+		cookies    []*http.Cookie
+		wantErrCod string
 	}{
-		{"IdP returned an error", "/api/v1/auth/oidc/callback?error=access_denied", nil},
-		{"missing state parameter", "/api/v1/auth/oidc/callback?code=x", nil},
-		{"missing code parameter", "/api/v1/auth/oidc/callback?state=x", nil},
-		{"no state cookie", "/api/v1/auth/oidc/callback?state=x&code=y", nil},
-		{"garbage state cookie", "/api/v1/auth/oidc/callback?state=x&code=y", []*http.Cookie{{Name: stateCookieName, Value: "garbage"}}},
-		{"state does not match cookie", "/api/v1/auth/oidc/callback?state=other&code=y", []*http.Cookie{{Name: stateCookieName, Value: signed}}},
+		{"IdP returned an error", "/api/v1/auth/oidc/callback?error=access_denied", nil, authErrIDP},
+		{"missing state parameter", "/api/v1/auth/oidc/callback?code=x", nil, authErrState},
+		{"missing code parameter", "/api/v1/auth/oidc/callback?state=x", nil, authErrState},
+		{"no state cookie", "/api/v1/auth/oidc/callback?state=x&code=y", nil, authErrState},
+		{"garbage state cookie", "/api/v1/auth/oidc/callback?state=x&code=y", []*http.Cookie{{Name: stateCookieName, Value: "garbage"}}, authErrState},
+		{"state does not match cookie", "/api/v1/auth/oidc/callback?state=other&code=y", []*http.Cookie{{Name: stateCookieName, Value: signed}}, authErrState},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -304,8 +305,18 @@ func TestOIDCCallbackRejectsBadRequests(t *testing.T) {
 
 			h.OIDCCallback().ServeHTTP(recorder, req)
 
-			if recorder.Code != http.StatusBadRequest {
-				t.Errorf("status = %d, expected 400", recorder.Code)
+			// Failures land the browser back in the login dialog with an
+			// error code, not on a bare http.Error page.
+			if recorder.Code != http.StatusFound {
+				t.Fatalf("status = %d, expected 302", recorder.Code)
+			}
+			if loc := recorder.Header().Get("Location"); loc != "/?auth_error="+tt.wantErrCod {
+				t.Errorf("Location = %q, expected \"/?auth_error=%s\"", loc, tt.wantErrCod)
+			}
+			for _, c := range recorder.Result().Cookies() {
+				if c.Name == sessionCookieName {
+					t.Error("no session cookie may be set on a failed login")
+				}
 			}
 		})
 	}

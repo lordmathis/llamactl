@@ -11,12 +11,14 @@ interface AuthContextState {
   authMethod: AuthMethod
   oidcEnabled: boolean
   error: string | null
+  oidcError: string | null
 }
 
 interface AuthContextActions {
   login: (apiKey: string) => Promise<void>
   logout: () => void
   clearError: () => void
+  clearOIDCError: () => void
   validateAuth: () => Promise<boolean>
 }
 
@@ -30,6 +32,17 @@ interface AuthProviderProps {
 
 const AUTH_STORAGE_KEY = 'llamactl_management_key'
 
+// Error codes the OIDC callback redirects back with (?auth_error=<code>);
+// mapped to messages shown in the login dialog.
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  denied: 'Access denied: your account is not a member of an allowed group.',
+  state: 'The login request expired or was invalid. Please try again.',
+  idp: 'The identity provider rejected the login.',
+  exchange: 'Could not complete the login with the identity provider. Please try again.',
+  token: 'The identity provider returned an invalid login token.',
+  groups: 'The identity provider returned an unusable groups claim.',
+}
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -38,6 +51,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [authMethod, setAuthMethod] = useState<AuthMethod>(null)
   const [oidcEnabled, setOidcEnabled] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [oidcError, setOidcError] = useState<string | null>(null)
+
+  // A failed OIDC login redirects back to the app root with ?auth_error=
+  // <code>. Map it to a message for the login dialog and strip it from the
+  // URL so a refresh or SSO retry doesn't replay it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('auth_error')
+    if (!code) return
+
+    params.delete('auth_error')
+    const rest = params.toString()
+    window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
+    setOidcError(AUTH_ERROR_MESSAGES[code] ?? 'Login failed. Please try again.')
+  }, [])
 
   // Validate API key by making a test request
   const validateApiKey = useCallback(async (key: string): Promise<boolean> => {
@@ -130,6 +158,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setApiKey(key)
       setAuthMethod('key')
       setIsAuthenticated(true)
+      setOidcError(null)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Authentication failed'
       setError(errorMessage)
@@ -154,10 +183,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setAuthMethod(null)
     setIsAuthenticated(false)
     setError(null)
+    setOidcError(null)
   }, [authMethod])
 
   const clearError = useCallback(() => {
     setError(null)
+  }, [])
+
+  const clearOIDCError = useCallback(() => {
+    setOidcError(null)
   }, [])
 
   const validateAuth = useCallback(async (): Promise<boolean> => {
@@ -178,9 +212,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     authMethod,
     oidcEnabled,
     error,
+    oidcError,
     login,
     logout,
     clearError,
+    clearOIDCError,
     validateAuth,
   }
 
