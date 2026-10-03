@@ -470,6 +470,26 @@ definitions:
           $ref: '#/definitions/server.JobResponse'
         type: array
     type: object
+  server.NodeHealthResponse:
+    properties:
+      checked_at:
+        type: integer
+      error:
+        type: string
+      latency_ms:
+        description: 'no omitempty: 0 is meaningful (local node, sub-ms ping)'
+        type: integer
+      status:
+        $ref: '#/definitions/server.NodeHealthStatus'
+    type: object
+  server.NodeHealthStatus:
+    enum:
+    - healthy
+    - unreachable
+    type: string
+    x-enum-varnames:
+    - NodeStatusHealthy
+    - NodeStatusUnreachable
   server.NodeResponse:
     properties:
       address:
@@ -1560,6 +1580,38 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get details of a specific node
+      tags:
+      - Nodes
+  /api/v1/nodes/{name}/health:
+    get:
+      description: Local node is healthy by definition; remote nodes are pinged. Unreachable
+        nodes get a 200 with status "unreachable", not an error.
+      parameters:
+      - description: Node Name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Node health status
+          schema:
+            $ref: '#/definitions/server.NodeHealthResponse'
+        "400":
+          description: Invalid name format
+          schema:
+            type: string
+        "404":
+          description: Node not found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Check the health of a specific node
       tags:
       - Nodes
   /api/v1/version:
