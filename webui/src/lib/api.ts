@@ -122,6 +122,14 @@ export interface NodeResponse {
 
 export type NodesMap = Record<string, NodeResponse>;
 
+// Node health response from GET /nodes/{name}/health
+export interface NodeHealthResponse {
+  status: 'healthy' | 'unreachable';
+  latency_ms?: number;
+  error?: string;
+  checked_at: number;
+}
+
 // Node API functions
 export const nodesApi = {
   // GET /nodes - returns map of node name to NodeResponse
@@ -129,6 +137,10 @@ export const nodesApi = {
 
   // GET /nodes/{name}
   get: (name: string) => apiCall<NodeResponse>(`/nodes/${encodeURIComponent(name)}`),
+
+  // GET /nodes/{name}/health
+  getHealth: (name: string) =>
+    apiCall<NodeHealthResponse>(`/nodes/${encodeURIComponent(name)}/health`),
 };
 
 // Instance API functions

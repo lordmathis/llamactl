@@ -2,6 +2,7 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import InstanceList from "@/components/InstanceList";
 import ModelsList from "@/components/ModelsList";
+import NodesList from "@/components/nodes/NodesList";
 import InstanceDialog from "@/components/InstanceDialog";
 import LoginDialog from "@/components/LoginDialog";
 import SystemInfoDialog from "./components/SystemInfoDialog";
@@ -16,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 function App() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'instances' | 'models'>('instances');
+  const [activeTab, setActiveTab] = useState<'instances' | 'nodes' | 'models'>('instances');
   const [isInstanceModalOpen, setIsInstanceModalOpen] = useState(false);
   const [isSystemInfoModalOpen, setIsSystemInfoModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -113,6 +114,18 @@ function App() {
               >
                 Models
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('nodes')}
+                className={cn(
+                  "px-4 py-2 border-b-2 transition-colors",
+                  activeTab === 'nodes'
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Nodes
+              </button>
             </div>
           </div>
 
@@ -123,6 +136,7 @@ function App() {
               <ModelsList />
             </ModelsProvider>
           )}
+          {activeTab === 'nodes' && <NodesList />}
         </main>
 
         <InstanceDialog

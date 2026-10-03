@@ -104,7 +104,8 @@ func SetupRouter(handler *Handler) *chi.Mux {
 			r.Get("/", handler.ListNodes()) // List all nodes
 
 			r.Route("/{name}", func(r chi.Router) {
-				r.Get("/", handler.GetNode()) // Get node details
+				r.Get("/", handler.GetNode())             // Get node details
+				r.Get("/health", handler.GetNodeHealth()) // Check node health
 			})
 		})
 
