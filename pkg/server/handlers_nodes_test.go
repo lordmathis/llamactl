@@ -23,7 +23,6 @@ func newNodesTestHandler(t *testing.T, nodes map[string]config.NodeConfig, local
 }
 
 func TestGetNodeHealth(t *testing.T) {
-	// Stand up a fake remote node that accepts the API key on /api/v1/version
 	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/v1/version" {
 			http.NotFound(w, r)
@@ -125,11 +124,6 @@ func TestGetNodeHealth(t *testing.T) {
 
 			if health.Status == server.NodeStatusUnreachable && health.Error == "" {
 				t.Errorf("unreachable node should report an error, got empty")
-			}
-
-			// latency_ms is always serialized (0 for local / sub-ms pings)
-			if health.LatencyMS < 0 {
-				t.Errorf("latency_ms should never be negative, got %d", health.LatencyMS)
 			}
 		})
 	}

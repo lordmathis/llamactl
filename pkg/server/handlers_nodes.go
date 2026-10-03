@@ -28,7 +28,7 @@ const (
 // NodeHealthResponse represents the health status of a node in API responses
 type NodeHealthResponse struct {
 	Status    NodeHealthStatus `json:"status"`
-	LatencyMS int64            `json:"latency_ms"`
+	LatencyMS int64            `json:"latency_ms"` // no omitempty: 0 is meaningful (local node, sub-ms ping)
 	Error     string           `json:"error,omitempty"`
 	CheckedAt int64            `json:"checked_at"`
 }
@@ -93,7 +93,7 @@ func (h *Handler) GetNode() http.HandlerFunc {
 
 // GetNodeHealth godoc
 // @Summary Check the health of a specific node
-// @Description For the local node, reports healthy immediately. For remote nodes, pings the node's API and reports reachability and latency. Unreachable nodes are reported with a 200 response and an "unreachable" status rather than an error.
+// @Description Local node is healthy by definition; remote nodes are pinged. Unreachable nodes get a 200 with status "unreachable", not an error.
 // @Tags Nodes
 // @Security ApiKeyAuth
 // @Produces json
@@ -117,7 +117,7 @@ func (h *Handler) GetNodeHealth() http.HandlerFunc {
 			return
 		}
 
-		// The local node served this request, so it is healthy by definition
+		// this request was served by the local node, so it is up
 		if name == h.cfg.LocalNode {
 			writeJSON(w, http.StatusOK, NodeHealthResponse{
 				Status:    NodeStatusHealthy,
@@ -130,10 +130,8 @@ func (h *Handler) GetNodeHealth() http.HandlerFunc {
 	}
 }
 
-// checkRemoteNodeHealth pings a remote node's version endpoint and reports
-// reachability and latency. The version endpoint is used because it is
-// lightweight and requires management authentication, so a healthy response
-// also proves the node accepts the configured API key.
+// checkRemoteNodeHealth pings the node's version endpoint; a 200 also proves
+// the configured API key works
 func (h *Handler) checkRemoteNodeHealth(node config.NodeConfig) NodeHealthResponse {
 	health := NodeHealthResponse{
 		Status:    NodeStatusUnreachable,

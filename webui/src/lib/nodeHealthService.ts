@@ -3,17 +3,11 @@ import type { NodeHealth } from '@/types/node';
 
 type NodeHealthCallback = (health: NodeHealth) => void;
 
-// Polling interval for node health (in milliseconds)
 const POLL_INTERVAL = 10000;
-// Short cache to dedupe concurrent checks
-const CACHE_TTL = 2000;
+const CACHE_TTL = 2000; // dedupes concurrent checks
 
-/**
- * Singleton service that polls node health while the Nodes tab is active.
- * Follows the same subscribe/notify lifecycle as healthService: the first
- * subscriber starts an immediate check plus an interval, the last
- * unsubscribe stops polling and clears cached state.
- */
+// Polls node health while the Nodes tab is mounted. First subscriber starts
+// polling, last unsubscribe stops it.
 class NodeHealthService {
   private intervals: Map<string, ReturnType<typeof setInterval>> = new Map();
   private callbacks: Map<string, Set<NodeHealthCallback>> = new Map();
@@ -21,7 +15,6 @@ class NodeHealthService {
     new Map();
 
   async performHealthCheck(nodeName: string): Promise<NodeHealth> {
-    // Check cache first
     const cached = this.healthCache.get(nodeName);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return cached.health;
@@ -37,8 +30,7 @@ class NodeHealthService {
         lastChecked: new Date(),
       };
     } catch (error) {
-      // Backend unreachable or node unknown - surface as unreachable state
-      // rather than an exception so callers can always render a badge
+      // surface failures as a state, not an exception, so the UI can always render
       health = {
         state: 'unreachable',
         error: error instanceof Error ? error.message : 'Health check failed',
@@ -50,10 +42,6 @@ class NodeHealthService {
     return health;
   }
 
-  /**
-   * Subscribe to health updates for a node. The returned function
-   * unsubscribes and stops polling when the last subscriber leaves.
-   */
   subscribe(nodeName: string, callback: NodeHealthCallback): () => void {
     if (!this.callbacks.has(nodeName)) {
       this.callbacks.set(nodeName, new Set());
@@ -63,7 +51,6 @@ class NodeHealthService {
     if (callbacks) {
       callbacks.add(callback);
 
-      // Start health checking if this is the first subscriber
       if (callbacks.size === 1) {
         this.startHealthCheck(nodeName);
       }
@@ -74,7 +61,6 @@ class NodeHealthService {
       if (callbacks) {
         callbacks.delete(callback);
 
-        // Stop health checking if no more subscribers
         if (callbacks.size === 0) {
           this.stopHealthCheck(nodeName);
           this.callbacks.delete(nodeName);
@@ -84,15 +70,14 @@ class NodeHealthService {
     };
   }
 
-  /**
-   * Start polling a node: immediate check plus a fixed interval
-   */
   private startHealthCheck(nodeName: string): void {
     if (this.intervals.has(nodeName)) {
-      return; // Already checking
+      return; // already checking
     }
 
-    // Initial check immediately
+    // never replay a stale cached result on resubscribe
+    this.healthCache.delete(nodeName);
+
     void this.refreshHealth(nodeName);
 
     const interval = setInterval(() => {
@@ -107,8 +92,7 @@ class NodeHealthService {
       const health = await this.performHealthCheck(nodeName);
       this.notifyCallbacks(nodeName, health);
     } catch (error) {
-      // performHealthCheck already converts API errors into health states,
-      // so this only guards against unexpected failures
+      // performHealthCheck catches API errors; this guards the unexpected
       console.error(`Node health check failed for ${nodeName}:`, error);
     }
   }
@@ -130,9 +114,6 @@ class NodeHealthService {
     }
   }
 
-  /**
-   * Stop all health checking and cleanup
-   */
   destroy(): void {
     this.intervals.forEach((interval) => {
       clearInterval(interval);

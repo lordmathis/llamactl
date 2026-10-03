@@ -78,7 +78,6 @@ function NodesList() {
   const entries = nodes ? Object.entries(nodes) : [];
   const localNode = config?.local_node;
 
-  // Show the local node first, then remote nodes alphabetically
   entries.sort(([a], [b]) => {
     if (a === localNode && b !== localNode) return -1;
     if (b === localNode && a !== localNode) return 1;
