@@ -42,3 +42,21 @@ func TestSessionStoreExpiry(t *testing.T) {
 		t.Error("expected expired session to be rejected")
 	}
 }
+
+func TestSessionStoreSweep(t *testing.T) {
+	// Sessions that expired without being revisited must not linger forever
+	expired := NewSessionStore(-time.Second)
+	expired.Create("user-1", "Alice", "alice@example.com")
+	expired.sweep(time.Now())
+	if n := len(expired.sessions); n != 0 {
+		t.Errorf("sweep left %d expired sessions behind", n)
+	}
+
+	// Live sessions survive
+	live := NewSessionStore(time.Hour)
+	sess := live.Create("user-2", "Bob", "bob@example.com")
+	live.sweep(time.Now())
+	if live.Get(sess.ID) == nil {
+		t.Error("expected live session to survive the sweep")
+	}
+}

@@ -12,6 +12,7 @@ import (
 	"log"
 	"maps"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -108,6 +109,19 @@ func (s *OIDCService) redirectURL(r *http.Request) string {
 	return fmt.Sprintf("%s://%s%s", scheme, host, callbackPath)
 }
 
+// webRootPath returns the path the callback should send the browser to
+func (s *OIDCService) webRootPath(r *http.Request) string {
+	u, err := url.Parse(s.redirectURL(r))
+	if err != nil {
+		return "/"
+	}
+	base, ok := strings.CutSuffix(u.Path, callbackPath)
+	if !ok || base == "" {
+		return "/"
+	}
+	return base + "/"
+}
+
 // signStateValue binds the CSRF state and the PKCE verifier together in a
 // cookie value the callback can trust without server-side storage.
 func signStateValue(key []byte, state, verifier string) string {
@@ -185,9 +199,6 @@ func (h *Handler) OIDCLogin() http.HandlerFunc {
 }
 
 // groupsFromClaims extracts the user's groups from raw ID-token claims.
-// present distinguishes "claim not in token" from "claim present but empty".
-// A scalar string is accepted and wrapped; any other shape is an error so a
-// misconfigured claim fails closed instead of silently matching nothing.
 func groupsFromClaims(raw map[string]json.RawMessage, claim string) (groups []string, present bool, err error) {
 	v, ok := raw[claim]
 	if !ok {
@@ -240,11 +251,9 @@ const (
 	authErrGroups   = "groups"   // groups claim present but malformed
 )
 
-// redirectAuthError sends the browser back to the WebUI root with an error
-// code, where the login dialog renders it in the app's own style instead of
-// a bare http.Error page. Details stay in the server log.
-func redirectAuthError(w http.ResponseWriter, r *http.Request, code string) {
-	http.Redirect(w, r, "/?auth_error="+code, http.StatusFound)
+// redirectAuthError sends the browser back to the WebUI root with an error code
+func redirectAuthError(w http.ResponseWriter, r *http.Request, root, code string) {
+	http.Redirect(w, r, root+"?auth_error="+code, http.StatusFound)
 }
 
 // OIDCCallback godoc
@@ -257,29 +266,30 @@ func redirectAuthError(w http.ResponseWriter, r *http.Request, code string) {
 func (h *Handler) OIDCCallback() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s := h.oidc
+		root := s.webRootPath(r)
 
 		if errParam := r.URL.Query().Get("error"); errParam != "" {
 			log.Printf("OIDC login failed: IdP returned error %q", errParam)
-			redirectAuthError(w, r, authErrIDP)
+			redirectAuthError(w, r, root, authErrIDP)
 			return
 		}
 
 		queryState := r.URL.Query().Get("state")
 		code := r.URL.Query().Get("code")
 		if queryState == "" || code == "" {
-			redirectAuthError(w, r, authErrState)
+			redirectAuthError(w, r, root, authErrState)
 			return
 		}
 
 		stateCookie, err := r.Cookie(stateCookieName)
 		if err != nil {
-			redirectAuthError(w, r, authErrState)
+			redirectAuthError(w, r, root, authErrState)
 			return
 		}
 
 		verifier, ok := verifyStateValue(s.stateKey, stateCookie.Value, queryState)
 		if !ok {
-			redirectAuthError(w, r, authErrState)
+			redirectAuthError(w, r, root, authErrState)
 			return
 		}
 
@@ -301,21 +311,21 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 		token, err := oc.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 		if err != nil {
 			log.Printf("OIDC code exchange failed: %v", err)
-			redirectAuthError(w, r, authErrExchange)
+			redirectAuthError(w, r, root, authErrExchange)
 			return
 		}
 
 		rawIDToken, ok := token.Extra("id_token").(string)
 		if !ok || rawIDToken == "" {
 			log.Printf("OIDC token response missing id_token (requested scopes: %v)", s.cfg.Scopes)
-			redirectAuthError(w, r, authErrToken)
+			redirectAuthError(w, r, root, authErrToken)
 			return
 		}
 
 		idToken, err := s.verifier.Verify(ctx, rawIDToken)
 		if err != nil {
 			log.Printf("OIDC id_token verification failed: %v", err)
-			redirectAuthError(w, r, authErrToken)
+			redirectAuthError(w, r, root, authErrToken)
 			return
 		}
 
@@ -326,7 +336,7 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 		}
 		if err := idToken.Claims(&claims); err != nil {
 			log.Printf("OIDC id_token claims parsing failed: %v", err)
-			redirectAuthError(w, r, authErrToken)
+			redirectAuthError(w, r, root, authErrToken)
 			return
 		}
 
@@ -334,13 +344,13 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 			groups, claimNames, err := s.tokenGroups(idToken)
 			if err != nil {
 				log.Printf("OIDC login failed for %s: %v", claims.Sub, err)
-				redirectAuthError(w, r, authErrGroups)
+				redirectAuthError(w, r, root, authErrGroups)
 				return
 			}
 			if !authorizedForGroups(s.cfg.AllowedGroups, groups) {
 				log.Printf("OIDC login denied for %s: token groups %v (claim %q, token claims: %v), allowed_groups %v",
 					claims.Sub, groups, s.cfg.GroupsClaim, claimNames, s.cfg.AllowedGroups)
-				redirectAuthError(w, r, authErrDenied)
+				redirectAuthError(w, r, root, authErrDenied)
 				return
 			}
 		}
@@ -356,7 +366,7 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 			SameSite: http.SameSiteLaxMode,
 		})
 
-		http.Redirect(w, r, "/", http.StatusFound)
+		http.Redirect(w, r, root, http.StatusFound)
 	}
 }
 

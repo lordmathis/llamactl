@@ -322,6 +322,46 @@ func TestOIDCCallbackRejectsBadRequests(t *testing.T) {
 	}
 }
 
+func TestWebRootPath(t *testing.T) {
+	tests := []struct {
+		name        string
+		redirectURL string
+		want        string
+	}{
+		{"derived from request", "", "/"},
+		{"explicit root deployment", "https://dash.example.com" + callbackPath, "/"},
+		{"subpath proxy", "https://dash.example.com/llamactl" + callbackPath, "/llamactl/"},
+		{"override not ending in callback path", "https://dash.example.com/elsewhere", "/"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &OIDCService{cfg: config.OIDCConfig{RedirectURL: tt.redirectURL}}
+			req := httptest.NewRequest(http.MethodGet, callbackPath, nil)
+			if got := s.webRootPath(req); got != tt.want {
+				t.Errorf("webRootPath() = %q, expected %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// Behind a subpath proxy the callback must send the browser back to the
+// app's base path, not to the server root.
+func TestOIDCCallbackRedirectHonorsSubpath(t *testing.T) {
+	h := &Handler{oidc: &OIDCService{
+		stateKey: []byte("test-key"),
+		Sessions: auth.NewSessionStore(time.Hour),
+		cfg:      config.OIDCConfig{RedirectURL: "https://dash.example.com/llamactl" + callbackPath},
+	}}
+
+	req := httptest.NewRequest(http.MethodGet, callbackPath+"?state=x&code=y", nil)
+	recorder := httptest.NewRecorder()
+	h.OIDCCallback().ServeHTTP(recorder, req)
+
+	if loc := recorder.Header().Get("Location"); loc != "/llamactl/?auth_error=state" {
+		t.Errorf("Location = %q, expected \"/llamactl/?auth_error=state\"", loc)
+	}
+}
+
 func containsAll(s string, substrings ...string) bool {
 	for _, sub := range substrings {
 		if !strings.Contains(s, sub) {

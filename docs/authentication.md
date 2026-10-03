@@ -147,7 +147,7 @@ Environment variable equivalents (`LLAMACTL_AUTH_OIDC_*`) are listed in the [con
 
 1. Create a confidential OAuth2/OIDC client in your IdP (Authentik: provider type *OAuth2/OpenID Connect*; Keycloak: client with *Client authentication* enabled)
 2. Set the redirect URI to `https://<your-llamactl-host>/api/v1/auth/oidc/callback` — under a subpath proxy, use the full external path
-3. Configure the `auth.oidc` block above and restart llamactl; discovery failures abort startup with an actionable error
+3. Configure the `auth.oidc` block above and restart llamactl. If discovery fails at startup (IdP unreachable, wrong issuer), llamactl logs the error and runs without OIDC until the problem is fixed — management-key login keeps working.
 
 ### Restricting logins to specific groups
 
@@ -166,6 +166,6 @@ auth:
 ### Notes
 
 - Keep `require_management_auth: true` when enabling OIDC — otherwise management endpoints stay unauthenticated and login only adds session support. llamactl logs a warning at startup for this combination.
-- Behind a TLS-terminating reverse proxy, either forward `X-Forwarded-Proto`/`X-Forwarded-Host` or set `redirect_url` explicitly.
+- Behind a TLS-terminating reverse proxy, either forward `X-Forwarded-Proto`/`X-Forwarded-Host` or set `redirect_url` explicitly. Under a subpath proxy, set `redirect_url` to the full external callback path; after login the browser is sent back to the WebUI root under that same base path.
 - The authorization code flow uses PKCE (S256) and a signed, one-shot CSRF state cookie. Sessions live in memory: a llamactl restart logs everyone out, and `secure_cookie: false` is only appropriate on trusted plain-HTTP LANs.
 - API keys created while logged in via SSO are attributed to the user's OIDC subject (`sub`) instead of `system`.
