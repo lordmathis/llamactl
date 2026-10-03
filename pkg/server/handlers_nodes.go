@@ -138,6 +138,11 @@ func (h *Handler) checkRemoteNodeHealth(node config.NodeConfig) NodeHealthRespon
 		CheckedAt: time.Now().Unix(),
 	}
 
+	if node.Address == "" {
+		health.Error = "no address configured"
+		return health
+	}
+
 	targetURL, err := url.Parse(node.Address)
 	if err != nil {
 		health.Error = "invalid node address"
@@ -159,11 +164,12 @@ func (h *Handler) checkRemoteNodeHealth(node config.NodeConfig) NodeHealthRespon
 
 	start := time.Now()
 	resp, err := h.httpClient.Do(req)
-	health.LatencyMS = time.Since(start).Milliseconds()
 	if err != nil {
 		health.Error = err.Error()
 		return health
 	}
+
+	health.LatencyMS = time.Since(start).Milliseconds()
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {

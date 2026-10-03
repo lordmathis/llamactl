@@ -4,7 +4,7 @@ import type { NodeHealth } from '@/types/node';
 type NodeHealthCallback = (health: NodeHealth) => void;
 
 const POLL_INTERVAL = 10000;
-const CACHE_TTL = 2000; // dedupes concurrent checks
+const CACHE_TTL = 2000;
 
 // Polls node health while the Nodes tab is mounted. First subscriber starts
 // polling, last unsubscribe stops it.
