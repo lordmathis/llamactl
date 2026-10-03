@@ -46,3 +46,6 @@ __debug*
 
 # Binary
 llamactl-*
+
+# Air live-reload build output
+tmp/

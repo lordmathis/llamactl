@@ -1,0 +1,30 @@
+#:schema https://json.schemastore.org/any.json
+
+# Live-reload loop for development: `air` (https://github.com/air-verse/air)
+# Rebuilds ./tmp/llamactl and restarts the server on every .go save.
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/llamactl ./cmd/server"
+entrypoint = ["./tmp/llamactl"]
+full_bin = "LLAMACTL_CONFIG_PATH=llamactl.dev.yaml ./tmp/llamactl"
+send_interrupt = true
+kill_delay = "3s"
+stop_on_error = false
+delay = 500
+
+include_ext = ["go"]
+include_file = ["llamactl.dev.yaml"]
+exclude_regex = ["_test\\.go"]
+exclude_dir = ["tmp", "webui/node_modules", "webui/dist", "docs", "docker"]
+
+[log]
+time = true
+
+[screen]
+clear_on_rebuild = false
+
+[misc]
+clean_on_exit = true

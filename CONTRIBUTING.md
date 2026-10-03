@@ -31,6 +31,9 @@ Thank you for considering contributing to Llamactl! This document outlines the d
    ```bash
    # Start backend server
    go run ./cmd/server
+
+   # Or with automatic rebuild on save (https://github.com/air-verse/air)
+   air
    ```
    Server will be available at `http://localhost:8080`
    
@@ -98,6 +101,7 @@ Use this format for pull request titles:
 - `docs:` for documentation changes
 - `test:` for test additions or modifications
 - `refactor:` for code refactoring
+- `chore:` for tooling and dependency changes
 
 ### Submission Process
 1. Create a feature branch from `main`
