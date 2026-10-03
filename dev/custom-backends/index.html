@@ -18,7 +18,7 @@
         <link rel="prev" href="../managing-models/">
       
       
-        <link rel="next" href="../api-keys/">
+        <link rel="next" href="../api-reference/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -306,6 +306,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../authentication/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Authentication
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../managing-instances/" class="md-tabs__link">
         
   
@@ -353,25 +372,6 @@
     
   
   Custom Backends
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../api-keys/" class="md-tabs__link">
-        
-  
-  
-    
-  
-  API Keys
 
       </a>
     </li>
@@ -564,6 +564,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Authentication
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../managing-instances/" class="md-nav__link">
         
   
@@ -699,28 +721,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../api-keys/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    API Keys
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../api-reference/" class="md-nav__link">
         
   
@@ -788,6 +788,7 @@
 <li>It exposes a health endpoint that returns a 2xx response when the server is ready (see <a href="#health-checks">Health Checks</a>).  </li>
 </ul>
 <p>The server learns its port through the <code>{port}</code> placeholder in its arguments — llamactl has no other way to communicate it.  </p>
+<p>On multi-node setups, the command must exist on the node that runs the instance.  </p>
 <h2 id="creating-an-instance">Creating an Instance<a class="headerlink" href="#creating-an-instance" title="Permanent link">&para;</a></h2>
 <p>Instances of a custom backend are created like any other instance, with <code>backend_type: "custom"</code>; see <a href="../managing-instances/">Managing Instances</a> for the API examples and instance options. In the web UI, each configured name appears in the backend dropdown.  </p>
 <p>The launched command receives arguments from two places: the entry's <code>args</code> first, then the instance's <code>args</code>. Both support two placeholders, substituted when the instance starts:  </p>
@@ -795,6 +796,7 @@
 <li><code>{port}</code> — the port assigned to the instance. The combined arguments must contain it somewhere, otherwise the server cannot learn its port and instance creation is rejected.  </li>
 <li><code>{model}</code> — the model identifier of the instance. Optional; if the arguments use it, the instance must have a model set.  </li>
 </ul>
+<p>Servers that download models or run long setup on first start may exceed the on-demand start timeout (<code>instances.on_demand_start_timeout</code>). Raise the timeout or pre-warm the server's model cache by running the command once manually.  </p>
 <h2 id="health-checks">Health Checks<a class="headerlink" href="#health-checks" title="Permanent link">&para;</a></h2>
 <p>After launching the command, llamactl polls the entry's <code>health_path</code> until it returns a 2xx response, and only then marks the instance ready.  </p>
 
@@ -817,7 +819,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 26, 2026 21:04:14 UTC">September 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 2, 2026 22:20:24 UTC">October 2, 2026</span>
   </span>
 
     

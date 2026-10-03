@@ -44,6 +44,10 @@ definitions:
         items:
           type: string
         type: array
+      oidc:
+        allOf:
+        - $ref: '#/definitions/config.OIDCConfig'
+        description: OpenID Connect login for the WebUI (optional)
       require_inference_auth:
         description: Require authentication for OpenAI compatible inference endpoints
         type: boolean
@@ -53,6 +57,10 @@ definitions:
     type: object
   config.BackendConfig:
     properties:
+      custom:
+        additionalProperties:
+          $ref: '#/definitions/config.BackendSettings'
+        type: object
       llama-cpp:
         $ref: '#/definitions/config.BackendSettings'
       mlx:
@@ -79,6 +87,8 @@ definitions:
         additionalProperties:
           type: string
         type: object
+      health_path:
+        type: string
       response_headers:
         additionalProperties:
           type: string
@@ -184,6 +194,49 @@ definitions:
       address:
         type: string
       api_key:
+        type: string
+    type: object
+  config.OIDCConfig:
+    properties:
+      allowed_groups:
+        description: |-
+          Groups allowed to log in, matched against the groups claim. Empty =
+          every user the IdP authenticates is allowed (current behavior).
+        items:
+          type: string
+        type: array
+      client_id:
+        description: OAuth2 client ID registered with the IdP
+        type: string
+      client_secret:
+        description: OAuth2 client secret
+        type: string
+      groups_claim:
+        description: |-
+          Name of the ID-token claim carrying the user's groups (default: "groups").
+          Override for IdPs that expose membership under a different claim (e.g. "roles").
+        type: string
+      issuer_url:
+        description: Issuer URL of the IdP, e.g. https://authentik.example/application/o/llamactl/
+        type: string
+      redirect_url:
+        description: |-
+          Redirect URL override; derived from the request when empty. Set this
+          when running behind a TLS-terminating proxy that does not forward
+          X-Forwarded-Proto/X-Forwarded-Host, or when serving under a subpath.
+        type: string
+      scopes:
+        description: 'Scopes requested from the IdP (default: openid, profile, email)'
+        items:
+          type: string
+        type: array
+      secure_cookie:
+        description: Mark the session cookie Secure; disable only on plain-HTTP LAN
+          deployments
+        type: boolean
+      session_ttl:
+        description: 'Session lifetime (default: 12h)'
+        example: 12h
         type: string
     type: object
   config.ServerConfig:
@@ -447,6 +500,24 @@ definitions:
       command:
         type: string
     type: object
+  server.WhoamiResponse:
+    properties:
+      authenticated:
+        type: boolean
+      oidc_enabled:
+        type: boolean
+      user:
+        $ref: '#/definitions/server.WhoamiUser'
+    type: object
+  server.WhoamiUser:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      sub:
+        type: string
+    type: object
 info:
   contact: {}
   description: llamactl is a control server for managing Llama Server instances.
@@ -606,6 +677,58 @@ paths:
       summary: Get API key permissions
       tags:
       - Keys
+  /api/v1/auth/oidc/callback:
+    get:
+      description: Handles the IdP redirect, verifies state and ID token, and establishes
+        a session cookie
+      produces:
+      - text/html
+      responses:
+        "302":
+          description: Redirect to the WebUI root with an established session, or
+            with ?auth_error=<denied|state|idp|exchange|token|groups> on failure
+          schema:
+            type: string
+      summary: Complete OIDC login
+      tags:
+      - Auth
+  /api/v1/auth/oidc/login:
+    get:
+      description: Redirects the browser to the configured OpenID Connect provider
+        to begin the login flow
+      produces:
+      - text/html
+      responses:
+        "302":
+          description: Redirect to IdP
+          schema:
+            type: string
+      summary: Start OIDC login
+      tags:
+      - Auth
+  /api/v1/auth/oidc/logout:
+    post:
+      description: Revokes the server-side session and clears the session cookie
+      responses:
+        "204":
+          description: Session terminated
+      summary: End OIDC session
+      tags:
+      - Auth
+  /api/v1/auth/whoami:
+    get:
+      description: Returns whether the caller has an OIDC session and whether OIDC
+        login is configured. Intended for the WebUI bootstrap; never requires authentication.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Authentication state
+          schema:
+            $ref: '#/definitions/server.WhoamiResponse'
+      summary: Get current authentication state
+      tags:
+      - Auth
   /api/v1/backends/llama-cpp/devices:
     get:
       description: Returns a list of available devices for the llama server
@@ -815,7 +938,9 @@ paths:
       tags:
       - Instances
     get:
-      description: Returns the details of a specific instance by name
+      description: |-
+        Returns the details of a specific instance by name. Returns
+        404 when the instance does not exist locally or on its node.
       parameters:
       - description: Instance Name
         in: path
@@ -829,6 +954,10 @@ paths:
             $ref: '#/definitions/instance.Instance'
         "400":
           description: Invalid name format
+          schema:
+            type: string
+        "404":
+          description: Instance does not exist
           schema:
             type: string
         "500":

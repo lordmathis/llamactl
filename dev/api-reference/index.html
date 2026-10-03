@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://llamactl.org/dev/api-reference/">
       
       
-        <link rel="prev" href="../api-keys/">
+        <link rel="prev" href="../custom-backends/">
       
       
         <link rel="next" href="../troubleshooting/">
@@ -306,6 +306,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../authentication/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Authentication
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../managing-instances/" class="md-tabs__link">
         
   
@@ -351,25 +370,6 @@
     
   
   Custom Backends
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../api-keys/" class="md-tabs__link">
-        
-  
-  
-    
-  
-  API Keys
 
       </a>
     </li>
@@ -564,6 +564,28 @@
   
   
     <li class="md-nav__item">
+      <a href="../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Authentication
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../managing-instances/" class="md-nav__link">
         
   
@@ -614,28 +636,6 @@
   
   <span class="md-ellipsis">
     Custom Backends
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../api-keys/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    API Keys
     
   </span>
   
@@ -751,6 +751,57 @@
   <a href="#get-apiv1authkeysidpermissions" class="md-nav__link">
     <span class="md-ellipsis">
       GET /api/v1/auth/keys/{id}/permissions
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      Auth
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Auth">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1authoidccallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/auth/oidc/callback
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1authoidclogin" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/auth/oidc/login
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-apiv1authoidclogout" class="md-nav__link">
+    <span class="md-ellipsis">
+      POST /api/v1/auth/oidc/logout
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1authwhoami" class="md-nav__link">
+    <span class="md-ellipsis">
+      GET /api/v1/auth/whoami
     </span>
   </a>
   
@@ -1582,6 +1633,58 @@ instance names)  </p>
     <strong>Response <span class="response-code code-500">500</span>&nbsp;<span class="status-phrase">Internal Server Error</span></strong>
 </p>
 
+<h2 id="auth"><span class="api-tag">Auth</span><a class="headerlink" href="#auth" title="Permanent link">&para;</a></h2>
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1authoidccallback"><span class="http-get">GET</span> /api/v1/auth/oidc/callback<a class="headerlink" href="#get-apiv1authoidccallback" title="Permanent link">&para;</a></h3>
+<p>Complete OIDC login  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Handles the IdP redirect, verifies state and ID token, and establishes a<br />
+session cookie  </p>
+</details>
+<p class="response-title">
+    <strong>Response <span class="response-code code-302">302</span>&nbsp;<span class="status-phrase">Found</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1authoidclogin"><span class="http-get">GET</span> /api/v1/auth/oidc/login<a class="headerlink" href="#get-apiv1authoidclogin" title="Permanent link">&para;</a></h3>
+<p>Start OIDC login  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Redirects the browser to the configured OpenID Connect provider to begin the<br />
+login flow  </p>
+</details>
+<p class="response-title">
+    <strong>Response <span class="response-code code-302">302</span>&nbsp;<span class="status-phrase">Found</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="post-apiv1authoidclogout"><span class="http-post">POST</span> /api/v1/auth/oidc/logout<a class="headerlink" href="#post-apiv1authoidclogout" title="Permanent link">&para;</a></h3>
+<p>End OIDC session  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Revokes the server-side session and clears the session cookie  </p>
+</details>
+<p class="response-title">
+    <strong>Response <span class="response-code code-204">204</span>&nbsp;<span class="status-phrase">No Content</span></strong>
+</p>
+
+<hr class="operation-separator" />
+
+<h3 id="get-apiv1authwhoami"><span class="http-get">GET</span> /api/v1/auth/whoami<a class="headerlink" href="#get-apiv1authwhoami" title="Permanent link">&para;</a></h3>
+<p>Get current authentication state  </p>
+<details class="note">
+<summary>Description</summary>
+<p>Returns whether the caller has an OIDC session and whether OIDC login is<br />
+configured. Intended for the WebUI bootstrap; never requires authentication.  </p>
+</details>
+<p class="response-title">
+    <strong>Response <span class="response-code code-200">200</span>&nbsp;<span class="status-phrase">OK</span></strong>
+</p>
+
 <h2 id="backends"><span class="api-tag">Backends</span><a class="headerlink" href="#backends" title="Permanent link">&para;</a></h2>
 <hr class="operation-separator" />
 
@@ -2031,7 +2134,8 @@ instance names)  </p>
 <p>Get details of a specific instance  </p>
 <details class="note">
 <summary>Description</summary>
-<p>Returns the details of a specific instance by name  </p>
+<p>Returns the details of a specific instance by name. Returns<br />
+404 when the instance does not exist locally or on its node.  </p>
 </details>
 <p><strong>Input parameters</strong>  </p>
 <table>
@@ -2071,6 +2175,10 @@ instance names)  </p>
 
 <p class="response-title">
     <strong>Response <span class="response-code code-400">400</span>&nbsp;<span class="status-phrase">Bad Request</span></strong>
+</p>
+
+<p class="response-title">
+    <strong>Response <span class="response-code code-404">404</span>&nbsp;<span class="status-phrase">Not Found</span></strong>
 </p>
 
 <p class="response-title">

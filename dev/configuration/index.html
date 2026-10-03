@@ -18,7 +18,7 @@
         <link rel="prev" href="../quick-start/">
       
       
-        <link rel="next" href="../managing-instances/">
+        <link rel="next" href="../authentication/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -308,6 +308,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../authentication/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Authentication
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../managing-instances/" class="md-tabs__link">
         
   
@@ -353,25 +372,6 @@
     
   
   Custom Backends
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../api-keys/" class="md-tabs__link">
-        
-  
-  
-    
-  
-  API Keys
 
       </a>
     </li>
@@ -713,6 +713,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Authentication Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oidc-sso-login" class="md-nav__link">
+    <span class="md-ellipsis">
+      OIDC / SSO Login
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -733,6 +748,28 @@
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Authentication
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -794,28 +831,6 @@
   
   <span class="md-ellipsis">
     Custom Backends
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../api-keys/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    API Keys
     
   </span>
   
@@ -1084,7 +1099,7 @@
 - <code>LLAMACTL_MLX_ENV</code> - Environment variables in format "KEY1=value1,KEY2=value2"<br />
 - <code>LLAMACTL_MLX_RESPONSE_HEADERS</code> - Response headers in format "KEY1=value1;KEY2=value2"  </p>
 <h3 id="custom-backends">Custom Backends<a class="headerlink" href="#custom-backends" title="Permanent link">&para;</a></h3>
-<p>Custom backends are user-defined named entries under <code>backends.custom</code> for managing inference servers without native support. Each entry accepts the same fields as the built-in backends; see the <a href="../custom-backends/">Custom Backends</a> guide for how they work.  </p>
+<p>Custom backends are user-defined named entries under <code>backends.custom</code> for managing inference servers without native support. Each entry accepts the same fields as the built-in backends, and <code>args</code> support the <code>{port}</code> and <code>{model}</code> placeholders; see the <a href="../custom-backends/">Custom Backends</a> guide for how they work.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">backends</span><span class="p">:</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">custom</span><span class="p">:</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="nt">my-engine</span><span class="p">:</span>
@@ -1099,15 +1114,6 @@
 <a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">        </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
 <a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">      </span><span class="nt">response_headers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span><span class="w">         </span><span class="c1"># Additional response headers to send with responses</span>
 </code></pre></div>
-<p>Configured <code>args</code> are prepended to instance arguments and support the <code>{port}</code> and <code>{model}</code> placeholders; see <a href="../custom-backends/">Custom Backends</a> for details.  </p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<ul>
-<li>Custom backends are configured in the config file only; there are no environment variable overrides for them.  </li>
-<li>On multi-node setups, the command must exist on the node that runs the instance.  </li>
-<li>Servers that download models or run long setup on first start may exceed the on-demand start timeout (<code>instances.on_demand_start_timeout</code>). Raise the timeout or pre-warm the server's model cache by running the command once manually.  </li>
-</ul>
-</div>
 <h3 id="data-directory-configuration">Data Directory Configuration<a class="headerlink" href="#data-directory-configuration" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">data_dir</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;~/.local/share/llamactl&quot;</span><span class="w">  </span><span class="c1"># Main data directory for database, instances, and logs (default varies by OS)</span>
 </code></pre></div>
@@ -1170,44 +1176,58 @@
 - <code>LLAMACTL_DATABASE_MAX_IDLE_CONNECTIONS</code> - Maximum idle database connections<br />
 - <code>LLAMACTL_DATABASE_CONN_MAX_LIFETIME</code> - Connection max lifetime (e.g., "5m", "1h")  </p>
 <h3 id="authentication-configuration">Authentication Configuration<a class="headerlink" href="#authentication-configuration" title="Permanent link">&para;</a></h3>
-<p>llamactl supports two types of authentication:  </p>
+<p>llamactl supports three authentication mechanisms:  </p>
 <ul>
 <li><strong>Management API Keys</strong>: For accessing the web UI and management API (creating/managing instances). These can be configured in the config file or via environment variables.  </li>
 <li><strong>Inference API Keys</strong>: For accessing the OpenAI-compatible inference endpoints. These are managed via the web UI (Settings → API Keys) and stored in the database.  </li>
+<li><strong>OIDC / SSO Sessions</strong>: Optional web UI login through an OpenID Connect provider, configured via the <code>auth.oidc</code> block below.  </li>
 </ul>
+<p>See <a href="../authentication/">Authentication</a> for inference key permissions and SSO setup.  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">auth</span><span class="p">:</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">require_inference_auth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">           </span><span class="c1"># Require API key for OpenAI endpoints (default: true)</span>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">require_management_auth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">          </span><span class="c1"># Require API key for management endpoints (default: true)</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">management_keys</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span><span class="w">                    </span><span class="c1"># List of valid management API keys</span>
 </code></pre></div>
-<p><strong>Managing Inference API Keys:</strong>  </p>
-<p>Inference API keys are managed through the web UI or management API and stored in the database. To create and manage inference keys:  </p>
-<ol>
-<li>Open the web UI and log in with a management API key  </li>
-<li>Navigate to <strong>Settings → API Keys</strong>  </li>
-<li>Click <strong>Create API Key</strong>  </li>
-<li>Configure the key:  <ul>
-<li><strong>Name</strong>: A descriptive name for the key  </li>
-<li><strong>Expiration</strong>: Optional expiration date  </li>
-<li><strong>Permissions</strong>: Grant access to all instances or specific instances only, with per-instance access levels controlling auto-start and eviction (see <a href="../api-keys/">API Keys</a> for details)  </li>
-</ul>
-</li>
-<li>Copy the generated key - it won't be shown again  </li>
-</ol>
+<p>Inference API keys are created and managed via the web UI or management API  </p>
 <p><strong>Environment Variables:</strong><br />
 - <code>LLAMACTL_REQUIRE_INFERENCE_AUTH</code> - Require auth for OpenAI endpoints (true/false)<br />
 - <code>LLAMACTL_REQUIRE_MANAGEMENT_AUTH</code> - Require auth for management endpoints (true/false)<br />
 - <code>LLAMACTL_MANAGEMENT_KEYS</code> - Comma-separated management API keys  </p>
+<h4 id="oidc-sso-login">OIDC / SSO Login<a class="headerlink" href="#oidc-sso-login" title="Permanent link">&para;</a></h4>
+<p>The web UI can authenticate users through an OpenID Connect provider (Authentik, Keycloak, Authelia, etc.) instead of a management API key. OIDC login is enabled when both <code>issuer_url</code> and <code>client_id</code> are set; management API keys keep working alongside it, and inference endpoints always use API keys.  </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">auth</span><span class="p">:</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">oidc</span><span class="p">:</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nt">issuer_url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://authentik.example.com/application/o/llamactl/&quot;</span><span class="w">  </span><span class="c1"># IdP issuer URL</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nt">client_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;llamactl&quot;</span><span class="w">                  </span><span class="c1"># OAuth2 client ID registered with the IdP</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">client_secret</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;your-client-secret&quot;</span><span class="w">    </span><span class="c1"># OAuth2 client secret</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="c1"># redirect_url: &quot;&quot;                     # Optional; derived from the request when empty</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="c1"># scopes: [openid, profile, email]     # Default scopes</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="c1"># allowed_groups: []                   # Restrict login to these groups (empty = all IdP users)</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="c1"># groups_claim: &quot;groups&quot;               # ID-token claim carrying group names</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">    </span><span class="c1"># session_ttl: 12h                     # Session lifetime (default: 12h)</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span><span class="c1"># secure_cookie: true                  # Set false only for plain-HTTP LAN deployments</span>
+</code></pre></div>
+<p><strong>Environment Variables:</strong><br />
+- <code>LLAMACTL_AUTH_OIDC_ISSUER_URL</code> - IdP issuer URL<br />
+- <code>LLAMACTL_AUTH_OIDC_CLIENT_ID</code> - OAuth2 client ID<br />
+- <code>LLAMACTL_AUTH_OIDC_CLIENT_SECRET</code> - OAuth2 client secret<br />
+- <code>LLAMACTL_AUTH_OIDC_REDIRECT_URL</code> - Redirect URL override<br />
+- <code>LLAMACTL_AUTH_OIDC_SCOPES</code> - Comma-separated scopes<br />
+- <code>LLAMACTL_AUTH_OIDC_ALLOWED_GROUPS</code> - Comma-separated groups allowed to log in<br />
+- <code>LLAMACTL_AUTH_OIDC_GROUPS_CLAIM</code> - Name of the ID-token claim carrying groups (default: <code>groups</code>)<br />
+- <code>LLAMACTL_AUTH_OIDC_SESSION_TTL</code> - Session lifetime (Go duration, e.g. <code>12h</code>)<br />
+- <code>LLAMACTL_AUTH_OIDC_SECURE_COOKIE</code> - Mark the session cookie Secure (true/false)  </p>
+<p>See <a href="../authentication/#oidc-sso-login">Authentication</a> for IdP client setup.  </p>
 <h3 id="remote-node-configuration">Remote Node Configuration<a class="headerlink" href="#remote-node-configuration" title="Permanent link">&para;</a></h3>
 <p>llamactl supports remote node deployments. Configure remote nodes to deploy instances on remote hosts and manage them centrally.  </p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">local_node</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="w">               </span><span class="c1"># Name of the local node (default: &quot;main&quot;)</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nt">nodes</span><span class="p">:</span><span class="w">                           </span><span class="c1"># Node configuration map</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">main</span><span class="p">:</span><span class="w">                          </span><span class="c1"># Local node (empty address means local)</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nt">address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                  </span><span class="c1"># Not used for local node</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                  </span><span class="c1"># Not used for local node</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="nt">worker1</span><span class="p">:</span><span class="w">                       </span><span class="c1"># Remote worker node</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="nt">address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://192.168.1.10:8080&quot;</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;worker1-api-key&quot;</span><span class="w">   </span><span class="c1"># Management API key for authentication</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">local_node</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="w">               </span><span class="c1"># Name of the local node (default: &quot;main&quot;)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nt">nodes</span><span class="p">:</span><span class="w">                           </span><span class="c1"># Node configuration map</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">main</span><span class="p">:</span><span class="w">                          </span><span class="c1"># Local node (empty address means local)</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="nt">address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                  </span><span class="c1"># Not used for local node</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                  </span><span class="c1"># Not used for local node</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">  </span><span class="nt">worker1</span><span class="p">:</span><span class="w">                       </span><span class="c1"># Remote worker node</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span><span class="nt">address</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://192.168.1.10:8080&quot;</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;worker1-api-key&quot;</span><span class="w">   </span><span class="c1"># Management API key for authentication</span>
 </code></pre></div>
 <p><strong>Node Configuration Fields:</strong><br />
 - <code>local_node</code>: Specifies which node in the <code>nodes</code> map represents the local node. Must match exactly what other nodes call this node.<br />
@@ -1236,7 +1256,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 26, 2026 19:02:40 UTC">September 26, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 2, 2026 23:02:38 UTC">October 2, 2026</span>
   </span>
 
     

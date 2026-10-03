@@ -241,6 +241,80 @@
                 }
             }
         },
+        "/api/v1/auth/oidc/callback": {
+            "get": {
+                "description": "Handles the IdP redirect, verifies state and ID token, and establishes a session cookie",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Complete OIDC login",
+                "responses": {
+                    "302": {
+                        "description": "Redirect to the WebUI root with an established session, or with ?auth_error=\u003cdenied|state|idp|exchange|token|groups\u003e on failure",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/oidc/login": {
+            "get": {
+                "description": "Redirects the browser to the configured OpenID Connect provider to begin the login flow",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Start OIDC login",
+                "responses": {
+                    "302": {
+                        "description": "Redirect to IdP",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/oidc/logout": {
+            "post": {
+                "description": "Revokes the server-side session and clears the session cookie",
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "End OIDC session",
+                "responses": {
+                    "204": {
+                        "description": "Session terminated"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/whoami": {
+            "get": {
+                "description": "Returns whether the caller has an OIDC session and whether OIDC login is configured. Intended for the WebUI bootstrap; never requires authentication.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get current authentication state",
+                "responses": {
+                    "200": {
+                        "description": "Authentication state",
+                        "schema": {
+                            "$ref": "#/definitions/server.WhoamiResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/backends/llama-cpp/devices": {
             "get": {
                 "security": [
@@ -544,7 +618,7 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Returns the details of a specific instance by name",
+                "description": "Returns the details of a specific instance by name. Returns\n404 when the instance does not exist locally or on its node.",
                 "tags": [
                     "Instances"
                 ],
@@ -567,6 +641,12 @@
                     },
                     "400": {
                         "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -2252,6 +2332,14 @@
                         "type": "string"
                     }
                 },
+                "oidc": {
+                    "description": "OpenID Connect login for the WebUI (optional)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/config.OIDCConfig"
+                        }
+                    ]
+                },
                 "require_inference_auth": {
                     "description": "Require authentication for OpenAI compatible inference endpoints",
                     "type": "boolean"
@@ -2265,6 +2353,12 @@
         "config.BackendConfig": {
             "type": "object",
             "properties": {
+                "custom": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/config.BackendSettings"
+                    }
+                },
                 "llama-cpp": {
                     "$ref": "#/definitions/config.BackendSettings"
                 },
@@ -2303,6 +2397,9 @@
                     "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "health_path": {
+                    "type": "string"
                 },
                 "response_headers": {
                     "type": "object",
@@ -2449,6 +2546,54 @@
                 },
                 "api_key": {
                     "type": "string"
+                }
+            }
+        },
+        "config.OIDCConfig": {
+            "type": "object",
+            "properties": {
+                "allowed_groups": {
+                    "description": "Groups allowed to log in, matched against the groups claim. Empty =\nevery user the IdP authenticates is allowed (current behavior).",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "client_id": {
+                    "description": "OAuth2 client ID registered with the IdP",
+                    "type": "string"
+                },
+                "client_secret": {
+                    "description": "OAuth2 client secret",
+                    "type": "string"
+                },
+                "groups_claim": {
+                    "description": "Name of the ID-token claim carrying the user's groups (default: \"groups\").\nOverride for IdPs that expose membership under a different claim (e.g. \"roles\").",
+                    "type": "string"
+                },
+                "issuer_url": {
+                    "description": "Issuer URL of the IdP, e.g. https://authentik.example/application/o/llamactl/",
+                    "type": "string"
+                },
+                "redirect_url": {
+                    "description": "Redirect URL override; derived from the request when empty. Set this\nwhen running behind a TLS-terminating proxy that does not forward\nX-Forwarded-Proto/X-Forwarded-Host, or when serving under a subpath.",
+                    "type": "string"
+                },
+                "scopes": {
+                    "description": "Scopes requested from the IdP (default: openid, profile, email)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "secure_cookie": {
+                    "description": "Mark the session cookie Secure; disable only on plain-HTTP LAN deployments",
+                    "type": "boolean"
+                },
+                "session_ttl": {
+                    "description": "Session lifetime (default: 12h)",
+                    "type": "string",
+                    "example": "12h"
                 }
             }
         },
@@ -2839,6 +2984,34 @@
             "type": "object",
             "properties": {
                 "command": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.WhoamiResponse": {
+            "type": "object",
+            "properties": {
+                "authenticated": {
+                    "type": "boolean"
+                },
+                "oidc_enabled": {
+                    "type": "boolean"
+                },
+                "user": {
+                    "$ref": "#/definitions/server.WhoamiUser"
+                }
+            }
+        },
+        "server.WhoamiUser": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sub": {
                     "type": "string"
                 }
             }
