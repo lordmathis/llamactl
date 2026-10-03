@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { AlertCircle, Key, Loader2 } from 'lucide-react'
+import { AlertCircle, Fingerprint, Key, Loader2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface LoginDialogProps {
@@ -23,24 +23,27 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const { login, isLoading, error, clearError } = useAuth()
+  const { login, isLoading, error, clearError, oidcEnabled, oidcError, clearOIDCError } = useAuth()
   const [apiKey, setApiKey] = useState('')
   const [localLoading, setLocalLoading] = useState(false)
+  const [showKeyLogin, setShowKeyLogin] = useState(!oidcEnabled)
 
   // Clear form and errors when dialog opens/closes
   useEffect(() => {
     if (open) {
       setApiKey('')
+      setShowKeyLogin(!oidcEnabled)
       clearError()
     }
-  }, [open, clearError])
+  }, [open, oidcEnabled, clearError])
 
-  // Clear error when user starts typing
+  // Clear errors when user starts typing
   useEffect(() => {
-    if (error && apiKey) {
+    if ((error || oidcError) && apiKey) {
       clearError()
+      clearOIDCError()
     }
-  }, [apiKey, error, clearError])
+  }, [apiKey, error, oidcError, clearError, clearOIDCError])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,6 +78,11 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
 
   const isSubmitDisabled = !apiKey.trim() || isLoading || localLoading
 
+  const startSSOLogin = () => {
+    clearOIDCError()
+    window.location.assign(`${document.baseURI}api/v1/auth/oidc/login`)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
@@ -87,61 +95,88 @@ const LoginDialog: React.FC<LoginDialogProps> = ({
             Authentication Required
           </DialogTitle>
           <DialogDescription>
-            Please enter your management API key to access the Llamactl dashboard.
+            {oidcEnabled
+              ? 'Sign in with your identity provider, or use a management API key.'
+              : 'Please enter your management API key to access the Llamactl dashboard.'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={(e) => { void handleSubmit(e) }}>
           <div className="grid gap-4 py-4">
             {/* Error Display */}
-            {error && (
+            {(error || oidcError) && (
               <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                 <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
-                <span className="text-sm text-destructive">{error}</span>
+                <span className="text-sm text-destructive">{error ?? oidcError}</span>
               </div>
             )}
 
+            {/* SSO Login */}
+            {oidcEnabled && (
+              <Button
+                type="button"
+                size="lg"
+                onClick={startSSOLogin}
+                data-testid="login-sso-button"
+              >
+                <Fingerprint className="h-4 w-4" />
+                Sign in with SSO
+              </Button>
+            )}
+
             {/* API Key Input */}
-            <div className="grid gap-2">
-              <Label htmlFor="apiKey">
-                Management API Key <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="apiKey"
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="sk-management-..."
-                disabled={isLoading || localLoading}
-                className={error ? "border-red-500" : ""}
-                autoFocus
-                autoComplete="off"
-              />
-              <p className="text-sm text-muted-foreground">
-                Your management API key is required to access instance management features.
-              </p>
-            </div>
+            {(!oidcEnabled || showKeyLogin) ? (
+              <div className="grid gap-2">
+                <Label htmlFor="apiKey">
+                  Management API Key <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="apiKey"
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="sk-management-..."
+                  disabled={isLoading || localLoading}
+                  className={error ? "border-red-500" : ""}
+                  autoFocus
+                  autoComplete="off"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Your management API key is required to access instance management features.
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                onClick={() => setShowKeyLogin(true)}
+              >
+                Use an API key instead
+              </button>
+            )}
           </div>
 
           <DialogFooter className="flex gap-2">
-            <Button
-              type="submit"
-              disabled={isSubmitDisabled}
-              data-testid="login-submit-button"
-            >
-              {(isLoading || localLoading) ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                <>
-                  <Key className="h-4 w-4" />
-                  Login
-                </>
-              )}
-            </Button>
+            {(!oidcEnabled || showKeyLogin) && (
+              <Button
+                type="submit"
+                disabled={isSubmitDisabled}
+                data-testid="login-submit-button"
+              >
+                {(isLoading || localLoading) ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Authenticating...
+                  </>
+                ) : (
+                  <>
+                    <Key className="h-4 w-4" />
+                    Login
+                  </>
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

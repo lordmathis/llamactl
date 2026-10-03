@@ -32,6 +32,16 @@ func SetupRouter(handler *Handler) *chi.Mux {
 		))
 	}
 
+	// OIDC login and whoami must be reachable without a management key or session
+	r.Get("/api/v1/auth/whoami", handler.Whoami())
+	if handler.oidc != nil {
+		r.Route("/api/v1/auth/oidc", func(r chi.Router) {
+			r.Get("/login", handler.OIDCLogin())
+			r.Get("/callback", handler.OIDCCallback())
+			r.Post("/logout", handler.OIDCLogout())
+		})
+	}
+
 	// Define routes
 	r.Route("/api/v1", func(r chi.Router) {
 

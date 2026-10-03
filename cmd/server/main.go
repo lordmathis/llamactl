@@ -80,14 +80,23 @@ func main() {
 		log.Fatalf("Failed to run database migrations: %v", err)
 	}
 
-	// Initialize the instance manager with dependency injection
 	instanceManager := manager.New(&cfg, db)
-
-	// Initialize model manager
 	modelManager := models.NewManager(cfg.Backends.LlamaCpp.CacheDir, cfg.Backends.LlamaCpp.DownloadTimeout, cfg.Version)
 
+	var oidcService *server.OIDCService
+	if cfg.Auth.OIDC.Enabled() {
+		oidcService, err = server.NewOIDCService(cfg.Auth)
+		if err != nil {
+			// Degrade to key-only auth only
+			log.Printf("Warning: OIDC login unavailable, continuing without it: %v", err)
+			oidcService = nil
+		} else {
+			log.Printf("OIDC login enabled (issuer: %s)", cfg.Auth.OIDC.IssuerURL)
+		}
+	}
+
 	// Create a new handler with the instance manager
-	handler := server.NewHandler(instanceManager, modelManager, cfg, db)
+	handler := server.NewHandler(instanceManager, modelManager, cfg, db, oidcService)
 
 	// Setup the router with the handler
 	r := server.SetupRouter(handler)
@@ -102,7 +111,7 @@ func main() {
 	}
 
 	go func() {
-		fmt.Printf("Llamactl server listening on %s:%d\n", cfg.Server.Host, cfg.Server.Port)
+		log.Printf("Llamactl server listening on %s:%d", cfg.Server.Host, cfg.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("Error starting server: %v\n", err)
 		}
@@ -110,7 +119,7 @@ func main() {
 
 	// Wait for shutdown signal
 	<-stop
-	fmt.Println("Shutting down server...")
+	log.Println("Shutting down server...")
 
 	// Create shutdown context with timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -120,7 +129,7 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Error shutting down server: %v\n", err)
 	} else {
-		fmt.Println("Server shut down gracefully.")
+		log.Println("Server shut down gracefully.")
 	}
 
 	// Stop all instances and cleanup
@@ -133,5 +142,5 @@ func main() {
 		log.Printf("Error closing database: %v\n", err)
 	}
 
-	fmt.Println("Exiting llamactl.")
+	log.Println("Exiting llamactl.")
 }

@@ -12,11 +12,11 @@ import (
 
 const (
 	// Argon2 parameters
-	time    uint32 = 1
-	memory  uint32 = 64 * 1024 // 64 MB
-	threads uint8  = 4
-	keyLen  uint32 = 32
-	saltLen uint32 = 16
+	timeCost uint32 = 1
+	memory   uint32 = 64 * 1024 // 64 MB
+	threads  uint8  = 4
+	keyLen   uint32 = 32
+	saltLen  uint32 = 16
 )
 
 // HashKey hashes an API key using Argon2id
@@ -28,13 +28,13 @@ func HashKey(plainTextKey string) (string, error) {
 	}
 
 	// Derive key using Argon2id
-	hash := argon2.IDKey([]byte(plainTextKey), salt, time, memory, threads, keyLen)
+	hash := argon2.IDKey([]byte(plainTextKey), salt, timeCost, memory, threads, keyLen)
 
 	// Format: $argon2id$v=19$m=65536,t=1,p=4$<base64-salt>$<base64-hash>
 	saltB64 := base64.RawStdEncoding.EncodeToString(salt)
 	hashB64 := base64.RawStdEncoding.EncodeToString(hash)
 
-	return fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s", memory, time, threads, saltB64, hashB64), nil
+	return fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s", memory, timeCost, threads, saltB64, hashB64), nil
 }
 
 // VerifyKey verifies a plain-text key against an Argon2id hash

@@ -230,7 +230,7 @@ backends:
 
 ### Custom Backends
 
-Custom backends are user-defined named entries under `backends.custom` for managing inference servers without native support. Each entry accepts the same fields as the built-in backends; see the [Custom Backends](custom-backends.md) guide for how they work.
+Custom backends are user-defined named entries under `backends.custom` for managing inference servers without native support. Each entry accepts the same fields as the built-in backends, and `args` support the `{port}` and `{model}` placeholders; see the [Custom Backends](custom-backends.md) guide for how they work.
 
 ```yaml
 backends:
@@ -247,13 +247,6 @@ backends:
         environment: {}
       response_headers: {}         # Additional response headers to send with responses
 ```
-
-Configured `args` are prepended to instance arguments and support the `{port}` and `{model}` placeholders; see [Custom Backends](custom-backends.md) for details.
-
-!!! note
-    - Custom backends are configured in the config file only; there are no environment variable overrides for them.
-    - On multi-node setups, the command must exist on the node that runs the instance.
-    - Servers that download models or run long setup on first start may exceed the on-demand start timeout (`instances.on_demand_start_timeout`). Raise the timeout or pre-warm the server's model cache by running the command once manually.
 
 ### Data Directory Configuration
 
@@ -331,10 +324,13 @@ database:
 
 ### Authentication Configuration
 
-llamactl supports two types of authentication:
+llamactl supports three authentication mechanisms:
 
 - **Management API Keys**: For accessing the web UI and management API (creating/managing instances). These can be configured in the config file or via environment variables.
 - **Inference API Keys**: For accessing the OpenAI-compatible inference endpoints. These are managed via the web UI (Settings → API Keys) and stored in the database.
+- **OIDC / SSO Sessions**: Optional web UI login through an OpenID Connect provider, configured via the `auth.oidc` block below.
+
+See [Authentication](authentication.md) for inference key permissions and SSO setup.
 
 ```yaml
 auth:
@@ -343,23 +339,43 @@ auth:
   management_keys: []                    # List of valid management API keys
 ```
 
-**Managing Inference API Keys:**
-
-Inference API keys are managed through the web UI or management API and stored in the database. To create and manage inference keys:
-
-1. Open the web UI and log in with a management API key
-2. Navigate to **Settings → API Keys**
-3. Click **Create API Key**
-4. Configure the key:
-    - **Name**: A descriptive name for the key
-    - **Expiration**: Optional expiration date
-    - **Permissions**: Grant access to all instances or specific instances only, with per-instance access levels controlling auto-start and eviction (see [API Keys](api-keys.md) for details)
-5. Copy the generated key - it won't be shown again
+Inference API keys are created and managed via the web UI or management API
 
 **Environment Variables:**
 - `LLAMACTL_REQUIRE_INFERENCE_AUTH` - Require auth for OpenAI endpoints (true/false)
 - `LLAMACTL_REQUIRE_MANAGEMENT_AUTH` - Require auth for management endpoints (true/false)
 - `LLAMACTL_MANAGEMENT_KEYS` - Comma-separated management API keys
+
+#### OIDC / SSO Login
+
+The web UI can authenticate users through an OpenID Connect provider (Authentik, Keycloak, Authelia, etc.) instead of a management API key. OIDC login is enabled when both `issuer_url` and `client_id` are set; management API keys keep working alongside it, and inference endpoints always use API keys.
+
+```yaml
+auth:
+  oidc:
+    issuer_url: "https://authentik.example.com/application/o/llamactl/"  # IdP issuer URL
+    client_id: "llamactl"                  # OAuth2 client ID registered with the IdP
+    client_secret: "your-client-secret"    # OAuth2 client secret
+    # redirect_url: ""                     # Optional; derived from the request when empty
+    # scopes: [openid, profile, email]     # Default scopes
+    # allowed_groups: []                   # Restrict login to these groups (empty = all IdP users)
+    # groups_claim: "groups"               # ID-token claim carrying group names
+    # session_ttl: 12h                     # Session lifetime (default: 12h)
+    # secure_cookie: true                  # Set false only for plain-HTTP LAN deployments
+```
+
+**Environment Variables:**
+- `LLAMACTL_AUTH_OIDC_ISSUER_URL` - IdP issuer URL
+- `LLAMACTL_AUTH_OIDC_CLIENT_ID` - OAuth2 client ID
+- `LLAMACTL_AUTH_OIDC_CLIENT_SECRET` - OAuth2 client secret
+- `LLAMACTL_AUTH_OIDC_REDIRECT_URL` - Redirect URL override
+- `LLAMACTL_AUTH_OIDC_SCOPES` - Comma-separated scopes
+- `LLAMACTL_AUTH_OIDC_ALLOWED_GROUPS` - Comma-separated groups allowed to log in
+- `LLAMACTL_AUTH_OIDC_GROUPS_CLAIM` - Name of the ID-token claim carrying groups (default: `groups`)
+- `LLAMACTL_AUTH_OIDC_SESSION_TTL` - Session lifetime (Go duration, e.g. `12h`)
+- `LLAMACTL_AUTH_OIDC_SECURE_COOKIE` - Mark the session cookie Secure (true/false)
+
+See [Authentication](authentication.md#oidc-sso-login) for IdP client setup.
 
 ### Remote Node Configuration
 

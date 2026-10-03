@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { HelpCircle, LogOut, Moon, Settings, Sun } from "lucide-react";
+import { HelpCircle, LogOut, Moon, Settings, Sun, UserCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -10,13 +10,11 @@ interface HeaderProps {
 }
 
 function Header({ onCreateInstance, onShowSystemInfo, onShowSettings }: HeaderProps) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
-    if (confirm("Are you sure you want to logout?")) {
-      logout();
-    }
+    logout();
   };
 
   return (
@@ -61,6 +59,17 @@ function Header({ onCreateInstance, onShowSystemInfo, onShowSettings }: HeaderPr
             >
               <HelpCircle className="h-4 w-4" />
             </Button>
+
+            {user && (
+              <div
+                className="hidden sm:flex items-center h-9 px-3 rounded-md border bg-muted text-sm text-muted-foreground"
+                title={user.email || user.sub}
+                data-testid="current-user"
+              >
+                <UserCircle className="h-4 w-4 mr-2" />
+                {user.name || user.email || user.sub}
+              </div>
+            )}
 
             <Button
               variant="outline"

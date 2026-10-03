@@ -283,6 +283,45 @@ instances:
 	}
 }
 
+func TestLoadConfig_OIDCGroupGate(t *testing.T) {
+	tempDir := t.TempDir()
+	configFile := filepath.Join(tempDir, "test-config.yaml")
+
+	configContent := `
+auth:
+  oidc:
+    issuer_url: "https://auth.example.com"
+    client_id: "llamactl"
+    allowed_groups: ["llamactl-users", "admins"]
+    groups_claim: "roles"
+`
+	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
+		t.Fatalf("Failed to write test config file: %v", err)
+	}
+
+	cfg, err := config.LoadConfig(configFile)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+	if got := cfg.Auth.OIDC.AllowedGroups; len(got) != 2 || got[0] != "llamactl-users" || got[1] != "admins" {
+		t.Errorf("allowed_groups = %v, expected [llamactl-users admins]", got)
+	}
+	if cfg.Auth.OIDC.GroupsClaim != "roles" {
+		t.Errorf("groups_claim = %q, expected %q", cfg.Auth.OIDC.GroupsClaim, "roles")
+	}
+
+	os.Setenv("LLAMACTL_AUTH_OIDC_ALLOWED_GROUPS", "env-admins")
+	defer os.Unsetenv("LLAMACTL_AUTH_OIDC_ALLOWED_GROUPS")
+
+	cfg, err = config.LoadConfig(configFile)
+	if err != nil {
+		t.Fatalf("LoadConfig failed: %v", err)
+	}
+	if got := cfg.Auth.OIDC.AllowedGroups; len(got) != 1 || got[0] != "env-admins" {
+		t.Errorf("env override allowed_groups = %v, expected [env-admins]", got)
+	}
+}
+
 func TestParsePortRange(t *testing.T) {
 	tests := []struct {
 		name     string

@@ -92,10 +92,10 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_permission_mode", "Permission mode must be 'allow_all' or 'per_instance'")
 			return
 		}
-	if req.PermissionMode == auth.PermissionModePerInstance && len(req.Permissions) == 0 {
-		writeError(w, http.StatusBadRequest, "missing_permissions", "Permissions required when permission mode is 'per_instance'")
-		return
-	}
+		if req.PermissionMode == auth.PermissionModePerInstance && len(req.Permissions) == 0 {
+			writeError(w, http.StatusBadRequest, "missing_permissions", "Permissions required when permission mode is 'per_instance'")
+			return
+		}
 		if req.ExpiresAt != nil && *req.ExpiresAt <= time.Now().Unix() {
 			writeError(w, http.StatusBadRequest, "invalid_expires_at", "Expiration time must be in future")
 			return
@@ -135,12 +135,20 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			return
 		}
 
-		// Create APIKey struct
+		// Keys created from an OIDC session belong to that user, stored as
+		// their email, everything else is attributed to "system".
+		userID := "system"
+		if sess := UserFromContext(r.Context()); sess != nil {
+			userID = sess.Email
+			if userID == "" {
+				userID = sess.Sub
+			}
+		}
 		now := time.Now().Unix()
 		apiKey := &auth.APIKey{
 			KeyHash:        keyHash,
 			Name:           req.Name,
-			UserID:         "system",
+			UserID:         userID,
 			PermissionMode: req.PermissionMode,
 			ExpiresAt:      req.ExpiresAt,
 			CreatedAt:      now,
@@ -203,7 +211,7 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 // @Router /api/v1/auth/keys [get]
 func (h *Handler) ListKeys() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		keys, err := h.authStore.GetUserKeys(r.Context(), "system")
+		keys, err := h.authStore.ListKeys(r.Context())
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "fetch_failed", fmt.Sprintf("Failed to fetch API keys: %v", err))
 			return

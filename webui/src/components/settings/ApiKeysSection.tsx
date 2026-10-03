@@ -166,6 +166,7 @@ function ApiKeysSection() {
             <thead className="bg-muted">
               <tr>
                 <th className="text-left p-3 font-semibold text-sm">Name</th>
+                <th className="text-left p-3 font-semibold text-sm">Owner</th>
                 <th className="text-left p-3 font-semibold text-sm">Permissions</th>
                 <th className="text-left p-3 font-semibold text-sm">Created</th>
                 <th className="text-left p-3 font-semibold text-sm">Expires</th>
@@ -189,6 +190,13 @@ function ApiKeysSection() {
                         )}
                         {key.name}
                       </div>
+                    </td>
+                    <td className="p-3">
+                      {key.user_id === "system" ? (
+                        <span className="text-sm text-muted-foreground">system</span>
+                      ) : (
+                        <Badge variant="outline">{key.user_id}</Badge>
+                      )}
                     </td>
                     <td className="p-3">
                       {key.permission_mode === PermissionMode.AllowAll ? (
@@ -226,7 +234,7 @@ function ApiKeysSection() {
                   </tr>
                   {expandedRowId === key.id && (
                     <tr key={`${key.id}-expanded`} className="border-t bg-muted/30">
-                      <td colSpan={6} className="p-4">
+                      <td colSpan={7} className="p-4">
                         {key.permission_mode === PermissionMode.AllowAll ? (
                           <p className="text-sm text-muted-foreground">
                             This key has full access to all instances
