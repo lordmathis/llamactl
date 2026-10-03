@@ -8,6 +8,7 @@ import (
 	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/validation"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -99,7 +100,7 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 				// Try to fetch models from the instance
 				models, err := fetchLlamaCppModels(inst)
 				if err != nil {
-					fmt.Printf("Failed to fetch models from instance %s: %v", inst.Name, err)
+					log.Printf("Failed to fetch models from instance %s: %v", inst.Name, err)
 					continue
 				}
 
