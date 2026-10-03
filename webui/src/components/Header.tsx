@@ -14,9 +14,7 @@ function Header({ onCreateInstance, onShowSystemInfo, onShowSettings }: HeaderPr
   const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
-    if (confirm("Are you sure you want to logout?")) {
-      logout();
-    }
+    logout();
   };
 
   return (
