@@ -42,9 +42,7 @@ type OIDCService struct {
 	Sessions *auth.SessionStore
 }
 
-// NewOIDCService performs IdP discovery eagerly so a misconfigured issuer
-// fails at startup instead of at first login. Defaults for unset fields are
-// applied by the config layer (pkg/config/defaults.go), not here.
+// NewOIDCService creates a new OIDCService with eager IdP discovery.
 func NewOIDCService(authCfg config.AuthConfig) (*OIDCService, error) {
 	cfg := authCfg.OIDC
 	if !cfg.Enabled() {
