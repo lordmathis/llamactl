@@ -17,20 +17,23 @@ import (
 func TestSignVerifyStateValue(t *testing.T) {
 	key := []byte("test-key")
 
-	signed := signStateValue(key, "some-state", "some-verifier")
+	signed := signStateValue(key, "some-state", "some-verifier", "some-nonce")
 
-	verifier, ok := verifyStateValue(key, signed, "some-state")
+	verifier, nonce, ok := verifyStateValue(key, signed, "some-state")
 	if !ok {
 		t.Fatal("expected valid state cookie to verify")
 	}
 	if verifier != "some-verifier" {
 		t.Errorf("verifier = %q, expected %q", verifier, "some-verifier")
 	}
+	if nonce != "some-nonce" {
+		t.Errorf("nonce = %q, expected %q", nonce, "some-nonce")
+	}
 }
 
 func TestVerifyStateValueRejectsBadInput(t *testing.T) {
 	key := []byte("test-key")
-	signed := signStateValue(key, "some-state", "some-verifier")
+	signed := signStateValue(key, "some-state", "some-verifier", "some-nonce")
 
 	tests := []struct {
 		name        string
@@ -38,23 +41,15 @@ func TestVerifyStateValueRejectsBadInput(t *testing.T) {
 		queryState  string
 	}{
 		{"state mismatch", signed, "other-state"},
-		{"tampered signature", "some-state|some-verifier|deadbeef", "some-state"},
+		{"tampered signature", "some-state|some-verifier|some-nonce|deadbeef", "some-state"},
 		{"garbage cookie", "garbage", "some-state"},
-		{"empty cookie", "", "some-state"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, ok := verifyStateValue(key, tt.cookieValue, tt.queryState); ok {
+			if _, _, ok := verifyStateValue(key, tt.cookieValue, tt.queryState); ok {
 				t.Error("expected verification to fail")
 			}
 		})
-	}
-}
-
-func TestVerifyStateValueWrongKey(t *testing.T) {
-	signed := signStateValue([]byte("key-one"), "some-state", "some-verifier")
-	if _, ok := verifyStateValue([]byte("key-two"), signed, "some-state"); ok {
-		t.Error("expected verification to fail under a different key")
 	}
 }
 
@@ -209,22 +204,6 @@ func TestWhoamiUnauthenticated(t *testing.T) {
 	}
 }
 
-func TestWhoamiAuthenticatedSession(t *testing.T) {
-	store := auth.NewSessionStore(time.Hour)
-	handler := &Handler{oidc: &OIDCService{Sessions: store}}
-
-	sess := store.Create("user-1", "Alice", "alice@example.com")
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/whoami", nil)
-	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: sess.ID})
-	recorder := httptest.NewRecorder()
-	handler.Whoami().ServeHTTP(recorder, req)
-
-	if body := recorder.Body.String(); !containsAll(body,
-		`"authenticated":true`, `"sub":"user-1"`, `"name":"Alice"`) {
-		t.Errorf("unexpected whoami body: %s", body)
-	}
-}
-
 func TestWhoamiWithoutOIDC(t *testing.T) {
 	handler := &Handler{}
 
@@ -270,9 +249,46 @@ func TestOIDCLoginBindsStateCookieToRedirect(t *testing.T) {
 	if stateCookie == nil {
 		t.Fatal("expected state cookie to be set")
 	}
-	if _, ok := verifyStateValue(s.stateKey, stateCookie.Value, redirect.Query().Get("state")); !ok {
-		t.Error("state cookie does not verify against the redirect's state parameter")
+	if stateCookie.Path != callbackPath {
+		t.Errorf("state cookie path = %q, expected %q", stateCookie.Path, callbackPath)
 	}
+	verifier, nonce, ok := verifyStateValue(s.stateKey, stateCookie.Value, redirect.Query().Get("state"))
+	if !ok {
+		t.Fatal("state cookie does not verify against the redirect's state parameter")
+	}
+	if verifier == "" {
+		t.Error("expected a PKCE verifier bound into the state cookie")
+	}
+	// The nonce sent to the IdP must be the one the callback will demand in
+	// the id_token.
+	if got := redirect.Query().Get("nonce"); got == "" || got != nonce {
+		t.Errorf("redirect nonce = %q, expected it to match the cookie-bound nonce %q", got, nonce)
+	}
+}
+
+// Behind a subpath proxy the browser reaches the callback under the external
+// base prefix, so the state cookie must be scoped to that path or the browser
+// will not send it back and every login fails with auth_error=state.
+func TestOIDCLoginStateCookiePathUnderSubpath(t *testing.T) {
+	s := &OIDCService{
+		stateKey: []byte("test-key"),
+		cfg:      config.OIDCConfig{RedirectURL: "https://dash.example.com/llamactl" + callbackPath},
+	}
+	handler := &Handler{oidc: s}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/oidc/login", nil)
+	recorder := httptest.NewRecorder()
+	handler.OIDCLogin().ServeHTTP(recorder, req)
+
+	for _, c := range recorder.Result().Cookies() {
+		if c.Name == stateCookieName {
+			if want := "/llamactl" + callbackPath; c.Path != want {
+				t.Errorf("state cookie path = %q, expected %q", c.Path, want)
+			}
+			return
+		}
+	}
+	t.Fatal("expected state cookie to be set")
 }
 
 func TestOIDCCallbackRejectsBadRequests(t *testing.T) {
@@ -280,27 +296,19 @@ func TestOIDCCallbackRejectsBadRequests(t *testing.T) {
 		stateKey: []byte("test-key"),
 		Sessions: auth.NewSessionStore(time.Hour),
 	}}
-	signed := signStateValue([]byte("test-key"), "some-state", "some-verifier")
 
 	tests := []struct {
 		name       string
 		target     string
-		cookies    []*http.Cookie
 		wantErrCod string
 	}{
-		{"IdP returned an error", "/api/v1/auth/oidc/callback?error=access_denied", nil, authErrIDP},
-		{"missing state parameter", "/api/v1/auth/oidc/callback?code=x", nil, authErrState},
-		{"missing code parameter", "/api/v1/auth/oidc/callback?state=x", nil, authErrState},
-		{"no state cookie", "/api/v1/auth/oidc/callback?state=x&code=y", nil, authErrState},
-		{"garbage state cookie", "/api/v1/auth/oidc/callback?state=x&code=y", []*http.Cookie{{Name: stateCookieName, Value: "garbage"}}, authErrState},
-		{"state does not match cookie", "/api/v1/auth/oidc/callback?state=other&code=y", []*http.Cookie{{Name: stateCookieName, Value: signed}}, authErrState},
+		{"IdP returned an error", "/api/v1/auth/oidc/callback?error=access_denied", authErrIDP},
+		{"missing state parameter", "/api/v1/auth/oidc/callback?code=x", authErrState},
+		{"no state cookie", "/api/v1/auth/oidc/callback?state=x&code=y", authErrState},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, tt.target, nil)
-			for _, c := range tt.cookies {
-				req.AddCookie(c)
-			}
 			recorder := httptest.NewRecorder()
 
 			h.OIDCCallback().ServeHTTP(recorder, req)

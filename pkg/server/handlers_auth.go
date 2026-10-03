@@ -135,11 +135,14 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			return
 		}
 
-		// Keys created from an OIDC session belong to that user; everything
-		// else is attributed to "system".
+		// Keys created from an OIDC session belong to that user, stored as
+		// their email, everything else is attributed to "system".
 		userID := "system"
 		if sess := UserFromContext(r.Context()); sess != nil {
-			userID = sess.Sub
+			userID = sess.Email
+			if userID == "" {
+				userID = sess.Sub
+			}
 		}
 		now := time.Now().Unix()
 		apiKey := &auth.APIKey{
@@ -208,7 +211,7 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 // @Router /api/v1/auth/keys [get]
 func (h *Handler) ListKeys() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		keys, err := h.authStore.GetUserKeys(r.Context(), "system")
+		keys, err := h.authStore.ListKeys(r.Context())
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "fetch_failed", fmt.Sprintf("Failed to fetch API keys: %v", err))
 			return

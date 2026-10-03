@@ -166,6 +166,5 @@ auth:
 ### Notes
 
 - Keep `require_management_auth: true` when enabling OIDC — otherwise management endpoints stay unauthenticated and login only adds session support. llamactl logs a warning at startup for this combination.
-- Behind a TLS-terminating reverse proxy, either forward `X-Forwarded-Proto`/`X-Forwarded-Host` or set `redirect_url` explicitly. Under a subpath proxy, set `redirect_url` to the full external callback path; after login the browser is sent back to the WebUI root under that same base path.
-- The authorization code flow uses PKCE (S256) and a signed, one-shot CSRF state cookie. Sessions live in memory: a llamactl restart logs everyone out, and `secure_cookie: false` is only appropriate on trusted plain-HTTP LANs.
-- API keys created while logged in via SSO are attributed to the user's OIDC subject (`sub`) instead of `system`.
+- Behind a TLS-terminating reverse proxy, either forward `X-Forwarded-Proto`/`X-Forwarded-Host` or set `redirect_url` explicitly. Under a subpath proxy, set `redirect_url` to the full external callback path.
+- API keys created while logged in via SSO show the user's email as their owner.

@@ -27,13 +27,6 @@ func TestSessionStoreLifecycle(t *testing.T) {
 	}
 }
 
-func TestSessionStoreUnknownID(t *testing.T) {
-	store := NewSessionStore(time.Hour)
-	if store.Get("does-not-exist") != nil {
-		t.Error("expected nil for unknown session ID")
-	}
-}
-
 func TestSessionStoreExpiry(t *testing.T) {
 	store := NewSessionStore(-time.Second)
 

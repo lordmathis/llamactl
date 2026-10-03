@@ -91,16 +91,15 @@ func (db *sqliteDB) GetKeyByID(ctx context.Context, id int) (*auth.APIKey, error
 	return &key, nil
 }
 
-// GetUserKeys retrieves all API keys for a user
-func (db *sqliteDB) GetUserKeys(ctx context.Context, userID string) ([]*auth.APIKey, error) {
+// ListKeys retrieves all API keys, newest first
+func (db *sqliteDB) ListKeys(ctx context.Context) ([]*auth.APIKey, error) {
 	query := `
 		SELECT id, key_hash, name, user_id, permission_mode, expires_at, created_at, updated_at, last_used_at
 		FROM api_keys
-		WHERE user_id = ?
 		ORDER BY created_at DESC
 	`
 
-	rows, err := db.QueryContext(ctx, query, userID)
+	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query API keys: %w", err)
 	}
@@ -128,6 +127,9 @@ func (db *sqliteDB) GetUserKeys(ctx context.Context, userID string) ([]*auth.API
 		}
 
 		keys = append(keys, &key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate API keys: %w", err)
 	}
 
 	return keys, nil
@@ -171,6 +173,9 @@ func (db *sqliteDB) GetActiveKeys(ctx context.Context) ([]*auth.APIKey, error) {
 		}
 
 		keys = append(keys, &key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate active API keys: %w", err)
 	}
 
 	return keys, nil

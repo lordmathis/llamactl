@@ -43,20 +43,12 @@ type OIDCService struct {
 }
 
 // NewOIDCService performs IdP discovery eagerly so a misconfigured issuer
-// fails at startup instead of at first login.
+// fails at startup instead of at first login. Defaults for unset fields are
+// applied by the config layer (pkg/config/defaults.go), not here.
 func NewOIDCService(authCfg config.AuthConfig) (*OIDCService, error) {
 	cfg := authCfg.OIDC
 	if !cfg.Enabled() {
 		return nil, fmt.Errorf("oidc is not configured: issuer_url and client_id are required")
-	}
-	if cfg.SessionTTL <= 0 {
-		cfg.SessionTTL = 12 * time.Hour
-	}
-	if len(cfg.Scopes) == 0 {
-		cfg.Scopes = []string{"openid", "profile", "email"}
-	}
-	if cfg.GroupsClaim == "" {
-		cfg.GroupsClaim = "groups"
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -109,6 +101,18 @@ func (s *OIDCService) redirectURL(r *http.Request) string {
 	return fmt.Sprintf("%s://%s%s", scheme, host, callbackPath)
 }
 
+// stateCookiePath returns the Path attribute for the state cookie: the
+// browser-facing path of the callback endpoint. Behind a subpath proxy the
+// browser reaches the callback under the external base prefix, so the cookie
+// must be scoped to that path or the browser will not send it back.
+func (s *OIDCService) stateCookiePath(r *http.Request) string {
+	u, err := url.Parse(s.redirectURL(r))
+	if err != nil || u.Path == "" {
+		return callbackPath
+	}
+	return u.Path
+}
+
 // webRootPath returns the path the callback should send the browser to
 func (s *OIDCService) webRootPath(r *http.Request) string {
 	u, err := url.Parse(s.redirectURL(r))
@@ -122,35 +126,39 @@ func (s *OIDCService) webRootPath(r *http.Request) string {
 	return base + "/"
 }
 
-// signStateValue binds the CSRF state and the PKCE verifier together in a
-// cookie value the callback can trust without server-side storage.
-func signStateValue(key []byte, state, verifier string) string {
+// signStateValue binds the CSRF state, the PKCE verifier, and the nonce
+// together in a cookie value the callback can trust without server-side
+// storage.
+func signStateValue(key []byte, state, verifier, nonce string) string {
 	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(state))
 	mac.Write([]byte("|"))
 	mac.Write([]byte(verifier))
-	return state + "|" + verifier + "|" + hex.EncodeToString(mac.Sum(nil))
+	mac.Write([]byte("|"))
+	mac.Write([]byte(nonce))
+	return state + "|" + verifier + "|" + nonce + "|" + hex.EncodeToString(mac.Sum(nil))
 }
 
 // verifyStateValue checks the signed cookie against the state the IdP echoed
-// back and returns the PKCE verifier for the code exchange.
-func verifyStateValue(key []byte, cookieValue, queryState string) (verifier string, ok bool) {
+// back and returns the PKCE verifier and the nonce for the code exchange and
+// id_token check.
+func verifyStateValue(key []byte, cookieValue, queryState string) (verifier, nonce string, ok bool) {
 	parts := strings.Split(cookieValue, "|")
-	if len(parts) != 3 {
-		return "", false
+	if len(parts) != 4 {
+		return "", "", false
 	}
 
-	state, verifier := parts[0], parts[1]
+	state, verifier, nonce := parts[0], parts[1], parts[2]
 	if state != queryState {
-		return "", false
+		return "", "", false
 	}
 
-	expected := signStateValue(key, state, verifier)
+	expected := signStateValue(key, state, verifier, nonce)
 	if subtle.ConstantTimeCompare([]byte(expected), []byte(cookieValue)) != 1 {
-		return "", false
+		return "", "", false
 	}
 
-	return verifier, true
+	return verifier, nonce, true
 }
 
 // sessionFromRequest returns the session for the request's session cookie,
@@ -179,15 +187,19 @@ func (h *Handler) OIDCLogin() http.HandlerFunc {
 
 		state := auth.RandomToken()
 		verifier := auth.RandomToken()
+		nonce := auth.RandomToken()
 
 		oc := s.oauth2
 		oc.RedirectURL = s.redirectURL(r)
-		authURL := oc.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
+		authURL := oc.AuthCodeURL(state,
+			oauth2.S256ChallengeOption(verifier),
+			oauth2.SetAuthURLParam("nonce", nonce),
+		)
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     stateCookieName,
-			Value:    signStateValue(s.stateKey, state, verifier),
-			Path:     callbackPath,
+			Value:    signStateValue(s.stateKey, state, verifier, nonce),
+			Path:     s.stateCookiePath(r),
 			MaxAge:   int(stateCookieTTL.Seconds()),
 			HttpOnly: true,
 			Secure:   s.cfg.SecureCookie,
@@ -214,9 +226,7 @@ func groupsFromClaims(raw map[string]json.RawMessage, claim string) (groups []st
 	return nil, true, fmt.Errorf("groups claim %q is not an array of strings: %s", claim, v)
 }
 
-// tokenGroups reads the configured groups claim plus the names of all claims
-// the token carries, so a denied login can be logged with enough context to
-// spot a wrong groups_claim setting.
+// tokenGroups reads the configured groups claim plus the names of all claims the token carries
 func (s *OIDCService) tokenGroups(idToken *oidc.IDToken) (groups, claimNames []string, err error) {
 	var raw map[string]json.RawMessage
 	if err := idToken.Claims(&raw); err != nil {
@@ -247,7 +257,7 @@ const (
 	authErrState    = "state"    // missing, invalid, or expired CSRF state
 	authErrIDP      = "idp"      // the IdP itself reported an OAuth error
 	authErrExchange = "exchange" // authorization code exchange failed
-	authErrToken    = "token"    // id_token missing, unverifiable, or unreadable
+	authErrToken    = "token"    // id_token missing, unverifiable, unreadable, or not bound to this login (nonce)
 	authErrGroups   = "groups"   // groups claim present but malformed
 )
 
@@ -287,7 +297,7 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 			return
 		}
 
-		verifier, ok := verifyStateValue(s.stateKey, stateCookie.Value, queryState)
+		verifier, nonce, ok := verifyStateValue(s.stateKey, stateCookie.Value, queryState)
 		if !ok {
 			redirectAuthError(w, r, root, authErrState)
 			return
@@ -297,7 +307,7 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 		http.SetCookie(w, &http.Cookie{
 			Name:     stateCookieName,
 			Value:    "",
-			Path:     callbackPath,
+			Path:     s.stateCookiePath(r),
 			MaxAge:   -1,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
@@ -333,9 +343,18 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 			Sub   string `json:"sub"`
 			Name  string `json:"name"`
 			Email string `json:"email"`
+			Nonce string `json:"nonce"`
 		}
 		if err := idToken.Claims(&claims); err != nil {
 			log.Printf("OIDC id_token claims parsing failed: %v", err)
+			redirectAuthError(w, r, root, authErrToken)
+			return
+		}
+
+		// The nonce binds the id_token to this browser's login attempt;
+		// a mismatch means the token was minted for another flow.
+		if subtle.ConstantTimeCompare([]byte(claims.Nonce), []byte(nonce)) != 1 {
+			log.Printf("OIDC id_token nonce mismatch for %s", claims.Sub)
 			redirectAuthError(w, r, root, authErrToken)
 			return
 		}

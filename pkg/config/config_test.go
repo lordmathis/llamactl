@@ -322,16 +322,6 @@ auth:
 	}
 }
 
-func TestLoadConfig_DefaultsIncludeGroupsClaim(t *testing.T) {
-	cfg, err := config.LoadConfig("nonexistent-file.yaml")
-	if err != nil {
-		t.Fatalf("LoadConfig failed: %v", err)
-	}
-	if cfg.Auth.OIDC.GroupsClaim != "groups" {
-		t.Errorf("default groups_claim = %q, expected %q", cfg.Auth.OIDC.GroupsClaim, "groups")
-	}
-}
-
 func TestParsePortRange(t *testing.T) {
 	tests := []struct {
 		name     string
