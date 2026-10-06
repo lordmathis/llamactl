@@ -97,8 +97,6 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.GetInstance(validatedName)
 		if err != nil {
-			// Not-found is its own status — distinguish it from real
-			// failures so clients can react correctly (HTTP 404 vs 500).
 			if errors.Is(err, manager.ErrInstanceNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", err.Error())
 				return
@@ -122,6 +120,7 @@ func (h *Handler) GetInstance() http.HandlerFunc {
 // @Param options body instance.Options true "Instance configuration options"
 // @Success 200 {object} instance.Instance "Updated instance details"
 // @Failure 400 {string} string "Invalid name format"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/instances/{name} [put]
 func (h *Handler) UpdateInstance() http.HandlerFunc {
@@ -141,6 +140,10 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.UpdateInstance(validatedName, &options)
 		if err != nil {
+			if errors.Is(err, manager.ErrInstanceNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", err.Error())
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "update_failed", "Failed to update instance: "+err.Error())
 			return
 		}
@@ -158,6 +161,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 // @Param name path string true "Instance Name"
 // @Success 200 {object} instance.Instance "Started instance details"
 // @Failure 400 {string} string "Invalid name format"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/instances/{name}/start [post]
 func (h *Handler) StartInstance() http.HandlerFunc {
@@ -177,6 +181,10 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 				return
 			}
 
+			if errors.Is(err, manager.ErrInstanceNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", err.Error())
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "start_failed", "Failed to start instance: "+err.Error())
 			return
 		}
@@ -194,6 +202,7 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 // @Param name path string true "Instance Name"
 // @Success 200 {object} instance.Instance "Stopped instance details"
 // @Failure 400 {string} string "Invalid name format"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/instances/{name}/stop [post]
 func (h *Handler) StopInstance() http.HandlerFunc {
@@ -207,6 +216,10 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.StopInstance(validatedName)
 		if err != nil {
+			if errors.Is(err, manager.ErrInstanceNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", err.Error())
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "stop_failed", "Failed to stop instance: "+err.Error())
 			return
 		}
@@ -224,6 +237,7 @@ func (h *Handler) StopInstance() http.HandlerFunc {
 // @Param name path string true "Instance Name"
 // @Success 200 {object} instance.Instance "Restarted instance details"
 // @Failure 400 {string} string "Invalid name format"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/instances/{name}/restart [post]
 func (h *Handler) RestartInstance() http.HandlerFunc {
@@ -237,6 +251,10 @@ func (h *Handler) RestartInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.RestartInstance(validatedName)
 		if err != nil {
+			if errors.Is(err, manager.ErrInstanceNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", err.Error())
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "restart_failed", "Failed to restart instance: "+err.Error())
 			return
 		}
@@ -290,6 +308,7 @@ func (h *Handler) DeleteInstance() http.HandlerFunc {
 // @Produces text/plain
 // @Success 200 {string} string "Instance logs"
 // @Failure 400 {string} string "Invalid name format or lines parameter"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/instances/{name}/logs [get]
 func (h *Handler) GetInstanceLogs() http.HandlerFunc {
@@ -315,6 +334,10 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 		// Use the instance manager which handles both local and remote instances
 		logs, err := h.InstanceManager.GetInstanceLogs(validatedName, numLines)
 		if err != nil {
+			if errors.Is(err, manager.ErrInstanceNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", err.Error())
+				return
+			}
 			writeError(w, http.StatusInternalServerError, "logs_failed", "Failed to get logs: "+err.Error())
 			return
 		}
@@ -331,6 +354,7 @@ func (h *Handler) GetInstanceLogs() http.HandlerFunc {
 // @Param name path string true "Instance Name"
 // @Success 200 "Request successfully proxied to instance"
 // @Failure 400 {string} string "Invalid name format"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Failure 503 {string} string "Instance is not running"
 // @Router /api/v1/instances/{name}/proxy [get]
@@ -339,7 +363,7 @@ func (h *Handler) InstanceProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		inst, err := h.getInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
+			writeInstanceLookupError(w, err)
 			return
 		}
 

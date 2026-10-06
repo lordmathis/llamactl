@@ -208,6 +208,15 @@ func writeStartError(w http.ResponseWriter, err error) {
 	}
 }
 
+// writeInstanceLookupError writes 404 for not-found, 400 for anything else
+func writeInstanceLookupError(w http.ResponseWriter, err error) {
+	if errors.Is(err, manager.ErrInstanceNotFound) {
+		writeError(w, http.StatusNotFound, "not_found", err.Error())
+		return
+	}
+	writeError(w, http.StatusBadRequest, "invalid_instance", err.Error())
+}
+
 func (h *Handler) evictFromGroupQuota(group string) error {
 	if group == "" {
 		return nil
