@@ -6,6 +6,9 @@ Llamactl controls access with three mechanisms:
 - **Inference API Key** — authenticates OpenAI-compatible inference requests (`/v1/chat/completions`, `/v1/completions`, etc.). Created and managed via the web UI or management API and stored in the database.
 - **OIDC / SSO Session** — optional browser login for the web UI through an OpenID Connect provider; see [OIDC / SSO Login](#oidc-sso-login) below.
 
+!!! warning "Management access is host-administrator access"
+    Anyone who can access the management dashboard or management API can configure commands, arguments, environment variables, containers, custom backends, and model downloads. Grant management API keys and OIDC access only to users trusted to administer the host. Use `allowed_groups` to restrict which identity-provider users receive this access.
+
 The rest of this page covers **inference API keys** and their per-instance permissions, followed by **SSO setup**.
 
 ## Inference API Keys
