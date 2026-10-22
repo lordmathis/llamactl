@@ -222,7 +222,7 @@ func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) 
 func (im *instanceManager) UpdateInstance(name string, options *instance.Options) (*instance.Instance, error) {
 	inst, exists := im.registry.get(name)
 	if !exists {
-		return nil, fmt.Errorf("instance with name %s not found", name)
+		return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
 	}
 
 	// Check if instance is remote and delegate to remote operation
@@ -384,7 +384,7 @@ func (im *instanceManager) DeleteInstance(name string) error {
 func (im *instanceManager) StartInstance(name string) (*instance.Instance, error) {
 	inst, exists := im.registry.get(name)
 	if !exists {
-		return nil, fmt.Errorf("instance with name %s not found", name)
+		return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
 	}
 
 	// Check if instance is remote and delegate to remote operation
@@ -443,7 +443,7 @@ func (im *instanceManager) AtMaxRunning() bool {
 func (im *instanceManager) StopInstance(name string) (*instance.Instance, error) {
 	inst, exists := im.registry.get(name)
 	if !exists {
-		return nil, fmt.Errorf("instance with name %s not found", name)
+		return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
 	}
 
 	// Check if instance is remote and delegate to remote operation
@@ -486,7 +486,7 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 func (im *instanceManager) RestartInstance(name string) (*instance.Instance, error) {
 	inst, exists := im.registry.get(name)
 	if !exists {
-		return nil, fmt.Errorf("instance with name %s not found", name)
+		return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
 	}
 
 	// Check if instance is remote and delegate to remote operation
@@ -532,7 +532,7 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Instance, err
 func (im *instanceManager) GetInstanceLogs(name string, numLines int) (string, error) {
 	inst, exists := im.registry.get(name)
 	if !exists {
-		return "", fmt.Errorf("instance with name %s not found", name)
+		return "", fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
 	}
 
 	// Check if instance is remote and delegate to remote operation

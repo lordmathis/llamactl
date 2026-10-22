@@ -17,14 +17,8 @@ import (
 
 const apiBasePath = "/api/v1/instances/"
 
-// ErrInstanceNotFound is the sentinel returned when an instance cannot be
-// located, either in the local registry or on the remote node. Use errors.Is
-// to detect it.
 var ErrInstanceNotFound = errors.New("instance not found")
 
-// IsNotFoundError reports whether err (or anything in its chain) signals that
-// the targeted instance does not exist. It catches the local sentinel
-// (ErrInstanceNotFound) and the remote wrapper (RemoteNotFoundError).
 func IsNotFoundError(err error) bool {
 	if err == nil {
 		return false
@@ -37,16 +31,14 @@ func IsNotFoundError(err error) bool {
 }
 
 // RemoteNotFoundError is returned by remoteManager CRUD functions when the
-// remote node reports the target instance does not exist. Callers can use
-// errors.As to detect it; it also satisfies errors.Is(err, ErrInstanceNotFound)
-// so IsNotFoundError works uniformly across local and remote failures.
+// remote node reports the target instance does not exist
 type RemoteNotFoundError struct {
 	Name string
 	Err  error
 }
 
 func (e *RemoteNotFoundError) Error() string { return e.Err.Error() }
-func (e *RemoteNotFoundError) Unwrap() error   { return e.Err }
+func (e *RemoteNotFoundError) Unwrap() error { return e.Err }
 
 func (e *RemoteNotFoundError) Is(target error) bool {
 	return target == ErrInstanceNotFound

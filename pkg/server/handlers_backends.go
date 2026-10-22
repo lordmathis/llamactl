@@ -50,6 +50,7 @@ func (h *Handler) stripLlamaCppPrefix(r *http.Request, instName string) {
 // @Param name query string true "Instance Name"
 // @Success 200 {string} string "Proxied HTML response"
 // @Failure 400 {string} string "Invalid instance"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /llama-cpp/{name}/ [get]
 func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
@@ -57,7 +58,7 @@ func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
 
 		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			writeInstanceLookupError(w, err)
 			return
 		}
 
@@ -88,6 +89,7 @@ func (h *Handler) LlamaCppUIProxy() http.HandlerFunc {
 // @Param name path string true "Instance Name"
 // @Success 200 {object} map[string]any "Proxied response"
 // @Failure 400 {string} string "Invalid instance"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /llama-cpp/{name}/props [get]
 // @Router /llama-cpp/{name}/slots [get]
@@ -105,7 +107,7 @@ func (h *Handler) LlamaCppProxy() http.HandlerFunc {
 
 		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			writeInstanceLookupError(w, err)
 			return
 		}
 
@@ -316,13 +318,14 @@ func (h *Handler) LlamaServerListDevicesHandler() http.HandlerFunc {
 // @Param name path string true "Instance Name"
 // @Success 200 {object} map[string]any "Models list response"
 // @Failure 400 {string} string "Invalid instance"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/llama-cpp/{name}/models [get]
 func (h *Handler) LlamaCppListModels() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			writeInstanceLookupError(w, err)
 			return
 		}
 
@@ -368,13 +371,14 @@ func (h *Handler) LlamaCppListModels() http.HandlerFunc {
 // @Param model path string true "Model Name"
 // @Success 200 {object} map[string]string "Success message"
 // @Failure 400 {string} string "Invalid request"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/llama-cpp/{name}/models/{model}/load [post]
 func (h *Handler) LlamaCppLoadModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			writeInstanceLookupError(w, err)
 			return
 		}
 
@@ -420,13 +424,14 @@ func (h *Handler) LlamaCppLoadModel() http.HandlerFunc {
 // @Param model path string true "Model Name"
 // @Success 200 {object} map[string]string "Success message"
 // @Failure 400 {string} string "Invalid request"
+// @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/v1/llama-cpp/{name}/models/{model}/unload [post]
 func (h *Handler) LlamaCppUnloadModel() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		inst, err := h.validateLlamaCppInstance(r)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid instance", err.Error())
+			writeInstanceLookupError(w, err)
 			return
 		}
 
