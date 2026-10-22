@@ -93,7 +93,7 @@ func TestInstanceEndpoints_NotFound(t *testing.T) {
 		expectedStatus int
 	}{
 		{"get instance", http.MethodGet, "/api/v1/instances/ghost", "", http.StatusNotFound},
-		{"update instance", http.MethodPut, "/api/v1/instances/ghost", "{}", http.StatusNotFound},
+		{"update instance", http.MethodPut, "/api/v1/instances/ghost", `{"backend_type":"llama_cpp"}`, http.StatusNotFound},
 		{"start instance", http.MethodPost, "/api/v1/instances/ghost/start", "", http.StatusNotFound},
 		{"stop instance", http.MethodPost, "/api/v1/instances/ghost/stop", "", http.StatusNotFound},
 		{"restart instance", http.MethodPost, "/api/v1/instances/ghost/restart", "", http.StatusNotFound},
@@ -101,8 +101,8 @@ func TestInstanceEndpoints_NotFound(t *testing.T) {
 		{"instance logs", http.MethodGet, "/api/v1/instances/ghost/logs", "", http.StatusNotFound},
 		{"instance proxy", http.MethodGet, "/api/v1/instances/ghost/proxy", "", http.StatusNotFound},
 		// Controls: these must stay 400 so 404 stays meaningful.
-		{"invalid name is still 400", http.MethodGet, "/api/v1/instances/bad name!", "", http.StatusBadRequest},
-		{"invalid name on proxy is still 400", http.MethodGet, "/api/v1/instances/bad name!/proxy", "", http.StatusBadRequest},
+		{"invalid name is still 400", http.MethodGet, "/api/v1/instances/bad@name", "", http.StatusBadRequest},
+		{"invalid name on proxy is still 400", http.MethodGet, "/api/v1/instances/bad@name/proxy", "", http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {

@@ -175,16 +175,17 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 
 		inst, err := h.InstanceManager.StartInstance(validatedName)
 		if err != nil {
+			if errors.Is(err, manager.ErrInstanceNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", err.Error())
+				return
+			}
+
 			// Check if error is due to maximum running instances limit
 			if _, ok := err.(manager.MaxRunningInstancesError); ok {
 				writeError(w, http.StatusConflict, "max_instances_reached", err.Error())
 				return
 			}
 
-			if errors.Is(err, manager.ErrInstanceNotFound) {
-				writeError(w, http.StatusNotFound, "not_found", err.Error())
-				return
-			}
 			writeError(w, http.StatusInternalServerError, "start_failed", "Failed to start instance: "+err.Error())
 			return
 		}

@@ -38,7 +38,7 @@ type RemoteNotFoundError struct {
 }
 
 func (e *RemoteNotFoundError) Error() string { return e.Err.Error() }
-func (e *RemoteNotFoundError) Unwrap() error   { return e.Err }
+func (e *RemoteNotFoundError) Unwrap() error { return e.Err }
 
 func (e *RemoteNotFoundError) Is(target error) bool {
 	return target == ErrInstanceNotFound
