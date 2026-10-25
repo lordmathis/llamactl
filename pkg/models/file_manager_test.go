@@ -3,6 +3,7 @@ package models
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -41,6 +42,39 @@ func TestHFRepoDirName(t *testing.T) {
 	}
 }
 
+func TestHFValidateBlobPath(t *testing.T) {
+	cache := t.TempDir()
+	t.Setenv("LLAMA_CACHE", cache)
+	fm := NewFileManager(cache)
+
+	blobDir := fm.HFRepoDir("org/model") + "/blobs"
+
+	tests := []struct {
+		name      string
+		path      string
+		wantValid bool
+	}{
+		{"hex blob under repo", blobDir + "/" + strings.Repeat("ab", 32), true},
+		{"digest-named blob", blobDir + "/etag-digest-name", true},
+		{"traversal out of blobs dir", blobDir + "/../evil", false},
+		{"nested under blobs dir", blobDir + "/a/b", false},
+		{"blobs dir itself", blobDir, false},
+		{"escape of hub root", fm.HFHubRoot() + "/../outside/hub", false},
+		{"path under a different root", filepath.Join(t.TempDir(), "models--org--model", "blobs", "x"), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := fm.HFValidateBlobPath(tt.path)
+			if tt.wantValid && err != nil {
+				t.Errorf("HFValidateBlobPath(%q) = %v, want nil", tt.path, err)
+			}
+			if !tt.wantValid && err == nil {
+				t.Errorf("HFValidateBlobPath(%q) = nil, want error", tt.path)
+			}
+		})
+	}
+}
+
 func TestHFCreateSymlink(t *testing.T) {
 	tmpDir := t.TempDir()
 	fm := NewFileManager(tmpDir)
@@ -67,6 +101,46 @@ func TestHFCreateSymlink(t *testing.T) {
 	expectedRel, _ := filepath.Rel(filepath.Dir(snapshotPath), blobPath)
 	if link != expectedRel {
 		t.Errorf("symlink target = %q, want %q", link, expectedRel)
+	}
+}
+
+func TestHFCreateSymlinkFallback(t *testing.T) {
+	tmpDir := t.TempDir()
+	fm := NewFileManager(tmpDir)
+
+	blobPath := filepath.Join(tmpDir, "blobs", strings.Repeat("ab", 32))
+	snapshotDir := filepath.Join(tmpDir, "snapshots", testCommit)
+	snapshotPath := filepath.Join(snapshotDir, "model.gguf")
+
+	if err := os.MkdirAll(filepath.Dir(blobPath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(blobPath, []byte("blob-bytes"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := fm.HFCreateSymlinkFallback(blobPath, snapshotPath); err != nil {
+		t.Fatalf("HFCreateSymlinkFallback: %v", err)
+	}
+
+	got, err := os.ReadFile(snapshotPath)
+	if err != nil {
+		t.Fatalf("hard-linked snapshot entry missing: %v", err)
+	}
+	if string(got) != "blob-bytes" {
+		t.Errorf("snapshot entry = %q, want %q", got, "blob-bytes")
+	}
+
+	entries, err := os.ReadDir(snapshotDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "model.gguf" {
+		names := make([]string, len(entries))
+		for i, e := range entries {
+			names[i] = e.Name()
+		}
+		t.Errorf("snapshot dir entries = %v, want exactly [model.gguf]", names)
 	}
 }
 

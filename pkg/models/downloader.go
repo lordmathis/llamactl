@@ -2,11 +2,15 @@ package models
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -26,6 +30,8 @@ const (
 	maxConcurrentDownloads = 5
 	jobRetentionDuration   = 24 * time.Hour
 	jobCleanupInterval     = 1 * time.Hour
+	maxDownloadAttempts    = 3
+	maxMetadataBytes       = 32 << 20
 )
 
 type ModelFormat string
@@ -35,12 +41,18 @@ const (
 	FormatSafetensors ModelFormat = "safetensors"
 )
 
+func IsValidFormat(f ModelFormat) bool {
+	return f == FormatGGUF || f == FormatSafetensors
+}
+
 const (
 	hfAPIBase       = "https://huggingface.co"
 	hfRefsURLFmt    = "%s/api/models/%s/refs"
 	hfTreeURLFmt    = "%s/api/models/%s/tree/%s?recursive=true"
 	hfResolveURLFmt = "%s/%s/resolve/%s/%s"
 )
+
+var lfsOIDPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
 type HFBranch struct {
 	Name         string `json:"name"`
@@ -79,6 +91,7 @@ type HFDownloadTask struct {
 	Filename     string `json:"filename"`
 	Size         int64  `json:"size"`
 	Type         string `json:"type"`
+	LFS          bool   `json:"lfs"`
 }
 
 type HFDownloadPlan struct {
@@ -129,7 +142,7 @@ func (md *Downloader) FetchRefs(ctx context.Context, repo, branch string) (strin
 	}
 
 	baseURL := md.hfBaseURL()
-	url := fmt.Sprintf(hfRefsURLFmt, baseURL, repo)
+	url := fmt.Sprintf(hfRefsURLFmt, baseURL, escapeHFPath(repo))
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -151,25 +164,33 @@ func (md *Downloader) FetchRefs(ctx context.Context, repo, branch string) (strin
 	}
 
 	var refsResp HFRefsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&refsResp); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxMetadataBytes)).Decode(&refsResp); err != nil {
 		return "", fmt.Errorf("failed to decode refs response: %w", err)
 	}
 
 	// Find the requested branch by name, fall back to first branch
 	for _, b := range refsResp.Branches {
 		if b.Name == branch {
-			return b.TargetCommit, nil
+			return validatedCommit(b.TargetCommit, b.Name)
 		}
 	}
 	if len(refsResp.Branches) > 0 {
-		return refsResp.Branches[0].TargetCommit, nil
+		first := refsResp.Branches[0]
+		return validatedCommit(first.TargetCommit, first.Name)
 	}
 
 	return "", fmt.Errorf("could not resolve commit for branch %s", branch)
 }
 
+func validatedCommit(commit, branch string) (string, error) {
+	if !commitPattern.MatchString(commit) {
+		return "", fmt.Errorf("invalid commit %q for branch %s", commit, branch)
+	}
+	return commit, nil
+}
+
 func (md *Downloader) FetchRepoTree(ctx context.Context, repo, commit string) ([]HFTreeEntry, error) {
-	url := fmt.Sprintf(hfTreeURLFmt, md.hfBaseURL(), repo, commit)
+	url := fmt.Sprintf(hfTreeURLFmt, md.hfBaseURL(), escapeHFPath(repo), commit)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -191,27 +212,33 @@ func (md *Downloader) FetchRepoTree(ctx context.Context, repo, commit string) ([
 	}
 
 	var entries []HFTreeEntry
-	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxMetadataBytes)).Decode(&entries); err != nil {
 		return nil, fmt.Errorf("failed to decode repo tree: %w", err)
 	}
 	return entries, nil
 }
 
 func (md *Downloader) WriteRefFile(repo, branch, commit string) error {
+	if !commitPattern.MatchString(commit) {
+		return fmt.Errorf("invalid commit %q for ref %s", commit, branch)
+	}
 	refPath := md.fileManager.HFRefPath(repo, branch)
-
 	if err := os.MkdirAll(filepath.Dir(refPath), 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
+		return fmt.Errorf("failed to create refs directory: %w", err)
 	}
 
-	tmpPath := refPath + ".tmp"
-	if err := os.WriteFile(tmpPath, []byte(commit), 0644); err != nil {
+	tmp, err := os.CreateTemp(filepath.Dir(refPath), "."+filepath.Base(refPath)+".tmp-")
+	if err != nil {
+		return fmt.Errorf("failed to create temp ref file: %w", err)
+	}
+	if _, err := tmp.WriteString(commit); err != nil {
+		tmp.Close()
+		os.Remove(tmp.Name())
 		return fmt.Errorf("failed to write ref file: %w", err)
 	}
-
-	if err := os.Rename(tmpPath, refPath); err != nil {
-		os.Remove(tmpPath)
-		return fmt.Errorf("failed to rename ref file: %w", err)
+	if err := finishTempFile(tmp, refPath); err != nil {
+		os.Remove(tmp.Name())
+		return fmt.Errorf("failed to publish ref file: %w", err)
 	}
 	return nil
 }
@@ -226,9 +253,18 @@ func (md *Downloader) getHFToken() string {
 
 func (md *Downloader) hfBaseURL() string {
 	if v := os.Getenv("HF_ENDPOINT"); v != "" {
-		return v
+		return strings.TrimSuffix(v, "/")
 	}
 	return hfAPIBase
+}
+
+// escapeHFPath escapes each path segment so upstream names can't alter the URL structure.
+func escapeHFPath(p string) string {
+	segments := strings.Split(p, "/")
+	for i, s := range segments {
+		segments[i] = url.PathEscape(s)
+	}
+	return strings.Join(segments, "/")
 }
 
 func (md *Downloader) setCommonHeaders(req *http.Request) {
@@ -239,18 +275,24 @@ func (md *Downloader) setCommonHeaders(req *http.Request) {
 	}
 }
 
-func (md *Downloader) BlobExists(blobPath string) bool {
-	info, err := os.Stat(blobPath)
-	if err != nil {
+func (md *Downloader) BlobValid(task *HFDownloadTask) bool {
+	info, err := os.Stat(task.BlobPath)
+	if err != nil || !info.Mode().IsRegular() {
+		return false
+	}
+	if task.Size > 0 && info.Size() != task.Size {
 		return false
 	}
 	return info.Size() > 0
 }
 
 func (md *Downloader) DownloadBlob(ctx context.Context, jobID string, task *HFDownloadTask) error {
-	if md.BlobExists(task.BlobPath) {
-		log.Printf("Blob %s already exists, skipping download", task.OID)
+	if md.BlobValid(task) {
+		log.Printf("Blob %s already valid, skipping download", task.OID)
 		return nil
+	}
+	if err := md.fileManager.HFValidateBlobPath(task.BlobPath); err != nil {
+		return fmt.Errorf("refusing to download %s: %w", task.Filename, err)
 	}
 
 	progressChan := make(chan int64, progressChannelBuffer)
@@ -259,85 +301,196 @@ func (md *Downloader) DownloadBlob(ctx context.Context, jobID string, task *HFDo
 
 	md.progressTracker.UpdateCurrentFile(jobID, task.Filename)
 
-	tmpPath := task.BlobPath + ".tmp"
-
-	existingSize := int64(0)
-	if stat, err := os.Stat(tmpPath); err == nil {
-		existingSize = stat.Size()
-	}
-	if existingSize > 0 {
-		log.Printf("Resuming blob download from byte %d: %s", existingSize, task.Filename)
+	blobDir := filepath.Dir(task.BlobPath)
+	if err := os.MkdirAll(blobDir, 0755); err != nil {
+		return fmt.Errorf("failed to create blob directory: %w", err)
 	}
 
-	if err := md.downloadBlobFile(ctx, jobID, task.URL, tmpPath, existingSize, task.Size, progressChan); err != nil {
+	tmp, err := os.CreateTemp(blobDir, "."+filepath.Base(task.BlobPath)+".tmp-")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer tmp.Close()
+
+	if err := md.downloadWithResume(ctx, jobID, task, tmp, progressChan); err != nil {
 		os.Remove(tmpPath)
 		return fmt.Errorf("failed to download blob %s: %w", task.Filename, err)
 	}
 
-	if err := os.Rename(tmpPath, task.BlobPath); err != nil {
+	if err := finishTempFile(tmp, task.BlobPath); err != nil {
 		os.Remove(tmpPath)
-		return fmt.Errorf("failed to rename blob file: %w", err)
+		return fmt.Errorf("failed to publish blob %s: %w", task.Filename, err)
 	}
 	return nil
 }
 
-func (md *Downloader) downloadBlobFile(ctx context.Context, jobID, url, dest string, resumeFrom, totalSize int64, progress chan<- int64) error {
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+func (md *Downloader) downloadWithResume(ctx context.Context, jobID string, task *HFDownloadTask, tmp *os.File, progress chan<- int64) error {
+	hasher := sha256.New()
+
+	var lastErr error
+	for attempt := 1; attempt <= maxDownloadAttempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("download cancelled: %w", err)
+		}
+
+		offset, err := tmp.Seek(0, io.SeekEnd)
+		if err != nil {
+			return fmt.Errorf("failed to measure temp file: %w", err)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, task.URL, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("User-Agent", "llama-cpp/llamactl/"+md.version)
+		if token := md.getHFToken(); token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		if offset > 0 {
+			req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+		}
+
+		resp, err := md.httpClient.Do(req)
+		if err != nil {
+			if ctx.Err() != nil {
+				return fmt.Errorf("download cancelled: %w", ctx.Err())
+			}
+			lastErr = fmt.Errorf("request failed: %w", err)
+			log.Printf("[%s] download attempt %d/%d for %s: %v", jobID, attempt, maxDownloadAttempts, task.Filename, lastErr)
+			continue
+		}
+
+		if offset > 0 && !resumeResponseOK(resp, offset) {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("server did not honor range request (HTTP %d, Content-Range %q)",
+				resp.StatusCode, resp.Header.Get("Content-Range"))
+			if err := restartAtZero(tmp, hasher, offset, progress); err != nil {
+				return err
+			}
+			log.Printf("[%s] restarting %s from byte 0: %v", jobID, task.Filename, lastErr)
+			continue
+		}
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			err := fmt.Errorf("download failed: HTTP %d", resp.StatusCode)
+			resp.Body.Close()
+			return err
+		}
+
+		if task.Size <= 0 && offset == 0 && resp.ContentLength > 0 {
+			md.progressTracker.AddToTotalBytes(jobID, resp.ContentLength)
+		}
+
+		var body io.Reader = &progressReader{reader: resp.Body, progress: progress}
+		if task.LFS {
+			body = io.TeeReader(body, hasher)
+		}
+		if task.Size > 0 {
+			// +1 byte so over-delivery is caught by verifyBlob, not silently truncated
+			body = io.LimitReader(body, task.Size-offset+1)
+		}
+
+		written, copyErr := io.Copy(tmp, body)
+		resp.Body.Close()
+		if copyErr != nil {
+			if ctx.Err() != nil {
+				return fmt.Errorf("download cancelled: %w", ctx.Err())
+			}
+			lastErr = fmt.Errorf("transfer interrupted after %d bytes: %w", written, copyErr)
+			log.Printf("[%s] download attempt %d/%d for %s: %v", jobID, attempt, maxDownloadAttempts, task.Filename, lastErr)
+			continue
+		}
+
+		if err := verifyBlob(task, offset+written, hasher); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if lastErr == nil {
+		lastErr = fmt.Errorf("download did not complete")
+	}
+	return fmt.Errorf("download failed after %d attempts: %w", maxDownloadAttempts, lastErr)
+}
+
+// resumeResponseOK: only a 206 with matching Content-Range start may extend the temp file.
+func resumeResponseOK(resp *http.Response, offset int64) bool {
+	if resp.StatusCode != http.StatusPartialContent {
+		return false
+	}
+	start, ok := parseContentRangeStart(resp.Header.Get("Content-Range"))
+	return ok && start == offset
+}
+
+var contentRangeStartPattern = regexp.MustCompile(`^bytes (\d+)-`)
+
+func parseContentRangeStart(header string) (int64, bool) {
+	m := contentRangeStartPattern.FindStringSubmatch(header)
+	if m == nil {
+		return 0, false
+	}
+	start, err := strconv.ParseInt(m[1], 10, 64)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return 0, false
 	}
+	return start, true
+}
 
-	req.Header.Set("User-Agent", "llama-cpp/llamactl/"+md.version)
-	if token := md.getHFToken(); token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
+func restartAtZero(tmp *os.File, hasher hash.Hash, discarded int64, progress chan<- int64) error {
+	if err := tmp.Truncate(0); err != nil {
+		return fmt.Errorf("failed to reset temp file: %w", err)
 	}
-	if resumeFrom > 0 {
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", resumeFrom))
+	hasher.Reset()
+	if discarded > 0 {
+		progress <- -discarded
 	}
+	return nil
+}
 
-	resp, err := md.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to download file: %w", err)
+func verifyBlob(task *HFDownloadTask, total int64, hasher hash.Hash) error {
+	if total == 0 {
+		return fmt.Errorf("empty download for %s", task.Filename)
 	}
-	defer resp.Body.Close()
+	if task.Size > 0 && total != task.Size {
+		return fmt.Errorf("size mismatch for %s: got %d bytes, want %d", task.Filename, total, task.Size)
+	}
+	if task.LFS {
+		got := hex.EncodeToString(hasher.Sum(nil))
+		if got != task.OID {
+			return fmt.Errorf("hash mismatch for %s: got %s, want %s", task.Filename, got, task.OID)
+		}
+	}
+	return nil
+}
 
-	if resp.StatusCode == http.StatusRequestedRangeNotSatisfiable && resumeFrom > 0 {
-		os.Remove(dest)
-		return md.downloadBlobFile(ctx, jobID, url, dest, 0, totalSize, progress)
+// finishTempFile durably publishes a fully written temp file at finalPath.
+func finishTempFile(tmp *os.File, finalPath string) error {
+	if err := tmp.Sync(); err != nil {
+		return fmt.Errorf("failed to sync: %w", err)
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
-		return fmt.Errorf("failed to download file: HTTP %d", resp.StatusCode)
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %w", err)
 	}
+	if err := os.Chmod(tmp.Name(), 0644); err != nil {
+		return fmt.Errorf("failed to chmod temp file: %w", err)
+	}
+	if err := os.Rename(tmp.Name(), finalPath); err != nil {
+		return fmt.Errorf("failed to rename into place: %w", err)
+	}
+	return nil
+}
 
-	if contentLength := resp.ContentLength; contentLength > 0 {
-		md.progressTracker.AddToTotalBytes(jobID, contentLength)
-	}
-
-	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
-	}
-
-	f, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-
-	if resumeFrom > 0 {
-		if _, err := f.Seek(resumeFrom, 0); err != nil {
-			f.Close()
-			return fmt.Errorf("failed to seek: %w", err)
+func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEntry, hfFile, tag string, format ModelFormat) (*HFDownloadPlan, error) {
+	for i := range entries {
+		entry := &entries[i]
+		if entry.Type != "file" || entry.LFS == nil {
+			continue
+		}
+		if !lfsOIDPattern.MatchString(entry.LFS.OID) {
+			return nil, fmt.Errorf("invalid LFS OID for %s: %q", entry.Path, entry.LFS.OID)
 		}
 	}
 
-	_, copyErr := io.Copy(f, &progressReader{reader: resp.Body, progress: progress})
-	f.Close()
-	if copyErr != nil {
-		return fmt.Errorf("failed to write file: %w", copyErr)
-	}
-	return nil
-}
-
-func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEntry, hfFile, tag string, format ModelFormat) *HFDownloadPlan {
 	baseURL := md.hfBaseURL()
 
 	plan := &HFDownloadPlan{
@@ -351,10 +504,10 @@ func (md *Downloader) BuildDownloadPlan(repo, commit string, entries []HFTreeEnt
 	}
 
 	if format == FormatSafetensors {
-		return md.buildSafetensorsPlan(plan, repo, commit, entries, baseURL)
+		return md.buildSafetensorsPlan(plan, repo, commit, entries, baseURL), nil
 	}
 
-	return md.buildGGUFPlan(plan, repo, commit, entries, hfFile, tag, baseURL)
+	return md.buildGGUFPlan(plan, repo, commit, entries, hfFile, tag, baseURL), nil
 }
 
 func (md *Downloader) FetchFileETag(ctx context.Context, url string) (string, error) {
@@ -393,8 +546,8 @@ func (md *Downloader) ResolveNonLFSOids(ctx context.Context, plan *HFDownloadPla
 		if err != nil {
 			return fmt.Errorf("failed to resolve etag for %s: %w", task.Filename, err)
 		}
-		task.OID = etag
-		task.BlobPath = md.fileManager.HFBlobPath(repo, etag)
+		task.OID = md.fileManager.DigestHex(etag)
+		task.BlobPath = md.fileManager.HFBlobPath(repo, task.OID)
 	}
 	return nil
 }
@@ -557,8 +710,9 @@ func selectGGUFs(all []HFTreeEntry, hfFile, tag string) []HFTreeEntry {
 }
 
 func (md *Downloader) createDownloadTask(repo, commit string, entry *HFTreeEntry, baseURL string) HFDownloadTask {
+	lfs := entry.LFS != nil
 	oid := ""
-	if entry.LFS != nil {
+	if lfs {
 		oid = entry.LFS.OID
 	}
 	blobPath := ""
@@ -566,13 +720,14 @@ func (md *Downloader) createDownloadTask(repo, commit string, entry *HFTreeEntry
 		blobPath = md.fileManager.HFBlobPath(repo, oid)
 	}
 	return HFDownloadTask{
-		URL:          fmt.Sprintf(hfResolveURLFmt, baseURL, repo, commit, entry.Path),
+		URL:          fmt.Sprintf(hfResolveURLFmt, baseURL, escapeHFPath(repo), commit, escapeHFPath(entry.Path)),
 		BlobPath:     blobPath,
 		SnapshotPath: md.fileManager.HFSnapshotPath(repo, commit, entry.Path),
 		OID:          oid,
 		Filename:     entry.Path,
 		Size:         entry.Size,
 		Type:         classifyFileType(entry.Path),
+		LFS:          lfs,
 	}
 }
 
