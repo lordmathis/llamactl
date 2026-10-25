@@ -47,11 +47,13 @@ func (m *Manager) sweepStaleTempFiles() {
 			log.Printf("stale temp sweep: %s: %v", path, err)
 			return nil
 		}
-		if d.IsDir() {
+		if !d.Type().IsRegular() {
 			return nil
 		}
 		name := d.Name()
-		if !strings.Contains(name, ".tmp-") && !strings.Contains(name, ".lnk-") {
+		// dot prefix = scratch marker; legit names can't start with "." (sanitizePathComponent strips it)
+		if !strings.HasPrefix(name, ".") ||
+			(!strings.Contains(name, ".tmp-") && !strings.Contains(name, ".lnk-")) {
 			return nil
 		}
 		if err := os.Remove(path); err != nil {

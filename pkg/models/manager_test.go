@@ -295,6 +295,20 @@ func TestSweepStaleTempFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// regression: marker-named repo files must survive the sweep
+	snapshotDir := filepath.Join(repoDir, "snapshots", testCommit)
+	if err := os.MkdirAll(snapshotDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	blob1 := writeBlobFile(t, repoDir, strings.Repeat("a1", 32), []byte("one"))
+	blob2 := writeBlobFile(t, repoDir, strings.Repeat("b2", 32), []byte("two"))
+	symlinkSnapshotEntry(t, snapshotDir, "weights.tmp-old.safetensors", blob1)
+	symlinkSnapshotEntry(t, snapshotDir, "notes.lnk-v2.gguf", blob2)
+	keep = append(keep,
+		filepath.Join(snapshotDir, "weights.tmp-old.safetensors"),
+		filepath.Join(snapshotDir, "notes.lnk-v2.gguf"),
+	)
+
 	m := NewManager(cache, time.Minute, "test")
 	t.Cleanup(m.Close)
 

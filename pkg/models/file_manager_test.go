@@ -104,6 +104,46 @@ func TestHFCreateSymlink(t *testing.T) {
 	}
 }
 
+func TestHFCreateSymlinkFallback(t *testing.T) {
+	tmpDir := t.TempDir()
+	fm := NewFileManager(tmpDir)
+
+	blobPath := filepath.Join(tmpDir, "blobs", strings.Repeat("ab", 32))
+	snapshotDir := filepath.Join(tmpDir, "snapshots", testCommit)
+	snapshotPath := filepath.Join(snapshotDir, "model.gguf")
+
+	if err := os.MkdirAll(filepath.Dir(blobPath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(blobPath, []byte("blob-bytes"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := fm.HFCreateSymlinkFallback(blobPath, snapshotPath); err != nil {
+		t.Fatalf("HFCreateSymlinkFallback: %v", err)
+	}
+
+	got, err := os.ReadFile(snapshotPath)
+	if err != nil {
+		t.Fatalf("hard-linked snapshot entry missing: %v", err)
+	}
+	if string(got) != "blob-bytes" {
+		t.Errorf("snapshot entry = %q, want %q", got, "blob-bytes")
+	}
+
+	entries, err := os.ReadDir(snapshotDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "model.gguf" {
+		names := make([]string, len(entries))
+		for i, e := range entries {
+			names[i] = e.Name()
+		}
+		t.Errorf("snapshot dir entries = %v, want exactly [model.gguf]", names)
+	}
+}
+
 func TestHFHubRoot(t *testing.T) {
 	fm := NewFileManager("/cache")
 	t.Setenv("LLAMA_CACHE", "")

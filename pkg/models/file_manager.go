@@ -149,11 +149,9 @@ func (fm *FileManager) HFCreateSymlinkFallback(blobPath, snapshotPath string) er
 	if err := os.MkdirAll(filepath.Dir(snapshotPath), 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
-	// A random suffix plus os.Link makes the temp name exclusive: os.Link
-	// fails with EEXIST instead of clobbering (or following) whatever an
-	// attacker pre-planted at the predictable old ".tmp" path.
+	// random suffix + os.Link can't clobber a planted path; dot prefix marks scratch for the sweep
 	for attempt := 0; attempt < 3; attempt++ {
-		tmpPath := snapshotPath + ".lnk-" + rand.Text()
+		tmpPath := filepath.Join(filepath.Dir(snapshotPath), "."+filepath.Base(snapshotPath)+".lnk-"+rand.Text())
 		err := os.Link(blobPath, tmpPath)
 		if os.IsExist(err) {
 			continue
