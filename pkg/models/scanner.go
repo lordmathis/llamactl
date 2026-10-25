@@ -319,63 +319,155 @@ func (m *Manager) DeleteModel(repo, tag string) error {
 		return fmt.Errorf("model not found: %s:%s", repo, tag)
 	}
 
-	snapshotDir := filepath.Join(repoDir, "snapshots", commit)
-	if _, err := os.Stat(snapshotDir); os.IsNotExist(err) {
-		return fmt.Errorf("model not found: %s:%s", repo, tag)
+	shared, err := commitReferencedByOtherRef(repoDir, filepath.Base(refPath), commit)
+	if err != nil {
+		return err
+	}
+	if shared {
+		// Another ref points at the same snapshot: only drop this ref.
+		return os.Remove(refPath)
 	}
 
-	snapshotEntries, err := os.ReadDir(snapshotDir)
+	snapshotDir := filepath.Join(repoDir, "snapshots", commit)
+	if _, err := os.Stat(snapshotDir); os.IsNotExist(err) {
+		// Dangling ref: the snapshot is already gone, so just drop the ref
+		// instead of failing forever with 404.
+		return os.Remove(refPath)
+	}
+
+	referenced, err := blobsReferencedByOtherSnapshots(repoDir, commit)
 	if err != nil {
 		return err
 	}
 
-	blobPathsInSnapshot := make(map[string]bool)
-	for _, snapshotEntry := range snapshotEntries {
-		if snapshotEntry.IsDir() {
-			continue
-		}
-		symlinkPath := filepath.Join(snapshotDir, snapshotEntry.Name())
-		blobPath, err := os.Readlink(symlinkPath)
-		if err != nil {
-			blobPath = symlinkPath
-		} else if !filepath.IsAbs(blobPath) {
-			blobPath = filepath.Join(filepath.Dir(symlinkPath), blobPath)
-		}
-		blobPathsInSnapshot[blobPath] = true
-		os.Remove(symlinkPath)
+	entries, err := os.ReadDir(snapshotDir)
+	if err != nil {
+		return err
 	}
 
-	otherSnapshots, _ := os.ReadDir(filepath.Join(repoDir, "snapshots"))
-	blobPathsInOtherSnapshots := make(map[string]bool)
-	for _, otherSnapshot := range otherSnapshots {
-		if otherSnapshot.Name() == commit {
+	blobDir := filepath.Join(repoDir, "blobs")
+	var entryPaths, blobPaths []string
+	for _, entry := range entries {
+		if entry.IsDir() {
 			continue
 		}
-		otherSnapshotDir := filepath.Join(repoDir, "snapshots", otherSnapshot.Name())
-		otherEntries, _ := os.ReadDir(otherSnapshotDir)
-		for _, otherEntry := range otherEntries {
-			if otherEntry.IsDir() {
+		entryPath := filepath.Join(snapshotDir, entry.Name())
+		entryPaths = append(entryPaths, entryPath)
+		if blobPath, ok := containedBlobPath(blobDir, entryPath); ok {
+			blobPaths = append(blobPaths, blobPath)
+		}
+	}
+
+	for _, entryPath := range entryPaths {
+		if err := os.Remove(entryPath); err != nil {
+			return fmt.Errorf("failed to remove snapshot entry %s: %w", entryPath, err)
+		}
+	}
+	for _, blobPath := range blobPaths {
+		if referenced[blobPath] {
+			continue
+		}
+		if err := os.Remove(blobPath); err != nil {
+			return fmt.Errorf("failed to remove blob %s: %w", blobPath, err)
+		}
+	}
+	if err := os.Remove(snapshotDir); err != nil {
+		return fmt.Errorf("failed to remove snapshot directory: %w", err)
+	}
+	if err := os.Remove(refPath); err != nil {
+		return fmt.Errorf("failed to remove ref file: %w", err)
+	}
+	return nil
+}
+
+// commitReferencedByOtherRef reports whether any valid ref other than
+// excludeRef resolves to commit. Invalid sibling refs are skipped: they
+// protect nothing (readRefFile rejects them during scans too).
+func commitReferencedByOtherRef(repoDir, excludeRef, commit string) (bool, error) {
+	refsDir := filepath.Join(repoDir, "refs")
+	entries, err := os.ReadDir(refsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || entry.Name() == excludeRef {
+			continue
+		}
+		other, err := readRefFile(filepath.Join(refsDir, entry.Name()))
+		if err != nil {
+			continue
+		}
+		if other == commit {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// containedBlobPath resolves a snapshot entry and returns its blob path only
+// when the target is a regular file directly inside blobDir. Everything else
+// (escaping links, nested targets, hard-link fallback entries) is not
+// deletable as a blob.
+func containedBlobPath(blobDir, entryPath string) (string, bool) {
+	resolvedEntry, err := filepath.EvalSymlinks(entryPath)
+	if err != nil {
+		return "", false
+	}
+	resolvedBlobDir, err := filepath.EvalSymlinks(blobDir)
+	if err != nil {
+		return "", false
+	}
+	info, err := os.Stat(resolvedEntry)
+	if err != nil || !info.Mode().IsRegular() {
+		return "", false
+	}
+	rel, err := filepath.Rel(resolvedBlobDir, resolvedEntry)
+	if err != nil {
+		return "", false
+	}
+	rel = filepath.ToSlash(rel)
+	if rel == "." || rel == ".." || strings.HasPrefix(rel, "../") ||
+		filepath.IsAbs(rel) || strings.Contains(rel, "/") {
+		return "", false
+	}
+	return resolvedEntry, true
+}
+
+// blobsReferencedByOtherSnapshots collects the contained blob paths used by
+// every snapshot other than commit. An unreadable sibling snapshot aborts the
+// deletion: its blobs cannot be proven unused.
+func blobsReferencedByOtherSnapshots(repoDir, commit string) (map[string]bool, error) {
+	snapshotsRoot := filepath.Join(repoDir, "snapshots")
+	blobDir := filepath.Join(repoDir, "blobs")
+	snapshots, err := os.ReadDir(snapshotsRoot)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return map[string]bool{}, nil
+		}
+		return nil, err
+	}
+
+	referenced := map[string]bool{}
+	for _, snapshot := range snapshots {
+		if !snapshot.IsDir() || snapshot.Name() == commit {
+			continue
+		}
+		snapshotDir := filepath.Join(snapshotsRoot, snapshot.Name())
+		entries, err := os.ReadDir(snapshotDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read sibling snapshot %s: %w", snapshot.Name(), err)
+		}
+		for _, entry := range entries {
+			if entry.IsDir() {
 				continue
 			}
-			symlinkPath := filepath.Join(otherSnapshotDir, otherEntry.Name())
-			blobPath, err := os.Readlink(symlinkPath)
-			if err != nil {
-				blobPath = symlinkPath
-			} else if !filepath.IsAbs(blobPath) {
-				blobPath = filepath.Join(filepath.Dir(symlinkPath), blobPath)
+			if blobPath, ok := containedBlobPath(blobDir, filepath.Join(snapshotDir, entry.Name())); ok {
+				referenced[blobPath] = true
 			}
-			blobPathsInOtherSnapshots[blobPath] = true
 		}
 	}
-
-	for blobPath := range blobPathsInSnapshot {
-		if !blobPathsInOtherSnapshots[blobPath] {
-			os.Remove(blobPath)
-		}
-	}
-
-	os.Remove(snapshotDir)
-	os.Remove(refPath)
-
-	return nil
+	return referenced, nil
 }

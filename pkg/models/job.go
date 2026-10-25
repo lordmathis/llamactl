@@ -137,6 +137,15 @@ func (s *JobStore) UpdateStatus(jobID string, status JobStatus) {
 	}
 }
 
+func (s *JobStore) SetModelPath(jobID, path string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if job, ok := s.jobs[jobID]; ok {
+		job.ModelPath = path
+	}
+}
+
 func (s *JobStore) Complete(jobID string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()

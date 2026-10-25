@@ -1,9 +1,12 @@
 package models
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseHFRepoDirName(t *testing.T) {
@@ -177,4 +180,206 @@ func TestClassifyHFModelFileType(t *testing.T) {
 			}
 		})
 	}
+}
+
+// --- DeleteModel fixtures ---
+
+func newDeleteTestManager(t *testing.T) (*Manager, *FileManager) {
+	t.Helper()
+	cache := t.TempDir()
+	t.Setenv("LLAMA_CACHE", cache)
+	fm := NewFileManager(cache)
+	m := NewManager(cache, time.Minute, "test")
+	t.Cleanup(m.Close)
+	return m, fm
+}
+
+func writeRefFile(t *testing.T, repoDir, name, commit string) string {
+	t.Helper()
+	refPath := filepath.Join(repoDir, "refs", name)
+	if err := os.MkdirAll(filepath.Dir(refPath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(refPath, []byte(commit), 0644); err != nil {
+		t.Fatal(err)
+	}
+	return refPath
+}
+
+func writeBlobFile(t *testing.T, repoDir, name string, content []byte) string {
+	t.Helper()
+	blobPath := filepath.Join(repoDir, "blobs", name)
+	if err := os.MkdirAll(filepath.Dir(blobPath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(blobPath, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+	return blobPath
+}
+
+func symlinkSnapshotEntry(t *testing.T, snapshotDir, name, target string) {
+	t.Helper()
+	if err := os.MkdirAll(snapshotDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	rel, err := filepath.Rel(snapshotDir, target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(rel, filepath.Join(snapshotDir, name)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func mustNotExist(t *testing.T, path, what string) {
+	t.Helper()
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Errorf("%s still present after delete", what)
+	}
+}
+
+func mustExist(t *testing.T, path, what string) {
+	t.Helper()
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("%s missing after delete: %v", what, err)
+	}
+}
+
+func TestDeleteModel_SharedCommit(t *testing.T) {
+	m, fm := newDeleteTestManager(t)
+	repoDir := fm.HFRepoDir("org/model")
+
+	blob1 := writeBlobFile(t, repoDir, strings.Repeat("a1", 32), []byte("one"))
+	blob2 := writeBlobFile(t, repoDir, strings.Repeat("b2", 32), []byte("two"))
+	snapshotDir := filepath.Join(repoDir, "snapshots", testCommit)
+	symlinkSnapshotEntry(t, snapshotDir, "model.gguf", blob1)
+	symlinkSnapshotEntry(t, snapshotDir, "mmproj.gguf", blob2)
+	mainRef := writeRefFile(t, repoDir, "main", testCommit)
+	stableRef := writeRefFile(t, repoDir, "stable", testCommit)
+
+	if err := m.DeleteModel("org/model", "main"); err != nil {
+		t.Fatalf("DeleteModel: %v", err)
+	}
+
+	mustNotExist(t, mainRef, "refs/main")
+	mustExist(t, stableRef, "refs/stable")
+	mustExist(t, snapshotDir, "shared snapshot")
+	mustExist(t, blob1, "blob1")
+	mustExist(t, blob2, "blob2")
+}
+
+func TestDeleteModel_LastRef(t *testing.T) {
+	m, fm := newDeleteTestManager(t)
+	repoDir := fm.HFRepoDir("org/model")
+
+	blob1 := writeBlobFile(t, repoDir, strings.Repeat("a1", 32), []byte("one"))
+	blob2 := writeBlobFile(t, repoDir, strings.Repeat("b2", 32), []byte("two"))
+	snapshotDir := filepath.Join(repoDir, "snapshots", testCommit)
+	symlinkSnapshotEntry(t, snapshotDir, "model.gguf", blob1)
+	symlinkSnapshotEntry(t, snapshotDir, "mmproj.gguf", blob2)
+	mainRef := writeRefFile(t, repoDir, "main", testCommit)
+
+	if err := m.DeleteModel("org/model", "main"); err != nil {
+		t.Fatalf("DeleteModel: %v", err)
+	}
+
+	mustNotExist(t, mainRef, "refs/main")
+	mustNotExist(t, snapshotDir, "snapshot dir")
+	mustNotExist(t, blob1, "blob1")
+	mustNotExist(t, blob2, "blob2")
+
+	blobsDir := filepath.Join(repoDir, "blobs")
+	entries, err := os.ReadDir(blobsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("blobs dir has %d entries after delete, want 0", len(entries))
+	}
+}
+
+func TestDeleteModel_EscapingSymlink(t *testing.T) {
+	m, fm := newDeleteTestManager(t)
+	repoDir := fm.HFRepoDir("org/model")
+
+	victimPath := filepath.Join(t.TempDir(), "victim.txt")
+	victimContent := []byte("do not delete me")
+	if err := os.WriteFile(victimPath, victimContent, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	snapshotDir := filepath.Join(repoDir, "snapshots", testCommit)
+	symlinkSnapshotEntry(t, snapshotDir, "evil.gguf", victimPath)
+	mainRef := writeRefFile(t, repoDir, "main", testCommit)
+
+	if err := m.DeleteModel("org/model", "main"); err != nil {
+		t.Fatalf("DeleteModel: %v", err)
+	}
+
+	got, err := os.ReadFile(victimPath)
+	if err != nil {
+		t.Fatalf("victim deleted by escaping symlink: %v", err)
+	}
+	if !bytes.Equal(got, victimContent) {
+		t.Error("victim content modified")
+	}
+	mustNotExist(t, mainRef, "refs/main")
+	mustNotExist(t, snapshotDir, "snapshot dir")
+}
+
+// Pins the deliberate fail-open choice: an invalid sibling ref is skipped,
+// not an error, and it protects nothing.
+func TestDeleteModel_InvalidSiblingRefIgnored(t *testing.T) {
+	m, fm := newDeleteTestManager(t)
+	repoDir := fm.HFRepoDir("org/model")
+
+	blobPath := writeBlobFile(t, repoDir, strings.Repeat("a1", 32), []byte("one"))
+	snapshotDir := filepath.Join(repoDir, "snapshots", testCommit)
+	symlinkSnapshotEntry(t, snapshotDir, "model.gguf", blobPath)
+	mainRef := writeRefFile(t, repoDir, "main", testCommit)
+	writeRefFile(t, repoDir, "garbage", "not-a-commit")
+
+	if err := m.DeleteModel("org/model", "main"); err != nil {
+		t.Fatalf("DeleteModel: %v", err)
+	}
+
+	mustNotExist(t, mainRef, "refs/main")
+	mustNotExist(t, blobPath, "blob (invalid sibling ref must not protect it)")
+}
+
+func TestDeleteModel_DanglingRef(t *testing.T) {
+	m, fm := newDeleteTestManager(t)
+	repoDir := fm.HFRepoDir("org/model")
+	mainRef := writeRefFile(t, repoDir, "main", testCommit)
+	// snapshots/<commit> intentionally absent.
+
+	if err := m.DeleteModel("org/model", "main"); err != nil {
+		t.Fatalf("DeleteModel: %v", err)
+	}
+	mustNotExist(t, mainRef, "refs/main")
+}
+
+func TestDeleteModel_HardlinkFallback(t *testing.T) {
+	m, fm := newDeleteTestManager(t)
+	repoDir := fm.HFRepoDir("org/model")
+
+	blobPath := writeBlobFile(t, repoDir, strings.Repeat("a1", 32), []byte("one"))
+	snapshotDir := filepath.Join(repoDir, "snapshots", testCommit)
+	if err := os.MkdirAll(snapshotDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	entryPath := filepath.Join(snapshotDir, "model.gguf")
+	if err := os.Link(blobPath, entryPath); err != nil {
+		t.Fatal(err)
+	}
+	mainRef := writeRefFile(t, repoDir, "main", testCommit)
+
+	if err := m.DeleteModel("org/model", "main"); err != nil {
+		t.Fatalf("DeleteModel: %v", err)
+	}
+
+	mustNotExist(t, entryPath, "hard-linked snapshot entry")
+	mustExist(t, blobPath, "hard-linked blob (kept per D6)")
+	mustNotExist(t, mainRef, "refs/main")
 }

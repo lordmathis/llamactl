@@ -1,6 +1,7 @@
 package models
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -85,6 +86,31 @@ func (fm *FileManager) HFBlobPath(repo, oid string) string {
 	return filepath.Join(fm.HFRepoDir(repo), "blobs", oid)
 }
 
+// DigestHex returns the sha256 hex digest of s. Used to derive safe blob
+// names from untrusted strings (e.g. ETags).
+func (fm *FileManager) DigestHex(s string) string {
+	sum := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(sum[:])
+}
+
+// HFValidateBlobPath checks that path is a syntactically contained blob path
+// of the form models--*/blobs/<one component> under the hub root.
+func (fm *FileManager) HFValidateBlobPath(path string) error {
+	rel, err := filepath.Rel(fm.HFHubRoot(), path)
+	if err != nil {
+		return fmt.Errorf("blob path %q cannot be related to hub root: %w", path, err)
+	}
+	rel = filepath.ToSlash(rel)
+	if rel == ".." || strings.HasPrefix(rel, "../") || filepath.IsAbs(rel) {
+		return fmt.Errorf("blob path %q escapes the hub root", path)
+	}
+	if filepath.Base(filepath.Dir(rel)) != "blobs" ||
+		!strings.HasPrefix(filepath.Base(filepath.Dir(filepath.Dir(rel))), "models--") {
+		return fmt.Errorf("blob path %q is not a repository blob path", path)
+	}
+	return nil
+}
+
 func (fm *FileManager) HFSnapshotPath(repo, commit, filename string) string {
 	if !commitPattern.MatchString(commit) {
 		commit = "legacy"
@@ -123,16 +149,25 @@ func (fm *FileManager) HFCreateSymlinkFallback(blobPath, snapshotPath string) er
 	if err := os.MkdirAll(filepath.Dir(snapshotPath), 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
-
-	tmpPath := snapshotPath + ".tmp"
-	if err := os.Link(blobPath, tmpPath); err != nil {
-		return fmt.Errorf("failed to create hard link fallback: %w", err)
+	// A random suffix plus os.Link makes the temp name exclusive: os.Link
+	// fails with EEXIST instead of clobbering (or following) whatever an
+	// attacker pre-planted at the predictable old ".tmp" path.
+	for attempt := 0; attempt < 3; attempt++ {
+		tmpPath := snapshotPath + ".lnk-" + rand.Text()
+		err := os.Link(blobPath, tmpPath)
+		if os.IsExist(err) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("failed to create hard link fallback: %w", err)
+		}
+		if err := os.Rename(tmpPath, snapshotPath); err != nil {
+			os.Remove(tmpPath)
+			return fmt.Errorf("failed to rename to final path: %w", err)
+		}
+		return nil
 	}
-	if err := os.Rename(tmpPath, snapshotPath); err != nil {
-		os.Remove(tmpPath)
-		return fmt.Errorf("failed to rename to final path: %w", err)
-	}
-	return nil
+	return fmt.Errorf("failed to create hard link fallback for %s: temp name collision", snapshotPath)
 }
 
 func (fm *FileManager) ComputeFileHash(filePath string) (string, error) {

@@ -15,7 +15,7 @@ import (
 
 // DownloadRequest represents the request body for initiating a model download
 type DownloadRequest struct {
-	Repo   string           `json:"repo"`
+	Repo   string             `json:"repo"`
 	Format models.ModelFormat `json:"format"`
 }
 
@@ -123,6 +123,11 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 		format := req.Format
 		if format == "" {
 			format = models.FormatGGUF
+		}
+		if !models.IsValidFormat(format) {
+			writeError(w, http.StatusBadRequest, "invalid_request",
+				fmt.Sprintf("invalid format %q (must be %q or %q)", format, models.FormatGGUF, models.FormatSafetensors))
+			return
 		}
 
 		repo := req.Repo

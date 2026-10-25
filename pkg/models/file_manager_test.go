@@ -3,6 +3,7 @@ package models
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -36,6 +37,39 @@ func TestHFRepoDirName(t *testing.T) {
 			result := fm.HFRepoDirName(tt.repo)
 			if result != tt.expected {
 				t.Errorf("HFRepoDirName(%q) = %q, want %q", tt.repo, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestHFValidateBlobPath(t *testing.T) {
+	cache := t.TempDir()
+	t.Setenv("LLAMA_CACHE", cache)
+	fm := NewFileManager(cache)
+
+	blobDir := fm.HFRepoDir("org/model") + "/blobs"
+
+	tests := []struct {
+		name      string
+		path      string
+		wantValid bool
+	}{
+		{"hex blob under repo", blobDir + "/" + strings.Repeat("ab", 32), true},
+		{"digest-named blob", blobDir + "/etag-digest-name", true},
+		{"traversal out of blobs dir", blobDir + "/../evil", false},
+		{"nested under blobs dir", blobDir + "/a/b", false},
+		{"blobs dir itself", blobDir, false},
+		{"escape of hub root", fm.HFHubRoot() + "/../outside/hub", false},
+		{"path under a different root", filepath.Join(t.TempDir(), "models--org--model", "blobs", "x"), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := fm.HFValidateBlobPath(tt.path)
+			if tt.wantValid && err != nil {
+				t.Errorf("HFValidateBlobPath(%q) = %v, want nil", tt.path, err)
+			}
+			if !tt.wantValid && err == nil {
+				t.Errorf("HFValidateBlobPath(%q) = nil, want error", tt.path)
 			}
 		})
 	}

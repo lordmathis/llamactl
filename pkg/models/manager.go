@@ -3,13 +3,18 @@ package models
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
+
+var repoNamePattern = regexp.MustCompile(
+	`^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)+$`)
 
 type Manager struct {
 	cacheDir    string
@@ -24,33 +29,53 @@ func NewManager(cacheDir string, timeout time.Duration, version string) *Manager
 	progressTracker := NewProgressTracker(jobStore)
 	downloader := NewDownloader(cacheDir, timeout, version, fileManager, progressTracker)
 
-	return &Manager{
+	m := &Manager{
 		cacheDir:    cacheDir,
 		jobStore:    jobStore,
 		downloader:  downloader,
 		fileManager: fileManager,
 	}
+	// No download can be live at construction, so any scratch file left
+	// behind by a previous process is stale and safe to remove.
+	m.sweepStaleTempFiles()
+	return m
+}
+
+func (m *Manager) sweepStaleTempFiles() {
+	_ = filepath.WalkDir(m.fileManager.HFHubRoot(), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			log.Printf("stale temp sweep: %s: %v", path, err)
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+		name := d.Name()
+		if !strings.Contains(name, ".tmp-") && !strings.Contains(name, ".lnk-") {
+			return nil
+		}
+		if err := os.Remove(path); err != nil {
+			log.Printf("stale temp sweep: failed to remove %s: %v", path, err)
+			return nil
+		}
+		log.Printf("stale temp sweep: removed %s", path)
+		return nil
+	})
 }
 
 func (m *Manager) StartDownload(repo, tag string, format ModelFormat) (string, error) {
-	if repo == "" {
-		return "", fmt.Errorf("repo cannot be empty")
+	if format == "" {
+		format = FormatGGUF
 	}
-
-	if format == FormatGGUF && !strings.Contains(repo, "/") {
-		return "", fmt.Errorf("repo must be in format 'org/model'")
+	if !IsValidFormat(format) {
+		return "", fmt.Errorf("invalid format %q (must be %q or %q)", format, FormatGGUF, FormatSafetensors)
 	}
-
-	if !strings.Contains(repo, "/") {
+	if !repoNamePattern.MatchString(repo) {
 		return "", fmt.Errorf("repo must be in format 'org/model'")
 	}
 
 	if tag == "" {
 		tag = "main"
-	}
-
-	if format == "" {
-		format = FormatGGUF
 	}
 
 	job, err := m.jobStore.Create(repo, tag)
@@ -85,8 +110,13 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job, format ModelForm
 		return
 	}
 
-	plan := m.downloader.BuildDownloadPlan(job.Repo, commit, entries, "", job.Tag, format)
-	if format == FormatGGUF && plan.MainGGUF == nil {
+	plan, err := m.downloader.BuildDownloadPlan(job.Repo, commit, entries, "", job.Tag, format)
+	if err != nil {
+		log.Printf("[%s] Failed to build download plan: %v", job.ID, err)
+		m.jobStore.Fail(job.ID, err.Error())
+		return
+	}
+	if format != FormatSafetensors && plan.MainGGUF == nil {
 		log.Printf("[%s] Error: No GGUF files found in repo matching criteria", job.ID)
 		m.jobStore.Fail(job.ID, "no GGUF file found in repo")
 		return
@@ -107,7 +137,7 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job, format ModelForm
 	var tasksToDownload []*HFDownloadTask
 	for i := range plan.Tasks {
 		task := &plan.Tasks[i]
-		if !m.downloader.BlobExists(task.BlobPath) {
+		if !m.downloader.BlobValid(task) {
 			totalBytes += task.Size
 			tasksToDownload = append(tasksToDownload, task)
 		}
@@ -136,7 +166,7 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job, format ModelForm
 		task := &plan.Tasks[i]
 
 		// If blob exists, just ensure the symlink is there
-		if m.downloader.BlobExists(task.BlobPath) {
+		if m.downloader.BlobValid(task) {
 			if err := m.fileManager.HFCreateSymlink(task.BlobPath, task.SnapshotPath); err != nil {
 				log.Printf("[%s] Warning: failed to create symlink for %s: %v", job.ID, task.Filename, err)
 			}
@@ -185,9 +215,12 @@ func (m *Manager) downloadWorker(ctx context.Context, job *Job, format ModelForm
 
 	log.Printf("[%s] Download completed successfully", job.ID)
 	if plan.Format == FormatSafetensors {
-		job.ModelPath = filepath.Join(m.fileManager.HFRepoDir(job.Repo), "snapshots", commit)
+		m.jobStore.SetModelPath(job.ID, filepath.Join(m.fileManager.HFRepoDir(job.Repo), "snapshots", commit))
+	} else if plan.MainGGUF != nil {
+		m.jobStore.SetModelPath(job.ID, plan.MainGGUF.SnapshotPath)
 	} else {
-		job.ModelPath = plan.MainGGUF.SnapshotPath
+		m.jobStore.Fail(job.ID, "no main GGUF file in download plan")
+		return
 	}
 	m.jobStore.Complete(job.ID)
 }
