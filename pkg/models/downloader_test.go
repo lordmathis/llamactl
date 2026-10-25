@@ -351,8 +351,7 @@ func assertBlobDirEntries(t *testing.T, dir string, want int) {
 	}
 }
 
-// waitJobBytes polls until the job's byte counter settles on want; the
-// progress tracker applies channel bytes asynchronously.
+// waitJobBytes polls until BytesDownloaded settles (progress is applied async).
 func waitJobBytes(t *testing.T, js *JobStore, jobID string, want int64) {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
@@ -495,8 +494,7 @@ func TestDownloadBlob_RestartOn200(t *testing.T) {
 	t.Cleanup(srv.Close)
 	task.URL = srv.URL
 
-	// A real job makes the progress channel observable: the discarded
-	// half-copy must be subtracted again, or BytesDownloaded reads 1500.
+	// real job: the discarded half-copy must be subtracted or BytesDownloaded reads 1500
 	job, err := js.Create("org/model", "main")
 	if err != nil {
 		t.Fatal(err)
@@ -549,8 +547,7 @@ func TestWriteRefFile_InvalidCommit(t *testing.T) {
 	}
 }
 
-// A naive url.PathEscape(repo) would escape the "/" separators to %2F and
-// break every HF URL; escaping must happen per segment.
+// whole-string PathEscape would %2F the "/" separators; escaping must be per segment.
 func TestEscapeHFPath(t *testing.T) {
 	got := escapeHFPath("org/mo del/file name.gguf")
 	if want := "org/mo%20del/file%20name.gguf"; got != want {

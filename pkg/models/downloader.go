@@ -258,8 +258,7 @@ func (md *Downloader) hfBaseURL() string {
 	return hfAPIBase
 }
 
-// escapeHFPath percent-escapes each path segment so upstream-controlled repo
-// and file names cannot alter the URL structure.
+// escapeHFPath escapes each path segment so upstream names can't alter the URL structure.
 func escapeHFPath(p string) string {
 	segments := strings.Split(p, "/")
 	for i, s := range segments {
@@ -387,8 +386,7 @@ func (md *Downloader) downloadWithResume(ctx context.Context, jobID string, task
 			body = io.TeeReader(body, hasher)
 		}
 		if task.Size > 0 {
-			// Allow one byte past the declared size so over-delivery is
-			// detected by verifyBlob instead of silently truncated.
+			// +1 byte so over-delivery is caught by verifyBlob, not silently truncated
 			body = io.LimitReader(body, task.Size-offset+1)
 		}
 
@@ -415,10 +413,7 @@ func (md *Downloader) downloadWithResume(ctx context.Context, jobID string, task
 	return fmt.Errorf("download failed after %d attempts: %w", maxDownloadAttempts, lastErr)
 }
 
-// resumeResponseOK reports whether resp can safely continue from offset.
-// A range request must be answered with 206 and a matching Content-Range;
-// anything else means the temp prefix cannot be trusted and the download
-// must restart from byte 0.
+// resumeResponseOK: only a 206 with matching Content-Range start may extend the temp file.
 func resumeResponseOK(resp *http.Response, offset int64) bool {
 	if resp.StatusCode != http.StatusPartialContent {
 		return false

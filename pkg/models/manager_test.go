@@ -29,8 +29,7 @@ type hfFixture struct {
 	etags    map[string]string
 }
 
-// newHFTestServer fakes the three HF endpoint shapes (refs, tree, resolve)
-// used by the download pipeline and points HF_ENDPOINT at it.
+// newHFTestServer fakes the refs/tree/resolve endpoints and points HF_ENDPOINT at it.
 func newHFTestServer(t *testing.T, fx hfFixture) *httptest.Server {
 	t.Helper()
 

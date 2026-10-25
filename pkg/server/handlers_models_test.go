@@ -14,8 +14,7 @@ import (
 	"llamactl/pkg/server"
 )
 
-// newModelsTestHandler wires a real model manager against a temp cache and a
-// dead HF endpoint so accepted requests fail fast without network access.
+// newModelsTestHandler wires a real manager, temp cache, and dead HF endpoint.
 func newModelsTestHandler(t *testing.T) (*server.Handler, *models.Manager, string) {
 	t.Helper()
 	cache := t.TempDir()

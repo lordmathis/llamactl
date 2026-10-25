@@ -35,8 +35,7 @@ func NewManager(cacheDir string, timeout time.Duration, version string) *Manager
 		downloader:  downloader,
 		fileManager: fileManager,
 	}
-	// No download can be live at construction, so any scratch file left
-	// behind by a previous process is stale and safe to remove.
+	// no download can be live at construction, so leftover scratch files are stale
 	m.sweepStaleTempFiles()
 	return m
 }

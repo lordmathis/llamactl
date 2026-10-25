@@ -328,8 +328,7 @@ func TestDeleteModel_EscapingSymlink(t *testing.T) {
 	mustNotExist(t, snapshotDir, "snapshot dir")
 }
 
-// Pins the deliberate fail-open choice: an invalid sibling ref is skipped,
-// not an error, and it protects nothing.
+// pins the fail-open choice: an invalid sibling ref is skipped and protects nothing.
 func TestDeleteModel_InvalidSiblingRefIgnored(t *testing.T) {
 	m, fm := newDeleteTestManager(t)
 	repoDir := fm.HFRepoDir("org/model")

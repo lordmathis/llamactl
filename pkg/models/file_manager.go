@@ -86,15 +86,13 @@ func (fm *FileManager) HFBlobPath(repo, oid string) string {
 	return filepath.Join(fm.HFRepoDir(repo), "blobs", oid)
 }
 
-// DigestHex returns the sha256 hex digest of s. Used to derive safe blob
-// names from untrusted strings (e.g. ETags).
+// DigestHex derives a safe blob name from an untrusted string (e.g. an ETag).
 func (fm *FileManager) DigestHex(s string) string {
 	sum := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(sum[:])
 }
 
-// HFValidateBlobPath checks that path is a syntactically contained blob path
-// of the form models--*/blobs/<one component> under the hub root.
+// HFValidateBlobPath checks path is models--*/blobs/<one component> under the hub root.
 func (fm *FileManager) HFValidateBlobPath(path string) error {
 	rel, err := filepath.Rel(fm.HFHubRoot(), path)
 	if err != nil {

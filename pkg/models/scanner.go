@@ -330,8 +330,7 @@ func (m *Manager) DeleteModel(repo, tag string) error {
 
 	snapshotDir := filepath.Join(repoDir, "snapshots", commit)
 	if _, err := os.Stat(snapshotDir); os.IsNotExist(err) {
-		// Dangling ref: the snapshot is already gone, so just drop the ref
-		// instead of failing forever with 404.
+		// dangling ref: snapshot already gone; drop the ref instead of 404 forever
 		return os.Remove(refPath)
 	}
 
@@ -380,9 +379,7 @@ func (m *Manager) DeleteModel(repo, tag string) error {
 	return nil
 }
 
-// commitReferencedByOtherRef reports whether any valid ref other than
-// excludeRef resolves to commit. Invalid sibling refs are skipped: they
-// protect nothing (readRefFile rejects them during scans too).
+// commitReferencedByOtherRef reports whether another valid ref resolves to commit; invalid siblings protect nothing.
 func commitReferencedByOtherRef(repoDir, excludeRef, commit string) (bool, error) {
 	refsDir := filepath.Join(repoDir, "refs")
 	entries, err := os.ReadDir(refsDir)
@@ -407,10 +404,7 @@ func commitReferencedByOtherRef(repoDir, excludeRef, commit string) (bool, error
 	return false, nil
 }
 
-// containedBlobPath resolves a snapshot entry and returns its blob path only
-// when the target is a regular file directly inside blobDir. Everything else
-// (escaping links, nested targets, hard-link fallback entries) is not
-// deletable as a blob.
+// containedBlobPath returns the blob target only if it is a regular file directly inside blobDir.
 func containedBlobPath(blobDir, entryPath string) (string, bool) {
 	resolvedEntry, err := filepath.EvalSymlinks(entryPath)
 	if err != nil {
@@ -436,9 +430,7 @@ func containedBlobPath(blobDir, entryPath string) (string, bool) {
 	return resolvedEntry, true
 }
 
-// blobsReferencedByOtherSnapshots collects the contained blob paths used by
-// every snapshot other than commit. An unreadable sibling snapshot aborts the
-// deletion: its blobs cannot be proven unused.
+// blobsReferencedByOtherSnapshots collects blobs used by other snapshots; an unreadable sibling fails closed.
 func blobsReferencedByOtherSnapshots(repoDir, commit string) (map[string]bool, error) {
 	snapshotsRoot := filepath.Join(repoDir, "snapshots")
 	blobDir := filepath.Join(repoDir, "blobs")
