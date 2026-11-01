@@ -83,15 +83,11 @@ func (im *instanceManager) CreateInstance(name string, options *instance.Options
 			break
 		}
 
-		// Create the remote instance on the remote node
+		// getNodeByName, not getNodeForInstance: instance names can collide with node names.
 		ctx := context.Background()
-		nodeConfig, exists := im.remote.getNodeForInstance(nodeName)
+		nodeConfig, exists := im.remote.getNodeByName(nodeName)
 		if !exists {
-			// Try to set the node if it doesn't exist yet
-			if err := im.remote.setInstanceNode(name, nodeName); err != nil {
-				return nil, fmt.Errorf("node %s not found", nodeName)
-			}
-			nodeConfig, _ = im.remote.getNodeForInstance(name)
+			return nil, fmt.Errorf("node %s not found", nodeName)
 		}
 
 		remoteInst, err := im.remote.createInstance(ctx, nodeConfig, name, options)
@@ -262,63 +258,91 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 	lock.Lock()
 	defer lock.Unlock()
 
-	// Handle port changes
+	// Options are swapped by pointer, never mutated in place; the old pointer is a valid rollback snapshot.
+	oldOpts := inst.GetOptions()
 	oldPort := inst.GetPort()
 	newPort := im.getPortFromOptions(options)
-	var allocatedPort int
 
+	// The old port stays allocated until commit so neither port is obtainable mid-update.
+	var allocatedPort int
 	if newPort != oldPort {
-		// Port is changing - need to release old and allocate new
 		if newPort == 0 {
-			// Auto-allocate new port
 			allocatedPort, err = im.ports.allocate(name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to allocate new port: %w", err)
 			}
 			im.setPortInOptions(options, allocatedPort)
 		} else {
-			// Use specified port
 			if err := im.ports.allocateSpecific(newPort, name); err != nil {
 				return nil, fmt.Errorf("failed to allocate port %d: %w", newPort, err)
 			}
 			allocatedPort = newPort
 		}
-
-		// Release old port
-		if oldPort > 0 {
-			if err := im.ports.release(oldPort); err != nil {
-				// Rollback new port allocation
-				im.ports.release(allocatedPort)
-				return nil, fmt.Errorf("failed to release old port %d: %w", oldPort, err)
-			}
-		}
 	}
 
-	// Check if instance is running before updating options
 	wasRunning := inst.IsRunning()
-
-	// If the instance is running, stop it first
 	if wasRunning {
-		if err := inst.Stop(); err != nil {
+		if err := im.stopForUpdate(inst); err != nil {
+			im.releasePort(allocatedPort)
 			return nil, fmt.Errorf("failed to stop instance %s for update: %w", name, err)
 		}
 	}
 
-	// Now update the options while the instance is stopped
 	inst.SetOptions(options)
 
-	// If it was running before, start it again with the new options
 	if wasRunning {
-		if err := inst.Start(); err != nil {
-			return nil, fmt.Errorf("failed to start instance %s after update: %w", name, err)
+		if err := im.startForUpdate(inst); err != nil {
+			inst.SetOptions(oldOpts)
+			rollbackErr := im.startForUpdate(inst)
+			im.releasePort(allocatedPort)
+			if rollbackErr != nil {
+				return nil, fmt.Errorf(
+					"failed to start instance %s after update: %w; rollback to previous options failed too: %w (instance left stopped)",
+					name, err, rollbackErr)
+			}
+			return nil, fmt.Errorf(
+				"failed to start instance %s after update: %w (rolled back to previous options, instance restarted)",
+				name, err)
 		}
 	}
 
+	// Live state is already correct here; a release failure is logged, not returned.
+	if newPort != oldPort && oldPort > 0 {
+		if err := im.ports.release(oldPort); err != nil {
+			log.Printf("Warning: failed to release old port %d for instance %s: %v", oldPort, name, err)
+		}
+	}
+
+	// Best-effort, matching CreateInstance: the live state is already running.
 	if err := im.persistInstance(inst); err != nil {
-		return nil, fmt.Errorf("failed to persist updated instance %s: %w", name, err)
+		log.Printf("Warning: failed to persist updated instance %s: %v", name, err)
 	}
 
 	return inst, nil
+}
+
+// stopForUpdate/startForUpdate route through the fault-injection seams.
+func (im *instanceManager) stopForUpdate(inst *instance.Instance) error {
+	if im.stopFn != nil {
+		return im.stopFn(inst)
+	}
+	return inst.Stop()
+}
+
+func (im *instanceManager) startForUpdate(inst *instance.Instance) error {
+	if im.startFn != nil {
+		return im.startFn(inst)
+	}
+	return inst.Start()
+}
+
+func (im *instanceManager) releasePort(port int) {
+	if port == 0 {
+		return
+	}
+	if err := im.ports.release(port); err != nil {
+		log.Printf("Warning: failed to release port %d: %v", port, err)
+	}
 }
 
 // DeleteInstance removes stopped instance by its name.

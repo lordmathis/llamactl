@@ -74,7 +74,16 @@ func newRemoteManager(nodes map[string]config.NodeConfig, timeout time.Duration)
 	}
 }
 
-// GetNodeForInstance returns the node configuration for a given instance.
+// getNodeByName returns the node configuration keyed by node name.
+func (rm *remoteManager) getNodeByName(nodeName string) (*config.NodeConfig, bool) {
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+
+	node, exists := rm.nodeMap[nodeName]
+	return node, exists
+}
+
+// getNodeForInstance returns the node an instance name is mapped to.
 // Returns nil if the instance is not mapped to any node.
 func (rm *remoteManager) getNodeForInstance(instanceName string) (*config.NodeConfig, bool) {
 	rm.mu.RLock()

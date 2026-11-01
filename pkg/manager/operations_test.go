@@ -8,7 +8,10 @@ import (
 	"llamactl/pkg/database"
 	"llamactl/pkg/instance"
 	"llamactl/pkg/manager"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -477,5 +480,72 @@ func TestCreateInstance_CustomBackendValidation(t *testing.T) {
 				t.Errorf("expected error containing %q, got: %v", tt.expectError, err)
 			}
 		})
+	}
+}
+
+func TestCreateInstance_RemoteProvisionsOnConfiguredNode(t *testing.T) {
+	newNodeServer := func(hits *int32) *httptest.Server {
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			atomic.AddInt32(hits, 1)
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(w, `{"name":%q,"status":"stopped"}`, r.URL.Path)
+		}))
+	}
+	var hitsA, hitsB int32
+	nodeA := newNodeServer(&hitsA)
+	defer nodeA.Close()
+	nodeB := newNodeServer(&hitsB)
+	defer nodeB.Close()
+
+	appConfig := createTestAppConfig(t.TempDir())
+	appConfig.Nodes = map[string]config.NodeConfig{
+		"main":   {},
+		"node-a": {Address: nodeA.URL},
+		"node-b": {Address: nodeB.URL},
+	}
+	db, err := database.Open(&database.Config{
+		Path:               appConfig.Database.Path,
+		MaxOpenConnections: appConfig.Database.MaxOpenConnections,
+		MaxIdleConnections: appConfig.Database.MaxIdleConnections,
+		ConnMaxLifetime:    appConfig.Database.ConnMaxLifetime,
+	})
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	if err := database.RunMigrations(db); err != nil {
+		t.Fatalf("Failed to run migrations: %v", err)
+	}
+	mgr := manager.New(appConfig, db)
+	defer mgr.Shutdown()
+
+	optsOnNode := func(node string) *instance.Options {
+		return &instance.Options{
+			Nodes: map[string]struct{}{node: {}},
+			BackendOptions: backends.Options{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &backends.LlamaServerOptions{
+					Model: "/path/to/model.gguf",
+				},
+			},
+		}
+	}
+
+	// Populates the instance-to-node map with the key the old lookup misused.
+	if _, err := mgr.CreateInstance("node-b", optsOnNode("node-a")); err != nil {
+		t.Fatalf("CreateInstance(node-b on node-a) failed: %v", err)
+	}
+	if got := atomic.LoadInt32(&hitsA); got != 1 {
+		t.Fatalf("first create hit node-a %d times, want 1", got)
+	}
+
+	if _, err := mgr.CreateInstance("innocent", optsOnNode("node-b")); err != nil {
+		t.Fatalf("CreateInstance(innocent on node-b) failed: %v", err)
+	}
+
+	if got := atomic.LoadInt32(&hitsB); got != 1 {
+		t.Errorf("create hit node-b %d times, want 1", got)
+	}
+	if got := atomic.LoadInt32(&hitsA); got != 1 {
+		t.Errorf("create leaked to node-a (%d hits, want 1): wrong node selected", got)
 	}
 }
