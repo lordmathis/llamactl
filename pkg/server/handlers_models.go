@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"llamactl/pkg/config"
+	"llamactl/pkg/instance"
 	"llamactl/pkg/models"
 	"net/http"
 	"net/http/httputil"
@@ -64,6 +65,12 @@ func (h *Handler) forwardToNode(nodeName string, w http.ResponseWriter, r *http.
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		// Scrub first: authTransport sets the node credential after the director runs.
+		instance.ScrubForwardedAuthHeaders(req.Header)
+	}
 	proxy.Transport = &authTransport{
 		base:   http.DefaultTransport,
 		apiKey: node.APIKey,

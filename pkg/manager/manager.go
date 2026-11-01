@@ -43,6 +43,10 @@ type instanceManager struct {
 	// Synchronization
 	instanceLocks sync.Map // map[string]*sync.Mutex - per-instance locks for concurrent operations
 	shutdownOnce  sync.Once
+
+	// Fault-injection seams for UpdateInstance tests; nil in production.
+	stopFn  func(*instance.Instance) error
+	startFn func(*instance.Instance) error
 }
 
 // New creates a new instance of InstanceManager with dependency injection.

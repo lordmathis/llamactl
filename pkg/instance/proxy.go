@@ -5,138 +5,109 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-// TimeProvider interface allows for testing with mock time
 type TimeProvider interface {
 	Now() time.Time
 }
 
-// realTimeProvider implements TimeProvider using the actual time
 type realTimeProvider struct{}
 
 func (realTimeProvider) Now() time.Time {
 	return time.Now()
 }
 
-// proxy manages HTTP reverse proxy and request tracking for an instance.
+// Controller credentials: they must never be forwarded to a backend or node.
+var forwardedAuthHeaders = []string{
+	"Authorization", "Proxy-Authorization", "Cookie", "X-API-Key",
+}
+
+// ScrubForwardedAuthHeaders removes controller credentials before forwarding.
+func ScrubForwardedAuthHeaders(h http.Header) {
+	for _, name := range forwardedAuthHeaders {
+		h.Del(name)
+	}
+}
+
+// Immutable once stored; SetOptions swaps in a new generation, never mutates one.
+type proxyGeneration struct {
+	reverseProxy *httputil.ReverseProxy
+}
+
 type proxy struct {
 	instance *Instance
 
-	targetURL *url.URL
-	apiKey    string // For remote instances
-
-	responseHeaders map[string]string
-
-	mu sync.RWMutex
-
-	proxy     *httputil.ReverseProxy
-	proxyOnce sync.Once
-	proxyErr  error
+	mu  sync.Mutex // serializes generation builds; gen itself is atomic
+	gen atomic.Pointer[proxyGeneration]
 
 	lastRequestTime  atomic.Int64
 	inflightRequests atomic.Int32
 	timeProvider     TimeProvider
 }
 
-// newProxy creates a new Proxy for the given instance
-func newProxy(instance *Instance) (*proxy, error) {
-
-	p := &proxy{
+func newProxy(instance *Instance) *proxy {
+	return &proxy{
 		instance:     instance,
 		timeProvider: realTimeProvider{},
 	}
-
-	var err error
-
-	options := instance.GetOptions()
-	if options == nil {
-		return nil, fmt.Errorf("instance %s has no options set", instance.Name)
-	}
-
-	if instance.IsRemote() {
-
-		// Take the first remote node as the target for now
-		var nodeName string
-		for node := range options.Nodes {
-			nodeName = node
-			break
-		}
-
-		if nodeName == "" {
-			return nil, fmt.Errorf("instance %s has no remote nodes defined", p.instance.Name)
-		}
-
-		node, ok := p.instance.globalNodesConfig[nodeName]
-		if !ok {
-			return nil, fmt.Errorf("remote node %s is not defined", nodeName)
-		}
-
-		p.targetURL, err = url.Parse(node.Address)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse target URL for remote instance %s: %w", p.instance.Name, err)
-		}
-
-		p.apiKey = node.APIKey
-	} else {
-		// Get host/port from process
-		host := p.instance.options.GetHost()
-		port := p.instance.options.GetPort()
-		if port == 0 {
-			return nil, fmt.Errorf("instance %s has no port assigned", p.instance.Name)
-		}
-		p.targetURL, err = url.Parse(fmt.Sprintf("http://%s:%d", host, port))
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse target URL for instance %s: %w", p.instance.Name, err)
-		}
-
-		// Get response headers from backend config
-		p.responseHeaders = options.BackendOptions.GetResponseHeaders(p.instance.globalBackendSettings)
-	}
-
-	return p, nil
-
 }
 
-// get returns the reverse proxy for this instance, creating it if needed.
-// Uses sync.Once to ensure thread-safe one-time initialization.
 func (p *proxy) get() (*httputil.ReverseProxy, error) {
-	// sync.Once guarantees buildProxy() is called exactly once
-	// Other callers block until first initialization completes
-	p.proxyOnce.Do(func() {
-		p.proxy, p.proxyErr = p.build()
-	})
+	if g := p.gen.Load(); g != nil {
+		return g.reverseProxy, nil
+	}
 
-	return p.proxy, p.proxyErr
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if g := p.gen.Load(); g != nil {
+		return g.reverseProxy, nil
+	}
+
+	g, err := p.build()
+	if err != nil {
+		return nil, err
+	}
+	p.gen.Store(g)
+	return g.reverseProxy, nil
 }
 
-// build creates the reverse proxy based on instance options
-func (p *proxy) build() (*httputil.ReverseProxy, error) {
+func (p *proxy) build() (*proxyGeneration, error) {
+	options := p.instance.GetOptions()
+	if options == nil {
+		return nil, fmt.Errorf("instance %s has no options set", p.instance.Name)
+	}
 
-	proxy := httputil.NewSingleHostReverseProxy(p.targetURL)
+	targetURL, apiKey, err := p.resolveTarget(options)
+	if err != nil {
+		return nil, err
+	}
 
-	// Modify the request before sending it to the backend
+	isRemote := p.instance.IsRemote()
+	responseHeaders := options.BackendOptions.GetResponseHeaders(p.instance.globalBackendSettings)
+
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
 
-		// Add API key header for remote instances
-		if p.instance.IsRemote() && p.apiKey != "" {
-			req.Header.Set("Authorization", "Bearer "+p.apiKey)
+		// Scrub before the node credential is set, or the scrub would remove it.
+		ScrubForwardedAuthHeaders(req.Header)
+
+		if isRemote && apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+apiKey)
 		}
 
-		// Update last request time (including health checks)
 		p.updateLastRequestTime()
 	}
 
-	if !p.instance.IsRemote() {
-		// Add custom headers to the request
+	if !isRemote {
 		proxy.ModifyResponse = func(resp *http.Response) error {
-			// Remove CORS headers from backend response to avoid conflicts
-			// llamactl will add its own CORS headers
+			// llamactl adds its own CORS headers; backend ones would conflict.
 			resp.Header.Del("Access-Control-Allow-Origin")
 			resp.Header.Del("Access-Control-Allow-Methods")
 			resp.Header.Del("Access-Control-Allow-Headers")
@@ -144,63 +115,86 @@ func (p *proxy) build() (*httputil.ReverseProxy, error) {
 			resp.Header.Del("Access-Control-Max-Age")
 			resp.Header.Del("Access-Control-Expose-Headers")
 
-			for key, value := range p.responseHeaders {
+			for key, value := range responseHeaders {
 				resp.Header.Set(key, value)
 			}
 			return nil
 		}
 	}
 
-	return proxy, nil
+	return &proxyGeneration{reverseProxy: proxy}, nil
 }
 
-// serveHTTP handles HTTP requests with inflight tracking
+func (p *proxy) resolveTarget(options *Options) (*url.URL, string, error) {
+	if !p.instance.IsRemote() {
+		host := options.BackendOptions.GetHost()
+		port := options.BackendOptions.GetPort()
+		if port == 0 {
+			return nil, "", fmt.Errorf("instance %s has no port assigned", p.instance.Name)
+		}
+		targetURL, err := url.Parse(fmt.Sprintf("http://%s:%d", host, port))
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to parse target URL for instance %s: %w", p.instance.Name, err)
+		}
+		return targetURL, "", nil
+	}
+
+	// Sorted pick: map range order is random and the target must be stable across rebuilds.
+	nodeNames := make([]string, 0, len(options.Nodes))
+	for name := range options.Nodes {
+		nodeNames = append(nodeNames, name)
+	}
+	slices.Sort(nodeNames)
+
+	if len(nodeNames) == 0 {
+		return nil, "", fmt.Errorf("instance %s has no remote nodes defined", p.instance.Name)
+	}
+
+	node, ok := p.instance.globalNodesConfig[nodeNames[0]]
+	if !ok {
+		return nil, "", fmt.Errorf("remote node %s is not defined", nodeNames[0])
+	}
+
+	targetURL, err := url.Parse(node.Address)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to parse target URL for remote instance %s: %w", p.instance.Name, err)
+	}
+	return targetURL, node.APIKey, nil
+}
+
 func (p *proxy) serveHTTP(w http.ResponseWriter, r *http.Request) error {
-	// Get the reverse proxy
 	reverseProxy, err := p.get()
 	if err != nil {
 		return err
 	}
 
-	// Track inflight requests (exclude health checks)
 	isHealth := p.isHealthRequest(r)
 	if !isHealth {
 		p.incInflightRequests()
 		defer p.decInflightRequests()
 	}
 
-	// Serve the request
 	reverseProxy.ServeHTTP(w, r)
 	return nil
 }
 
-// isHealthRequest checks if the request is a health check
 func (p *proxy) isHealthRequest(r *http.Request) bool {
 	return r.URL.Path == p.instance.GetHealthPath()
 }
 
-// clear resets the proxy, allowing it to be recreated when options change.
+// In-flight requests keep the generation they captured.
 func (p *proxy) clear() {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	p.proxy = nil
-	p.proxyErr = nil
-	p.proxyOnce = sync.Once{}
+	p.gen.Store(nil)
 }
 
-// updateLastRequestTime updates the last request access time for the instance
 func (p *proxy) updateLastRequestTime() {
-	lastRequestTime := p.timeProvider.Now().Unix()
-	p.lastRequestTime.Store(lastRequestTime)
+	p.lastRequestTime.Store(p.timeProvider.Now().Unix())
 }
 
-// getLastRequestTime returns the last request time as a Unix timestamp
 func (p *proxy) getLastRequestTime() int64 {
 	return p.lastRequestTime.Load()
 }
 
-// shouldTimeout checks if the instance should timeout based on idle time
 func (p *proxy) shouldTimeout() bool {
 	if !p.instance.IsRunning() {
 		return false
@@ -211,32 +205,22 @@ func (p *proxy) shouldTimeout() bool {
 		return false
 	}
 
-	// Check if the last request time exceeds the idle timeout
-	lastRequest := p.lastRequestTime.Load()
-	idleTimeoutMinutes := *options.IdleTimeout
-
-	// Convert timeout from minutes to seconds for comparison
-	idleTimeoutSeconds := int64(idleTimeoutMinutes * 60)
-
-	return (p.timeProvider.Now().Unix() - lastRequest) > idleTimeoutSeconds
+	idleTimeoutSeconds := int64(*options.IdleTimeout * 60)
+	return (p.timeProvider.Now().Unix() - p.lastRequestTime.Load()) > idleTimeoutSeconds
 }
 
-// setTimeProvider sets a custom time provider for testing
 func (p *proxy) setTimeProvider(tp TimeProvider) {
 	p.timeProvider = tp
 }
 
-// incInflightRequests increments the inflight request counter
 func (p *proxy) incInflightRequests() {
 	p.inflightRequests.Add(1)
 }
 
-// decInflightRequests decrements the inflight request counter
 func (p *proxy) decInflightRequests() {
 	p.inflightRequests.Add(-1)
 }
 
-// getInflightRequests returns the current number of inflight requests
 func (p *proxy) getInflightRequests() int32 {
 	return p.inflightRequests.Load()
 }

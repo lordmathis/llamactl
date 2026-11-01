@@ -94,3 +94,48 @@ func TestDeleteModel(t *testing.T) {
 		}
 	})
 }
+
+func TestForwardToNode_ScrubsControllerCredentials(t *testing.T) {
+	captured := make(chan http.Header, 1)
+	node := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case captured <- r.Header.Clone():
+		default:
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer node.Close()
+
+	cfg := config.AppConfig{
+		LocalNode: "main",
+		Nodes: map[string]config.NodeConfig{
+			"other": {Address: node.URL, APIKey: "node-key"},
+		},
+	}
+	h := server.NewHandler(nil, nil, cfg, nil, nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/models/download?node=other", strings.NewReader(`{}`))
+	req.Header.Set("Authorization", "Bearer management-key")
+	req.Header.Set("Cookie", "llamactl_session=top-secret")
+	req.Header.Set("X-API-Key", "inference-key")
+	rec := httptest.NewRecorder()
+	h.DownloadModel()(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	select {
+	case got := <-captured:
+		if auth := got.Get("Authorization"); auth != "Bearer node-key" {
+			t.Errorf("node Authorization = %q, want node credential", auth)
+		}
+		for _, name := range []string{"Proxy-Authorization", "Cookie", "X-API-Key"} {
+			if v := got.Get(name); v != "" {
+				t.Errorf("node received controller credential %s: %q", name, v)
+			}
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for node to receive the forwarded request")
+	}
+}

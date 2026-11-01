@@ -64,13 +64,8 @@ func New(name string, globalConfig *config.AppConfig, opts *Options, onStatusCha
 		status:                 status,
 	}
 
-	var err error
-	instance.proxy, err = newProxy(instance)
-	if err != nil {
-		log.Println("Warning: Failed to create proxy for instance", instance.Name, "-", err)
-	}
+	instance.proxy = newProxy(instance)
 
-	// Only create logger, proxy, and process for local instances
 	if !instance.IsRemote() {
 		logRotationConfig := &LogRotationConfig{
 			Enabled:  globalInstanceSettings.LogRotationEnabled,
