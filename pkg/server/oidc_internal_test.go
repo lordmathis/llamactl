@@ -114,7 +114,10 @@ func TestAuthorizedForGroups(t *testing.T) {
 }
 
 func newSessionMiddleware() (*APIAuthMiddleware, *auth.SessionStore) {
-	middleware := NewAPIAuthMiddleware(config.AuthConfig{}, nil)
+	middleware, err := NewAPIAuthMiddleware(config.AuthConfig{}, nil)
+	if err != nil {
+		panic(err)
+	}
 	store := auth.NewSessionStore(time.Hour)
 	middleware.sessions = store
 	return middleware, store
@@ -167,7 +170,10 @@ func TestManagementAuthMiddlewareKeyStillWorks(t *testing.T) {
 		RequireManagementAuth: true,
 		ManagementKeys:        []string{"sk-management-test"},
 	}
-	middleware := NewAPIAuthMiddleware(cfg, nil)
+	middleware, err := NewAPIAuthMiddleware(cfg, nil)
+	if err != nil {
+		t.Fatalf("NewAPIAuthMiddleware() error = %v", err)
+	}
 	middleware.sessions = auth.NewSessionStore(time.Hour)
 
 	handler := middleware.ManagementAuthMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

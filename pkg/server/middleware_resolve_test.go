@@ -9,9 +9,7 @@ import (
 	"testing"
 )
 
-// stubAuthStore satisfies database.AuthStore for ResolveInstancePermission tests.
-// Only GetInstancePermission is exercised here; the embedded nil interface makes the
-// other methods available for interface satisfaction without implementation.
+// stubAuthStore satisfies database.AuthStore for ResolveInstancePermission tests
 type stubAuthStore struct {
 	database.AuthStore
 	perm *auth.KeyPermission
@@ -23,7 +21,11 @@ func (s *stubAuthStore) GetInstancePermission(ctx context.Context, keyID, instan
 }
 
 func newResolveMiddleware(store database.AuthStore) *APIAuthMiddleware {
-	return NewAPIAuthMiddleware(config.AuthConfig{}, store)
+	middleware, err := NewAPIAuthMiddleware(config.AuthConfig{}, store)
+	if err != nil {
+		panic(err)
+	}
+	return middleware
 }
 
 func withKey(ctx context.Context, key *auth.APIKey) context.Context {

@@ -8,6 +8,8 @@ Defaults < .env file < Configuration file (with env var expansion) < LLAMACTL_* 
 
 llamactl works out of the box with sensible defaults, but you can customize the behavior to suit your needs.
 
+Configuration errors are fatal: a malformed, unreadable, or missing configuration file (explicit path set via `LLAMACTL_CONFIG_PATH`) or a rejected `.env` file aborts startup instead of continuing with defaults.
+
 ## Default Configuration
 
 Here's the default configuration with all available options:
@@ -126,6 +128,11 @@ backends:
 ### Dotenv File Loading
 
 A `.env` file is automatically loaded before config parsing. It's searched in the same directories as config files (first match wins), plus `./.env`. Existing environment variables are never overwritten.
+
+Discovered `.env` files are verified before being read. A file that fails verification aborts startup with an error instead of being silently skipped:
+
+- It must be a regular file — symlinks, directories, and devices are rejected.
+- It must not be writable by group or others.
 
 ```env
 OPENAI_API_KEY=sk-proj-abc123...

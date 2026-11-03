@@ -2,35 +2,45 @@ package config
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
-func loadDotEnv(explicitConfigPath string) string {
+func loadDotEnv(explicitConfigPath string) (string, error) {
 	var searchPaths []string
 
 	if explicitConfigPath != "" {
-		absPath, err := filepath.Abs(explicitConfigPath)
-		if err == nil {
+		if absPath, err := filepath.Abs(explicitConfigPath); err == nil {
 			searchPaths = append(searchPaths, filepath.Join(filepath.Dir(absPath), ".env"))
 		}
 	}
-
-	cwd, err := os.Getwd()
-	if err == nil {
+	if cwd, err := os.Getwd(); err == nil {
 		searchPaths = append(searchPaths, filepath.Join(cwd, ".env"))
 	}
-
 	for _, dir := range getPlatformConfigDirs() {
 		searchPaths = append(searchPaths, filepath.Join(dir, ".env"))
 	}
 
 	for _, p := range searchPaths {
+		info, err := os.Lstat(p)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return "", fmt.Errorf("inspecting .env file %s: %w", p, err)
+		}
+		if err := verifyDotEnvInfo(p, info); err != nil {
+			return "", err
+		}
 		data, err := os.ReadFile(p)
 		if err != nil {
-			continue
+			return "", fmt.Errorf("reading .env file %s: %w", p, err)
 		}
 		vars := parseDotEnv(data)
 		for key, value := range vars {
@@ -39,16 +49,27 @@ func loadDotEnv(explicitConfigPath string) string {
 			}
 		}
 		log.Printf("Loaded .env from %s", p)
-		return p
+		return p, nil
 	}
 
-	return ""
+	return "", nil
+}
+
+func verifyDotEnvInfo(path string, info fs.FileInfo) error {
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("rejecting .env file %s: not a regular file (mode %s)", path, info.Mode())
+	}
+	// Windows reports 0666 for every writable file
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o022 != 0 {
+		return fmt.Errorf("rejecting .env file %s: writable by group or others (%s)", path, info.Mode().Perm())
+	}
+	return nil
 }
 
 func parseDotEnv(data []byte) map[string]string {
 	result := make(map[string]string)
 
-	for _, line := range bytes.Split(data, []byte("\n")) {
+	for line := range bytes.SplitSeq(data, []byte("\n")) {
 		line = bytes.TrimSpace(line)
 
 		if len(line) == 0 || line[0] == '#' {

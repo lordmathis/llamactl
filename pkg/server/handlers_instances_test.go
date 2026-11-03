@@ -66,7 +66,10 @@ func newInstancesTestRouter(t *testing.T) http.Handler {
 		t.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	h := server.NewHandler(manager.New(cfg, db), nil, *cfg, nil, nil)
+	h, err := server.NewHandler(manager.New(cfg, db), nil, *cfg, nil, nil)
+	if err != nil {
+		t.Fatalf("NewHandler() error = %v", err)
+	}
 
 	r := chi.NewRouter()
 	r.Get("/api/v1/instances/{name}", h.GetInstance())

@@ -43,7 +43,7 @@ func main() {
 	configPath := os.Getenv("LLAMACTL_CONFIG_PATH")
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		log.Printf("Error loading config: %v\nUsing default configuration.", err)
+		log.Fatalf("Error loading config: %v", err)
 	}
 
 	// Set version information
@@ -96,7 +96,10 @@ func main() {
 	}
 
 	// Create a new handler with the instance manager
-	handler := server.NewHandler(instanceManager, modelManager, cfg, db, oidcService)
+	handler, err := server.NewHandler(instanceManager, modelManager, cfg, db, oidcService)
+	if err != nil {
+		log.Fatalf("Error creating handler: %v", err)
+	}
 
 	// Setup the router with the handler
 	r := server.SetupRouter(handler)
@@ -105,9 +108,16 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
-	server := http.Server{
-		Addr:    fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
-		Handler: r,
+	server := &http.Server{
+		Addr:              fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       10 * time.Minute,
+		IdleTimeout:       2 * time.Minute,
+		MaxHeaderBytes:    1 << 20,
+		// Zero on purpose: streamed inference responses run for minutes, and
+		// a blanket write deadline kills long generations mid-response.
+		WriteTimeout: 0,
 	}
 
 	go func() {
