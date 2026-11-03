@@ -83,7 +83,7 @@ type Handler struct {
 
 // NewHandler creates a new Handler instance with the provided instance manager and configuration.
 // oidcService may be nil to run without OIDC login.
-func NewHandler(im manager.InstanceManager, mm *models.Manager, cfg config.AppConfig, authStore database.AuthStore, oidcService *OIDCService) *Handler {
+func NewHandler(im manager.InstanceManager, mm *models.Manager, cfg config.AppConfig, authStore database.AuthStore, oidcService *OIDCService) (*Handler, error) {
 	handler := &Handler{
 		InstanceManager: im,
 		modelManager:    mm,
@@ -94,11 +94,15 @@ func NewHandler(im manager.InstanceManager, mm *models.Manager, cfg config.AppCo
 		authStore: authStore,
 		oidc:      oidcService,
 	}
-	handler.authMiddleware = NewAPIAuthMiddleware(cfg.Auth, authStore)
+	middleware, err := NewAPIAuthMiddleware(cfg.Auth, authStore)
+	if err != nil {
+		return nil, fmt.Errorf("initializing auth middleware: %w", err)
+	}
+	handler.authMiddleware = middleware
 	if oidcService != nil {
 		handler.authMiddleware.sessions = oidcService.Sessions
 	}
-	return handler
+	return handler, nil
 }
 
 // getInstance retrieves an instance by name from request query parameters

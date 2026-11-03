@@ -2,7 +2,9 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -21,17 +23,19 @@ func LoadConfig(configPath string) (AppConfig, error) {
 	cfg := getDefaultConfig(defaultDataDir)
 
 	// 2. Load .env file
-	loadDotEnv(configPath)
+	if _, err := loadDotEnv(configPath); err != nil {
+		return AppConfig{}, err
+	}
 
 	// 3. Load from config file with env var expansion
 	data, err := readConfigFile(configPath)
 	if err != nil {
-		return cfg, err
+		return AppConfig{}, err
 	}
 	if data != nil {
 		data = expandEnvVars(data)
 		if err := yaml.Unmarshal(data, &cfg); err != nil {
-			return cfg, err
+			return AppConfig{}, err
 		}
 	}
 
@@ -67,8 +71,8 @@ func LoadConfig(configPath string) (AppConfig, error) {
 	return cfg, nil
 }
 
-// readConfigFile attempts to read config from file with fallback locations.
-// Returns nil data if no config file is found (not an error).
+// An explicit path must be readable: any error fails. Fallback locations
+// are skipped only when they do not exist.
 func readConfigFile(configPath string) ([]byte, error) {
 	var configLocations []string
 
@@ -79,9 +83,13 @@ func readConfigFile(configPath string) ([]byte, error) {
 	}
 
 	for _, path := range configLocations {
-		if data, err := os.ReadFile(path); err == nil {
+		data, err := os.ReadFile(path)
+		if err == nil {
 			log.Printf("Read config at %s", path)
 			return data, nil
+		}
+		if configPath != "" || !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("reading config file %s: %w", path, err)
 		}
 	}
 

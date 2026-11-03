@@ -9,7 +9,6 @@ import (
 	"llamactl/pkg/database"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -31,7 +30,7 @@ type APIAuthMiddleware struct {
 }
 
 // NewAPIAuthMiddleware creates a new APIAuthMiddleware with the given configuration
-func NewAPIAuthMiddleware(authCfg config.AuthConfig, authStore database.AuthStore) *APIAuthMiddleware {
+func NewAPIAuthMiddleware(authCfg config.AuthConfig, authStore database.AuthStore) (*APIAuthMiddleware, error) {
 	// Load management keys from config into managementKeys map
 	managementKeys := make(map[string]bool)
 	for _, key := range authCfg.ManagementKeys {
@@ -45,9 +44,7 @@ func NewAPIAuthMiddleware(authCfg config.AuthConfig, authStore database.AuthStor
 	if authCfg.RequireManagementAuth && len(authCfg.ManagementKeys) == 0 {
 		key, err := auth.GenerateKey("llamactl-mgmt")
 		if err != nil {
-			log.Printf("Warning: Failed to generate management key: %v", err)
-			// Fallback to PID-based key for safety
-			key = fmt.Sprintf("sk-management-fallback-%d", os.Getpid())
+			return nil, fmt.Errorf("generating management key: %w", err)
 		}
 		managementKeys[key] = true
 		generated = true
@@ -60,6 +57,7 @@ func NewAPIAuthMiddleware(authCfg config.AuthConfig, authStore database.AuthStor
 		fmt.Println("• This key is auto-generated and will change on restart")
 		fmt.Println("• For production, add explicit keys to your configuration")
 		fmt.Println("• Copy this key before it disappears from the terminal")
+		fmt.Println("• Stdout may be persisted in container or service logs; treat access to startup logs as key access")
 		fmt.Println(banner)
 	}
 
@@ -68,7 +66,7 @@ func NewAPIAuthMiddleware(authCfg config.AuthConfig, authStore database.AuthStor
 		requireInferenceAuth:  authCfg.RequireInferenceAuth,
 		requireManagementAuth: authCfg.RequireManagementAuth,
 		managementKeys:        managementKeys,
-	}
+	}, nil
 }
 
 // InferenceAuthMiddleware returns middleware for inference endpoints

@@ -44,6 +44,7 @@ llamactl
 • This key is auto-generated and will change on restart
 • For production, add explicit management_keys to your configuration
 • Copy this key before it disappears from the terminal
+• Stdout may be persisted in container or service logs; treat access to startup logs as key access
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Llamactl server listening on 0.0.0.0:8080
 ```

@@ -22,7 +22,10 @@ func newModelsTestHandler(t *testing.T) (*server.Handler, *models.Manager, strin
 	t.Setenv("HF_ENDPOINT", "http://127.0.0.1:1")
 	mm := models.NewManager(cache, time.Second, "test")
 	t.Cleanup(mm.Close)
-	h := server.NewHandler(nil, mm, config.AppConfig{LocalNode: "local"}, nil, nil)
+	h, err := server.NewHandler(nil, mm, config.AppConfig{LocalNode: "local"}, nil, nil)
+	if err != nil {
+		t.Fatalf("NewHandler() error = %v", err)
+	}
 	return h, mm, cache
 }
 
@@ -112,7 +115,10 @@ func TestForwardToNode_ScrubsControllerCredentials(t *testing.T) {
 			"other": {Address: node.URL, APIKey: "node-key"},
 		},
 	}
-	h := server.NewHandler(nil, nil, cfg, nil, nil)
+	h, err := server.NewHandler(nil, nil, cfg, nil, nil)
+	if err != nil {
+		t.Fatalf("NewHandler() error = %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/models/download?node=other", strings.NewReader(`{}`))
 	req.Header.Set("Authorization", "Bearer management-key")

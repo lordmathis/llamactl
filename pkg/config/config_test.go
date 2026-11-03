@@ -4,6 +4,7 @@ import (
 	"llamactl/pkg/config"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -21,9 +22,20 @@ func getBackendSettings(bc *config.BackendConfig, backendType string) config.Bac
 	}
 }
 
+// writeEmptyConfig writes an empty config file so LoadConfig exercises the
+// defaults without depending on ambient fallback locations.
+func writeEmptyConfig(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "empty-config.yaml")
+	if err := os.WriteFile(path, nil, 0o644); err != nil {
+		t.Fatalf("Failed to write empty config: %v", err)
+	}
+	return path
+}
+
 func TestLoadConfig_Defaults(t *testing.T) {
 	// Test loading config when no file exists and no env vars set
-	cfg, err := config.LoadConfig("nonexistent-file.yaml")
+	cfg, err := config.LoadConfig(writeEmptyConfig(t))
 	if err != nil {
 		t.Fatalf("LoadConfig should not error with defaults: %v", err)
 	}
@@ -128,7 +140,7 @@ instances:
 }
 
 func TestLoadConfig_CustomBackends(t *testing.T) {
-	cfg, err := config.LoadConfig("nonexistent-file.yaml")
+	cfg, err := config.LoadConfig(writeEmptyConfig(t))
 	if err != nil {
 		t.Fatalf("LoadConfig should not error with defaults: %v", err)
 	}
@@ -203,7 +215,7 @@ func TestLoadConfig_EnvironmentOverrides(t *testing.T) {
 		defer os.Unsetenv(key)
 	}
 
-	cfg, err := config.LoadConfig("nonexistent-file.yaml")
+	cfg, err := config.LoadConfig(writeEmptyConfig(t))
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
@@ -428,7 +440,7 @@ func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 		defer os.Unsetenv(key)
 	}
 
-	cfg, err := config.LoadConfig("nonexistent-file.yaml")
+	cfg, err := config.LoadConfig(writeEmptyConfig(t))
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
@@ -477,7 +489,7 @@ func TestLoadConfig_BackendEnvironmentVariables(t *testing.T) {
 
 func TestLoadConfig_LocalNode(t *testing.T) {
 	t.Run("default local node", func(t *testing.T) {
-		cfg, err := config.LoadConfig("nonexistent-file.yaml")
+		cfg, err := config.LoadConfig(writeEmptyConfig(t))
 		if err != nil {
 			t.Fatalf("LoadConfig failed: %v", err)
 		}
@@ -593,7 +605,7 @@ nodes:
 		os.Setenv("LLAMACTL_LOCAL_NODE", "custom-node")
 		defer os.Unsetenv("LLAMACTL_LOCAL_NODE")
 
-		cfg, err := config.LoadConfig("nonexistent-file.yaml")
+		cfg, err := config.LoadConfig(writeEmptyConfig(t))
 		if err != nil {
 			t.Fatalf("LoadConfig failed: %v", err)
 		}
@@ -680,5 +692,49 @@ server:
 
 	if cfg.Server.Host != "from-process-env" {
 		t.Errorf("Expected process env to take precedence, got %q", cfg.Server.Host)
+	}
+}
+
+func TestLoadConfig_ExplicitPathMissing(t *testing.T) {
+	_, err := config.LoadConfig(filepath.Join(t.TempDir(), "missing.yaml"))
+	if err == nil {
+		t.Fatal("Expected an error for a missing explicit config path")
+	}
+}
+
+func TestLoadConfig_ExplicitPathUnreadable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod 0000 does not block reads on Windows")
+	}
+	if os.Getuid() == 0 {
+		t.Skip("root reads through mode 0000")
+	}
+
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte("server:\n  port: 8080\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+	if err := os.Chmod(path, 0o000); err != nil {
+		t.Fatalf("Failed to chmod config: %v", err)
+	}
+
+	_, err := config.LoadConfig(path)
+	if err == nil {
+		t.Fatal("Expected an error for an unreadable explicit config path")
+	}
+}
+
+func TestLoadConfig_InvalidYAML(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "invalid.yaml")
+	if err := os.WriteFile(path, []byte("server: [\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	cfg, err := config.LoadConfig(path)
+	if err == nil {
+		t.Fatal("Expected an error for invalid YAML instead of falling back to defaults")
+	}
+	if cfg.Server.Host != "" || cfg.Server.Port != 0 {
+		t.Errorf("Expected zero config alongside the error, got host %q port %d", cfg.Server.Host, cfg.Server.Port)
 	}
 }

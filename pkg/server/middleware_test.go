@@ -60,7 +60,10 @@ func TestInferenceAuthMiddleware(t *testing.T) {
 				RequireInferenceAuth: true,
 				ManagementKeys:       tt.managementKeys,
 			}
-			middleware := server.NewAPIAuthMiddleware(cfg, nil)
+			middleware, err := server.NewAPIAuthMiddleware(cfg, nil)
+			if err != nil {
+				t.Fatalf("NewAPIAuthMiddleware() error = %v", err)
+			}
 
 			// Create test request
 			req := httptest.NewRequest(tt.method, "/test", nil)
@@ -141,7 +144,10 @@ func TestManagementAuthMiddleware(t *testing.T) {
 				RequireManagementAuth: true,
 				ManagementKeys:        tt.managementKeys,
 			}
-			middleware := server.NewAPIAuthMiddleware(cfg, nil)
+			middleware, err := server.NewAPIAuthMiddleware(cfg, nil)
+			if err != nil {
+				t.Fatalf("NewAPIAuthMiddleware() error = %v", err)
+			}
 
 			// Create test request
 			req := httptest.NewRequest(tt.method, "/test", nil)
@@ -186,7 +192,10 @@ func TestManagementKeyAutoGeneration(t *testing.T) {
 	}
 
 	// Create middleware - this should trigger key generation
-	middleware := server.NewAPIAuthMiddleware(config, nil)
+	middleware, err := server.NewAPIAuthMiddleware(config, nil)
+	if err != nil {
+		t.Fatalf("NewAPIAuthMiddleware() error = %v", err)
+	}
 
 	// Test that auth is required (meaning a key was generated)
 	req := httptest.NewRequest("GET", "/", nil)
@@ -204,7 +213,10 @@ func TestManagementKeyAutoGeneration(t *testing.T) {
 	}
 
 	// Test uniqueness by creating another middleware instance
-	middleware2 := server.NewAPIAuthMiddleware(config, nil)
+	middleware2, err := server.NewAPIAuthMiddleware(config, nil)
+	if err != nil {
+		t.Fatalf("NewAPIAuthMiddleware() error = %v", err)
+	}
 
 	req2 := httptest.NewRequest("GET", "/", nil)
 	recorder2 := httptest.NewRecorder()
@@ -254,7 +266,10 @@ func TestAutoGenerationScenarios(t *testing.T) {
 				ManagementKeys:        tt.providedManagement,
 			}
 
-			middleware := server.NewAPIAuthMiddleware(cfg, nil)
+			middleware, err := server.NewAPIAuthMiddleware(cfg, nil)
+			if err != nil {
+				t.Fatalf("NewAPIAuthMiddleware() error = %v", err)
+			}
 
 			// Test management behavior if management auth is required
 			if tt.requireManagement {

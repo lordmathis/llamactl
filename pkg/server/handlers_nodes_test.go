@@ -18,7 +18,10 @@ func newNodesTestHandler(t *testing.T, nodes map[string]config.NodeConfig, local
 		LocalNode: localNode,
 		Nodes:     nodes,
 	}
-	h := server.NewHandler(nil, nil, cfg, nil, nil)
+	h, err := server.NewHandler(nil, nil, cfg, nil, nil)
+	if err != nil {
+		t.Fatalf("NewHandler() error = %v", err)
+	}
 	return h.GetNodeHealth()
 }
 

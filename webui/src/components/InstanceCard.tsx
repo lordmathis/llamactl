@@ -211,7 +211,7 @@ function InstanceCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => window.open(`${document.baseURI}api/v1/instances/${instance.name}/proxy/`, "_blank")}
+                  onClick={() => window.open(`${document.baseURI}api/v1/instances/${instance.name}/proxy/`, "_blank", "noopener,noreferrer")}
                   title="Open llama-server UI"
                   data-testid="open-llama-ui-button"
                 >
