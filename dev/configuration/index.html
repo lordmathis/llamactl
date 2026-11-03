@@ -908,6 +908,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Defaults &lt; .env file &lt; Configuration file (with env var expansion) &lt; LLAMACTL_* environment variables
 </code></pre></div>
 <p>llamactl works out of the box with sensible defaults, but you can customize the behavior to suit your needs.  </p>
+<p>Configuration errors are fatal: a malformed, unreadable, or missing configuration file (explicit path set via <code>LLAMACTL_CONFIG_PATH</code>) or a rejected <code>.env</code> file aborts startup instead of continuing with defaults.  </p>
 <h2 id="default-configuration">Default Configuration<a class="headerlink" href="#default-configuration" title="Permanent link">&para;</a></h2>
 <p>Here's the default configuration with all available options:  </p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">server</span><span class="p">:</span>
@@ -1010,6 +1011,11 @@
 </code></pre></div>
 <h3 id="dotenv-file-loading">Dotenv File Loading<a class="headerlink" href="#dotenv-file-loading" title="Permanent link">&para;</a></h3>
 <p>A <code>.env</code> file is automatically loaded before config parsing. It's searched in the same directories as config files (first match wins), plus <code>./.env</code>. Existing environment variables are never overwritten.  </p>
+<p>Discovered <code>.env</code> files are verified before being read. A file that fails verification aborts startup with an error instead of being silently skipped:  </p>
+<ul>
+<li>It must be a regular file — symlinks, directories, and devices are rejected.  </li>
+<li>It must not be writable by group or others.  </li>
+</ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>OPENAI_API_KEY=sk-proj-abc123...
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>CUDA_DEVICE=0
 </code></pre></div>
@@ -1256,7 +1262,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 2, 2026 23:02:38 UTC">October 2, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 3, 2026 20:57:38 UTC">November 3, 2026</span>
   </span>
 
     
