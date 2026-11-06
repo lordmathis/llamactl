@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 )
@@ -16,6 +18,7 @@ const (
 type APIKey struct {
 	ID             int
 	KeyHash        string
+	KeyHMAC        string
 	Name           string
 	UserID         string
 	PermissionMode PermissionMode
@@ -45,4 +48,12 @@ func GenerateKey(prefix string) (string, error) {
 	hexStr := hex.EncodeToString(bytes)
 
 	return fmt.Sprintf("%s-%s", prefix, hexStr), nil
+}
+
+// KeyFingerprint returns the hex HMAC-SHA256 of a token: deterministic (so it
+// can be indexed) and keyed (so leaked rows alone cannot verify guesses).
+func KeyFingerprint(secret []byte, token string) string {
+	mac := hmac.New(sha256.New, secret)
+	mac.Write([]byte(token))
+	return hex.EncodeToString(mac.Sum(nil))
 }

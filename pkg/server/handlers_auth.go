@@ -135,6 +135,13 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 			return
 		}
 
+		// Fingerprint for indexed lookup; key_hash stays until v0.25 for v0.22 rollback
+		secret, err := h.authStore.GetOrCreateHMACKey(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "key_generation_failed", "Failed to generate API key")
+			return
+		}
+
 		// Keys created from an OIDC session belong to that user, stored as
 		// their email, everything else is attributed to "system".
 		userID := "system"
@@ -147,6 +154,7 @@ func (h *Handler) CreateKey() http.HandlerFunc {
 		now := time.Now().Unix()
 		apiKey := &auth.APIKey{
 			KeyHash:        keyHash,
+			KeyHMAC:        auth.KeyFingerprint(secret, plainTextKey),
 			Name:           req.Name,
 			UserID:         userID,
 			PermissionMode: req.PermissionMode,

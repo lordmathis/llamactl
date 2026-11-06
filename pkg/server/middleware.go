@@ -27,6 +27,8 @@ type APIAuthMiddleware struct {
 	requireManagementAuth bool
 	managementKeys        map[string]bool // Config-based management keys
 	sessions              *auth.SessionStore
+	hmacSecret            []byte
+	legacySem             chan struct{} // serializes Argon2 fallback scans
 }
 
 // NewAPIAuthMiddleware creates a new APIAuthMiddleware with the given configuration
@@ -61,12 +63,30 @@ func NewAPIAuthMiddleware(authCfg config.AuthConfig, authStore database.AuthStor
 		fmt.Println(banner)
 	}
 
-	return &APIAuthMiddleware{
+	m := &APIAuthMiddleware{
 		authStore:             authStore,
 		requireInferenceAuth:  authCfg.RequireInferenceAuth,
 		requireManagementAuth: authCfg.RequireManagementAuth,
 		managementKeys:        managementKeys,
-	}, nil
+		legacySem:             make(chan struct{}, 1),
+	}
+
+	if authStore != nil {
+		secret, err := authStore.GetOrCreateHMACKey(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("loading API key HMAC secret: %w", err)
+		}
+		m.hmacSecret = secret
+
+		pending, err := authStore.CountPendingLegacyKeys(context.Background())
+		if err != nil {
+			log.Printf("Failed to count legacy API keys: %v", err)
+		} else if pending > 0 {
+			log.Printf("%d legacy API keys pending first-use upgrade (legacy verification removed in v0.25)", pending)
+		}
+	}
+
+	return m, nil
 }
 
 // InferenceAuthMiddleware returns middleware for inference endpoints
@@ -88,26 +108,7 @@ func (a *APIAuthMiddleware) InferenceAuthMiddleware() func(http.Handler) http.Ha
 			// Try database authentication first
 			var foundKey *auth.APIKey
 			if a.requireInferenceAuth && a.authStore != nil {
-				activeKeys, err := a.authStore.GetActiveKeys(r.Context())
-				if err != nil {
-					log.Printf("Failed to get active inference keys: %v", err)
-					// Continue to management key fallback
-				} else {
-					for _, key := range activeKeys {
-						if auth.VerifyKey(apiKey, key.KeyHash) {
-							foundKey = key
-							// Async update last_used_at
-							go func(keyID int) {
-								ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-								defer cancel()
-								if err := a.authStore.TouchKey(ctx, keyID); err != nil {
-									log.Printf("Failed to update last used timestamp for key %d: %v", keyID, err)
-								}
-							}(key.ID)
-							break
-						}
-					}
-				}
+				foundKey = a.verifyInferenceKey(r.Context(), apiKey)
 			}
 
 			// If no database key found, try management key authentication (config-based)
@@ -126,6 +127,65 @@ func (a *APIAuthMiddleware) InferenceAuthMiddleware() func(http.Handler) http.Ha
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// verifyInferenceKey resolves a token to a database key via one indexed
+// fingerprint lookup, falling back to the serialized Argon2 scan for keys
+// created before fingerprints existed.
+func (a *APIAuthMiddleware) verifyInferenceKey(ctx context.Context, token string) *auth.APIKey {
+	fingerprint := auth.KeyFingerprint(a.hmacSecret, token)
+
+	key, err := a.authStore.GetKeyByHMAC(ctx, fingerprint)
+	if err != nil {
+		log.Printf("Failed to look up API key fingerprint: %v", err)
+		return nil
+	}
+	if key != nil {
+		a.touchKeyAsync(key.ID)
+		return key
+	}
+
+	return a.verifyLegacyKey(ctx, token, fingerprint)
+}
+
+// verifyLegacyKey Argon2-scans pending legacy keys, one caller at a time; a
+// successful match upgrades the key to fingerprint lookup permanently.
+func (a *APIAuthMiddleware) verifyLegacyKey(ctx context.Context, token, fingerprint string) *auth.APIKey {
+	a.legacySem <- struct{}{}
+	defer func() { <-a.legacySem }()
+
+	legacyKeys, err := a.authStore.GetPendingLegacyKeys(ctx)
+	if err != nil {
+		log.Printf("Failed to get legacy API keys: %v", err)
+		return nil
+	}
+
+	for _, key := range legacyKeys {
+		if !auth.VerifyKey(token, key.KeyHash) {
+			continue
+		}
+
+		upCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := a.authStore.SetKeyHMAC(upCtx, key.ID, fingerprint); err != nil {
+			log.Printf("Failed to upgrade legacy API key %d to fingerprint lookup: %v", key.ID, err)
+		}
+
+		a.touchKeyAsync(key.ID)
+		return key
+	}
+
+	return nil
+}
+
+func (a *APIAuthMiddleware) touchKeyAsync(keyID int) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := a.authStore.TouchKey(ctx, keyID); err != nil {
+			log.Printf("Failed to update last used timestamp for key %d: %v", keyID, err)
+		}
+	}()
 }
 
 // ManagementAuthMiddleware returns middleware for management endpoints.
