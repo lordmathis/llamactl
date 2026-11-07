@@ -8,6 +8,28 @@ import (
 	"time"
 )
 
+// scanKey reads one api_keys row; shared by every key query.
+func scanKey(scan func(dest ...any) error) (*auth.APIKey, error) {
+	var key auth.APIKey
+	var expiresAt, lastUsedAt sql.NullInt64
+
+	if err := scan(
+		&key.ID, &key.KeyHash, &key.Name, &key.UserID, &key.PermissionMode,
+		&expiresAt, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
+	); err != nil {
+		return nil, err
+	}
+
+	if expiresAt.Valid {
+		key.ExpiresAt = &expiresAt.Int64
+	}
+	if lastUsedAt.Valid {
+		key.LastUsedAt = &lastUsedAt.Int64
+	}
+
+	return &key, nil
+}
+
 // CreateKey inserts a new API key with permissions (transactional)
 func (db *sqliteDB) CreateKey(ctx context.Context, key *auth.APIKey, permissions []auth.KeyPermission) error {
 	tx, err := db.BeginTx(ctx, nil)
@@ -16,10 +38,16 @@ func (db *sqliteDB) CreateKey(ctx context.Context, key *auth.APIKey, permissions
 	}
 	defer tx.Rollback()
 
+	// NULL, never "", so the unique partial index tolerates fingerprint-less rows
+	var keyHMAC sql.NullString
+	if key.KeyHMAC != "" {
+		keyHMAC = sql.NullString{String: key.KeyHMAC, Valid: true}
+	}
+
 	// Insert the API key
 	query := `
-		INSERT INTO api_keys (key_hash, name, user_id, permission_mode, expires_at, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO api_keys (key_hash, key_hmac, name, user_id, permission_mode, expires_at, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	var expiresAt sql.NullInt64
@@ -28,7 +56,7 @@ func (db *sqliteDB) CreateKey(ctx context.Context, key *auth.APIKey, permissions
 	}
 
 	result, err := tx.ExecContext(ctx, query,
-		key.KeyHash, key.Name, key.UserID, key.PermissionMode,
+		key.KeyHash, keyHMAC, key.Name, key.UserID, key.PermissionMode,
 		expiresAt, key.CreatedAt, key.UpdatedAt,
 	)
 	if err != nil {
@@ -66,14 +94,7 @@ func (db *sqliteDB) GetKeyByID(ctx context.Context, id int) (*auth.APIKey, error
 		WHERE id = ?
 	`
 
-	var key auth.APIKey
-	var expiresAt sql.NullInt64
-	var lastUsedAt sql.NullInt64
-
-	err := db.QueryRowContext(ctx, query, id).Scan(
-		&key.ID, &key.KeyHash, &key.Name, &key.UserID, &key.PermissionMode,
-		&expiresAt, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
-	)
+	key, err := scanKey(db.QueryRowContext(ctx, query, id).Scan)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("API key not found")
@@ -81,14 +102,7 @@ func (db *sqliteDB) GetKeyByID(ctx context.Context, id int) (*auth.APIKey, error
 		return nil, fmt.Errorf("failed to query API key: %w", err)
 	}
 
-	if expiresAt.Valid {
-		key.ExpiresAt = &expiresAt.Int64
-	}
-	if lastUsedAt.Valid {
-		key.LastUsedAt = &lastUsedAt.Int64
-	}
-
-	return &key, nil
+	return key, nil
 }
 
 // ListKeys retrieves all API keys, newest first
@@ -107,26 +121,11 @@ func (db *sqliteDB) ListKeys(ctx context.Context) ([]*auth.APIKey, error) {
 
 	var keys []*auth.APIKey
 	for rows.Next() {
-		var key auth.APIKey
-		var expiresAt sql.NullInt64
-		var lastUsedAt sql.NullInt64
-
-		err := rows.Scan(
-			&key.ID, &key.KeyHash, &key.Name, &key.UserID, &key.PermissionMode,
-			&expiresAt, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
-		)
+		key, err := scanKey(rows.Scan)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan API key: %w", err)
 		}
-
-		if expiresAt.Valid {
-			key.ExpiresAt = &expiresAt.Int64
-		}
-		if lastUsedAt.Valid {
-			key.LastUsedAt = &lastUsedAt.Int64
-		}
-
-		keys = append(keys, &key)
+		keys = append(keys, key)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to iterate API keys: %w", err)
@@ -135,50 +134,67 @@ func (db *sqliteDB) ListKeys(ctx context.Context) ([]*auth.APIKey, error) {
 	return keys, nil
 }
 
-// GetActiveKeys retrieves all non-expired API keys
-func (db *sqliteDB) GetActiveKeys(ctx context.Context) ([]*auth.APIKey, error) {
+// GetKeyByHMAC retrieves a non-expired API key by fingerprint.
+func (db *sqliteDB) GetKeyByHMAC(ctx context.Context, fingerprint string) (*auth.APIKey, error) {
 	query := `
 		SELECT id, key_hash, name, user_id, permission_mode, expires_at, created_at, updated_at, last_used_at
 		FROM api_keys
-		WHERE expires_at IS NULL OR expires_at > ?
+		WHERE key_hmac = ? AND (expires_at IS NULL OR expires_at > ?)
+	`
+
+	key, err := scanKey(db.QueryRowContext(ctx, query, fingerprint, time.Now().Unix()).Scan)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to query API key by fingerprint: %w", err)
+	}
+
+	return key, nil
+}
+
+// GetPendingLegacyKeys retrieves active keys that have no fingerprint yet and
+// still verify through the Argon2 fallback.
+func (db *sqliteDB) GetPendingLegacyKeys(ctx context.Context) ([]*auth.APIKey, error) {
+	query := `
+		SELECT id, key_hash, name, user_id, permission_mode, expires_at, created_at, updated_at, last_used_at
+		FROM api_keys
+		WHERE key_hmac IS NULL AND (expires_at IS NULL OR expires_at > ?)
 		ORDER BY created_at DESC
 	`
 
-	now := time.Now().Unix()
-	rows, err := db.QueryContext(ctx, query, now)
+	rows, err := db.QueryContext(ctx, query, time.Now().Unix())
 	if err != nil {
-		return nil, fmt.Errorf("failed to query active API keys: %w", err)
+		return nil, fmt.Errorf("failed to query pending legacy API keys: %w", err)
 	}
 	defer rows.Close()
 
 	var keys []*auth.APIKey
 	for rows.Next() {
-		var key auth.APIKey
-		var expiresAt sql.NullInt64
-		var lastUsedAt sql.NullInt64
-
-		err := rows.Scan(
-			&key.ID, &key.KeyHash, &key.Name, &key.UserID, &key.PermissionMode,
-			&expiresAt, &key.CreatedAt, &key.UpdatedAt, &lastUsedAt,
-		)
+		key, err := scanKey(rows.Scan)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan API key: %w", err)
+			return nil, fmt.Errorf("failed to scan pending legacy API key: %w", err)
 		}
-
-		if expiresAt.Valid {
-			key.ExpiresAt = &expiresAt.Int64
-		}
-		if lastUsedAt.Valid {
-			key.LastUsedAt = &lastUsedAt.Int64
-		}
-
-		keys = append(keys, &key)
+		keys = append(keys, key)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to iterate active API keys: %w", err)
+		return nil, fmt.Errorf("failed to iterate pending legacy API keys: %w", err)
 	}
 
 	return keys, nil
+}
+
+// SetKeyHMAC stores the fingerprint of a key verified through the legacy path,
+// so it never needs Argon2 again. The old key_hash is kept for v0.22 rollback.
+func (db *sqliteDB) SetKeyHMAC(ctx context.Context, keyID int, fingerprint string) error {
+	query := `UPDATE api_keys SET key_hmac = ?, updated_at = ? WHERE id = ?`
+
+	_, err := db.ExecContext(ctx, query, fingerprint, time.Now().Unix(), keyID)
+	if err != nil {
+		return fmt.Errorf("failed to store API key fingerprint: %w", err)
+	}
+
+	return nil
 }
 
 // DeleteKey removes an API key (cascades to permissions)

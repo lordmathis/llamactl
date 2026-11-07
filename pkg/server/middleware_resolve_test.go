@@ -20,6 +20,10 @@ func (s *stubAuthStore) GetInstancePermission(ctx context.Context, keyID, instan
 	return s.perm, s.err
 }
 
+func (s *stubAuthStore) GetOrCreateHMACKey(ctx context.Context) ([]byte, error) {
+	return []byte("test-secret"), nil
+}
+
 func newResolveMiddleware(store database.AuthStore) *APIAuthMiddleware {
 	middleware, err := NewAPIAuthMiddleware(config.AuthConfig{}, store)
 	if err != nil {
