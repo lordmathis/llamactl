@@ -50,8 +50,7 @@ func GenerateKey(prefix string) (string, error) {
 	return fmt.Sprintf("%s-%s", prefix, hexStr), nil
 }
 
-// KeyFingerprint returns the hex HMAC-SHA256 of a token: deterministic (so it
-// can be indexed) and keyed (so leaked rows alone cannot verify guesses).
+// KeyFingerprint returns the hex HMAC-SHA256 of a token
 func KeyFingerprint(secret []byte, token string) string {
 	mac := hmac.New(sha256.New, secret)
 	mac.Write([]byte(token))
