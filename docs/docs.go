@@ -566,16 +566,16 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Returns the current server configuration (sanitized)",
+                "description": "Returns an allowlisted projection of the server configuration:\nglobal instance defaults, backend command/docker summaries, and\nthe local node name. Secret-bearing fields are never included.",
                 "tags": [
                     "System"
                 ],
                 "summary": "Get server configuration",
                 "responses": {
                     "200": {
-                        "description": "Sanitized configuration",
+                        "description": "Allowlisted configuration",
                         "schema": {
-                            "$ref": "#/definitions/config.AppConfig"
+                            "$ref": "#/definitions/server.ConfigResponse"
                         }
                     },
                     "500": {
@@ -707,6 +707,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -851,6 +857,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -887,6 +899,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -931,6 +949,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -984,6 +1008,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1023,6 +1053,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid name format",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -1070,6 +1106,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1110,6 +1152,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -1167,6 +1215,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1216,6 +1270,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -1737,6 +1797,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1780,6 +1846,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -1831,6 +1903,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1874,6 +1952,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -1925,6 +2009,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1968,6 +2058,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -2019,6 +2115,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -2066,6 +2168,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -2107,6 +2215,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -2158,6 +2272,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -2201,6 +2321,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid instance",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -2252,6 +2378,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "404": {
+                        "description": "Instance does not exist",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -2282,6 +2414,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request body or instance name",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Instance does not exist",
                         "schema": {
                             "type": "string"
                         }
@@ -2335,361 +2473,6 @@ const docTemplate = `{
                 "PermissionModeAllowAll",
                 "PermissionModePerInstance"
             ]
-        },
-        "config.AppConfig": {
-            "type": "object",
-            "properties": {
-                "auth": {
-                    "$ref": "#/definitions/config.AuthConfig"
-                },
-                "backends": {
-                    "$ref": "#/definitions/config.BackendConfig"
-                },
-                "build_time": {
-                    "type": "string"
-                },
-                "commit_hash": {
-                    "type": "string"
-                },
-                "data_dir": {
-                    "description": "Directory where all llamactl data will be stored (database, instances, logs, etc.)",
-                    "type": "string"
-                },
-                "database": {
-                    "$ref": "#/definitions/config.DatabaseConfig"
-                },
-                "instances": {
-                    "$ref": "#/definitions/config.InstancesConfig"
-                },
-                "local_node": {
-                    "type": "string"
-                },
-                "nodes": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/config.NodeConfig"
-                    }
-                },
-                "server": {
-                    "$ref": "#/definitions/config.ServerConfig"
-                },
-                "version": {
-                    "type": "string"
-                }
-            }
-        },
-        "config.AuthConfig": {
-            "type": "object",
-            "properties": {
-                "management_keys": {
-                    "description": "List of keys for management endpoints",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "oidc": {
-                    "description": "OpenID Connect login for the WebUI (optional)",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/config.OIDCConfig"
-                        }
-                    ]
-                },
-                "require_inference_auth": {
-                    "description": "Require authentication for OpenAI compatible inference endpoints",
-                    "type": "boolean"
-                },
-                "require_management_auth": {
-                    "description": "Require authentication for management endpoints",
-                    "type": "boolean"
-                }
-            }
-        },
-        "config.BackendConfig": {
-            "type": "object",
-            "properties": {
-                "custom": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/config.BackendSettings"
-                    }
-                },
-                "llama-cpp": {
-                    "$ref": "#/definitions/config.BackendSettings"
-                },
-                "mlx": {
-                    "$ref": "#/definitions/config.BackendSettings"
-                },
-                "vllm": {
-                    "$ref": "#/definitions/config.BackendSettings"
-                }
-            }
-        },
-        "config.BackendSettings": {
-            "type": "object",
-            "properties": {
-                "args": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "cache_dir": {
-                    "type": "string"
-                },
-                "command": {
-                    "type": "string"
-                },
-                "docker": {
-                    "$ref": "#/definitions/config.DockerSettings"
-                },
-                "download_timeout": {
-                    "type": "string",
-                    "example": "3600s"
-                },
-                "environment": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "health_path": {
-                    "type": "string"
-                },
-                "response_headers": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "config.DatabaseConfig": {
-            "type": "object",
-            "properties": {
-                "connection_max_lifetime": {
-                    "type": "string",
-                    "example": "1h"
-                },
-                "max_idle_connections": {
-                    "type": "integer"
-                },
-                "max_open_connections": {
-                    "description": "Connection settings",
-                    "type": "integer"
-                },
-                "path": {
-                    "description": "Database file path (relative to the top-level data_dir or absolute)",
-                    "type": "string"
-                }
-            }
-        },
-        "config.DockerSettings": {
-            "type": "object",
-            "properties": {
-                "args": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "enabled": {
-                    "type": "boolean"
-                },
-                "environment": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "image": {
-                    "type": "string"
-                }
-            }
-        },
-        "config.InstancesConfig": {
-            "type": "object",
-            "properties": {
-                "auto_create_dirs": {
-                    "description": "Automatically create the data directory if it doesn't exist",
-                    "type": "boolean"
-                },
-                "default_auto_restart": {
-                    "description": "Default auto-restart setting for new instances",
-                    "type": "boolean"
-                },
-                "default_idle_timeout": {
-                    "description": "Default idle timeout for instances in minutes (0 means no timeout)",
-                    "type": "integer"
-                },
-                "default_max_restarts": {
-                    "description": "Default max restarts for new instances",
-                    "type": "integer"
-                },
-                "default_on_demand_start": {
-                    "description": "Default on-demand start setting for new instances",
-                    "type": "boolean"
-                },
-                "default_restart_delay": {
-                    "description": "Default restart delay for new instances (in seconds)",
-                    "type": "integer"
-                },
-                "enable_lru_eviction": {
-                    "description": "Enable LRU eviction for instance logs",
-                    "type": "boolean"
-                },
-                "group_limits": {
-                    "description": "Group-specific limits for running instances (group name -\u003e max count)",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
-                },
-                "instances_dir": {
-                    "description": "Instances directory for instance working directories (preset.ini, etc.)",
-                    "type": "string"
-                },
-                "logRotationCompress": {
-                    "description": "Whether to compress rotated log files",
-                    "type": "boolean",
-                    "default": false
-                },
-                "logRotationEnabled": {
-                    "description": "Log rotation enabled",
-                    "type": "boolean",
-                    "default": true
-                },
-                "logRotationMaxSize": {
-                    "description": "Maximum log file size in MB before rotation",
-                    "type": "integer",
-                    "default": 100
-                },
-                "logs_dir": {
-                    "description": "Logs directory override (relative to data_dir if not absolute)",
-                    "type": "string"
-                },
-                "max_instances": {
-                    "description": "Maximum number of instances that can be created",
-                    "type": "integer"
-                },
-                "max_running_instances": {
-                    "description": "Maximum number of instances that can be running at the same time",
-                    "type": "integer"
-                },
-                "on_demand_start_timeout": {
-                    "description": "How long to wait for an instance to start on demand (in seconds)",
-                    "type": "integer"
-                },
-                "port_range": {
-                    "description": "Port range for instances (e.g., 8000,9000)",
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "timeout_check_interval": {
-                    "description": "Interval for checking instance timeouts (in minutes)",
-                    "type": "integer"
-                }
-            }
-        },
-        "config.NodeConfig": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "api_key": {
-                    "type": "string"
-                }
-            }
-        },
-        "config.OIDCConfig": {
-            "type": "object",
-            "properties": {
-                "allowed_groups": {
-                    "description": "Groups allowed to log in, matched against the groups claim. Empty =\nevery user the IdP authenticates is allowed (current behavior).",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "client_id": {
-                    "description": "OAuth2 client ID registered with the IdP",
-                    "type": "string"
-                },
-                "client_secret": {
-                    "description": "OAuth2 client secret",
-                    "type": "string"
-                },
-                "groups_claim": {
-                    "description": "Name of the ID-token claim carrying the user's groups (default: \"groups\").\nOverride for IdPs that expose membership under a different claim (e.g. \"roles\").",
-                    "type": "string"
-                },
-                "issuer_url": {
-                    "description": "Issuer URL of the IdP, e.g. https://authentik.example/application/o/llamactl/",
-                    "type": "string"
-                },
-                "redirect_url": {
-                    "description": "Redirect URL override; derived from the request when empty. Set this\nwhen running behind a TLS-terminating proxy that does not forward\nX-Forwarded-Proto/X-Forwarded-Host, or when serving under a subpath.",
-                    "type": "string"
-                },
-                "scopes": {
-                    "description": "Scopes requested from the IdP (default: openid, profile, email)",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "secure_cookie": {
-                    "description": "Mark the session cookie Secure; disable only on plain-HTTP LAN deployments",
-                    "type": "boolean"
-                },
-                "session_ttl": {
-                    "description": "Session lifetime (default: 12h)",
-                    "type": "string",
-                    "example": "12h"
-                }
-            }
-        },
-        "config.ServerConfig": {
-            "type": "object",
-            "properties": {
-                "allowed_headers": {
-                    "description": "Allowed headers for CORS (e.g., \"Accept\", \"Authorization\", \"Content-Type\", \"X-CSRF-Token\")",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "allowed_origins": {
-                    "description": "Allowed origins for CORS (e.g., \"http://localhost:3000\")",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "enable_swagger": {
-                    "description": "Enable Swagger UI for API documentation",
-                    "type": "boolean"
-                },
-                "host": {
-                    "description": "Server host to bind to",
-                    "type": "string"
-                },
-                "port": {
-                    "description": "Server port to bind to",
-                    "type": "integer"
-                },
-                "response_headers": {
-                    "description": "Response headers to send with responses",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                }
-            }
         },
         "instance.Instance": {
             "type": "object",
@@ -2817,6 +2600,51 @@ const docTemplate = `{
                 }
             }
         },
+        "server.BackendSummary": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string"
+                },
+                "docker": {
+                    "$ref": "#/definitions/server.DockerSummary"
+                }
+            }
+        },
+        "server.Backends": {
+            "type": "object",
+            "properties": {
+                "custom": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/server.BackendSummary"
+                    }
+                },
+                "llama-cpp": {
+                    "$ref": "#/definitions/server.BackendSummary"
+                },
+                "mlx": {
+                    "$ref": "#/definitions/server.BackendSummary"
+                },
+                "vllm": {
+                    "$ref": "#/definitions/server.BackendSummary"
+                }
+            }
+        },
+        "server.ConfigResponse": {
+            "type": "object",
+            "properties": {
+                "backends": {
+                    "$ref": "#/definitions/server.Backends"
+                },
+                "instance_defaults": {
+                    "$ref": "#/definitions/server.InstanceDefaults"
+                },
+                "local_node": {
+                    "type": "string"
+                }
+            }
+        },
         "server.CreateKeyRequest": {
             "type": "object",
             "properties": {
@@ -2869,6 +2697,17 @@ const docTemplate = `{
                 }
             }
         },
+        "server.DockerSummary": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "image": {
+                    "type": "string"
+                }
+            }
+        },
         "server.DownloadRequest": {
             "type": "object",
             "properties": {
@@ -2891,6 +2730,26 @@ const docTemplate = `{
                 },
                 "tag": {
                     "type": "string"
+                }
+            }
+        },
+        "server.InstanceDefaults": {
+            "type": "object",
+            "properties": {
+                "auto_restart": {
+                    "type": "boolean"
+                },
+                "idle_timeout": {
+                    "type": "integer"
+                },
+                "max_restarts": {
+                    "type": "integer"
+                },
+                "on_demand_start": {
+                    "type": "boolean"
+                },
+                "restart_delay": {
+                    "type": "integer"
                 }
             }
         },

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -94,32 +93,4 @@ func readConfigFile(configPath string) ([]byte, error) {
 	}
 
 	return nil, nil
-}
-
-// SanitizedCopy returns a copy of the AppConfig with sensitive information removed
-func (cfg *AppConfig) SanitizedCopy() (AppConfig, error) {
-	// Deep copy via JSON marshal/unmarshal to avoid concurrent map access
-	data, err := json.Marshal(cfg)
-	if err != nil {
-		log.Printf("Failed to marshal config for sanitization: %v", err)
-		return AppConfig{}, err
-	}
-
-	var sanitized AppConfig
-	if err := json.Unmarshal(data, &sanitized); err != nil {
-		log.Printf("Failed to unmarshal config for sanitization: %v", err)
-		return AppConfig{}, err
-	}
-
-	// Clear sensitive information
-	sanitized.Auth.ManagementKeys = []string{}
-	sanitized.Auth.OIDC.ClientSecret = ""
-
-	// Clear API keys from nodes
-	for nodeName, node := range sanitized.Nodes {
-		node.APIKey = ""
-		sanitized.Nodes[nodeName] = node
-	}
-
-	return sanitized, nil
 }
