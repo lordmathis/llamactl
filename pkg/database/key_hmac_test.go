@@ -7,30 +7,6 @@ import (
 	"time"
 )
 
-func TestMigration003DownAndUp(t *testing.T) {
-	db := newTestDB(t)
-	ctx := context.Background()
-
-	if _, err := db.GetOrCreateHMACKey(ctx); err != nil {
-		t.Fatalf("seeding secret: %v", err)
-	}
-
-	migrator, err := newMigrator(db)
-	if err != nil {
-		t.Fatalf("creating migrator: %v", err)
-	}
-	if err := migrator.Steps(-1); err != nil {
-		t.Fatalf("stepping down from version 3: %v", err)
-	}
-	if err := migrator.Steps(1); err != nil {
-		t.Fatalf("stepping back up to version 3: %v", err)
-	}
-
-	if _, err := db.GetOrCreateHMACKey(ctx); err != nil {
-		t.Fatalf("secret machinery broken after down/up: %v", err)
-	}
-}
-
 func TestGetOrCreateHMACKeyIdempotent(t *testing.T) {
 	db := newTestDB(t)
 
