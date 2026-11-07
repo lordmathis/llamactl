@@ -180,12 +180,6 @@ func (h *Handler) StartInstance() http.HandlerFunc {
 				return
 			}
 
-			// Check if error is due to maximum running instances limit
-			if _, ok := err.(manager.MaxRunningInstancesError); ok {
-				writeError(w, http.StatusConflict, "max_instances_reached", err.Error())
-				return
-			}
-
 			writeError(w, http.StatusInternalServerError, "start_failed", "Failed to start instance: "+err.Error())
 			return
 		}

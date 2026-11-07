@@ -357,12 +357,16 @@ Instance groups allow you to organize instances into named groups with separate 
 
 ### How It Works
 
-When an instance is assigned to a group, starting it triggers a two-stage check:
+When an instance is assigned to a group, an automatic start triggers a two-stage check:
 
 1. **Group Quota Check** - If the instance's group has a configured limit and the limit is reached, the least recently used instance in that group is evicted first.
 2. **Global Capacity Check** - If the global `max_running_instances` limit is reached, the least recently used instance across **all** groups is evicted.
 
 Unlabeled instances (no group assigned) only trigger the global check. Group limits apply only to local instances; remote nodes manage their own resources independently.
+
+### What the Limits Cover
+
+The limits apply to starts llamactl performs on its own: on-demand starts and startup auto-start. Explicit starts via the management API or Web UI skip them. Inference API keys always go through the on-demand path, so they cannot exceed the limits.
 
 ### Configuration
 
@@ -404,7 +408,7 @@ curl -X POST http://localhost:8080/api/v1/instances/my-large-model \
 
 ### Example Scenario
 
-With `group_limits: {large: 1, small: 3}` and `max_running_instances: 4`:
+With `group_limits: {large: 1, small: 3}` and `max_running_instances: 4`, an automatic start behaves as follows:
 
 - Starting a "large" group instance evicts the least recently used "large" instance if the group limit (1) is reached
 - Starting a "small" group instance evicts the least recently used "small" instance if the group limit (3) is reached
