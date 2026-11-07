@@ -4,16 +4,16 @@ import { useConfig } from '@/contexts/ConfigContext'
 export const useInstanceDefaults = () => {
   const { config } = useConfig()
 
-  if (!config?.instances) {
+  if (!config?.instance_defaults) {
     return null
   }
 
   return {
-    idleTimeout: config.instances.default_idle_timeout,
-    autoRestart: config.instances.default_auto_restart,
-    maxRestarts: config.instances.default_max_restarts,
-    restartDelay: config.instances.default_restart_delay,
-    onDemandStart: config.instances.default_on_demand_start,
+    idleTimeout: config.instance_defaults.idle_timeout,
+    autoRestart: config.instance_defaults.auto_restart,
+    maxRestarts: config.instance_defaults.max_restarts,
+    restartDelay: config.instance_defaults.restart_delay,
+    onDemandStart: config.instance_defaults.on_demand_start,
   }
 }
 
