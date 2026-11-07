@@ -395,6 +395,11 @@ func (h *Handler) OIDCCallback() http.HandlerFunc {
 // @Router /api/v1/auth/oidc/logout [post]
 func (h *Handler) OIDCLogout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !sameOriginRequest(r) {
+			forbidden(w, "Cross-origin request rejected")
+			return
+		}
+
 		if c, err := r.Cookie(sessionCookieName); err == nil {
 			h.oidc.Sessions.Delete(c.Value)
 		}
