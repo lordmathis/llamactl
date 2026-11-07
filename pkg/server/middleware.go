@@ -77,13 +77,6 @@ func NewAPIAuthMiddleware(authCfg config.AuthConfig, authStore database.AuthStor
 			return nil, fmt.Errorf("loading API key HMAC secret: %w", err)
 		}
 		m.hmacSecret = secret
-
-		pending, err := authStore.CountPendingLegacyKeys(context.Background())
-		if err != nil {
-			log.Printf("Failed to count legacy API keys: %v", err)
-		} else if pending > 0 {
-			log.Printf("%d legacy API keys pending first-use upgrade (legacy verification removed in v0.25)", pending)
-		}
 	}
 
 	return m, nil

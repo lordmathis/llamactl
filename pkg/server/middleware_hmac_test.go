@@ -82,12 +82,12 @@ func TestInferenceAuthLegacyKeyUpgradesOnFirstUse(t *testing.T) {
 		t.Fatalf("legacy key not upgraded after first use: key=%v err=%v", upgraded, err)
 	}
 
-	pending, err := store.CountPendingLegacyKeys(ctx)
+	pending, err := store.GetPendingLegacyKeys(ctx)
 	if err != nil {
-		t.Fatalf("CountPendingLegacyKeys: %v", err)
+		t.Fatalf("GetPendingLegacyKeys: %v", err)
 	}
-	if pending != 0 {
-		t.Errorf("pending legacy keys after upgrade = %d, want 0", pending)
+	if len(pending) != 0 {
+		t.Errorf("pending legacy keys after upgrade = %d, want 0", len(pending))
 	}
 
 	if code := doInferenceRequest(t, mw, plainText); code != http.StatusOK {
@@ -169,7 +169,7 @@ func TestHandlerCreatedKeyAuthenticates(t *testing.T) {
 	if code := doInferenceRequest(t, mw, resp.Key); code != http.StatusOK {
 		t.Fatalf("request with handler-created key: status %d, want 200", code)
 	}
-	if pending, err := store.CountPendingLegacyKeys(context.Background()); err != nil || pending != 0 {
-		t.Fatalf("handler-created key landed in legacy set: pending=%d err=%v", pending, err)
+	if pending, err := store.GetPendingLegacyKeys(context.Background()); err != nil || len(pending) != 0 {
+		t.Fatalf("handler-created key landed in legacy set: pending=%d err=%v", len(pending), err)
 	}
 }

@@ -24,10 +24,6 @@ func (s *stubAuthStore) GetOrCreateHMACKey(ctx context.Context) ([]byte, error) 
 	return []byte("test-secret"), nil
 }
 
-func (s *stubAuthStore) CountPendingLegacyKeys(ctx context.Context) (int, error) {
-	return 0, nil
-}
-
 func newResolveMiddleware(store database.AuthStore) *APIAuthMiddleware {
 	middleware, err := NewAPIAuthMiddleware(config.AuthConfig{}, store)
 	if err != nil {

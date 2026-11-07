@@ -27,7 +27,6 @@ type AuthStore interface {
 	ListKeys(ctx context.Context) ([]*auth.APIKey, error)
 	GetKeyByHMAC(ctx context.Context, fingerprint string) (*auth.APIKey, error)
 	GetPendingLegacyKeys(ctx context.Context) ([]*auth.APIKey, error)
-	CountPendingLegacyKeys(ctx context.Context) (int, error)
 	SetKeyHMAC(ctx context.Context, keyID int, fingerprint string) error
 	GetOrCreateHMACKey(ctx context.Context) ([]byte, error)
 	GetKeyByID(ctx context.Context, id int) (*auth.APIKey, error)

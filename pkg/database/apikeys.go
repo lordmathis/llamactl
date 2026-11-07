@@ -185,18 +185,6 @@ func (db *sqliteDB) GetPendingLegacyKeys(ctx context.Context) ([]*auth.APIKey, e
 	return keys, nil
 }
 
-// CountPendingLegacyKeys counts active keys still on the legacy Argon2 path.
-func (db *sqliteDB) CountPendingLegacyKeys(ctx context.Context) (int, error) {
-	var count int
-	err := db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM api_keys WHERE key_hmac IS NULL AND (expires_at IS NULL OR expires_at > ?)`,
-		time.Now().Unix()).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to count pending legacy API keys: %w", err)
-	}
-	return count, nil
-}
-
 // SetKeyHMAC stores the fingerprint of a key verified through the legacy path,
 // so it never needs Argon2 again. The old key_hash is kept for v0.22 rollback.
 func (db *sqliteDB) SetKeyHMAC(ctx context.Context, keyID int, fingerprint string) error {
