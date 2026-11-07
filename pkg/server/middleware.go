@@ -9,6 +9,7 @@ import (
 	"llamactl/pkg/database"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -195,6 +196,10 @@ func (a *APIAuthMiddleware) ManagementAuthMiddleware() func(http.Handler) http.H
 			}
 
 			if sess := sessionFromRequest(r, a.sessions); sess != nil {
+				if !isSafeMethod(r.Method) && !sameOriginRequest(r) {
+					forbidden(w, "Cross-origin request rejected")
+					return
+				}
 				ctx := context.WithValue(r.Context(), userContextKey, sess)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
@@ -216,6 +221,39 @@ func (a *APIAuthMiddleware) ManagementAuthMiddleware() func(http.Handler) http.H
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func isSafeMethod(method string) bool {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		return true
+	default:
+		return false
+	}
+}
+
+func sameOriginRequest(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		origin = r.Header.Get("Referer")
+	}
+
+	// Browsers always send Origin or Referer on unsafe methods, so neither present is not a browser request.
+	if origin == "" {
+		return false
+	}
+
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		return false
+	}
+
+	// The browser's Origin cannot be forged; proxies only change which host it must match.
+	forwarded := strings.TrimSpace(strings.SplitN(r.Header.Get("X-Forwarded-Host"), ",", 2)[0])
+	if forwarded != "" && strings.EqualFold(u.Host, forwarded) {
+		return true
+	}
+	return strings.EqualFold(u.Host, r.Host)
 }
 
 // ResolveInstancePermission returns the effective permission for the authenticated
@@ -303,7 +341,7 @@ func (a *APIAuthMiddleware) unauthorized(w http.ResponseWriter, message string) 
 }
 
 // forbidden sends a forbidden response
-func (a *APIAuthMiddleware) forbidden(w http.ResponseWriter, message string) {
+func forbidden(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
 	response := fmt.Sprintf(`{"error": {"message": "%s", "type": "permission_denied"}}`, message)
