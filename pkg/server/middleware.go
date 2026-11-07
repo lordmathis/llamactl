@@ -162,6 +162,8 @@ func (a *APIAuthMiddleware) verifyLegacyKey(ctx context.Context, token, fingerpr
 		defer cancel()
 		if err := a.authStore.SetKeyHMAC(upCtx, key.ID, fingerprint); err != nil {
 			log.Printf("Failed to upgrade legacy API key %d to fingerprint lookup: %v", key.ID, err)
+		} else {
+			log.Printf("API key %d (%s) upgraded to fingerprint verification", key.ID, key.Name)
 		}
 
 		a.touchKeyAsync(key.ID)
