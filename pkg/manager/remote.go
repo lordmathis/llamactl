@@ -151,6 +151,21 @@ func (rm *remoteManager) makeRemoteRequest(ctx context.Context, nodeConfig *conf
 	return resp, nil
 }
 
+// remoteResponseLimit exists so a compromised node cannot exhaust memory.
+const remoteResponseLimit = 32 << 20
+
+// ReadRemoteBody reads a remote node response body up to remoteResponseLimit.
+func ReadRemoteBody(r io.Reader) ([]byte, error) {
+	body, err := io.ReadAll(io.LimitReader(r, remoteResponseLimit+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	if len(body) > remoteResponseLimit {
+		return nil, fmt.Errorf("remote response exceeds the %d MiB cap", remoteResponseLimit>>20)
+	}
+	return body, nil
+}
+
 // parseRemoteResponse parses an HTTP response and unmarshals the result.
 //
 // If the response indicates the target instance does not exist (HTTP 404, or a
@@ -160,9 +175,9 @@ func (rm *remoteManager) makeRemoteRequest(ctx context.Context, nodeConfig *conf
 func parseRemoteResponse(resp *http.Response, result any) error {
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := ReadRemoteBody(resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
+		return err
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
@@ -327,9 +342,9 @@ func (rm *remoteManager) getInstanceLogs(ctx context.Context, node *config.NodeC
 
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := ReadRemoteBody(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
+		return "", err
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

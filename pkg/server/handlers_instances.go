@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"llamactl/pkg/instance"
@@ -58,8 +57,7 @@ func (h *Handler) CreateInstance() http.HandlerFunc {
 		}
 
 		var options instance.Options
-		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
+		if !h.decodeJSONBody(w, r, "invalid_request", "Invalid request body", &options) {
 			return
 		}
 
@@ -133,8 +131,7 @@ func (h *Handler) UpdateInstance() http.HandlerFunc {
 		}
 
 		var options instance.Options
-		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid request body")
+		if !h.decodeJSONBody(w, r, "invalid_request", "Invalid request body", &options) {
 			return
 		}
 

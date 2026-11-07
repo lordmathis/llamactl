@@ -10,11 +10,12 @@ import (
 func getDefaultConfig(dataDir string) AppConfig {
 	return AppConfig{
 		Server: ServerConfig{
-			Host:           "0.0.0.0",
-			Port:           8080,
-			AllowedOrigins: []string{"*"}, // Default to allow all origins
-			AllowedHeaders: []string{"*"}, // Default to allow all headers
-			EnableSwagger:  false,
+			Host:             "0.0.0.0",
+			Port:             8080,
+			AllowedOrigins:   []string{"*"}, // Default to allow all origins
+			AllowedHeaders:   []string{"*"}, // Default to allow all headers
+			EnableSwagger:    false,
+			MaxRequestBodyMB: 100, // -1 = unlimited
 		},
 		LocalNode: "main",
 		Nodes:     map[string]NodeConfig{},

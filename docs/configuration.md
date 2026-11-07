@@ -21,6 +21,7 @@ server:
   allowed_origins: ["*"]         # Allowed CORS origins (default: all)
   allowed_headers: ["*"]         # Allowed CORS headers (default: all)
   enable_swagger: false          # Enable Swagger UI for API docs
+  max_request_body_mb: 100       # Max JSON request body in MB (-1 = unlimited)
 
 backends:
   llama-cpp:
@@ -150,6 +151,7 @@ server:
   allowed_origins: ["*"]  # CORS allowed origins (default: ["*"])
   allowed_headers: ["*"]  # CORS allowed headers (default: ["*"])
   enable_swagger: false   # Enable Swagger UI (default: false)
+  max_request_body_mb: 100  # Max JSON request body in MB (-1 = unlimited, 0 = default)
 ```
 
 **Environment Variables:**
@@ -157,6 +159,9 @@ server:
 - `LLAMACTL_PORT` - Server port
 - `LLAMACTL_ALLOWED_ORIGINS` - Comma-separated CORS origins
 - `LLAMACTL_ENABLE_SWAGGER` - Enable Swagger UI (true/false)
+- `LLAMACTL_MAX_REQUEST_BODY_MB` - Max JSON request body in MB (-1 = unlimited)
+
+The body limit applies to routes that buffer JSON: OpenAI-compatible endpoints and management API requests. Oversized bodies get a `413 request_too_large`. Proxied instance traffic and streaming inference responses are never limited. The default (100 MB) covers large-context and vision workloads; it matches the ceiling of major inference APIs.
 
 ### Backend Configuration
 ```yaml

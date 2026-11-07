@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"llamactl/pkg/config"
 	"llamactl/pkg/instance"
+	"llamactl/pkg/manager"
 	"llamactl/pkg/models"
 	"net/http"
 	"net/http/httputil"
@@ -117,8 +118,7 @@ func (h *Handler) DownloadModel() http.HandlerFunc {
 		}
 
 		var req DownloadRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Failed to parse request body")
+		if !h.decodeJSONBody(w, r, "invalid_request", "Failed to parse request body", &req) {
 			return
 		}
 
@@ -249,8 +249,13 @@ func (h *Handler) fetchModelsFromNode(node config.NodeConfig, nodeName string) (
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
+	body, err := manager.ReadRemoteBody(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	var models []models.CachedModel
-	if err := json.NewDecoder(resp.Body).Decode(&models); err != nil {
+	if err := json.Unmarshal(body, &models); err != nil {
 		return nil, err
 	}
 
