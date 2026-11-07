@@ -14,10 +14,19 @@ func setProcAttrs(cmd *exec.Cmd) {
 	cmd.SysProcAttr.Setpgid = true
 }
 
-// signalStop delivers SIGINT (os.Interrupt) to the child.
+// signalStop delivers SIGINT to the child's process group; leader-only
+// delivery would orphan workers holding ports and GPU memory.
 func signalStop(cmd *exec.Cmd) {
 	if cmd == nil || cmd.Process == nil {
 		return
 	}
-	_ = cmd.Process.Signal(syscall.SIGINT)
+	_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGINT)
+}
+
+// forceKill delivers SIGKILL to the child's process group.
+func forceKill(cmd *exec.Cmd) error {
+	if cmd == nil || cmd.Process == nil {
+		return nil
+	}
+	return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 }

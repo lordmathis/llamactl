@@ -17,3 +17,12 @@ func setProcAttrs(cmd *exec.Cmd) {
 func signalStop(cmd *exec.Cmd) {
 	// No-op on Windows — see setProcAttrs.
 }
+
+// forceKill terminates the leader only. Tree-wide termination needs a Job
+// Object (security.md finding 22); not implemented yet.
+func forceKill(cmd *exec.Cmd) error {
+	if cmd == nil || cmd.Process == nil {
+		return nil
+	}
+	return cmd.Process.Kill()
+}
