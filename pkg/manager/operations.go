@@ -11,8 +11,6 @@ import (
 	"strings"
 )
 
-type MaxRunningInstancesError error
-
 // updateLocalInstanceFromRemote updates the local stub instance with data from the remote instance
 func (im *instanceManager) updateLocalInstanceFromRemote(localInst *instance.Instance, remoteInst *instance.Instance) {
 	if localInst == nil || remoteInst == nil {

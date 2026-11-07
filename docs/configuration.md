@@ -59,7 +59,7 @@ instances:
   logs_dir: data_dir/logs          # Logs directory
   auto_create_dirs: true           # Auto-create data/config/logs dirs if missing
   max_instances: -1                # Max instances (-1 = unlimited)
-  max_running_instances: -1        # Max running instances (-1 = unlimited)
+  max_running_instances: -1        # Max running instances for automatic starts (-1 = unlimited)
   enable_lru_eviction: true        # Enable LRU eviction for idle instances
   default_idle_timeout: 30         # Default idle timeout in minutes (0 = no timeout)
   default_auto_restart: true       # Auto-restart new instances by default
@@ -278,7 +278,7 @@ instances:
   logs_dir: "logs"              # Directory for instance logs, default: data_dir/logs
   auto_create_dirs: true        # Automatically create data/config/logs directories (default: true)
   max_instances: -1             # Maximum instances (-1 = unlimited)
-  max_running_instances: -1     # Maximum running instances (-1 = unlimited)
+  max_running_instances: -1     # Max running instances for automatic starts (-1 = unlimited)
   enable_lru_eviction: true        # Enable LRU eviction for idle instances
   default_idle_timeout: 30         # Default idle timeout in minutes (0 = no timeout)
   default_auto_restart: true       # Default auto-restart setting
@@ -287,7 +287,7 @@ instances:
   default_on_demand_start: true    # Default on-demand start setting
   on_demand_start_timeout: 120     # Default on-demand start timeout in seconds
   timeout_check_interval: 5        # Default instance timeout check interval in minutes
-  group_limits: {}                 # Per-group running instance limits (e.g., {large: 1, small: 3})
+  group_limits: {}                 # Per-group running limits for automatic starts (e.g., {large: 1, small: 3})
   log_rotation_enabled: true    # Enable log rotation (default: true)
   log_rotation_max_size: 100    # Max log file size in MB before rotation (default: 100)
   log_rotation_compress: false  # Compress rotated log files (default: false)
@@ -312,6 +312,8 @@ instances:
 - `LLAMACTL_LOG_ROTATION_ENABLED` - Enable log rotation (true/false)
 - `LLAMACTL_LOG_ROTATION_MAX_SIZE` - Max log file size in MB
 - `LLAMACTL_LOG_ROTATION_COMPRESS` - Compress rotated logs (true/false)
+
+**Running limits scope:** `max_running_instances` and `group_limits` bound automatic instance loading — on-demand starts triggered by inference requests and startup auto-start. Instances started explicitly via the management API or Web UI are intentional overrides and are not subject to these limits. See [Instance Groups](managing-instances.md#what-the-limits-cover).
 
 ### Database Configuration
 
