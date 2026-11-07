@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"llamactl/pkg/backends"
 	"llamactl/pkg/instance"
@@ -145,12 +144,11 @@ func (h *Handler) LlamaCppProxy() http.HandlerFunc {
 }
 
 // parseHelper parses a backend command and returns the parsed options
-func parseHelper(w http.ResponseWriter, r *http.Request, backend interface {
+func (h *Handler) parseHelper(w http.ResponseWriter, r *http.Request, backend interface {
 	ParseCommand(string) (any, error)
 }) (any, bool) {
 	var req ParseCommandRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+	if !h.decodeJSONBody(w, r, "invalid_request", "Invalid JSON body", &req) {
 		return nil, false
 	}
 
@@ -183,7 +181,7 @@ func parseHelper(w http.ResponseWriter, r *http.Request, backend interface {
 // @Router /api/v1/backends/llama-cpp/parse-command [post]
 func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parsedOptions, ok := parseHelper(w, r, &backends.LlamaServerOptions{})
+		parsedOptions, ok := h.parseHelper(w, r, &backends.LlamaServerOptions{})
 		if !ok {
 			return
 		}
@@ -212,7 +210,7 @@ func (h *Handler) ParseLlamaCommand() http.HandlerFunc {
 // @Router /api/v1/backends/mlx/parse-command [post]
 func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parsedOptions, ok := parseHelper(w, r, &backends.MlxServerOptions{})
+		parsedOptions, ok := h.parseHelper(w, r, &backends.MlxServerOptions{})
 		if !ok {
 			return
 		}
@@ -241,7 +239,7 @@ func (h *Handler) ParseMlxCommand() http.HandlerFunc {
 // @Router /api/v1/backends/vllm/parse-command [post]
 func (h *Handler) ParseVllmCommand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parsedOptions, ok := parseHelper(w, r, &backends.VllmServerOptions{})
+		parsedOptions, ok := h.parseHelper(w, r, &backends.VllmServerOptions{})
 		if !ok {
 			return
 		}

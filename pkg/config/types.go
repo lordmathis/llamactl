@@ -66,6 +66,9 @@ type ServerConfig struct {
 	// Enable Swagger UI for API documentation
 	EnableSwagger bool `yaml:"enable_swagger" json:"enable_swagger"`
 
+	// Maximum request body size in MB for JSON routes (-1 = unlimited, 0 = default of 100)
+	MaxRequestBodyMB int `yaml:"max_request_body_mb,omitempty" json:"max_request_body_mb,omitempty"`
+
 	// Response headers to send with responses
 	ResponseHeaders map[string]string `yaml:"response_headers,omitempty" json:"response_headers,omitempty"`
 }

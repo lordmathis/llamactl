@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"llamactl/pkg/config"
 	"llamactl/pkg/database"
 	"llamactl/pkg/instance"
@@ -60,6 +61,69 @@ func writeText(w http.ResponseWriter, status int, data string) {
 	if _, err := w.Write([]byte(data)); err != nil {
 		log.Printf("Failed to write text response: %v", err)
 	}
+}
+
+// maxBodyBytes returns the request body limit in bytes, or -1 when unlimited.
+func (h *Handler) maxBodyBytes() int64 {
+	mb := h.cfg.Server.MaxRequestBodyMB
+	switch {
+	case mb < 0:
+		return -1
+	case mb == 0:
+		mb = 100
+	}
+	return int64(mb) << 20
+}
+
+// limitRequestBody rejects oversized bodies: Content-Length first, then MaxBytesReader cuts off chunked senders.
+func (h *Handler) limitRequestBody(w http.ResponseWriter, r *http.Request) bool {
+	limit := h.maxBodyBytes()
+	if limit < 0 {
+		return true
+	}
+	if r.ContentLength > limit {
+		writeRequestTooLarge(w, limit)
+		return false
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
+	return true
+}
+
+func writeRequestTooLarge(w http.ResponseWriter, limit int64) {
+	writeError(w, http.StatusRequestEntityTooLarge, "request_too_large",
+		fmt.Sprintf("request body exceeds the configured limit of %d MB", limit>>20))
+}
+
+func (h *Handler) readBodyLimited(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
+	if !h.limitRequestBody(w, r) {
+		return nil, false
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		if maxErr, ok := errors.AsType[*http.MaxBytesError](err); ok {
+			writeRequestTooLarge(w, maxErr.Limit)
+			return nil, false
+		}
+		writeError(w, http.StatusBadRequest, "invalid_request", "Failed to read request body")
+		return nil, false
+	}
+	return body, true
+}
+
+// decodeJSONBody decodes dst; code and details form the 400 response, oversized bodies get a 413.
+func (h *Handler) decodeJSONBody(w http.ResponseWriter, r *http.Request, code, details string, dst any) bool {
+	if !h.limitRequestBody(w, r) {
+		return false
+	}
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		if maxErr, ok := errors.AsType[*http.MaxBytesError](err); ok {
+			writeRequestTooLarge(w, maxErr.Limit)
+			return false
+		}
+		writeError(w, http.StatusBadRequest, code, details)
+		return false
+	}
+	return true
 }
 
 // Handler provides HTTP handlers for the llamactl server API

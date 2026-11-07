@@ -26,6 +26,11 @@ func loadEnvVars(cfg *AppConfig) {
 			cfg.Server.EnableSwagger = b
 		}
 	}
+	if v := os.Getenv("LLAMACTL_MAX_REQUEST_BODY_MB"); v != "" {
+		if m, err := strconv.Atoi(v); err == nil {
+			cfg.Server.MaxRequestBodyMB = m
+		}
+	}
 
 	// Data config
 	if dataDir := os.Getenv("LLAMACTL_DATA_DIRECTORY"); dataDir != "" {

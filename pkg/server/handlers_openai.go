@@ -146,15 +146,15 @@ func (h *Handler) OpenAIListInstances() http.HandlerFunc {
 // @Produces json
 // @Success 200 "OpenAI response"
 // @Failure 400 {string} string "Invalid request body or instance name"
+// @Failure 413 {string} string "Request body exceeds the configured limit"
 // @Failure 404 {string} string "Instance does not exist"
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /v1/ [post]
 func (h *Handler) OpenAIProxy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read the entire body first
-		bodyBytes, err := io.ReadAll(r.Body)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "Failed to read request body")
+		bodyBytes, ok := h.readBodyLimited(w, r)
+		if !ok {
 			return
 		}
 		r.Body.Close()

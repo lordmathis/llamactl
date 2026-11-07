@@ -74,8 +74,7 @@ type KeyPermissionResponse struct {
 func (h *Handler) CreateKey() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req CreateKeyRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_json", "Invalid JSON in request body")
+		if !h.decodeJSONBody(w, r, "invalid_json", "Invalid JSON in request body", &req) {
 			return
 		}
 
