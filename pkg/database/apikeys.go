@@ -134,8 +134,7 @@ func (db *sqliteDB) ListKeys(ctx context.Context) ([]*auth.APIKey, error) {
 	return keys, nil
 }
 
-// GetKeyByHMAC retrieves a non-expired API key by fingerprint. Returns nil, nil
-// when no active key matches.
+// GetKeyByHMAC retrieves a non-expired API key by fingerprint.
 func (db *sqliteDB) GetKeyByHMAC(ctx context.Context, fingerprint string) (*auth.APIKey, error) {
 	query := `
 		SELECT id, key_hash, name, user_id, permission_mode, expires_at, created_at, updated_at, last_used_at
