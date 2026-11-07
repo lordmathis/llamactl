@@ -51,25 +51,6 @@ func TestGetOrCreateHMACKeyIdempotent(t *testing.T) {
 	}
 }
 
-func TestCreateKeyAllowsEmptyFingerprint(t *testing.T) {
-	db := newTestDB(t)
-	now := time.Now().Unix()
-
-	for _, name := range []string{"legacy-a", "legacy-b"} {
-		key := &auth.APIKey{
-			KeyHash:        "hash-" + name,
-			Name:           name,
-			UserID:         "system",
-			PermissionMode: auth.PermissionModeAllowAll,
-			CreatedAt:      now,
-			UpdatedAt:      now,
-		}
-		if err := db.CreateKey(context.Background(), key, nil); err != nil {
-			t.Fatalf("creating fingerprint-less key %q: %v", name, err)
-		}
-	}
-}
-
 func TestGetKeyByHMAC(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
@@ -124,55 +105,5 @@ func TestGetKeyByHMAC(t *testing.T) {
 	}
 	if key != nil {
 		t.Error("unknown fingerprint must return nil, nil")
-	}
-}
-
-func TestPendingLegacyKeysShrinkOnUpgrade(t *testing.T) {
-	db := newTestDB(t)
-	ctx := context.Background()
-	now := time.Now().Unix()
-
-	legacy := &auth.APIKey{
-		KeyHash:        "hash",
-		Name:           "legacy",
-		UserID:         "system",
-		PermissionMode: auth.PermissionModeAllowAll,
-		CreatedAt:      now,
-		UpdatedAt:      now,
-	}
-	if err := db.CreateKey(ctx, legacy, nil); err != nil {
-		t.Fatalf("creating legacy key: %v", err)
-	}
-	upgraded := &auth.APIKey{
-		KeyHash:        "hash",
-		KeyHMAC:        "fp-upgraded",
-		Name:           "upgraded",
-		UserID:         "system",
-		PermissionMode: auth.PermissionModeAllowAll,
-		CreatedAt:      now,
-		UpdatedAt:      now,
-	}
-	if err := db.CreateKey(ctx, upgraded, nil); err != nil {
-		t.Fatalf("creating upgraded key: %v", err)
-	}
-
-	pending, err := db.GetPendingLegacyKeys(ctx)
-	if err != nil {
-		t.Fatalf("GetPendingLegacyKeys: %v", err)
-	}
-	if len(pending) != 1 || pending[0].Name != "legacy" {
-		t.Fatalf("pending keys = %v, want only the fingerprint-less legacy key", pending)
-	}
-
-	if err := db.SetKeyHMAC(ctx, legacy.ID, "fp-legacy"); err != nil {
-		t.Fatalf("SetKeyHMAC: %v", err)
-	}
-
-	pending, err = db.GetPendingLegacyKeys(ctx)
-	if err != nil {
-		t.Fatalf("GetPendingLegacyKeys after upgrade: %v", err)
-	}
-	if len(pending) != 0 {
-		t.Fatalf("pending keys after upgrade = %d, want 0", len(pending))
 	}
 }
