@@ -35,6 +35,9 @@ updates:
         versions: ["10.x.x"]
       - dependency-name: "eslint"
         versions: ["10.x.x"]
+      # lucide releases new icons almost daily as minor bumps; only update on major
+      - dependency-name: "lucide-react"
+        update-types: ["version-update:semver-minor"]
     groups:
       npm-production:
         dependency-type: "production"
