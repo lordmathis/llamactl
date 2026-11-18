@@ -134,6 +134,10 @@ cd webui && npm ci && npm run build && cd ..
 go build -o llamactl ./cmd/server
 ```
 
+## One-Click Deploy
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/llamactl/)
+
 ## Usage
 
 1. Open http://localhost:8080
