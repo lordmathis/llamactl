@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -283,4 +285,71 @@ func backendPort(t *testing.T, srv *httptest.Server) int {
 		t.Fatalf("failed to parse backend port: %v", err)
 	}
 	return port
+}
+
+// A failed DeleteInstance (instance still running) used to drop the
+// per-instance lock from the map while other calls were still waiting on it.
+// A waiter then held the old lock while a new caller made a fresh one, so two
+// operations on the same instance ran at once.
+func TestInstanceLock_FailedDeleteKeepsMutualExclusion(t *testing.T) {
+	im := newInternalTestManager(t)
+	defer im.Shutdown()
+
+	inst, err := im.CreateInstance("busy", internalOpts(18106, "/model.gguf"))
+	if err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+	// Marked running, so DeleteInstance always fails and the instance stays.
+	inst.SetStatus(instance.Running)
+	defer inst.SetStatus(instance.Stopped)
+
+	var active, maxActive atomic.Int32
+	im.stopFn = func(*instance.Instance) error {
+		n := active.Add(1)
+		for {
+			m := maxActive.Load()
+			if n <= m || maxActive.CompareAndSwap(m, n) {
+				break
+			}
+		}
+		time.Sleep(time.Millisecond)
+		active.Add(-1)
+		return nil
+	}
+	im.startFn = func(*instance.Instance) error { return nil }
+	defer func() { im.stopFn, im.startFn = nil, nil }()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 20; j++ {
+				if _, err := im.UpdateInstance("busy", internalOpts(18106, "/model.gguf")); err != nil {
+					t.Errorf("UpdateInstance failed: %v", err)
+					return
+				}
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 20; j++ {
+				if err := im.DeleteInstance("busy"); err == nil {
+					t.Error("DeleteInstance of a running instance should fail")
+					return
+				}
+			}
+		}()
+	}
+	done := make(chan struct{})
+	go func() { wg.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("operations deadlocked: a lock was left locked")
+	}
+
+	if got := maxActive.Load(); got != 1 {
+		t.Errorf("%d operations held the lock for %q at the same time, want 1", got, "busy")
+	}
 }
