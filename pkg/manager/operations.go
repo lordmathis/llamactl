@@ -214,6 +214,11 @@ func (im *instanceManager) GetInstance(name string) (*instance.Instance, error) 
 // UpdateInstance updates the options of an existing instance and returns it.
 // If the instance is running, it will be restarted to apply the new options.
 func (im *instanceManager) UpdateInstance(name string, options *instance.Options) (*instance.Instance, error) {
+	// Lock before the lookup: this covers remote instances too, and a caller
+	// that waited behind a delete then finds the instance gone.
+	unlock := im.lockInstance(name)
+	defer unlock()
+
 	inst, exists := im.registry.get(name)
 	if !exists {
 		return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
@@ -250,10 +255,6 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 	if err := im.validateCustomBackend(options); err != nil {
 		return nil, err
 	}
-
-	// Lock this specific instance only
-	unlock := im.lockInstance(name)
-	defer unlock()
 
 	// Options are swapped by pointer, never mutated in place; the old pointer is a valid rollback snapshot.
 	oldOpts := inst.GetOptions()
@@ -350,6 +351,11 @@ func (im *instanceManager) releasePort(port int) {
 // Errors from the remote delete are surfaced only if they are not a
 // not-found signal, so transient outages don't block recovery.
 func (im *instanceManager) DeleteInstance(name string) error {
+	// Lock before the lookup: this covers remote instances too, and a caller
+	// that waited behind a delete then finds the instance gone.
+	unlock := im.lockInstance(name)
+	defer unlock()
+
 	inst, exists := im.registry.get(name)
 	if !exists {
 		return fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
@@ -373,10 +379,6 @@ func (im *instanceManager) DeleteInstance(name string) error {
 
 		return nil
 	}
-
-	// Lock this specific instance only
-	unlock := im.lockInstance(name)
-	defer unlock()
 
 	status := inst.GetStatus()
 	if status == instance.Running || status == instance.Restarting {
@@ -402,6 +404,11 @@ func (im *instanceManager) DeleteInstance(name string) error {
 // StartInstance starts a stopped instance and returns it.
 // If the instance is already running, it returns an error.
 func (im *instanceManager) StartInstance(name string) (*instance.Instance, error) {
+	// Lock before the lookup: this covers remote instances too, and a caller
+	// that waited behind a delete then finds the instance gone.
+	unlock := im.lockInstance(name)
+	defer unlock()
+
 	inst, exists := im.registry.get(name)
 	if !exists {
 		return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
@@ -420,10 +427,6 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 
 		return inst, nil
 	}
-
-	// Lock this specific instance only
-	unlock := im.lockInstance(name)
-	defer unlock()
 
 	// Idempotent: if already running, just return success
 	if inst.IsRunning() {
@@ -460,6 +463,11 @@ func (im *instanceManager) AtMaxRunning() bool {
 
 // StopInstance stops a running instance and returns it.
 func (im *instanceManager) StopInstance(name string) (*instance.Instance, error) {
+	// Lock before the lookup: this covers remote instances too, and a caller
+	// that waited behind a delete then finds the instance gone.
+	unlock := im.lockInstance(name)
+	defer unlock()
+
 	inst, exists := im.registry.get(name)
 	if !exists {
 		return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
@@ -478,10 +486,6 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 
 		return inst, nil
 	}
-
-	// Lock this specific instance only
-	unlock := im.lockInstance(name)
-	defer unlock()
 
 	// Idempotent: if already stopped, just return success
 	if !inst.IsRunning() {
@@ -502,6 +506,11 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 
 // RestartInstance stops and then starts an instance, returning the updated instance.
 func (im *instanceManager) RestartInstance(name string) (*instance.Instance, error) {
+	// Lock before the lookup: this covers remote instances too, and a caller
+	// that waited behind a delete then finds the instance gone.
+	unlock := im.lockInstance(name)
+	defer unlock()
+
 	inst, exists := im.registry.get(name)
 	if !exists {
 		return nil, fmt.Errorf("%w: %s", ErrInstanceNotFound, name)
@@ -520,10 +529,6 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Instance, err
 
 		return inst, nil
 	}
-
-	// Lock this specific instance for the entire restart operation to ensure atomicity
-	unlock := im.lockInstance(name)
-	defer unlock()
 
 	// Stop the instance
 	if inst.IsRunning() {
