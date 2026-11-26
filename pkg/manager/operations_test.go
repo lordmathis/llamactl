@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -547,5 +548,95 @@ func TestCreateInstance_RemoteProvisionsOnConfiguredNode(t *testing.T) {
 	}
 	if got := atomic.LoadInt32(&hitsA); got != 1 {
 		t.Errorf("create leaked to node-a (%d hits, want 1): wrong node selected", got)
+	}
+}
+
+// Operations on a remote instance used to skip the per-instance lock, so two
+// calls for the same instance reached the remote node at the same time.
+func TestRemoteInstanceOperations_AreSerialized(t *testing.T) {
+	var active, maxActive int32
+	node := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := atomic.AddInt32(&active, 1)
+		for {
+			m := atomic.LoadInt32(&maxActive)
+			if n <= m || atomic.CompareAndSwapInt32(&maxActive, m, n) {
+				break
+			}
+		}
+		time.Sleep(2 * time.Millisecond)
+		atomic.AddInt32(&active, -1)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"name":"shared","status":"running"}`)
+	}))
+	defer node.Close()
+
+	appConfig := createTestAppConfig(t.TempDir())
+	appConfig.Nodes = map[string]config.NodeConfig{
+		"main":   {},
+		"node-a": {Address: node.URL},
+	}
+	// One connection: each new connection to ":memory:" is an empty database.
+	appConfig.Database.MaxOpenConnections = 1
+	db, err := database.Open(&database.Config{
+		Path:               appConfig.Database.Path,
+		MaxOpenConnections: appConfig.Database.MaxOpenConnections,
+		MaxIdleConnections: appConfig.Database.MaxIdleConnections,
+		ConnMaxLifetime:    appConfig.Database.ConnMaxLifetime,
+	})
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	if err := database.RunMigrations(db); err != nil {
+		t.Fatalf("Failed to run migrations: %v", err)
+	}
+	mgr := manager.New(appConfig, db)
+	defer mgr.Shutdown()
+
+	opts := func() *instance.Options {
+		return &instance.Options{
+			Nodes: map[string]struct{}{"node-a": {}},
+			BackendOptions: backends.Options{
+				BackendType: backends.BackendTypeLlamaCpp,
+				LlamaServerOptions: &backends.LlamaServerOptions{
+					Model: "/path/to/model.gguf",
+				},
+			},
+		}
+	}
+	if _, err := mgr.CreateInstance("shared", opts()); err != nil {
+		t.Fatalf("CreateInstance failed: %v", err)
+	}
+
+	ops := []func() error{
+		func() error { _, err := mgr.StartInstance("shared"); return err },
+		func() error { _, err := mgr.StopInstance("shared"); return err },
+		func() error { _, err := mgr.RestartInstance("shared"); return err },
+		func() error { _, err := mgr.UpdateInstance("shared", opts()); return err },
+	}
+	var (
+		mu   sync.Mutex
+		errs []error
+		wg   sync.WaitGroup
+	)
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			for j := 0; j < 10; j++ {
+				if err := ops[(i+j)%len(ops)](); err != nil {
+					mu.Lock()
+					errs = append(errs, err)
+					mu.Unlock()
+				}
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	if len(errs) > 0 {
+		t.Errorf("%d remote operations failed, first: %v", len(errs), errs[0])
+	}
+	if got := atomic.LoadInt32(&maxActive); got != 1 {
+		t.Errorf("%d operations on remote instance %q ran at the same time, want 1", got, "shared")
 	}
 }
