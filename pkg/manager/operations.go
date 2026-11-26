@@ -252,9 +252,8 @@ func (im *instanceManager) UpdateInstance(name string, options *instance.Options
 	}
 
 	// Lock this specific instance only
-	lock := im.lockInstance(name)
-	lock.Lock()
-	defer lock.Unlock()
+	unlock := im.lockInstance(name)
+	defer unlock()
 
 	// Options are swapped by pointer, never mutated in place; the old pointer is a valid rollback snapshot.
 	oldOpts := inst.GetOptions()
@@ -375,10 +374,9 @@ func (im *instanceManager) DeleteInstance(name string) error {
 		return nil
 	}
 
-	// Lock this specific instance and clean up the lock on completion
-	lock := im.lockInstance(name)
-	lock.Lock()
-	defer im.unlockAndCleanup(name)
+	// Lock this specific instance only
+	unlock := im.lockInstance(name)
+	defer unlock()
 
 	status := inst.GetStatus()
 	if status == instance.Running || status == instance.Restarting {
@@ -424,9 +422,8 @@ func (im *instanceManager) StartInstance(name string) (*instance.Instance, error
 	}
 
 	// Lock this specific instance only
-	lock := im.lockInstance(name)
-	lock.Lock()
-	defer lock.Unlock()
+	unlock := im.lockInstance(name)
+	defer unlock()
 
 	// Idempotent: if already running, just return success
 	if inst.IsRunning() {
@@ -483,9 +480,8 @@ func (im *instanceManager) StopInstance(name string) (*instance.Instance, error)
 	}
 
 	// Lock this specific instance only
-	lock := im.lockInstance(name)
-	lock.Lock()
-	defer lock.Unlock()
+	unlock := im.lockInstance(name)
+	defer unlock()
 
 	// Idempotent: if already stopped, just return success
 	if !inst.IsRunning() {
@@ -526,9 +522,8 @@ func (im *instanceManager) RestartInstance(name string) (*instance.Instance, err
 	}
 
 	// Lock this specific instance for the entire restart operation to ensure atomicity
-	lock := im.lockInstance(name)
-	lock.Lock()
-	defer lock.Unlock()
+	unlock := im.lockInstance(name)
+	defer unlock()
 
 	// Stop the instance
 	if inst.IsRunning() {

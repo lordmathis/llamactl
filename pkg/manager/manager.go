@@ -41,7 +41,8 @@ type instanceManager struct {
 	globalConfig *config.AppConfig
 
 	// Synchronization
-	instanceLocks sync.Map // map[string]*sync.Mutex - per-instance locks for concurrent operations
+	locksMu       sync.Mutex               // guards instanceLocks
+	instanceLocks map[string]*instanceLock // per-instance locks for concurrent operations
 	shutdownOnce  sync.Once
 
 	// Fault-injection seams for UpdateInstance tests; nil in production.
@@ -68,11 +69,12 @@ func New(globalConfig *config.AppConfig, db database.InstanceStore) InstanceMana
 
 	// Create manager instance
 	im := &instanceManager{
-		registry:     registry,
-		ports:        ports,
-		db:           db,
-		remote:       remote,
-		globalConfig: globalConfig,
+		registry:      registry,
+		ports:         ports,
+		db:            db,
+		remote:        remote,
+		globalConfig:  globalConfig,
+		instanceLocks: make(map[string]*instanceLock),
 	}
 
 	// Initialize lifecycle manager (needs reference to manager for Stop/Evict operations)
@@ -324,19 +326,34 @@ func (im *instanceManager) getNodeForInstance(inst *instance.Instance) *config.N
 	return nil
 }
 
-// lockInstance returns the lock for a specific instance, creating one if needed.
-// This allows concurrent operations on different instances while preventing
-// concurrent operations on the same instance.
-func (im *instanceManager) lockInstance(name string) *sync.Mutex {
-	lock, _ := im.instanceLocks.LoadOrStore(name, &sync.Mutex{})
-	return lock.(*sync.Mutex)
+// instanceLock is a per-instance mutex. refs counts the callers that hold it
+// or wait for it, so it is only removed from the map when nobody uses it.
+type instanceLock struct {
+	mu   sync.Mutex
+	refs int
 }
 
-// unlockAndCleanup unlocks the instance lock and removes it from the map.
-// This should only be called when deleting an instance to prevent memory leaks.
-func (im *instanceManager) unlockAndCleanup(name string) {
-	if lock, ok := im.instanceLocks.Load(name); ok {
-		lock.(*sync.Mutex).Unlock()
-		im.instanceLocks.Delete(name)
+// lockInstance locks the lock for a specific instance and returns the function
+// that unlocks it. This allows concurrent operations on different instances
+// while preventing concurrent operations on the same instance.
+func (im *instanceManager) lockInstance(name string) (unlock func()) {
+	im.locksMu.Lock()
+	l, ok := im.instanceLocks[name]
+	if !ok {
+		l = &instanceLock{}
+		im.instanceLocks[name] = l
+	}
+	l.refs++
+	im.locksMu.Unlock()
+
+	l.mu.Lock()
+	return func() {
+		l.mu.Unlock()
+		im.locksMu.Lock()
+		l.refs--
+		if l.refs == 0 {
+			delete(im.instanceLocks, name)
+		}
+		im.locksMu.Unlock()
 	}
 }
